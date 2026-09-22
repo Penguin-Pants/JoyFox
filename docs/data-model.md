@@ -28,8 +28,10 @@ passphrase, secret, or derived-key property at runtime.
 
 ProfileSnapshot and MessageObservation are the entities with a retention policy.
 Each write keeps the newest 20 snapshots per member and purges older ones in the
-same transaction, so this time-series personal data stays bounded. Every other
-entity keeps each record until it is deleted explicitly.
+same transaction, so this time-series personal data stays bounded. The bound is
+by count only: a cached fact does not expire with age and counts until a newer
+observation replaces it (ADR 0005). Every other entity keeps each record until
+it is deleted explicitly.
 
 Profile facts that cannot be observed are represented as `unknown`, never as a
 negative result. Sync configuration may store explicit derivation parameters,

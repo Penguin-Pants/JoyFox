@@ -48,3 +48,6 @@
 - Firefox signing and AMO distribution have not been implemented or claimed.
 - Database version 1 supplies a migration boundary. No historical schema yet
   exists to migrate.
+- Cached profile facts do not expire (ADR 0005). A fact that changed on JoyClub
+  since the member's profile was last seen stays in use until the profile is
+  seen again.

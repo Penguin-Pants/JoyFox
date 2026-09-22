@@ -14,6 +14,10 @@ normalized message text as PRD Section 19.5 anticipates, and
 `SenderSpamOverride`. Neither was inferred from the code; see
 `docs/data-model.md`.
 
+Cached profile facts do not expire, on the project owner's decision. A cached
+fact counts until a newer observation replaces it or the user deletes it. See
+`docs/architecture-decisions/0005-profile-fact-expiry.md`.
+
 ## Completed
 
 ### M7 multi-account isolation
