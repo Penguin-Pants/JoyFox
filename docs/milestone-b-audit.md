@@ -126,6 +126,14 @@ A second automated review round found six more, fixed the same way:
 - The minimum length counted UTF-16 code units, so supplementary-plane letters
   counted twice. It now counts letter and digit code points.
 
+A third round found two more:
+
+- A phrase of only combining marks passed the "needs a letter or digit" check,
+  because the check measured string length. Phrase storage and matching now
+  count letters and digits.
+- A count above `Number.MAX_SAFE_INTEGER` may already be rounded but was
+  accepted as known. Counts must now be safe integers.
+
 ### Confirmed issues deferred (second increment)
 
 - Scoring and snapshot retention read every snapshot in the account and filter

@@ -94,8 +94,12 @@ export const OVERALL_LABEL: Record<QualificationOverall, string> = {
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
+/**
+ * A safe integer only: above `Number.MAX_SAFE_INTEGER` the extracted value may
+ * already be rounded, so it cannot be trusted as a count.
+ */
 function isCount(value: unknown): value is number {
-  return typeof value === "number" && Number.isInteger(value) && value >= 0;
+  return typeof value === "number" && Number.isSafeInteger(value) && value >= 0;
 }
 
 function isThreshold(value: unknown): value is number {

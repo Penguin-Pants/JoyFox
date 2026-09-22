@@ -13,6 +13,7 @@ import {
   SpamPhraseRepository,
 } from "../storage/repositories";
 import {
+  contentLength,
   normalizeMessage,
   RuleBasedTemplateDetector,
   type TemplateClassifier,
@@ -95,7 +96,7 @@ export class SpamService {
     requireAccountId(accountId);
     const trimmed = phrase.trim().replace(/\s+/gu, " ");
     const normalized = normalizeMessage(trimmed);
-    if (normalized.length === 0)
+    if (contentLength(normalized) === 0)
       throw new ExtensionError(
         "StorageError",
         "A spam phrase needs at least one letter or digit",

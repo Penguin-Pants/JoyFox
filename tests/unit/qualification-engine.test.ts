@@ -67,12 +67,19 @@ describe("M1 qualification engine", () => {
     expect(result.criteria.every((c) => c.source.kind === "none")).toBe(true);
   });
 
+  it("treats an unsafe integer count as unknown", () => {
+    expect(observedOnly({ photoCount: 2 ** 60 }).photoCount.value).toBe(
+      "unknown",
+    );
+    expect(observedOnly({ photoCount: 2.5 }).photoCount.value).toBe("unknown");
+  });
+
   it("treats a malformed extraction as unknown", () => {
     const result = evaluateQualification(
       observedOnly({
         verification: "yes" as never,
         photoCount: -1,
-        profileWordCount: 2.5,
+        profileWordCount: Number.MAX_SAFE_INTEGER + 1,
         joinedAt: "not a date",
       }),
       ALL,

@@ -105,6 +105,15 @@ describe("M3 template detector", () => {
     expect(verdict.status).toBe("clear");
   });
 
+  it("ignores a phrase without letters or digits", () => {
+    const verdict = detector.classify({
+      text: `${TEMPLATE} \u0301`,
+      priorMessages: [],
+      phrases: [{ id: "marks", phrase: "\u0301" }],
+    });
+    expect(verdict.status).toBe("clear");
+  });
+
   it("builds word-pair shingles", () => {
     expect([...shingles("a b c")]).toEqual(["a b", "b c"]);
     expect([...shingles("single")]).toEqual(["single"]);

@@ -210,7 +210,9 @@ export class RuleBasedTemplateDetector implements TemplateClassifier {
 
     for (const entry of input.phrases) {
       const phrase = normalizeMessage(entry.phrase);
-      if (phrase.length === 0) continue;
+      // A phrase of only combining marks is invisible and could match a
+      // stray mark anywhere, so it needs a letter or digit to count.
+      if (contentLength(phrase) === 0) continue;
       // An exact phrase inside the message is a full match, even when the
       // phrase is a single word and has no word pairs to compare.
       const exact = ` ${normalized} `.includes(` ${phrase} `);

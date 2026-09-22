@@ -49,6 +49,9 @@ describe("M3 spam service", () => {
     await expect(service.addPhrase(ACCOUNT, " !!! ")).rejects.toThrow(
       ExtensionError,
     );
+    await expect(service.addPhrase(ACCOUNT, "\u0301\u0301")).rejects.toThrow(
+      "at least one letter or digit",
+    );
     await expect(
       service.addPhrase(ACCOUNT, "a".repeat(MAX_PHRASE_LENGTH + 1)),
     ).rejects.toThrow(ExtensionError);
