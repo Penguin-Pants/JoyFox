@@ -8,6 +8,7 @@ await build({
   entryPoints: {
     background: "src/background/index.ts",
     content: "src/content/index.ts",
+    options: "src/options/index.ts",
   },
   bundle: true,
   format: "iife",
@@ -22,4 +23,6 @@ await writeFile(
   `${output}/manifest.json`,
   `${JSON.stringify(manifest, null, 2)}\n`,
 );
+await cp("src/options/options.html", `${output}/options.html`);
+await cp("src/options/options.css", `${output}/options.css`);
 await cp("README.md", `${output}/README.md`);

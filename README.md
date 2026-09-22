@@ -19,3 +19,9 @@ Requires Node.js 22 and npm.
 Load `dist/firefox/manifest.json` temporarily from `about:debugging` for local
 development. The extension safely does nothing on JoyClub until selectors have
 been manually verified and enabled in source.
+
+The options page holds the account switcher. JoyFox cannot detect which JoyClub
+login a tab uses, so the active account is the one selected there, and every
+stored note, tag and rule belongs to it. Notes and tags are refused until a
+stable member identifier is available, which waits on live selector
+verification.
