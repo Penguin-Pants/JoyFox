@@ -26,6 +26,16 @@ describe("M5 member identity resolution", () => {
     expect(verifiedSelector("profile", "memberId")).toBeDefined();
   });
 
+  it("refuses a verified field that is not an identity field", () => {
+    for (const field of ["readStatus", "verificationCode", "row", "MemberId"])
+      expect(
+        resolveMemberIdentity(
+          { page: "inbox", field, extraction: found("received") },
+          verified,
+        ),
+      ).toEqual({ status: "unresolved", reason: "not-identity-field" });
+  });
+
   it("refuses display-name fields even when their selector is verified", () => {
     for (const field of [
       ...UNSTABLE_IDENTITY_FIELDS,

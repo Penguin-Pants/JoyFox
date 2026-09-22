@@ -17,8 +17,16 @@ export const UNSTABLE_IDENTITY_FIELDS: readonly string[] = [
   "username",
 ];
 
+/**
+ * The only registry fields that hold a member identity. Selector verification
+ * proves a field can be read, not that it identifies a member, so any other
+ * field (a read state, a badge code) is refused even when verified.
+ */
+export const IDENTITY_FIELDS: readonly string[] = ["memberId"];
+
 export type IdentityUnavailableReason =
   | "selector-unverified"
+  | "not-identity-field"
   | "unstable-identifier"
   | "missing"
   | "invalid";
@@ -64,14 +72,16 @@ export function resolveMemberIdentity(
     field: string;
     extraction: ExtractionResult<string>;
   },
-  /** Injectable so tests can prove the verified path without editing the
-   * shipped registry, which must stay unverified until F1 supplies evidence. */
+  /** Injectable so tests can prove the verified path independently of the
+   * shipped registry. */
   lookup: SelectorLookup = verifiedSelector,
 ): MemberIdentity {
   // Compared case-insensitively: a registry that spells the field
   // `SenderName` must be refused exactly like `senderName`.
   if (UNSTABLE_IDENTITY_FIELDS.includes(input.field.toLowerCase()))
     return unresolved("unstable-identifier");
+  if (!IDENTITY_FIELDS.includes(input.field))
+    return unresolved("not-identity-field");
   if (lookup(input.page, input.field) === undefined)
     return unresolved("selector-unverified");
   if (input.extraction.status === "missing") return unresolved("missing");
@@ -108,6 +118,8 @@ export const IDENTITY_UNAVAILABLE_TEXT: Record<
   IdentityUnavailableReason,
   string
 > = {
+  "not-identity-field":
+    "Saving is off because this page field does not identify a member. Nothing was stored.",
   "selector-unverified":
     "Saving is off because this page has no verified member identifier yet. Nothing was stored.",
   "unstable-identifier":
