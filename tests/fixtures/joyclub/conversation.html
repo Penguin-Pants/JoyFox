@@ -1,0 +1,50 @@
+<!-- Synthetic reproduction of docs/live-evidence/02-conversation.md. Invented values only. -->
+<a
+  class="cm-conversation-header cm-conversation-header--normal"
+  href="/profile/1234567.synthetic_one.html"
+>
+  <div class="cm-conversation-header__name-readonly">
+    <span class="title-ellipsis">Synthetic One</span>
+  </div>
+  <j-gender-icon universal-gender="1"></j-gender-icon>
+  <j-veri-icon verification-status="3"></j-veri-icon>
+  <div class="cm-conversation-header__description">
+    Invented short description text
+  </div>
+</a>
+<j-control-button
+  data-e2e="button-conversation-kebap"
+  aria-label="Optionen"
+></j-control-button>
+<j-control-button
+  data-e2e="button-delete-conversation"
+  aria-label="Unterhaltung in den Papierkorb schieben"
+></j-control-button>
+<ul class="cm-message-list">
+  <li class="cm-message-list-item cm-message-list__item">
+    <j-message-bubble
+      ><div class="cm-message-bubble cm-message-bubble--left">
+        <div class="cm-message-bubble__content">Invented incoming text</div>
+      </div></j-message-bubble
+    >
+  </li>
+  <li class="cm-message-list-item cm-message-list__item">
+    <j-message-bubble
+      ><div class="cm-message-bubble cm-message-bubble--right">
+        <div class="cm-message-bubble__content">Invented outgoing text</div>
+      </div></j-message-bubble
+    >
+  </li>
+</ul>
+<form class="joy-input-wonder joy-input-wonder--expanded">
+  <textarea
+    id="joy-input-wonder-textarea"
+    class="joy-input-wonder__input"
+    rows="1"
+    maxlength="5000"
+    placeholder="Synthetic"
+  ></textarea>
+  <button class="joy-input-wonder__button" data-e2e="button-submit">
+    Senden
+  </button>
+</form>

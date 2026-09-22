@@ -169,26 +169,32 @@ counts words rather than characters, and has no phrase-adding service.
   message through substring containment. No minimum phrase length is documented,
   so none is enforced.
 
-## Blocked by live verification
+## Live evidence (2026-09-22)
 
-- Reading messages from a page, so nothing calls the spam detector yet.
-- M1's remaining pipeline stages: resolving the member, collecting observed
-  profile facts and rendering the badge. Only the engine and the fact merge can
-  be built without selectors.
-- The F9 availability matrix, which decides which facts arrive from an inbox row
-  rather than a profile. The engine handles either, since an absent fact is
-  unknown, but the matrix is still needed before M1's live acceptance.
-- The profile-page note and tag UI. M5 requires notes visible on a profile,
-  which needs a verified profile page and member identifier from F1.
+The inbox, conversation and profile pages are verified from sanitized evidence
+in `docs/live-evidence/`. Page detection and pure extractors now resolve the
+member ID, the conversation ID, verification and gender codes, photo count and
+profile word count, with synthetic fixtures and tests. The F9 matrix is done:
+join date appears on no page, so account age is always unknown.
+
+## Blocked or remaining
+
+- The meaning of the `verification-status` codes. It was inferred from colour
+  only, so verification stays unknown until it is confirmed.
+- Reading message text, so nothing calls the spam detector yet. It needs the
+  sent and received bubble meaning confirmed and the message-caching toggle from
+  ADR 0004.
+- The page UI for M1 (badge), M3 (template label) and M5 (profile notes). The
+  selectors and extractors exist; content-script to background messaging and the
+  rendering do not.
 - Automatic active-account detection. M7 asks for reliable account identity
   detection; until F1 and F9 establish where that identity exists, the active
   account stays a user choice and the UI says so.
-- M1 and M3, the rest of Milestone B. M1 additionally depends on the F9
-  availability matrix.
 
 ## Phase status
 
-Milestone B is implemented to the limit that verified selectors allow. M5, M7,
-M1's qualification engine and M3's detector and persistence are complete and
-tested. What remains in all four is the part that must read a JoyClub page,
-which waits on F1, and for M1 also on F9.
+Milestone B is implemented to the limit that confirmed page behavior allows. M5,
+M7, M1's qualification engine and M3's detector and persistence are complete and
+tested, and the three pages they need are now verified and extracted. What
+remains is the page UI and messaging, plus two confirmations: the verification
+codes and the meaning of the message bubble sides.

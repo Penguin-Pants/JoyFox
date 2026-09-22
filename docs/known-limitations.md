@@ -1,14 +1,21 @@
 # Known limitations
 
-- No live selector or route is verified, so all site-specific behavior is
-  disabled and the content script is intentionally a true no-op: it installs no
-  observer or navigation hook.
-- A stable account, member, conversation, event, and message identity source is
-  unknown. Features must not use display names as identifiers.
-- Because no member identifier is verified, notes and tags can be stored only
-  through an identity supplied in a test. In the shipped build every note and
-  tag write is refused with a visible reason, and no profile-page note UI exists
-  yet. Both unblock with F1.
+- Only the inbox, conversation and profile pages on `www.joyclub.de` are
+  verified (`docs/selector-map.md`). The content script now starts its
+  navigation observer on JoyClub pages, but no feature renders anything on a
+  page yet. Search, events and JOYCE stay disabled.
+- The member ID is the number in the profile URL. Whether JoyClub ever reuses
+  such a number is unconfirmed. Account, event and message identity sources are
+  still unknown. Features must not use display names as identifiers.
+- No profile-page note or tag UI exists yet. Notes and tags can now resolve a
+  member identity from a verified page, but nothing on a page calls them.
+- JoyClub shows no join date or account age on the inbox, the conversation or
+  the profile (`08-attribute-matrix.md`). The account-age criterion is therefore
+  always unknown, which gives Partial information whenever it is configured.
+- The meaning of the `verification-status` codes is unconfirmed, so verification
+  is always unknown until it is confirmed.
+- The profile word count adds the motto and the main text. The conversation
+  header's short description is counted separately and is not used for M1.
 - The extension cannot detect which JoyClub login a tab uses. The active account
   is whichever one the user selected on the options page, and the identifier
   recorded for it is user-declared, not verified. Switching JoyClub logins in
