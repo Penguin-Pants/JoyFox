@@ -29,9 +29,9 @@ without inventing JoyClub behavior is complete.
 - Decryption previously trusted serialized crypto parameters. Unsupported
   parameters and invalid salt, IV, or ciphertext shapes are now rejected before
   key derivation.
-- The navigation coordinator did not emit History API changes despite declaring
-  that event type. It now handles push, replace, and pop navigation and restores
-  wrapped browser functions when stopped.
+- The navigation coordinator did not reliably observe History API changes from
+  an isolated content-script world. It now detects URL transitions without
+  replacing native page functions and handles pop navigation directly.
 - The unverified content shell previously started observers and navigation
   hooks. It now performs no page work until at least one selector definition is
   verified.

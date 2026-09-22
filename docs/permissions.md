@@ -1,7 +1,8 @@
 # Permissions
 
 The machine-readable allowlist is `config/permissions.json`; lint compares it to
-the Firefox manifest.
+the Firefox manifest, including both declared host permissions and content
+script match patterns.
 
 | Permission           | Reason                                                                    |
 | -------------------- | ------------------------------------------------------------------------- |

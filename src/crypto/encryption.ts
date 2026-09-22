@@ -27,7 +27,15 @@ export interface EncryptedPayload {
   ciphertext: string;
 }
 
-const encode = (bytes: Uint8Array) => btoa(String.fromCharCode(...bytes));
+const encode = (bytes: Uint8Array) => {
+  const chunks: string[] = [];
+  const chunkSize = 0x8000;
+  for (let offset = 0; offset < bytes.length; offset += chunkSize)
+    chunks.push(
+      String.fromCharCode(...bytes.subarray(offset, offset + chunkSize)),
+    );
+  return btoa(chunks.join(""));
+};
 const decode = (value: string): Uint8Array<ArrayBuffer> => {
   const binary = atob(value);
   const bytes = new Uint8Array(new ArrayBuffer(binary.length));

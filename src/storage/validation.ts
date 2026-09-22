@@ -63,6 +63,20 @@ function optionalString(record: Record<string, unknown>, field: string): void {
   if (record[field] !== undefined) requireString(record, field);
 }
 
+function allowOnly(
+  record: Record<string, unknown>,
+  fields: readonly string[],
+  entityName: string,
+): void {
+  const unexpected = Object.keys(record).find(
+    (field) => !fields.includes(field),
+  );
+  if (unexpected)
+    throw new ValidationError(
+      `${entityName} contains unsupported field ${unexpected}`,
+    );
+}
+
 function validateActionSteps(record: Record<string, unknown>): void {
   for (const value of requireArray(record, "steps")) {
     if (!value || typeof value !== "object")
@@ -98,13 +112,29 @@ function validateProfileSnapshot(record: Record<string, unknown>): void {
 }
 
 function validateSyncConfig(record: Record<string, unknown>): void {
+  allowOnly(
+    record,
+    [
+      "id",
+      "accountId",
+      "createdAt",
+      "updatedAt",
+      "endpoint",
+      "lastSyncedAt",
+      "keyDerivation",
+    ],
+    "SyncConfig",
+  );
   requireString(record, "endpoint");
-  if ("passphrase" in record || "secret" in record || "derivedKey" in record)
-    throw new ValidationError("SyncConfig must not contain key material");
   const keyDerivation = record.keyDerivation;
   if (!keyDerivation || typeof keyDerivation !== "object")
     throw new ValidationError("keyDerivation is required");
   const parameters = keyDerivation as Record<string, unknown>;
+  allowOnly(
+    parameters,
+    ["algorithm", "iterations", "hash", "salt"],
+    "keyDerivation",
+  );
   if (parameters.algorithm !== "PBKDF2" || parameters.hash !== "SHA-256")
     throw new ValidationError("Unsupported key derivation parameters");
   if (

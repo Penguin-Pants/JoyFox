@@ -144,7 +144,7 @@ describe("F6 repositories", () => {
     };
     await expect(
       repositories.syncConfigs.put("account-a", unsafe),
-    ).rejects.toThrow("key material");
+    ).rejects.toThrow("unsupported field passphrase");
   });
   it("rejects malformed action log steps", async () => {
     const malformed = {

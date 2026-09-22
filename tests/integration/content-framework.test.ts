@@ -30,23 +30,26 @@ describe("F2 unverified content framework", () => {
     coordinator.subscribe(listener);
     coordinator.start();
     document.body.append(document.createElement("div"));
-    await vi.runAllTimersAsync();
+    await vi.advanceTimersByTimeAsync(50);
     expect(listener).toHaveBeenCalledTimes(2);
     coordinator.stop();
     vi.useRealTimers();
   });
 
-  it("coordinates History API navigation and restores browser functions", () => {
+  it("coordinates History API navigation without replacing browser functions", async () => {
+    vi.useFakeTimers();
     const originalPushState = history.pushState;
     const listener = vi.fn();
     const coordinator = new NavigationCoordinator(detectPage);
     coordinator.subscribe(listener);
     coordinator.start();
     history.pushState({}, "", "/synthetic-navigation");
+    await vi.advanceTimersByTimeAsync(250);
     expect(listener).toHaveBeenLastCalledWith(
       expect.objectContaining({ reason: "history" }),
     );
     coordinator.stop();
     expect(history.pushState).toBe(originalPushState);
+    vi.useRealTimers();
   });
 });
