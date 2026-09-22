@@ -46,6 +46,49 @@ async function seedPhrase(accountId: string, phrase: string, enabled = true) {
   });
 }
 
+describe("M3 spam service hardening", () => {
+  it("compares the newest observations by instant, not by text", async () => {
+    const ids = ["older", "newer"];
+    const clocked = new SpamService(
+      undefined,
+      undefined,
+      undefined,
+      () => "2026-09-22T00:00:00.000Z",
+      () => ids.shift() ?? "extra",
+    );
+    // 23:00 UTC on 28 February: older, but it sorts after the other as text.
+    value(
+      await clocked.record(ACCOUNT_A, other, {
+        text: TEMPLATE,
+        observedAt: "2026-03-01T01:00:00+02:00",
+      }),
+    );
+    value(
+      await clocked.record(ACCOUNT_A, other, {
+        text: TEMPLATE,
+        observedAt: "2026-03-01T00:30:00Z",
+      }),
+    );
+    const result = value(
+      await clocked.classify(ACCOUNT_A, sender, { text: TEMPLATE }),
+    );
+    expect(result.findings[0]?.priorMessageId).toBe("newer");
+  });
+
+  it("ignores an override record that names another sender", async () => {
+    value(await service.record(ACCOUNT_A, other, { text: TEMPLATE }));
+    const stored = value(await service.markNotSpam(ACCOUNT_A, other));
+    await repositories.senderSpamOverrides.put(ACCOUNT_A, {
+      ...stored,
+      id: `spam-override:${encodeURIComponent("synthetic-member-1")}`,
+    });
+    const result = value(
+      await service.classify(ACCOUNT_A, sender, { text: TEMPLATE }),
+    );
+    expect(result.flagged).toBe(true);
+  });
+});
+
 describe("M3 spam service", () => {
   it("flags a repeat of a recorded message from another sender", async () => {
     value(await service.record(ACCOUNT_A, other, { text: TEMPLATE }));

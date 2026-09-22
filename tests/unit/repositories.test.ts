@@ -195,6 +195,25 @@ describe("F6 repositories", () => {
       stored.filter(({ memberId }) => memberId === "member-2"),
     ).toHaveLength(1);
   });
+  it("purges the oldest snapshot by instant when offsets differ", async () => {
+    for (let index = 0; index < PROFILE_SNAPSHOT_RETENTION; index += 1)
+      await repositories.profileSnapshots.put("account-a", {
+        ...entity("profileSnapshots", "account-a", `snapshot-${index}`),
+        capturedAt: new Date(
+          Date.parse("2026-03-01T01:00:00Z") + index * 1000,
+        ).toISOString(),
+      });
+    // 23:00 UTC on 28 February: the oldest, but it sorts last as text.
+    await repositories.profileSnapshots.put("account-a", {
+      ...entity("profileSnapshots", "account-a", "offset-oldest"),
+      capturedAt: "2026-03-01T01:00:00+02:00",
+    });
+    const ids = (await repositories.profileSnapshots.list("account-a")).map(
+      ({ id }) => id,
+    );
+    expect(ids).toHaveLength(PROFILE_SNAPSHOT_RETENTION);
+    expect(ids).not.toContain("offset-oldest");
+  });
   it("rejects malformed action log steps", async () => {
     const malformed = {
       ...entity("actionLogs", "account-a", "action"),

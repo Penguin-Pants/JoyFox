@@ -1,5 +1,5 @@
 import type { CriterionState, TriagePlacement } from "../domain/types";
-import type { FactSource, ProfileFacts } from "./facts";
+import { isStrictIsoDate, type FactSource, type ProfileFacts } from "./facts";
 
 /**
  * The criteria the MVP evaluates. They translate PRD Section 7.2 directly:
@@ -91,17 +91,18 @@ function numericCriterion(
 
 /**
  * Whole days between the join date and the reference time, or `unknown` when
- * the join date is absent or unparseable. A future join date yields a negative
- * age rather than an error, which then simply fails a minimum.
+ * the join date is absent, not a strict ISO date, or in the future. A future
+ * join date is an extraction error, and build plan Section 8 requires
+ * extraction failures to appear as Unknown rather than as a failed criterion.
  */
 export function accountAgeDays(
   joinedAt: string | "unknown",
   now: Date,
 ): number | "unknown" {
-  if (joinedAt === "unknown") return "unknown";
-  const joined = Date.parse(joinedAt);
-  if (!Number.isFinite(joined)) return "unknown";
-  return Math.floor((now.getTime() - joined) / (24 * 60 * 60 * 1000));
+  if (joinedAt === "unknown" || !isStrictIsoDate(joinedAt)) return "unknown";
+  const elapsed = now.getTime() - Date.parse(joinedAt);
+  if (!Number.isFinite(elapsed) || elapsed < 0) return "unknown";
+  return Math.floor(elapsed / (24 * 60 * 60 * 1000));
 }
 
 /**

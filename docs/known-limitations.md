@@ -24,6 +24,9 @@
   values, 8 words minimum, 0.85 duplicate similarity, 0.9 phrase similarity and
   a 200-message comparison window, are starting points to tune against a real
   inbox. They are configurable for that reason.
+- In scripts written without spaces, each character counts as one word for the
+  minimum length, which is coarser than dictionary word segmentation.
+  `Intl.Segmenter` would be finer but needs Firefox 125, above the 121 floor.
 - Nothing writes a message observation yet. The detector is wired to storage but
   not to any page, because reading a message needs verified selectors. The
   user-facing toggle PRD Section 19.5 requires for message caching must exist

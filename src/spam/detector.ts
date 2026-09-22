@@ -1,4 +1,8 @@
-import { normalizeMessage, normalizedWordCount } from "./normalize";
+import {
+  hasLetterOrDigit,
+  normalizeMessage,
+  normalizedWordCount,
+} from "./normalize";
 import { defaultSimilarityEngine, type SimilarityEngine } from "./similarity";
 
 export interface PriorMessage {
@@ -145,7 +149,9 @@ export function detectTemplateSpam(input: {
 
   for (const known of input.knownPhrases ?? []) {
     const phrase = normalizeMessage(known.phrase);
-    if (phrase.length === 0) continue;
+    // A phrase of only combining marks is invisible and would match a stray
+    // mark anywhere, so a phrase needs a letter or digit to count.
+    if (!hasLetterOrDigit(phrase)) continue;
     if (normalized.includes(phrase)) {
       findings.push({
         kind: "known-phrase",

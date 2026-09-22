@@ -59,9 +59,14 @@ export class SpamService {
     excludeId?: string,
   ): Promise<PriorMessage[]> {
     const stored = await this.observations.list(accountId);
+    // Newest first by instant, not by text: offsets and precision can differ.
     return stored
       .filter((observation) => observation.id !== excludeId)
-      .sort((a, b) => b.observedAt.localeCompare(a.observedAt))
+      .sort(
+        (a, b) =>
+          Date.parse(b.observedAt) - Date.parse(a.observedAt) ||
+          b.id.localeCompare(a.id),
+      )
       .slice(0, COMPARISON_WINDOW)
       .map((observation) => ({
         id: observation.id,
@@ -94,7 +99,9 @@ export class SpamService {
         knownPhrases: phrases
           .filter((phrase) => phrase.enabled)
           .map((phrase) => ({ id: phrase.id, phrase: phrase.phrase })),
-        senderOverridden: override !== undefined,
+        // The record ID is derived from the member, but the stored member must
+        // also match, so a corrupt or imported record cannot unflag someone else.
+        senderOverridden: override?.memberId === identity.memberId,
         options,
         ...(this.engine ? { engine: this.engine } : {}),
       }),

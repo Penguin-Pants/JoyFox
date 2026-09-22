@@ -26,6 +26,41 @@ const prior = (
   normalizedText: normalizeMessage(text),
 });
 
+describe("M3 normalization hardening", () => {
+  it("removes invisible characters that could split a copy", () => {
+    expect(normalizeMessage("wo\u200Buld lo\uFE0Fve to\u2060 chat")).toBe(
+      "would love to chat",
+    );
+    for (const separator of ["\u200B", "\uFE0F"]) {
+      const result = detectTemplateSpam({
+        text: TEMPLATE.split("").join(separator),
+        priorMessages: [prior("p1", TEMPLATE)],
+      });
+      expect(result.flagged).toBe(true);
+    }
+  });
+
+  it("counts each character of an unspaced script as a word", () => {
+    const text =
+      "你好我很喜欢你的个人资料希望我们可以多聊聊天请加我的联系方式谢谢";
+    expect(normalizedWordCount(normalizeMessage(text))).toBe(text.length);
+    expect(normalizedWordCount("hello 你好 123")).toBe(4);
+    const result = detectTemplateSpam({
+      text,
+      priorMessages: [prior("p1", text)],
+    });
+    expect(result.flagged).toBe(true);
+  });
+
+  it("ignores a phrase without letters or digits", () => {
+    const result = detectTemplateSpam({
+      text: `${TEMPLATE} \u0301`,
+      knownPhrases: [{ id: "marks", phrase: "\u0301" }],
+    });
+    expect(result.flagged).toBe(false);
+  });
+});
+
 describe("M3 normalization", () => {
   it("folds case, punctuation and spacing to one form", () => {
     expect(normalizeMessage("Hello,   THERE!!!  ")).toBe("hello there");

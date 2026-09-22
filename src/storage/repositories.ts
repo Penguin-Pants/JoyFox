@@ -5,6 +5,7 @@ import type {
   MessageObservation,
   ProfileSnapshot,
 } from "../domain/types";
+import { newestCaptureFirst } from "../domain/snapshot-order";
 import {
   DATABASE_VERSION,
   ENTITY_NAMES,
@@ -67,10 +68,8 @@ export class ProfileSnapshotRepository extends IndexedDbRepository<"profileSnaps
     );
     const newestFirst = stored
       .filter((snapshot) => snapshot.memberId === entity.memberId)
-      .sort(
-        (a, b) =>
-          b.capturedAt.localeCompare(a.capturedAt) || b.id.localeCompare(a.id),
-      );
+      // Instants, not strings: offsets and precision can differ.
+      .sort(newestCaptureFirst);
     for (const obsolete of newestFirst.slice(PROFILE_SNAPSHOT_RETENTION))
       store.delete(obsolete.storageKey);
   }

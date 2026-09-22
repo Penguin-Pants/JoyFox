@@ -47,8 +47,9 @@ normalized message text as PRD Section 19.5 anticipates, and
 
 ### M3 template spam detector
 
-- Deterministic, local classifier. Normalization folds case, replaces
-  punctuation with spaces and collapses whitespace, after Unicode NFKC.
+- Deterministic, local classifier. Normalization applies Unicode NFKC, removes
+  default-ignorable characters, folds case, replaces punctuation with spaces and
+  collapses whitespace.
 - The similarity engine sits behind a `SimilarityEngine` interface, so a future
   classifier replaces it without the detector or triage changing. The shipped
   implementation is a Dice coefficient over character trigrams.
@@ -90,6 +91,39 @@ normalized message text as PRD Section 19.5 anticipates, and
   transaction, when that record was already older than the window. `put` would
   then have reported storing something that no longer existed. The record being
   written is now excluded from its own purge.
+
+### Confirmed issues fixed now, ported from the duplicate PR #6
+
+PR #6 built the same M1 and M3 scope in parallel and was closed in favor of this
+branch, because this branch follows ADR 0004. Its reviewers found 14 issues.
+Eight still applied to this code and are fixed here, each with a regression test
+confirmed to fail without the fix:
+
+- Snapshots and message observations were ordered by timestamp text, so an older
+  time with a `+02:00` offset could outrank a newer UTC time. The qualification
+  merge, the snapshot retention purge and the spam comparison window now compare
+  parsed instants.
+- A future join date gave a negative account age that failed a minimum, so an
+  extraction error could quarantine a sender. Build plan Section 8 requires
+  extraction failures to appear as Unknown, so it is now unknown.
+- `Date.parse` repairs `2026-02-30` and accepts trailing text. Join dates must
+  now be strict ISO 8601 with real calendar values.
+- `mergeProfileFacts` accepted any value that was not `unknown`, including a
+  negative, fractional or unsafe-integer count. Such values are now treated as
+  not observed, and the cached value is used instead.
+- Default-ignorable characters such as U+200B or U+FE0F survived normalization
+  and could hide a copied template. They are now removed.
+- A message in a script written without spaces (Chinese, Japanese, Thai) was one
+  "word" and never reached the minimum length, so it was never checked. Each
+  character of such a script now counts as a word.
+- A phrase of only combining marks matched a stray mark in any message. A phrase
+  now needs a letter or digit.
+- An override record was honored by ID alone. Its stored member must now also
+  match the sender. `UNKNOWN_FACTS` is also frozen.
+
+The other six did not apply: this branch has no snapshot-writing service, no
+stored detector settings, uses counted trigrams rather than word-pair sets,
+counts words rather than characters, and has no phrase-adding service.
 
 ### Confirmed issues fixed now, M5 and M7 increment
 

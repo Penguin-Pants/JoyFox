@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { ProfileSnapshot } from "../../src/domain/types";
 import {
+  isStrictIsoDate,
   mergeProfileFacts,
   newestSnapshot,
   UNKNOWN_FACTS,
@@ -176,7 +177,61 @@ describe("M1 qualification engine", () => {
     expect(accountAgeDays("2026-09-12T00:00:00.000Z", NOW)).toBe(10);
     expect(accountAgeDays("unknown", NOW)).toBe("unknown");
     expect(accountAgeDays("not a date", NOW)).toBe("unknown");
-    // A join date in the future is an age below any minimum, not an error.
-    expect(accountAgeDays("2026-10-01T00:00:00.000Z", NOW)).toBeLessThan(0);
+    // A future join date is an extraction error, so it is unknown rather
+    // than a failed minimum (build plan Section 8).
+    expect(accountAgeDays("2026-10-01T00:00:00.000Z", NOW)).toBe("unknown");
+    const result = evaluateQualification({
+      facts: { ...UNKNOWN_FACTS, joinedAt: "2026-10-01T00:00:00.000Z" },
+      criteria: { minimumAccountAgeDays: 1 },
+      now: NOW,
+    });
+    expect(result.outcome).toBe("partial-information");
+  });
+
+  it("treats a date that Date.parse would repair as unknown", () => {
+    for (const joinedAt of [
+      "2026-02-30",
+      "2026-01-01junk",
+      "2026-13-01T00:00:00Z",
+      "2026-01-01T24:00:00Z",
+      "1 March 2026",
+    ]) {
+      expect(isStrictIsoDate(joinedAt)).toBe(false);
+      expect(accountAgeDays(joinedAt, NOW)).toBe("unknown");
+      expect(mergeProfileFacts({ joinedAt }).facts.joinedAt).toBe("unknown");
+    }
+    for (const joinedAt of [
+      "2024-02-29",
+      "2026-03-01T01:00:00+02:00",
+      "2026-03-01T00:30:00.123Z",
+    ])
+      expect(isStrictIsoDate(joinedAt)).toBe(true);
+  });
+
+  it("treats a malformed or unsafe count as not observed", () => {
+    for (const photoCount of [-1, 2.5, Number.NaN, 2 ** 60])
+      expect(mergeProfileFacts({ photoCount }).facts.photoCount).toBe(
+        "unknown",
+      );
+    const merged = mergeProfileFacts(
+      { photoCount: -1, verification: "yes" as never },
+      snapshot({ photoCount: 4, verification: true }),
+    );
+    expect(merged.facts).toMatchObject({ photoCount: 4, verification: true });
+    expect(merged.sources.photoCount).toBe("cached");
+  });
+
+  it("orders snapshots by instant, not by text", () => {
+    // 23:00 UTC on 28 February: older, but it sorts after the other as text.
+    const older = snapshot({
+      id: "older",
+      capturedAt: "2026-03-01T01:00:00+02:00",
+    });
+    const newer = snapshot({ id: "newer", capturedAt: "2026-03-01T00:30:00Z" });
+    expect(newestSnapshot([older, newer])?.id).toBe("newer");
+  });
+
+  it("keeps the unknown default immutable", () => {
+    expect(Object.isFrozen(UNKNOWN_FACTS)).toBe(true);
   });
 });
