@@ -1,0 +1,19 @@
+{
+  "manifest_version": 3,
+  "name": "JoyFox",
+  "version": "0.1.0",
+  "description": "Local-first enhancements for pages you open on JoyClub and JOYCE.",
+  "permissions": ["storage"],
+  "host_permissions": ["*://*.joyclub.de/*", "*://*.joyce.app/*"],
+  "background": { "scripts": ["background.js"] },
+  "content_scripts": [
+    {
+      "matches": ["*://*.joyclub.de/*", "*://*.joyce.app/*"],
+      "js": ["content.js"],
+      "run_at": "document_idle"
+    }
+  ],
+  "browser_specific_settings": {
+    "gecko": { "id": "joyfox@example.invalid", "strict_min_version": "121.0" }
+  }
+}

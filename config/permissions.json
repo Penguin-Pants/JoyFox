@@ -1,0 +1,4 @@
+{
+  "permissions": ["storage"],
+  "host_permissions": ["*://*.joyclub.de/*", "*://*.joyce.app/*"]
+}
