@@ -28,6 +28,15 @@
 13. Confirm a note or tag cannot be saved anywhere in the live UI while
     selectors are unverified, and that the refusal states nothing was stored.
 
+## Spam detection and qualification
+
+14. Upgrade an existing installation rather than a clean one, and confirm notes
+    and tags written before the upgrade are still present.
+15. Confirm a data export reports schema version 2 and includes the message
+    observation and sender override collections.
+16. Confirm no message is cached anywhere while selectors are unverified, since
+    nothing reads a page yet.
+
 Live selector and action acceptance must wait for the evidence checklist in
 `manual-verification-needed.md`. Never perform destructive action testing
 automatically.

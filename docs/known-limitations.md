@@ -18,6 +18,29 @@
   tags per account.
 - The note and tag size limits (4000 and 64 characters) are storage guards
   chosen by this implementation, not values observed from JoyClub.
+- The spam detector's thresholds are provisional. No document sets a similarity
+  threshold or a minimum message length, and the build plan Section 30 keeps the
+  acceptable triage false-positive threshold an open decision. The current
+  values, 8 words minimum, 0.85 duplicate similarity, 0.9 phrase similarity and
+  a 200-message comparison window, are starting points to tune against a real
+  inbox. They are configurable for that reason.
+- In scripts written without spaces, each character counts as one word for the
+  minimum length, which is coarser than dictionary word segmentation.
+  `Intl.Segmenter` would be finer but needs Firefox 125, above the 121 floor.
+- Nothing writes a message observation yet. The detector is wired to storage but
+  not to any page, because reading a message needs verified selectors. The
+  user-facing toggle PRD Section 19.5 requires for message caching must exist
+  before the first live caller is added.
+- A very short known phrase matches almost every message, because phrase
+  matching includes substring containment. The phrase list is user-authored and
+  no minimum length is documented, so none is enforced.
+- Qualification evaluates only criteria the caller supplies. No default rule is
+  shipped, because the PRD states these thresholds as user-configured values and
+  gives only an illustrative example. The rule builder that sets them is M4,
+  which has not started.
+- Per-member message and tag reads list the account's records and filter in
+  memory. There is no member or timestamp index yet, so both the retention purge
+  and each classification cost grows with the stored record count.
 - Background persistence is proven by an automated database-backed wake-counter
   test and reachable from the packaged bundle through the `diagnostic.wake`
   message; a manual forced event-page restart remains an acceptance check.

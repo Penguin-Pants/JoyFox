@@ -18,6 +18,12 @@ when a stable member identity is available. While no member-identifier selector
 is verified, every note and tag write is refused and the reason is shown to the
 user. Nothing is stored from a display name.
 
+The template spam detector stores the normalized form of messages the user
+already had on screen, never the original text, and purges them on the 12-month
+window PRD Section 19.5 sets. Its explanations name what matched and how
+closely, never the message text, so an explanation stays safe to show and safe
+to log. Comparison is local and deterministic, with no model and no network.
+
 Removing an account from the options page deletes every record in that scope and
 clears the active-account pointer first, so an interrupted removal cannot leave
 the extension active on a half-removed scope.

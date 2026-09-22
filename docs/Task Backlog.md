@@ -40,14 +40,21 @@ Matches the PRD's Section 19.1 scope exactly. Nothing here is not in that list, 
 | --- | --- | --- |
 | F0 to F6 | Done | See `foundation-audit.md`. F2's live acceptance waits on F1. |
 | F1, F7, F8, F9 | Blocked | Human-assisted verification. See `manual-verification-needed.md`. |
+| M1 | Partial | The qualification engine and profile-fact merge are complete, pure and tested, including F9's unknown-is-not-failure rule. Resolving the member, collecting observed facts and rendering the badge wait on F1, and the availability matrix on F9. |
+| M3 | Partial | Normalization, the pluggable similarity engine, duplicate and known-phrase matching, explanations, and the persisted per-sender override are complete. Nothing reads a message from a page yet, which waits on F1. |
 | M5 | Partial | Notes and tags persist, keyed to account plus a resolved member identity. Writes are refused while no member selector is verified, and the profile UI waits on F1. See `milestone-b-audit.md`. |
 | M7 | Partial | Explicit active account, account-scoped repositories, options switcher, and the Section 14 isolation test. Automatic account detection waits on F1 and F9. |
-| M1, M2, M3, M4, M6, M8, M9, M10 | Not started | |
+| M2, M4, M6, M8, M9, M10 | Not started | |
 
-### Follow-up work recorded during M5 and M7
+### Follow-up work recorded during Milestone B
 
-- Add a member index for user tags so per-member tag reads do not scan the
-  account. This changes the database schema and belongs with M8.
+- Add a member index for user tags and message observations, so per-member
+  reads and the retention purge do not scan the account. This changes the
+  database schema and belongs with M8.
+- Add the user-facing toggle for message caching that PRD Section 19.5
+  requires, before anything writes a message observation from a live page.
+- Tune the spam thresholds against a real inbox and record the outcome, since
+  build plan Section 30 keeps the acceptable false-positive threshold open.
 - Make account creation atomic, so two concurrent creates cannot both pass the
   duplicate identifier check.
 - Replace the user-declared account identifier with a verified one once F1 and

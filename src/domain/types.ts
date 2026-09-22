@@ -96,6 +96,29 @@ export interface SpamPhrase extends AccountScopedEntity {
   phrase: string;
   enabled: boolean;
 }
+/**
+ * Normalized text of a message the user already had on screen, kept so a later
+ * message can be recognized as a near-duplicate of it. Only the normalized
+ * form is stored, never the original formatting, and the store is purged on
+ * the retention window in `docs/data-model.md`.
+ */
+export interface MessageObservation extends AccountScopedEntity {
+  memberId: string;
+  conversationId?: string;
+  observedAt: string;
+  normalizedText: string;
+}
+/**
+ * A user correction that a sender's messages are not template spam. It is
+ * per-sender and permanent until reversed, so a false positive is corrected
+ * once rather than on every message.
+ */
+export interface SenderSpamOverride extends AccountScopedEntity {
+  memberId: string;
+  decision: "not-spam";
+  decidedAt: string;
+  reason?: string;
+}
 export interface ActionLog extends AccountScopedEntity {
   memberId?: string;
   action: string;
@@ -118,6 +141,8 @@ export interface EntityMap {
   extensionPreferences: ExtensionPreference;
   messageTemplates: MessageTemplate;
   spamPhrases: SpamPhrase;
+  messageObservations: MessageObservation;
+  senderSpamOverrides: SenderSpamOverride;
   actionLogs: ActionLog;
 }
 

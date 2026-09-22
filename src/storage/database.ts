@@ -1,8 +1,10 @@
 import type { EntityName } from "../domain/types";
 
 export const DATABASE_NAME = "joyfox";
-export const DATABASE_VERSION = 1;
-export const ENTITY_NAMES: readonly EntityName[] = [
+export const DATABASE_VERSION = 2;
+
+/** The stores schema version 1 created. Frozen: it describes history. */
+const VERSION_1_ENTITY_NAMES: readonly EntityName[] = [
   "extensionAccounts",
   "joyClubMembers",
   "profileSnapshots",
@@ -21,6 +23,17 @@ export const ENTITY_NAMES: readonly EntityName[] = [
   "actionLogs",
 ];
 
+/** The stores schema version 2 added, for the template spam detector. */
+const VERSION_2_ENTITY_NAMES: readonly EntityName[] = [
+  "messageObservations",
+  "senderSpamOverrides",
+];
+
+export const ENTITY_NAMES: readonly EntityName[] = [
+  ...VERSION_1_ENTITY_NAMES,
+  ...VERSION_2_ENTITY_NAMES,
+];
+
 let connection: Promise<IDBDatabase> | undefined;
 
 export function openDatabase(): Promise<IDBDatabase> {
@@ -28,12 +41,17 @@ export function openDatabase(): Promise<IDBDatabase> {
     const request = indexedDB.open(DATABASE_NAME, DATABASE_VERSION);
     request.onupgradeneeded = (event) => {
       const db = request.result;
-      if (event.oldVersion < 1)
-        for (const name of ENTITY_NAMES) {
+      // Each version adds only its own stores. A fresh install runs every
+      // branch in order, so a store must never be created by two of them.
+      const createStores = (names: readonly EntityName[]) => {
+        for (const name of names) {
           const store = db.createObjectStore(name, { keyPath: "storageKey" });
           store.createIndex("accountId", "accountId", { unique: false });
           store.createIndex("updatedAt", "updatedAt", { unique: false });
         }
+      };
+      if (event.oldVersion < 1) createStores(VERSION_1_ENTITY_NAMES);
+      if (event.oldVersion < 2) createStores(VERSION_2_ENTITY_NAMES);
     };
     request.onsuccess = () => resolve(request.result);
     request.onerror = () => reject(request.error);
