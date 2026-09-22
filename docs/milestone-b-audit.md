@@ -1,8 +1,9 @@
 # Milestone B audit
 
-Milestone B is M1, M3, M5 and M7. This increment covers the first step of the
-build plan's recommended order, Section 32 step 10: "Implement M5 and M7 first
-as low-risk persistence validation."
+Milestone B is M1, M3, M5 and M7. The first increment covered Section 32 step
+10, M5 and M7. The second increment covers steps 11 to 14: the qualification
+engine, M1, the spam detector and M3, each to the limit that verified selectors
+allow.
 
 ## Completed
 
@@ -35,9 +36,78 @@ as low-risk persistence validation."
   member IDs.
 - Typed error categories from Section 21 now exist in `src/errors.ts`.
 
+### M1 sender qualification (second increment)
+
+- `evaluateQualification` is a pure function. Each configured criterion
+  (verification, minimum photo count, minimum profile word count, minimum
+  account age in days) is `pass`, `fail` or `unknown`, with a plain-language
+  reason and the source of the fact. Overall display is `Qualified`,
+  `Partial information` or `Does not meet rule`. No percentage is shown.
+- Unknown never becomes a pass or a fail. A malformed extraction, a negative
+  count or a join date in the future is unknown. Any fail outranks unknown.
+- `mergeProfileFacts` lets a fact observed now win, and otherwise takes the
+  newest same-member snapshot that knows the fact, keeping its capture time.
+- `defaultPlacement` implements the F9 default: partial goes to Needs Review, a
+  failure goes to Quarantine. M2 and M4 own the final placement.
+- `QualificationService` stores a ProfileSnapshot only for a resolved member
+  identity, skips an all-unknown snapshot, and registers the member. Scoring an
+  unresolved identity uses the current surface only and reports
+  `cache: "unavailable"`.
+- Criteria are a caller input. The persisted rule that supplies them is M4's
+  ContactRule, so M1 adds no second rule store that M4 would need to migrate.
+  With no criteria, the result is `Qualified`, which is the PRD Open preset.
+
+### M3 template spam detector (second increment)
+
+- `RuleBasedTemplateDetector` implements the `TemplateClassifier` interface, so
+  a later classifier can replace it without a triage rewrite. It is local,
+  deterministic and has no AI.
+- Normalization: Unicode NFKC, lowercase, punctuation and symbols to spaces,
+  whitespace collapsed. Letters in any script stay as typed.
+- Messages below a configurable minimum length (default 40 normalized
+  characters) are `too-short` and never flagged.
+- Similarity to earlier messages is Jaccard over word pairs (default 0.7). Saved
+  phrases match exactly on word boundaries, or fuzzily by the share of the
+  phrase's word pairs in the message (default 0.8).
+- Every flag lists why. A reason names a saved phrase, which is the user's own
+  text, but never repeats an earlier message's text.
+- `SpamService` keeps the editable SpamPhrase library (add, deduplicate, enable,
+  disable, remove) and the sender-specific "not spam" correction. The correction
+  persists, is reversible, applies only to that sender, and turns a flag into
+  `overridden` while the matches stay visible.
+
 ## Review findings
 
-### Confirmed issues fixed now
+### Confirmed issues fixed now (second increment)
+
+- A one-name substitution in a 16-word copy scored 0.78 against a 0.8 threshold
+  and was missed. The prior-message default is now 0.7, and the arithmetic is
+  recorded next to the setting.
+- The exported `UNKNOWN_FACTS` default was a mutable shared object. It is now
+  frozen.
+- Member registration and the identity refusal outcome were private to M5 but
+  are needed by M1 and M3. Both moved to shared modules without a behavior
+  change, so the three services cannot drift apart.
+
+### Confirmed issues deferred (second increment)
+
+- Scoring and snapshot retention read every snapshot in the account and filter
+  by member. This is the same missing member index as for tags and belongs with
+  the M8 schema work.
+- No message-history entity exists in the data model, so earlier messages for
+  similarity are a caller input and nothing stores message text. Persisting a
+  history, or fingerprints of it, is a data-model and privacy decision that the
+  planning documents do not make.
+
+### Possible risks (second increment)
+
+- A cached fact can be old. The result carries each snapshot's capture time, but
+  no expiry rule exists; the PRD says snapshots are never permanently accurate
+  without setting an age limit.
+- The 40-character minimum and the 0.7 and 0.8 thresholds are implementation
+  choices. The acceptable false-positive rate is an open decision (Section 30).
+
+### Confirmed issues fixed now (first increment)
 
 - The removal confirmation stayed armed after the user did something else, so a
   single later click could delete an account without a fresh warning. Any other
@@ -53,7 +123,7 @@ as low-risk persistence validation."
 - `src/errors.ts` declared an error code no caller used and the build plan does
   not list. It was removed.
 
-### Confirmed issues deferred
+### Confirmed issues deferred (first increment)
 
 - Tags for one member are found by listing the account's tags and filtering. A
   member index would change the database schema, which belongs with the M8
@@ -62,7 +132,7 @@ as low-risk persistence validation."
   the check and the write are separate transactions. The options page is
   single-user and serializes clicks, so this is recorded rather than fixed.
 
-### Possible risks
+### Possible risks (first increment)
 
 - Actions re-render without a queue. Rapid repeated clicks could render an
   intermediate state, although every render reads committed storage, so the
@@ -77,10 +147,19 @@ as low-risk persistence validation."
 - Automatic active-account detection. M7 asks for reliable account identity
   detection; until F1 and F9 establish where that identity exists, the active
   account stays a user choice and the UI says so.
-- M1 and M3, the rest of Milestone B. M1 additionally depends on the F9
-  availability matrix.
+- The M1 badge in the inbox and conversation, and snapshot capture from a
+  profile page. Both need F1 selectors and the F9 availability matrix.
+- The M1 acceptance check (95 percent agreement with a manual check across 50
+  real messages) needs live extraction.
+- The M3 "looks like a template" label and one-click "not spam" control, and
+  reading message text from the page. Both need F1 message and sender selectors.
+- The M3 source of earlier messages. It needs either the message text visible on
+  the current page (F1) or a decision to store a message history.
+- The user interface for qualification criteria belongs with M4's rule builder.
 
 ## Phase status
 
-Milestone B is partially complete: M5 and M7 are implemented to the limit that
-verified selectors allow, M1 and M3 have not started.
+Milestone B is partially complete. M5 and M7 are implemented to the limit that
+verified selectors allow. The M1 qualification engine and service and the M3
+detector and service are complete and tested; their page UI and live acceptance
+wait on F1 and F9. Milestone B cannot close until that evidence exists.

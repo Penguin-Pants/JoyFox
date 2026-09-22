@@ -23,5 +23,15 @@
   message; a manual forced event-page restart remains an acceptance check.
 - Encryption is an isolated proof of concept. There is no sync transport.
 - Firefox signing and AMO distribution have not been implemented or claimed.
+- M1 qualification and M3 template detection run only as tested services. No
+  badge, label or override control appears on JoyClub pages until F1 verifies
+  the selectors, and M1 criteria have no settings UI until M4.
+- Spam similarity compares against earlier messages supplied by the caller. No
+  message history is stored, so each classification sees only the messages its
+  caller passes in.
+- The minimum message length (40 characters) and the similarity thresholds (0.7
+  for earlier messages, 0.8 for phrases) are implementation defaults, not values
+  tuned against real inbox data.
+- Cached profile facts carry their capture time but do not expire.
 - Database version 1 supplies a migration boundary. No historical schema yet
   exists to migrate.

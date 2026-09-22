@@ -21,3 +21,9 @@ user. Nothing is stored from a display name.
 Removing an account from the options page deletes every record in that scope and
 clears the active-account pointer first, so an interrupted removal cannot leave
 the extension active on a half-removed scope.
+
+Qualification and spam detection run on-device and make no network request. A
+profile snapshot and a "not spam" correction describe a third party, so both are
+written only for a resolved member identity. Message text is compared in memory
+and is not stored; a spam explanation names a saved phrase, which is the user's
+own text, but never repeats another message's text.

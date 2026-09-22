@@ -42,7 +42,18 @@ Matches the PRD's Section 19.1 scope exactly. Nothing here is not in that list, 
 | F1, F7, F8, F9 | Blocked | Human-assisted verification. See `manual-verification-needed.md`. |
 | M5 | Partial | Notes and tags persist, keyed to account plus a resolved member identity. Writes are refused while no member selector is verified, and the profile UI waits on F1. See `milestone-b-audit.md`. |
 | M7 | Partial | Explicit active account, account-scoped repositories, options switcher, and the Section 14 isolation test. Automatic account detection waits on F1 and F9. |
-| M1, M2, M3, M4, M6, M8, M9, M10 | Not started | |
+| M1 | Partial | Pure qualification engine with pass, fail and unknown per criterion, snapshot merge, snapshot storage and the F9 default placement. Badge UI and the 95 percent live check wait on F1 and F9. |
+| M3 | Partial | Rule-based detector behind a replaceable interface, SpamPhrase library and a persisted per-sender "not spam" correction. Page label and message extraction wait on F1. |
+| M2, M4, M6, M8, M9, M10 | Not started | |
+
+### Follow-up work recorded during M1 and M3
+
+- Decide whether to store a message history (or fingerprints) for similarity
+  against earlier messages. Until then the caller supplies earlier messages
+  and nothing stores message text.
+- Supply M1 criteria from M4's ContactRule and build the criteria UI there.
+- Decide whether cached profile facts expire after an age limit.
+- The member index noted below also removes the per-account snapshot scan.
 
 ### Follow-up work recorded during M5 and M7
 
