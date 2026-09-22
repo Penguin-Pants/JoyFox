@@ -11,8 +11,10 @@ import {
  * unexpected markup: a field that cannot be read is `missing` or `invalid`,
  * so qualification shows Unknown rather than a guess.
  *
- * Names and message text are deliberately not extracted. Identity comes from
- * the numeric member ID only (build plan Section 12).
+ * Identity comes from the numeric member ID only (build plan Section 12).
+ * The inbox sender name is read for display alone, as the F2 proof of concept
+ * requires: it is never an identity, never stored and never logged. Message
+ * text is not extracted at all.
  */
 
 const found = <T>(value: T, source: string): ExtractionResult<T> => ({
@@ -98,6 +100,8 @@ const countWords = (text: string) =>
 
 export interface InboxRowExtraction {
   row: Element;
+  /** Display only. Never persist, log or use it as an identity. */
+  senderName: ExtractionResult<string>;
   memberId: ExtractionResult<string>;
   verificationCode: ExtractionResult<number>;
   genderCode: ExtractionResult<number>;
@@ -113,13 +117,20 @@ export function extractInboxRows(
   if (!rowSelector) return [];
   const linkSelector = verifiedSelector("inbox", "memberId");
   const readSelector = verifiedSelector("inbox", "readStatus");
+  const nameSelector = verifiedSelector("inbox", "senderName");
   return Array.from(root.querySelectorAll(rowSelector)).map((row) => {
     const readIcon = readSelector ? row.querySelector(readSelector) : null;
     const modifier = Array.from(readIcon?.classList ?? [])
       .map((name) => /__read-status--([a-z-]+)$/.exec(name)?.[1])
       .find((value) => value !== undefined);
+    const name = nameSelector
+      ? row.querySelector(nameSelector)?.textContent?.trim()
+      : undefined;
     return {
       row,
+      senderName: name
+        ? found(name, "inbox.senderName")
+        : missing("inbox.senderName"),
       memberId: memberIdFromProfileHref(
         linkSelector
           ? (row.querySelector(linkSelector)?.getAttribute("href") ?? null)
@@ -167,6 +178,7 @@ export function extractConversation(
     // An unparseable URL leaves the conversation ID missing below.
   }
   const conversationMatch = pagePath("conversation")?.exec(path);
+  const conversationId = conversationMatch?.[1];
   const headerLink = verifiedSelector("conversation", "memberId");
   const descriptionSelector = verifiedSelector(
     "conversation",
@@ -175,17 +187,41 @@ export function extractConversation(
   const description = descriptionSelector
     ? root.querySelector(descriptionSelector)
     : null;
+  const conversation: ExtractionResult<string> = conversationId
+    ? found(conversationId, "conversation.url")
+    : missing("conversation.url");
+  const memberId = memberIdFromProfileHref(
+    headerLink
+      ? (root.querySelector(headerLink)?.getAttribute("href") ?? null)
+      : null,
+    url,
+    "conversation.memberId",
+  );
+  // Switching conversations is a client-side route (09-navigation.md), so the
+  // URL can change before the header re-renders. Header data is used only when
+  // the header's member ID is one of the numbers in the conversation ID;
+  // otherwise it may belong to the previous conversation and reads as
+  // missing. This fails closed: it assumes the URL numbers are participant
+  // member IDs, and if they are not, header data is simply never used.
+  const headerMatchesUrl =
+    conversationId !== undefined &&
+    memberId.status === "found" &&
+    conversationId.split("-").includes(memberId.value);
+  if (!headerMatchesUrl) {
+    const stale = <T>(field: string): ExtractionResult<T> =>
+      missing(`conversation.${field}:header-not-matched-to-url`);
+    return {
+      conversationId: conversation,
+      memberId:
+        memberId.status === "found" ? stale<string>("memberId") : memberId,
+      verificationCode: stale<number>("verificationCode"),
+      genderCode: stale<number>("genderCode"),
+      descriptionWordCount: stale<number>("profileDescription"),
+    };
+  }
   return {
-    conversationId: conversationMatch?.[1]
-      ? found(conversationMatch[1], "conversation.url")
-      : missing("conversation.url"),
-    memberId: memberIdFromProfileHref(
-      headerLink
-        ? (root.querySelector(headerLink)?.getAttribute("href") ?? null)
-        : null,
-      url,
-      "conversation.memberId",
-    ),
+    conversationId: conversation,
+    memberId,
     verificationCode: codeAttribute(
       root,
       verifiedSelector("conversation", "verificationCode"),

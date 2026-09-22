@@ -15,6 +15,9 @@
   is always unknown, which gives Partial information whenever it is configured.
 - The meaning of the `verification-status` codes is unconfirmed, so verification
   is always unknown until it is confirmed.
+- Conversation header data is used only when its member ID matches a number in
+  the conversation URL. If those URL numbers turn out not to be member IDs,
+  header data will always read as missing.
 - The profile word count adds the motto and the main text. The conversation
   header's short description is counted separately and is not used for M1.
 - The extension cannot detect which JoyClub login a tab uses. The active account

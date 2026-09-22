@@ -51,6 +51,8 @@ export const selectorRegistry: Readonly<
     root: ".cm-conversation-list",
     fields: {
       row: ".cm-conversation-list-item",
+      // Display only (F2). Never an identity: resolveMemberIdentity refuses it.
+      senderName: '[data-e2e="conversation-list-item-name"]',
       memberId: ".cm-conversation-list-item__avatar[href]",
       verificationCode: "j-veri-icon[verification-status]",
       genderCode: "j-gender-icon[universal-gender]",

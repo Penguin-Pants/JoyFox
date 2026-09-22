@@ -12,7 +12,6 @@ verified from it. Still open:
   value is set programmatically.
 - **Item 8:** whether a join date or account age appears anywhere, and what
   `universal-gender` codes `2` and `3` mean.
-
 - **Verification codes (from item 1):** confirm what `verification-status` `1`
   and `3` mean, for example from the badge tooltip on your own and on a verified
   profile. Until then verification is always unknown.
@@ -74,5 +73,4 @@ what it matches, or a screenshot with DOM inspection notes.
 ## Phase gate
 
 Items 1 and 9 are returned for the inbox, so F2's live acceptance can now be run
-by hand: load the built extension and confirm that the inbox is detected on ten
-real inbox loads without errors.
+by hand with the diagnostic steps in `manual-acceptance.md` (items 14 to 18).

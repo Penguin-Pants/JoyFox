@@ -1,5 +1,6 @@
 // @vitest-environment jsdom
 import { beforeEach, describe, expect, it } from "vitest";
+import { summarizeInbox } from "../../src/content/diagnostics";
 import { detectPage } from "../../src/content/page-detector";
 import {
   extractConversation,
@@ -107,6 +108,23 @@ describe("F1 extraction from the verified inbox", () => {
     expect(serialized).not.toMatch(/synthetic_one|Synthetic One|preview/);
   });
 
+  it("reads the sender name for display only (F2 proof of concept)", () => {
+    const rows = extractInboxRows(load("inbox"), INBOX_URL);
+    expect(rows.map((row) => row.senderName)).toEqual([
+      { status: "found", value: "Synthetic One", source: "inbox.senderName" },
+      { status: "found", value: "Synthetic Two", source: "inbox.senderName" },
+      { status: "found", value: "Synthetic Three", source: "inbox.senderName" },
+    ]);
+  });
+
+  it("summarizes an inbox for diagnostics with counts only", () => {
+    const summary = summarizeInbox(extractInboxRows(load("inbox"), INBOX_URL));
+    expect(summary).toBe(
+      "inbox.extracted rows=3 senderName=3 memberId=2 verificationCode=2 readState=2",
+    );
+    expect(summary).not.toMatch(/Synthetic|1234567|98765432/);
+  });
+
   it("reports a row without avatar or icons as missing, never as a value", () => {
     const [, , bare] = extractInboxRows(load("inbox"), INBOX_URL);
     expect(bare).toMatchObject({
@@ -180,6 +198,29 @@ describe("F1 extraction from the verified conversation", () => {
         },
       },
     );
+  });
+
+  it("ignores a header that still shows the previous conversation", () => {
+    // Client-side switch: the URL names a new conversation, the old header is
+    // still rendered.
+    const result = extractConversation(
+      load("conversation"),
+      "https://www.joyclub.de/clubmail/conversation/conversation-wrapper-personal-5555555-7654321/",
+    );
+    expect(result.conversationId).toMatchObject({
+      status: "found",
+      value: "personal-5555555-7654321",
+    });
+    for (const field of [
+      result.memberId,
+      result.verificationCode,
+      result.genderCode,
+      result.descriptionWordCount,
+    ])
+      expect(field).toMatchObject({
+        status: "missing",
+        source: expect.stringContaining("header-not-matched-to-url"),
+      });
   });
 
   it("reports missing fields on an unrendered page", () => {

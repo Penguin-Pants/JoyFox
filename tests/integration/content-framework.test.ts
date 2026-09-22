@@ -2,6 +2,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { detectPage } from "../../src/content/page-detector";
 import { NavigationCoordinator } from "../../src/content/navigation-coordinator";
+import { resolveMemberIdentity } from "../../src/identity/member-identity";
 import {
   hasVerifiedSelectors,
   selectorRegistry,
@@ -26,7 +27,14 @@ describe("F2 content framework", () => {
       } else expect(Object.keys(definition.fields), page).toHaveLength(0);
     }
     expect(verifiedSelector("search", "row")).toBeUndefined();
-    expect(verifiedSelector("inbox", "senderName")).toBeUndefined();
+    // The sender name is verified for display, but never as an identity.
+    expect(
+      resolveMemberIdentity({
+        page: "inbox",
+        field: "senderName",
+        extraction: { status: "found", value: "Synthetic", source: "t" },
+      }),
+    ).toEqual({ status: "unresolved", reason: "unstable-identifier" });
     expect(hasVerifiedSelectors()).toBe(true);
   });
 

@@ -11,8 +11,10 @@ Rules:
   with each JoyClub release. A test enforces this.
 - Only `www.joyclub.de` is verified. JOYCE (`joyce.app`) has no evidence, so no
   page is detected there.
-- Names and message text are never extracted. Identity comes only from the
-  numeric member ID.
+- Identity comes only from the numeric member ID. The inbox sender name is read
+  for display alone (the F2 proof of concept); it is never an identity, never
+  stored and never logged. Message text is never extracted.
+- The content script starts only on a verified host.
 
 | Surface                 | Status     | Evidence             | Runtime behavior       |
 | ----------------------- | ---------- | -------------------- | ---------------------- |
@@ -44,6 +46,7 @@ app (`09-navigation.md`) and the inbox list can stay in the DOM.
 | Page         | Field             | Selector                                                                  | Value                                    |
 | ------------ | ----------------- | ------------------------------------------------------------------------- | ---------------------------------------- |
 | Inbox        | Row               | `.cm-conversation-list-item`                                              | One conversation                         |
+| Inbox        | Sender name       | `[data-e2e="conversation-list-item-name"]`                                | Display only                             |
 | Inbox        | Member ID         | `.cm-conversation-list-item__avatar[href]`                                | Digits in `/profile/<n>.<nickname>.html` |
 | Inbox        | Verification code | `j-veri-icon[verification-status]`                                        | Numeric code, meaning unconfirmed        |
 | Inbox        | Gender code       | `j-gender-icon[universal-gender]`                                         | Numeric code, `1` = man                  |
@@ -69,6 +72,11 @@ app (`09-navigation.md`) and the inbox list can stay in the DOM.
   confirmed, every code reads as unknown, so verification never passes or fails
   on a guess.
 - **Gender codes `2` and `3`** are unconfirmed. No feature uses gender yet.
+- **Conversation header.** Switching conversations is client-side, so the URL
+  can change before the header re-renders. Header data is used only when the
+  header's member ID is one of the numbers in the conversation ID. This assumes
+  those numbers are participant member IDs; if they are not, header data always
+  reads as missing, which is safe but must then be revisited.
 - **Inbox loading.** Whether scrolling loads more rows is unconfirmed. The
   extractor reads only the rows rendered at the time; later rows are read on the
   next mutation event only if the site appends them to the same list.
