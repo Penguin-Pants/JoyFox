@@ -85,8 +85,9 @@ const UNSPACED_SCRIPT =
 
 /**
  * Normalize for comparison: compatibility-fold Unicode, lowercase, delete
- * invisible format characters (such as U+200B, which could otherwise split a
- * copied template without a visible change), turn punctuation and symbols into
+ * default-ignorable characters (such as U+200B or the variation selector
+ * U+FE0F, which could otherwise split a copied template without a visible
+ * change), turn punctuation and symbols into
  * spaces, and collapse whitespace. Letters and digits in any script are kept,
  * so German umlauts compare as typed. Each character of a script written
  * without spaces becomes its own token, so word pairs there are character
@@ -95,7 +96,7 @@ const UNSPACED_SCRIPT =
 export function normalizeMessage(text: string): string {
   return text
     .normalize("NFKC")
-    .replace(/\p{Cf}+/gu, "")
+    .replace(/\p{Default_Ignorable_Code_Point}+/gu, "")
     .toLowerCase()
     .replace(/[\p{P}\p{S}]+/gu, " ")
     .replace(UNSPACED_SCRIPT, " $1 ")
@@ -103,9 +104,22 @@ export function normalizeMessage(text: string): string {
     .trim();
 }
 
-/** Letters and digits only, so added token spaces do not change the length. */
-const contentLength = (normalized: string) =>
-  normalized.replaceAll(" ", "").length;
+/**
+ * Letters and digits, counted as code points, so added token spaces, combining
+ * marks and supplementary-plane characters do not change the length.
+ */
+export const contentLength = (normalized: string) =>
+  normalized.match(/[\p{L}\p{N}]/gu)?.length ?? 0;
+
+/**
+ * Below the minimum, or with no letter or digit at all. An empty message is
+ * never compared, even with a minimum of zero: two emoji-only messages both
+ * normalize to "" and would otherwise be reported as identical.
+ */
+function tooShort(normalized: string, minimum: number): boolean {
+  const length = contentLength(normalized);
+  return length === 0 || length < minimum;
+}
 
 /**
  * Word pairs, so word order matters but a single substituted name only breaks
@@ -133,10 +147,34 @@ export function jaccard(a: Set<string>, b: Set<string>): number {
   return shared / (a.size + b.size - shared);
 }
 
-/** Share of the phrase's shingles that also occur in the message. */
-export function containment(phrase: Set<string>, message: Set<string>): number {
-  if (phrase.size === 0) return 0;
-  return intersectionSize(phrase, message) / phrase.size;
+/** Word pairs with their number of occurrences. */
+export function shingleCounts(normalized: string): Map<string, number> {
+  const words = normalized.length === 0 ? [] : normalized.split(" ");
+  const pairs =
+    words.length < 2
+      ? words
+      : words.slice(1).map((word, i) => `${words[i]} ${word}`);
+  const counts = new Map<string, number>();
+  for (const pair of pairs) counts.set(pair, (counts.get(pair) ?? 0) + 1);
+  return counts;
+}
+
+/**
+ * Share of the phrase's word pairs, counted with repeats, that also occur in
+ * the message. Counting repeats stops a phrase such as "buy now buy now buy
+ * now" from matching fully on one short fragment.
+ */
+export function containment(
+  phrase: Map<string, number>,
+  message: Map<string, number>,
+): number {
+  let total = 0;
+  let shared = 0;
+  for (const [pair, count] of phrase) {
+    total += count;
+    shared += Math.min(count, message.get(pair) ?? 0);
+  }
+  return total === 0 ? 0 : shared / total;
 }
 
 const percent = (value: number) => `${Math.round(value * 100)}%`;
@@ -159,7 +197,7 @@ export class RuleBasedTemplateDetector implements TemplateClassifier {
 
   classify(input: TemplateInput): TemplateVerdict {
     const normalized = normalizeMessage(input.text);
-    if (contentLength(normalized) < this.settings.minimumMessageLength)
+    if (tooShort(normalized, this.settings.minimumMessageLength))
       return {
         status: "too-short",
         reasons: [
@@ -167,6 +205,7 @@ export class RuleBasedTemplateDetector implements TemplateClassifier {
         ],
       };
     const message = shingles(normalized);
+    const messageCounts = shingleCounts(normalized);
     const matches: TemplateMatch[] = [];
 
     for (const entry of input.phrases) {
@@ -175,7 +214,9 @@ export class RuleBasedTemplateDetector implements TemplateClassifier {
       // An exact phrase inside the message is a full match, even when the
       // phrase is a single word and has no word pairs to compare.
       const exact = ` ${normalized} `.includes(` ${phrase} `);
-      const similarity = exact ? 1 : containment(shingles(phrase), message);
+      const similarity = exact
+        ? 1
+        : containment(shingleCounts(phrase), messageCounts);
       if (similarity >= this.settings.phraseThreshold)
         matches.push({
           kind: "phrase",
@@ -188,7 +229,7 @@ export class RuleBasedTemplateDetector implements TemplateClassifier {
     for (const prior of input.priorMessages) {
       if (prior.id === input.messageId) continue;
       const other = normalizeMessage(prior.text);
-      if (contentLength(other) < this.settings.minimumMessageLength) continue;
+      if (tooShort(other, this.settings.minimumMessageLength)) continue;
       const similarity =
         other === normalized ? 1 : jaccard(message, shingles(other));
       if (similarity >= this.settings.priorMessageThreshold)

@@ -69,10 +69,17 @@ export class QualificationService {
   ): Promise<PersistenceOutcome<ProfileSnapshot | undefined>> {
     requireAccountId(accountId);
     if (identity.status === "unresolved") return disabled(identity.reason);
+    const capturedAt = this.now();
     const merged = mergeProfileFacts(identity.memberId, facts, []);
+    // A join date after the capture is an extraction error. Stored as known,
+    // it would start to count once the clock passed it.
+    if (
+      merged.joinedAt.value !== "unknown" &&
+      Date.parse(merged.joinedAt.value) > Date.parse(capturedAt)
+    )
+      merged.joinedAt = { value: "unknown", source: { kind: "none" } };
     if (Object.values(merged).every((fact) => fact.value === "unknown"))
       return ok(undefined);
-    const capturedAt = this.now();
     const snapshot: ProfileSnapshot = {
       id: snapshotId(identity.memberId, capturedAt),
       accountId,

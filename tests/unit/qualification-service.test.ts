@@ -56,6 +56,22 @@ describe("M1 qualification service", () => {
     expect(await repositories.profileSnapshots.list(ACCOUNT)).toEqual([]);
   });
 
+  it("does not store a join date later than the capture", async () => {
+    const outcome = await service.recordSnapshot(ACCOUNT, identity, {
+      ...UNKNOWN_FACTS,
+      joinedAt: "2027-01-01T00:00:00.000Z",
+    });
+    expect(outcome).toEqual({ status: "ok", value: undefined });
+
+    await service.recordSnapshot(ACCOUNT, identity, {
+      ...UNKNOWN_FACTS,
+      photoCount: 2,
+      joinedAt: "2027-01-01T00:00:00.000Z",
+    });
+    const [stored] = await repositories.profileSnapshots.list(ACCOUNT);
+    expect(stored).toMatchObject({ photoCount: 2, joinedAt: "unknown" });
+  });
+
   it("stores a snapshot and registers its member", async () => {
     const outcome = await service.recordSnapshot(ACCOUNT, identity, {
       ...UNKNOWN_FACTS,

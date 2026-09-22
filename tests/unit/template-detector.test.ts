@@ -1,7 +1,10 @@
 import { describe, expect, it } from "vitest";
 import { ExtensionError } from "../../src/errors";
 import {
+  containment,
+  contentLength,
   jaccard,
+  shingleCounts,
   normalizeMessage,
   RuleBasedTemplateDetector,
   shingles,
@@ -44,6 +47,62 @@ describe("M3 template detector", () => {
       status: "flagged",
       matches: [{ kind: "phrase", phraseId: "p", similarity: 1 }],
     });
+  });
+
+  it("removes variation selectors that could split a copy", () => {
+    expect(normalizeMessage("wo\uFE0Fuld lo\uFE0Eve")).toBe("would love");
+    const verdict = detector.classify({
+      text: TEMPLATE.split("").join("\uFE0F"),
+      priorMessages: [{ id: "prior-1", text: TEMPLATE }],
+      phrases: [],
+    });
+    expect(verdict.status).toBe("flagged");
+  });
+
+  it("never compares messages without letters or digits", () => {
+    const anyLength = new RuleBasedTemplateDetector({
+      minimumMessageLength: 0,
+    });
+    for (const text of ["", "!!!", "🙂🙂🙂"])
+      expect(
+        anyLength.classify({
+          text,
+          priorMessages: [{ id: "prior-1", text: "🎉🎉" }],
+          phrases: [],
+        }).status,
+      ).toBe("too-short");
+    expect(
+      anyLength.classify({
+        text: "hello there",
+        priorMessages: [{ id: "prior-1", text: "🎉🎉" }],
+        phrases: [],
+      }).status,
+    ).toBe("clear");
+  });
+
+  it("counts letters and digits as code points", () => {
+    // U+20000 is one Han letter stored as two UTF-16 code units.
+    expect(contentLength(normalizeMessage("\u{20000}".repeat(20)))).toBe(20);
+    expect(contentLength("e\u0301 1")).toBe(2);
+    const verdict = detector.classify({
+      text: "\u{20000}".repeat(20),
+      priorMessages: [{ id: "prior-1", text: "\u{20000}".repeat(20) }],
+      phrases: [],
+    });
+    expect(verdict.status).toBe("too-short");
+  });
+
+  it("counts repeated word pairs in a phrase", () => {
+    const phrase = shingleCounts("buy now buy now buy now buy now buy now");
+    expect(containment(phrase, shingleCounts("please buy now buy today"))).toBe(
+      2 / 9,
+    );
+    const verdict = detector.classify({
+      text: "I really think you should buy now buy before the synthetic offer runs out",
+      priorMessages: [],
+      phrases: [{ id: "p", phrase: "buy now buy now buy now buy now buy now" }],
+    });
+    expect(verdict.status).toBe("clear");
   });
 
   it("builds word-pair shingles", () => {

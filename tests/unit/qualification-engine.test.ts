@@ -3,6 +3,7 @@ import type { ProfileSnapshot } from "../../src/domain/types";
 import { ExtensionError } from "../../src/errors";
 import {
   accountAgeDays,
+  isStrictIsoDate,
   defaultPlacement,
   evaluateQualification,
   mergeProfileFacts,
@@ -83,6 +84,25 @@ describe("M1 qualification engine", () => {
       "unknown",
       "unknown",
     ]);
+  });
+
+  it("treats a date that Date.parse would repair as unknown", () => {
+    for (const joinedAt of [
+      "2026-02-30",
+      "2026-01-01junk",
+      "2026-13-01T00:00:00Z",
+      "2026-01-01T24:00:00Z",
+      "1 March 2026",
+    ]) {
+      expect(isStrictIsoDate(joinedAt)).toBe(false);
+      expect(observedOnly({ joinedAt }).joinedAt.value).toBe("unknown");
+    }
+    for (const joinedAt of [
+      "2024-02-29",
+      "2026-03-01T01:00:00+02:00",
+      "2026-03-01T00:30:00.123Z",
+    ])
+      expect(isStrictIsoDate(joinedAt)).toBe(true);
   });
 
   it("lets one explicit failure outrank unknown facts", () => {

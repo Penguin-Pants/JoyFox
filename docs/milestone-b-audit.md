@@ -62,7 +62,7 @@ allow.
 - `RuleBasedTemplateDetector` implements the `TemplateClassifier` interface, so
   a later classifier can replace it without a triage rewrite. It is local,
   deterministic and has no AI.
-- Normalization: Unicode NFKC, invisible format characters removed, lowercase,
+- Normalization: Unicode NFKC, default-ignorable characters removed, lowercase,
   punctuation and symbols to spaces, whitespace collapsed. Letters in any script
   stay as typed. In scripts written without spaces (Han, Kana, Thai, Lao, Khmer,
   Myanmar) each character is a token.
@@ -109,6 +109,22 @@ fails on the reviewed commit and passes after the fix.
 - A saved phrase inside Chinese or Japanese text never matched, as the whole
   text was one word. Characters of unspaced scripts are now separate tokens, and
   the minimum length counts letters and digits only.
+
+A second automated review round found six more, fixed the same way:
+
+- Variation selectors such as U+FE0F are not format characters, so they still
+  split a copy. Normalization now removes every default-ignorable character.
+- With a minimum length of zero, two emoji-only messages both normalized to
+  empty text and matched at 100%. A message without a letter or digit is now
+  always too short.
+- A join date later than the capture time was stored as known and would count
+  once the clock passed it. It is now stored as unknown.
+- Phrase containment used a set, so a phrase that repeats word pairs matched
+  fully on a short fragment. Containment now counts repeats.
+- `Date.parse` repairs `2026-02-30` and accepts trailing text. Join dates must
+  now be strict ISO 8601 with a real calendar date and time.
+- The minimum length counted UTF-16 code units, so supplementary-plane letters
+  counted twice. It now counts letter and digit code points.
 
 ### Confirmed issues deferred (second increment)
 
