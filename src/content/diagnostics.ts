@@ -37,6 +37,8 @@ type ChangeListener = (changes: StorageChanges, areaName: string) => void;
  */
 export class DiagnosticsFlag {
   #enabled = false;
+  /** A change seen before the initial read settles is newer than that read. */
+  #changed = false;
 
   constructor(
     read: () => Promise<Record<string, unknown>>,
@@ -44,14 +46,15 @@ export class DiagnosticsFlag {
   ) {
     onChanged?.addListener((changes, areaName) => {
       if (areaName !== "local" || !(DIAGNOSTICS_KEY in changes)) return;
+      this.#changed = true;
       this.#enabled = changes[DIAGNOSTICS_KEY]?.newValue === true;
     });
     this.ready = read()
       .then((settings) => {
-        this.#enabled = settings[DIAGNOSTICS_KEY] === true;
+        if (!this.#changed) this.#enabled = settings[DIAGNOSTICS_KEY] === true;
       })
       .catch(() => {
-        this.#enabled = false;
+        if (!this.#changed) this.#enabled = false;
       });
   }
 

@@ -335,6 +335,29 @@ describe("F2 diagnostics flag", () => {
     expect(flag.enabled).toBe(true);
   });
 
+  it("keeps a change made while the initial read is pending", async () => {
+    for (const [initial, changed] of [
+      [true, undefined],
+      [false, true],
+    ] as const) {
+      let listener:
+        | ((
+            changes: Record<string, { newValue?: unknown }>,
+            area: string,
+          ) => void)
+        | undefined;
+      let resolveRead: (value: Record<string, unknown>) => void = () => {};
+      const flag = new DiagnosticsFlag(
+        () => new Promise((resolve) => (resolveRead = resolve)),
+        { addListener: (added) => (listener = added) },
+      );
+      listener?.({ [DIAGNOSTICS_KEY]: { newValue: changed } }, "local");
+      resolveRead({ [DIAGNOSTICS_KEY]: initial });
+      await flag.ready;
+      expect(flag.enabled).toBe(changed === true);
+    }
+  });
+
   it("stays off when storage cannot be read", async () => {
     const flag = new DiagnosticsFlag(async () => {
       throw new Error("synthetic storage failure");
