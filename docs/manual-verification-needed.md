@@ -49,3 +49,9 @@ what it matches, or a screenshot with DOM inspection notes.
     (temporary development, unlisted self-distribution, or listed AMO). Current
     Mozilla signing requirements then need verification against official
     documentation before release packaging is claimed.
+
+## Phase gate
+
+Milestone A cannot meet F2's live acceptance criterion until items 1 and 9 are
+returned. Milestone B must not start before that Foundation dependency is
+complete.

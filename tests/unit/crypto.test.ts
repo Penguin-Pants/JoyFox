@@ -17,4 +17,26 @@ describe("F4 encryption", () => {
       "Unable to decrypt payload",
     );
   });
+  it("rejects altered parameters before key derivation", async () => {
+    const encrypted = await encrypt("synthetic content", "right secret");
+    const altered = {
+      ...encrypted,
+      parameters: { ...encrypted.parameters, iterations: 1 },
+    };
+    await expect(decrypt(altered, "right secret")).rejects.toThrow(
+      "Unsupported encrypted payload parameters",
+    );
+  });
+  it("rejects malformed serialized payloads cleanly", async () => {
+    await expect(
+      decrypt({ version: 1 } as never, "right secret"),
+    ).rejects.toThrow("Invalid encrypted payload");
+  });
+  it("round-trips payloads larger than a JavaScript argument stack", async () => {
+    const plaintext = "synthetic-data-".repeat(20_000);
+    const encrypted = await encrypt(plaintext, "large payload secret");
+    await expect(decrypt(encrypted, "large payload secret")).resolves.toBe(
+      plaintext,
+    );
+  });
 });

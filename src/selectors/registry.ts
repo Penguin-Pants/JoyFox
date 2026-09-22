@@ -39,3 +39,9 @@ export function verifiedSelector(
     ? definition.fields[field]
     : undefined;
 }
+
+export function hasVerifiedSelectors(): boolean {
+  return Object.values(selectorRegistry).some(
+    (definition) => definition.status === "verified",
+  );
+}

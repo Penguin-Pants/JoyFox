@@ -27,7 +27,15 @@ export interface EncryptedPayload {
   ciphertext: string;
 }
 
-const encode = (bytes: Uint8Array) => btoa(String.fromCharCode(...bytes));
+const encode = (bytes: Uint8Array) => {
+  const chunks: string[] = [];
+  const chunkSize = 0x8000;
+  for (let offset = 0; offset < bytes.length; offset += chunkSize)
+    chunks.push(
+      String.fromCharCode(...bytes.subarray(offset, offset + chunkSize)),
+    );
+  return btoa(chunks.join(""));
+};
 const decode = (value: string): Uint8Array<ArrayBuffer> => {
   const binary = atob(value);
   const bytes = new Uint8Array(new ArrayBuffer(binary.length));
@@ -62,6 +70,45 @@ async function deriveKey(
   );
 }
 
+function validatePayload(payload: EncryptedPayload): {
+  salt: Uint8Array<ArrayBuffer>;
+  iv: Uint8Array<ArrayBuffer>;
+  ciphertext: Uint8Array<ArrayBuffer>;
+} {
+  if (
+    !payload ||
+    typeof payload !== "object" ||
+    !payload.parameters ||
+    typeof payload.parameters !== "object"
+  )
+    throw new Error("Invalid encrypted payload");
+  if (
+    payload.version !== 1 ||
+    payload.parameters.algorithm !== ENCRYPTION_PARAMETERS.algorithm ||
+    payload.parameters.keyLength !== ENCRYPTION_PARAMETERS.keyLength ||
+    payload.parameters.ivBytes !== ENCRYPTION_PARAMETERS.ivBytes ||
+    payload.parameters.kdf !== ENCRYPTION_PARAMETERS.kdf ||
+    payload.parameters.hash !== ENCRYPTION_PARAMETERS.hash ||
+    payload.parameters.iterations !== ENCRYPTION_PARAMETERS.iterations ||
+    payload.parameters.saltBytes !== ENCRYPTION_PARAMETERS.saltBytes
+  )
+    throw new Error("Unsupported encrypted payload parameters");
+  try {
+    const salt = decode(payload.salt);
+    const iv = decode(payload.iv);
+    const ciphertext = decode(payload.ciphertext);
+    if (
+      salt.byteLength !== payload.parameters.saltBytes ||
+      iv.byteLength !== payload.parameters.ivBytes ||
+      ciphertext.byteLength === 0
+    )
+      throw new Error("Invalid encrypted payload");
+    return { salt, iv, ciphertext };
+  } catch {
+    throw new Error("Invalid encrypted payload");
+  }
+}
+
 export async function encrypt(
   plaintext: string,
   secret: string,
@@ -92,18 +139,13 @@ export async function decrypt(
   payload: EncryptedPayload,
   secret: string,
 ): Promise<string> {
-  if (payload.version !== 1)
-    throw new Error("Unsupported encrypted payload version");
+  const validated = validatePayload(payload);
   try {
-    const key = await deriveKey(
-      secret,
-      decode(payload.salt),
-      payload.parameters,
-    );
+    const key = await deriveKey(secret, validated.salt, payload.parameters);
     const plaintext = await crypto.subtle.decrypt(
-      { name: payload.parameters.algorithm, iv: decode(payload.iv) },
+      { name: payload.parameters.algorithm, iv: validated.iv },
       key,
-      decode(payload.ciphertext),
+      validated.ciphertext,
     );
     return decoder.decode(plaintext);
   } catch {

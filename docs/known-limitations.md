@@ -1,7 +1,8 @@
 # Known limitations
 
 - No live selector or route is verified, so all site-specific behavior is
-  disabled and the content script is intentionally a no-op.
+  disabled and the content script is intentionally a true no-op: it installs no
+  observer or navigation hook.
 - A stable account, member, conversation, event, and message identity source is
   unknown. Features must not use display names as identifiers.
 - Background persistence is proven by an automated database-backed wake-counter

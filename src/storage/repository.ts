@@ -54,7 +54,7 @@ export class IndexedDbRepository<N extends EntityName>
       throw new ValidationError(
         "Entity account does not match repository scope",
       );
-    validateEntity(entity);
+    validateEntity(this.entityName, entity);
     const db = await openDatabase();
     const transaction = db.transaction(this.entityName, "readwrite");
     transaction

@@ -1,6 +1,10 @@
 import "../setup-indexeddb";
 import { beforeEach, describe, expect, it } from "vitest";
-import type { AccountScopedEntity } from "../../src/domain/types";
+import type {
+  AccountScopedEntity,
+  EntityMap,
+  EntityName,
+} from "../../src/domain/types";
 import { ENTITY_NAMES } from "../../src/storage/database";
 import {
   deleteAccountData,
@@ -10,12 +14,73 @@ import {
 import { freshDatabase } from "../setup-indexeddb";
 
 const now = "2026-09-22T00:00:00.000Z";
-const entity = (accountId: string, id: string): AccountScopedEntity => ({
-  id,
-  accountId,
-  createdAt: now,
-  updatedAt: now,
-});
+const entityData: {
+  [N in EntityName]: Omit<EntityMap[N], keyof AccountScopedEntity>;
+} = {
+  extensionAccounts: { joyClubAccountId: "synthetic-account" },
+  joyClubMembers: { joyClubMemberId: "synthetic-member" },
+  profileSnapshots: {
+    memberId: "member-1",
+    capturedAt: now,
+    verification: "unknown",
+    photoCount: "unknown",
+    profileWordCount: "unknown",
+    joinedAt: "unknown",
+  },
+  userNotes: { memberId: "member-1", body: "Invented note" },
+  userTags: { memberId: "member-1", label: "Invented tag" },
+  trustSignals: { memberId: "member-1", kind: "neutral", occurredAt: now },
+  contactRules: {
+    name: "Synthetic rule",
+    conditions: [],
+    defaultPlacement: "needs-review",
+  },
+  conversationClassifications: {
+    memberId: "member-1",
+    conversationId: "conversation-1",
+    placement: "needs-review",
+    reasons: ["Unknown synthetic input"],
+  },
+  savedSearches: {
+    name: "Synthetic search",
+    url: "https://example.invalid/search",
+    filters: {},
+  },
+  eventMetadata: { eventId: "event-1", tags: [], attendance: "unknown" },
+  spendLogEntries: {
+    occurredAt: now,
+    amountMinor: 100,
+    currency: "EUR",
+    category: "other",
+  },
+  syncConfigs: {
+    endpoint: "https://example.invalid/sync",
+    keyDerivation: {
+      algorithm: "PBKDF2",
+      iterations: 600_000,
+      hash: "SHA-256",
+      salt: "synthetic-salt",
+    },
+  },
+  extensionPreferences: { key: "synthetic.preference", value: true },
+  messageTemplates: { name: "Synthetic template", body: "Invented message" },
+  spamPhrases: { phrase: "Invented phrase", enabled: true },
+  actionLogs: { action: "synthetic.action", steps: [] },
+};
+
+function entity<N extends EntityName>(
+  name: N,
+  accountId: string,
+  id: string,
+): EntityMap[N] {
+  return {
+    id,
+    accountId,
+    createdAt: now,
+    updatedAt: now,
+    ...entityData[name],
+  } as EntityMap[N];
+}
 
 describe("F6 repositories", () => {
   beforeEach(freshDatabase);
@@ -27,8 +92,8 @@ describe("F6 repositories", () => {
         list(a: string): Promise<AccountScopedEntity[]>;
         delete(a: string, id: string): Promise<void>;
       };
-      await repo.put("account-a", entity("account-a", `${name}-1`));
-      await repo.put("account-b", entity("account-b", `${name}-1`));
+      await repo.put("account-a", entity(name, "account-a", `${name}-1`));
+      await repo.put("account-b", entity(name, "account-b", `${name}-1`));
       expect((await repo.get("account-a", `${name}-1`))?.accountId).toBe(
         "account-a",
       );
@@ -42,7 +107,7 @@ describe("F6 repositories", () => {
     await expect(
       repositories.userNotes.put(
         "account-a",
-        entity("account-b", "note") as never,
+        entity("userNotes", "account-b", "note"),
       ),
     ).rejects.toThrow("account");
   });
@@ -52,7 +117,7 @@ describe("F6 repositories", () => {
         repositories[name] as never as {
           put(a: string, e: AccountScopedEntity): Promise<void>;
         }
-      ).put("account-a", entity("account-a", name));
+      ).put("account-a", entity(name, "account-a", name));
     const exported = await exportAccount("account-a");
     expect(Object.keys(exported.entities).sort()).toEqual(
       [...ENTITY_NAMES].sort(),
@@ -62,5 +127,32 @@ describe("F6 repositories", () => {
       expect(
         (await repositories[name].list("account-a")) as unknown[],
       ).toHaveLength(0);
+  });
+  it("rejects malformed entity-specific data", async () => {
+    const malformed = {
+      ...entity("profileSnapshots", "account-a", "snapshot"),
+      photoCount: -1,
+    };
+    await expect(
+      repositories.profileSnapshots.put("account-a", malformed),
+    ).rejects.toThrow("photoCount");
+  });
+  it("never accepts passphrases in sync configuration", async () => {
+    const unsafe = {
+      ...entity("syncConfigs", "account-a", "sync"),
+      passphrase: "must-not-persist",
+    };
+    await expect(
+      repositories.syncConfigs.put("account-a", unsafe),
+    ).rejects.toThrow("unsupported field passphrase");
+  });
+  it("rejects malformed action log steps", async () => {
+    const malformed = {
+      ...entity("actionLogs", "account-a", "action"),
+      steps: [{ name: "started", ok: "yes", at: now }],
+    };
+    await expect(
+      repositories.actionLogs.put("account-a", malformed as never),
+    ).rejects.toThrow("ok must be a boolean");
   });
 });

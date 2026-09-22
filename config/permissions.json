@@ -1,4 +1,5 @@
 {
   "permissions": ["storage"],
-  "host_permissions": ["*://*.joyclub.de/*", "*://*.joyce.app/*"]
+  "host_permissions": ["*://*.joyclub.de/*", "*://*.joyce.app/*"],
+  "content_script_matches": ["*://*.joyclub.de/*", "*://*.joyce.app/*"]
 }
