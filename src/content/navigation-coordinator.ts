@@ -52,6 +52,14 @@ export class NavigationCoordinator {
     const url = location.href;
     this.#lastUrl = url;
     const event = { page: this.detect(), url, reason };
-    for (const listener of this.#listeners) listener(event);
+    // Isolate listeners: one failing feature must not stop delivery to the
+    // others, and must not leave `start()` half-initialized on the initial
+    // emission or let an exception escape into the page's own navigation.
+    for (const listener of [...this.#listeners])
+      try {
+        listener(event);
+      } catch (error) {
+        console.error("JoyFox: navigation listener failed", error);
+      }
   }
 }

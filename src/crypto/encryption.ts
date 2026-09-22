@@ -10,18 +10,19 @@ export interface EncryptionParameters {
   iterations: number;
   saltBytes: 16;
 }
-export const ENCRYPTION_PARAMETERS: EncryptionParameters = {
-  algorithm: "AES-GCM",
-  keyLength: 256,
-  ivBytes: 12,
-  kdf: "PBKDF2",
-  hash: "SHA-256",
-  iterations: 600_000,
-  saltBytes: 16,
-};
+export const ENCRYPTION_PARAMETERS: Readonly<EncryptionParameters> =
+  Object.freeze({
+    algorithm: "AES-GCM",
+    keyLength: 256,
+    ivBytes: 12,
+    kdf: "PBKDF2",
+    hash: "SHA-256",
+    iterations: 600_000,
+    saltBytes: 16,
+  });
 export interface EncryptedPayload {
   version: 1;
-  parameters: EncryptionParameters;
+  parameters: Readonly<EncryptionParameters>;
   salt: string;
   iv: string;
   ciphertext: string;
@@ -47,7 +48,7 @@ const decode = (value: string): Uint8Array<ArrayBuffer> => {
 async function deriveKey(
   secret: string,
   salt: Uint8Array<ArrayBuffer>,
-  params: EncryptionParameters,
+  params: Readonly<EncryptionParameters>,
 ): Promise<CryptoKey> {
   const material = await crypto.subtle.importKey(
     "raw",
@@ -128,7 +129,9 @@ export async function encrypt(
   );
   return {
     version: 1,
-    parameters: ENCRYPTION_PARAMETERS,
+    // A fresh frozen copy: the payload must never hand callers a reference to
+    // the module-level source of truth that validation compares against.
+    parameters: Object.freeze({ ...ENCRYPTION_PARAMETERS }),
     salt: encode(salt),
     iv: encode(iv),
     ciphertext: encode(new Uint8Array(ciphertext)),

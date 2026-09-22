@@ -9,6 +9,7 @@ import { ENTITY_NAMES } from "../../src/storage/database";
 import {
   deleteAccountData,
   exportAccount,
+  PROFILE_SNAPSHOT_RETENTION,
   repositories,
 } from "../../src/storage/repositories";
 import { freshDatabase } from "../setup-indexeddb";
@@ -145,6 +146,44 @@ describe("F6 repositories", () => {
     await expect(
       repositories.syncConfigs.put("account-a", unsafe),
     ).rejects.toThrow("unsupported field passphrase");
+  });
+  it("keeps records separate when an identifier contains the key separator", async () => {
+    await repositories.userNotes.put(
+      "account:a",
+      entity("userNotes", "account:a", "note"),
+    );
+    await repositories.userNotes.put(
+      "account",
+      entity("userNotes", "account", "a:note"),
+    );
+    expect((await repositories.userNotes.get("account:a", "note"))?.id).toBe(
+      "note",
+    );
+    expect((await repositories.userNotes.get("account", "a:note"))?.id).toBe(
+      "a:note",
+    );
+    expect(await repositories.userNotes.list("account:a")).toHaveLength(1);
+    expect(await repositories.userNotes.list("account")).toHaveLength(1);
+  });
+  it("bounds profile snapshot history per member", async () => {
+    const total = PROFILE_SNAPSHOT_RETENTION + 5;
+    for (let index = 0; index < total; index += 1)
+      await repositories.profileSnapshots.put("account-a", {
+        ...entity("profileSnapshots", "account-a", `snapshot-${index}`),
+        capturedAt: new Date(Date.parse(now) + index * 1000).toISOString(),
+      });
+    await repositories.profileSnapshots.put("account-a", {
+      ...entity("profileSnapshots", "account-a", "other-member"),
+      memberId: "member-2",
+    });
+    const stored = await repositories.profileSnapshots.list("account-a");
+    const memberOne = stored.filter(({ memberId }) => memberId === "member-1");
+    expect(memberOne).toHaveLength(PROFILE_SNAPSHOT_RETENTION);
+    expect(memberOne.map(({ id }) => id)).not.toContain("snapshot-0");
+    expect(memberOne.map(({ id }) => id)).toContain(`snapshot-${total - 1}`);
+    expect(
+      stored.filter(({ memberId }) => memberId === "member-2"),
+    ).toHaveLength(1);
   });
   it("rejects malformed action log steps", async () => {
     const malformed = {

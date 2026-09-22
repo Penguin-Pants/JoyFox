@@ -36,6 +36,27 @@ describe("F2 unverified content framework", () => {
     vi.useRealTimers();
   });
 
+  it("keeps delivering to other listeners when one throws", async () => {
+    vi.useFakeTimers();
+    const failure = vi.spyOn(console, "error").mockImplementation(() => {});
+    const failing = vi.fn(() => {
+      throw new Error("synthetic listener failure");
+    });
+    const healthy = vi.fn();
+    const coordinator = new NavigationCoordinator(detectPage);
+    coordinator.subscribe(failing);
+    coordinator.subscribe(healthy);
+    expect(() => coordinator.start()).not.toThrow();
+    expect(healthy).toHaveBeenCalledTimes(1);
+    document.body.append(document.createElement("div"));
+    await vi.advanceTimersByTimeAsync(50);
+    expect(healthy).toHaveBeenCalledTimes(2);
+    expect(failing).toHaveBeenCalledTimes(2);
+    coordinator.stop();
+    failure.mockRestore();
+    vi.useRealTimers();
+  });
+
   it("coordinates History API navigation without replacing browser functions", async () => {
     vi.useFakeTimers();
     const originalPushState = history.pushState;

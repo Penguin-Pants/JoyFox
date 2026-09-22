@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { decrypt, encrypt } from "../../src/crypto/encryption";
+import {
+  decrypt,
+  encrypt,
+  ENCRYPTION_PARAMETERS,
+} from "../../src/crypto/encryption";
 
 describe("F4 encryption", () => {
   it("round-trips exact content without serializing plaintext or passphrase", async () => {
@@ -31,6 +35,17 @@ describe("F4 encryption", () => {
     await expect(
       decrypt({ version: 1 } as never, "right secret"),
     ).rejects.toThrow("Invalid encrypted payload");
+  });
+  it("never exposes the shared parameter object to callers", async () => {
+    const encrypted = await encrypt("synthetic content", "right secret");
+    expect(encrypted.parameters).not.toBe(ENCRYPTION_PARAMETERS);
+    expect(() => {
+      (encrypted.parameters as { iterations: number }).iterations = 1;
+    }).toThrow();
+    expect(ENCRYPTION_PARAMETERS.iterations).toBe(600_000);
+    await expect(decrypt(encrypted, "right secret")).resolves.toBe(
+      "synthetic content",
+    );
   });
   it("round-trips payloads larger than a JavaScript argument stack", async () => {
     const plaintext = "synthetic-data-".repeat(20_000);

@@ -24,7 +24,7 @@ export const ENTITY_NAMES: readonly EntityName[] = [
 let connection: Promise<IDBDatabase> | undefined;
 
 export function openDatabase(): Promise<IDBDatabase> {
-  connection ??= new Promise((resolve, reject) => {
+  connection ??= new Promise<IDBDatabase>((resolve, reject) => {
     const request = indexedDB.open(DATABASE_NAME, DATABASE_VERSION);
     request.onupgradeneeded = (event) => {
       const db = request.result;
@@ -37,14 +37,27 @@ export function openDatabase(): Promise<IDBDatabase> {
     };
     request.onsuccess = () => resolve(request.result);
     request.onerror = () => reject(request.error);
-    request.onblocked = () => reject(new Error("Database upgrade blocked"));
+    // `blocked` means another connection still holds an older version. The open
+    // request stays pending and succeeds once that connection closes, so this is
+    // a wait condition, not a failure.
+    request.onblocked = () =>
+      console.warn(
+        "JoyFox: database upgrade is blocked by another open connection",
+      );
+  }).catch((error: unknown) => {
+    // Do not keep a rejected promise cached: a transient or blocking failure
+    // would otherwise disable persistence for the rest of this background
+    // lifetime. The next caller retries the open.
+    connection = undefined;
+    throw error;
   });
   return connection;
 }
 
 export async function resetDatabaseConnectionForTests(): Promise<void> {
-  if (connection) (await connection).close();
+  const pending = connection;
   connection = undefined;
+  if (pending) await pending.then((db) => db.close()).catch(() => undefined);
 }
 
 export function requestResult<T>(request: IDBRequest<T>): Promise<T> {

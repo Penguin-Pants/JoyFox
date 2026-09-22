@@ -16,6 +16,10 @@ export interface MessageContract {
     request: { value: string };
     response: { value: string };
   };
+  "diagnostic.wake": {
+    request: { accountId: string };
+    response: { wakeCount: number };
+  };
 }
 
 export function createRequestId(): string {
