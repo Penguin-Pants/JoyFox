@@ -236,6 +236,35 @@ export function validateEntity(
       requireString(record, "phrase");
       requireBoolean(record, "enabled");
       break;
+    case "messageObservations":
+      // This is the one store holding message-derived content, so it is
+      // closed: a field carrying the original text cannot be added to a
+      // record by accident and slip past the normalization guarantee.
+      allowOnly(
+        record,
+        [
+          "id",
+          "accountId",
+          "createdAt",
+          "updatedAt",
+          "memberId",
+          "conversationId",
+          "observedAt",
+          "normalizedText",
+        ],
+        "MessageObservation",
+      );
+      requireString(record, "memberId");
+      requireDate(record, "observedAt");
+      requireString(record, "normalizedText");
+      optionalString(record, "conversationId");
+      break;
+    case "senderSpamOverrides":
+      requireString(record, "memberId");
+      requireEnum(record, "decision", ["not-spam"]);
+      requireDate(record, "decidedAt");
+      optionalString(record, "reason");
+      break;
     case "actionLogs":
       requireString(record, "action");
       optionalString(record, "memberId");

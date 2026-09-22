@@ -66,6 +66,16 @@ const entityData: {
   extensionPreferences: { key: "synthetic.preference", value: true },
   messageTemplates: { name: "Synthetic template", body: "Invented message" },
   spamPhrases: { phrase: "Invented phrase", enabled: true },
+  messageObservations: {
+    memberId: "member-1",
+    observedAt: now,
+    normalizedText: "invented synthetic message text",
+  },
+  senderSpamOverrides: {
+    memberId: "member-1",
+    decision: "not-spam",
+    decidedAt: now,
+  },
   actionLogs: { action: "synthetic.action", steps: [] },
 };
 

@@ -1,10 +1,11 @@
 import type { JoyClubMember, UserNote, UserTag } from "../domain/types";
 import { ExtensionError } from "../errors";
+import type { MemberIdentity } from "../identity/member-identity";
 import {
-  IDENTITY_UNAVAILABLE_TEXT,
-  type IdentityUnavailableReason,
-  type MemberIdentity,
-} from "../identity/member-identity";
+  disabled,
+  ok,
+  type PersistenceOutcome,
+} from "../identity/persistence-outcome";
 import {
   JoyClubMemberRepository,
   UserNoteRepository,
@@ -13,29 +14,6 @@ import {
 
 export const MAX_NOTE_LENGTH = 4000;
 export const MAX_TAG_LENGTH = 64;
-
-/**
- * Notes and tags describe an identifiable third party, so a write is refused
- * outright when the member identity is not stable. The refusal is a value, not
- * an exception: it is an expected state that the UI must display, not a defect.
- */
-export type PersistenceOutcome<T> =
-  | { status: "ok"; value: T }
-  | {
-      status: "disabled";
-      reason: IdentityUnavailableReason;
-      message: string;
-    };
-
-function disabled<T>(reason: IdentityUnavailableReason): PersistenceOutcome<T> {
-  return {
-    status: "disabled",
-    reason,
-    message: IDENTITY_UNAVAILABLE_TEXT[reason],
-  };
-}
-
-const ok = <T>(value: T): PersistenceOutcome<T> => ({ status: "ok", value });
 
 export const noteId = (memberId: string) =>
   `note:${encodeURIComponent(memberId)}`;

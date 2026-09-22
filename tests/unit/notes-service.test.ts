@@ -5,13 +5,13 @@ import {
   knownMemberIdentity,
   type MemberIdentity,
 } from "../../src/identity/member-identity";
+import type { PersistenceOutcome } from "../../src/identity/persistence-outcome";
 import {
   MAX_NOTE_LENGTH,
   MAX_TAG_LENGTH,
   NotesService,
   normalizeTagLabel,
   tagKeyFor,
-  type PersistenceOutcome,
 } from "../../src/notes/notes-service";
 import { repositories } from "../../src/storage/repositories";
 import { freshDatabase } from "../setup-indexeddb";

@@ -2,9 +2,11 @@ import type {
   EntityMap,
   EntityName,
   ExtensionAccount,
+  MessageObservation,
   ProfileSnapshot,
 } from "../domain/types";
 import {
+  DATABASE_VERSION,
   ENTITY_NAMES,
   openDatabase,
   requestResult,
@@ -133,6 +135,52 @@ export class SpamPhraseRepository extends IndexedDbRepository<"spamPhrases"> {
     super("spamPhrases");
   }
 }
+/**
+ * PRD Section 19.5 sets a default auto-purge window of 12 months for cached
+ * message text. Observations older than this are dropped on the next write, so
+ * the cache cannot grow without bound or keep message content indefinitely.
+ */
+export const MESSAGE_OBSERVATION_RETENTION_DAYS = 365;
+
+export class MessageObservationRepository extends IndexedDbRepository<"messageObservations"> {
+  constructor() {
+    super("messageObservations");
+  }
+  /**
+   * The window is measured from this write, using `updatedAt`, which the
+   * writer always sets to now. Measuring from the record's own `observedAt`
+   * would let a caller backdate one message and drag the cutoff back with it,
+   * keeping everything expired alive.
+   *
+   * The record being written is never purged here, so `put` cannot report
+   * storing something this pass deleted in the same transaction.
+   */
+  protected override async applyRetention(
+    store: IDBObjectStore,
+    accountId: string,
+    entity: MessageObservation,
+  ): Promise<void> {
+    const cutoff =
+      Date.parse(entity.updatedAt) -
+      MESSAGE_OBSERVATION_RETENTION_DAYS * 24 * 60 * 60 * 1000;
+    const stored = await requestResult(
+      store.index("accountId").getAll(accountId) as IDBRequest<
+        Array<Stored<MessageObservation>>
+      >,
+    );
+    for (const observation of stored)
+      if (
+        observation.id !== entity.id &&
+        Date.parse(observation.observedAt) < cutoff
+      )
+        store.delete(observation.storageKey);
+  }
+}
+export class SenderSpamOverrideRepository extends IndexedDbRepository<"senderSpamOverrides"> {
+  constructor() {
+    super("senderSpamOverrides");
+  }
+}
 export class ActionLogRepository extends IndexedDbRepository<"actionLogs"> {
   constructor() {
     super("actionLogs");
@@ -155,11 +203,13 @@ export const repositories = {
   extensionPreferences: new ExtensionPreferenceRepository(),
   messageTemplates: new MessageTemplateRepository(),
   spamPhrases: new SpamPhraseRepository(),
+  messageObservations: new MessageObservationRepository(),
+  senderSpamOverrides: new SenderSpamOverrideRepository(),
   actionLogs: new ActionLogRepository(),
 };
 
 export interface DataExport {
-  schemaVersion: 1;
+  schemaVersion: typeof DATABASE_VERSION;
   exportedAt: string;
   accountId: string;
   entities: { [N in EntityName]: EntityMap[N][] };
@@ -172,7 +222,7 @@ export async function exportAccount(accountId: string): Promise<DataExport> {
     ),
   );
   return {
-    schemaVersion: 1,
+    schemaVersion: DATABASE_VERSION,
     exportedAt: new Date().toISOString(),
     accountId,
     entities: Object.fromEntries(entries) as DataExport["entities"],
