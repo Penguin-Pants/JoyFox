@@ -136,6 +136,48 @@ describe("M3 spam service", () => {
     );
   });
 
+  it("ignores an override stored for a different sender", async () => {
+    const id = notSpamOverrideId("synthetic-sender-1");
+    await repositories.extensionPreferences.put(ACCOUNT, {
+      id,
+      accountId: ACCOUNT,
+      key: id,
+      value: { kind: "not-spam", memberId: "synthetic-sender-2" },
+      createdAt: "2026-01-01T00:00:00Z",
+      updatedAt: "2026-01-01T00:00:00Z",
+    });
+    expect((await service.classify(ACCOUNT, sender, input)).status).toBe(
+      "flagged",
+    );
+
+    const repaired = await service.markNotSpam(ACCOUNT, sender);
+    expect(repaired).toMatchObject({
+      status: "ok",
+      value: {
+        createdAt: "2026-01-01T00:00:00Z",
+        value: { kind: "not-spam", memberId: "synthetic-sender-1" },
+      },
+    });
+    expect((await service.classify(ACCOUNT, sender, input)).status).toBe(
+      "overridden",
+    );
+  });
+
+  it("ignores an override whose key names another sender", async () => {
+    const id = notSpamOverrideId("synthetic-sender-1");
+    await repositories.extensionPreferences.put(ACCOUNT, {
+      id,
+      accountId: ACCOUNT,
+      key: notSpamOverrideId("synthetic-sender-2"),
+      value: { kind: "not-spam", memberId: "synthetic-sender-1" },
+      createdAt: "2026-01-01T00:00:00Z",
+      updatedAt: "2026-01-01T00:00:00Z",
+    });
+    expect((await service.classify(ACCOUNT, sender, input)).status).toBe(
+      "flagged",
+    );
+  });
+
   it("exports the phrase library, the correction and the sender", async () => {
     await service.addPhrase(ACCOUNT, "would love to chat");
     await service.markNotSpam(ACCOUNT, sender);

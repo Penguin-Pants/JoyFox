@@ -20,6 +20,32 @@ describe("M3 template detector", () => {
     expect(normalizeMessage("ＦＵＬＬ width")).toBe("full width");
   });
 
+  it("removes invisible format characters that could split a copy", () => {
+    expect(normalizeMessage("wo\u200Buld lo\u00ADve to\u2060 chat")).toBe(
+      "would love to chat",
+    );
+    const verdict = detector.classify({
+      text: TEMPLATE.split("").join("\u200B"),
+      priorMessages: [{ id: "prior-1", text: TEMPLATE }],
+      phrases: [],
+    });
+    expect(verdict.status).toBe("flagged");
+  });
+
+  it("matches a phrase embedded in text written without spaces", () => {
+    const text =
+      "你好我很喜欢你的个人资料希望我们可以多聊聊天请加我的联系方式谢谢你的时间祝你今天过得愉快我们下次再聊";
+    const verdict = detector.classify({
+      text,
+      priorMessages: [],
+      phrases: [{ id: "p", phrase: "请加我的联系方式" }],
+    });
+    expect(verdict).toMatchObject({
+      status: "flagged",
+      matches: [{ kind: "phrase", phraseId: "p", similarity: 1 }],
+    });
+  });
+
   it("builds word-pair shingles", () => {
     expect([...shingles("a b c")]).toEqual(["a b", "b c"]);
     expect([...shingles("single")]).toEqual(["single"]);
@@ -144,6 +170,16 @@ describe("M3 template detector", () => {
       phrases: [],
     });
     expect(verdict.reasons.join(" ")).not.toContain("liked your profile");
+  });
+
+  it("keeps validated settings immutable", () => {
+    const configured = new RuleBasedTemplateDetector();
+    expect(() => {
+      (
+        configured.settings as { priorMessageThreshold: number }
+      ).priorMessageThreshold = 0;
+    }).toThrow(TypeError);
+    expect(configured.settings.priorMessageThreshold).toBe(0.7);
   });
 
   it("rejects settings that would flag everything or nothing honestly", () => {

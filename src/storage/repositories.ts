@@ -65,9 +65,11 @@ export class ProfileSnapshotRepository extends IndexedDbRepository<"profileSnaps
     );
     const newestFirst = stored
       .filter((snapshot) => snapshot.memberId === entity.memberId)
+      // Instants, not strings: offsets and precision can differ.
       .sort(
         (a, b) =>
-          b.capturedAt.localeCompare(a.capturedAt) || b.id.localeCompare(a.id),
+          Date.parse(b.capturedAt) - Date.parse(a.capturedAt) ||
+          b.id.localeCompare(a.id),
       );
     for (const obsolete of newestFirst.slice(PROFILE_SNAPSHOT_RETENTION))
       store.delete(obsolete.storageKey);

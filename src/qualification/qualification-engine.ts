@@ -149,8 +149,16 @@ function sanitize(facts: Partial<ProfileFacts>): ProfileFacts {
   };
 }
 
-const newestFirst = (a: ProfileSnapshot, b: ProfileSnapshot) =>
-  b.capturedAt.localeCompare(a.capturedAt) || b.id.localeCompare(a.id);
+/**
+ * Compare instants, not strings: valid ISO dates with different offsets or
+ * precision do not sort by time as text.
+ */
+export const newestSnapshotFirst = (
+  a: Pick<ProfileSnapshot, "capturedAt" | "id">,
+  b: Pick<ProfileSnapshot, "capturedAt" | "id">,
+) =>
+  Date.parse(b.capturedAt) - Date.parse(a.capturedAt) ||
+  b.id.localeCompare(a.id);
 
 /**
  * Merge what the current surface shows with cached snapshots of the same
@@ -166,7 +174,7 @@ export function mergeProfileFacts(
   const current = sanitize(observed);
   const cached = snapshots
     .filter((snapshot) => snapshot.memberId === memberId)
-    .sort(newestFirst);
+    .sort(newestSnapshotFirst);
 
   function pick<K extends ProfileFactName>(
     field: K,

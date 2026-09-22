@@ -19,8 +19,16 @@ import {
   type QualificationResult,
 } from "./qualification-engine";
 
-export const snapshotId = (memberId: string, capturedAt: string) =>
-  `snapshot:${encodeURIComponent(memberId)}:${encodeURIComponent(capturedAt)}`;
+/**
+ * The random part keeps two observations in the same millisecond from
+ * overwriting each other.
+ */
+export const snapshotId = (
+  memberId: string,
+  capturedAt: string,
+  unique: string = crypto.randomUUID(),
+) =>
+  `snapshot:${encodeURIComponent(memberId)}:${encodeURIComponent(capturedAt)}:${encodeURIComponent(unique)}`;
 
 export interface QualificationOutcome extends QualificationResult {
   /**

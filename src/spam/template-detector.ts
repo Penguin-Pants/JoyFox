@@ -6,7 +6,7 @@
 import { ExtensionError } from "../errors";
 
 export interface DetectorSettings {
-  /** Messages with fewer normalized characters are never flagged. */
+  /** Messages with fewer letters and digits, after normalization, are never flagged. */
   minimumMessageLength: number;
   /** Jaccard similarity to one prior message that counts as a template. */
   priorMessageThreshold: number;
@@ -79,19 +79,33 @@ export function validateDetectorSettings(settings: DetectorSettings): void {
   }
 }
 
+/** Scripts written without spaces between words. */
+const UNSPACED_SCRIPT =
+  /([\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Thai}\p{Script=Lao}\p{Script=Khmer}\p{Script=Myanmar}])/gu;
+
 /**
- * Normalize for comparison: compatibility-fold Unicode, lowercase, turn
- * punctuation and symbols into spaces, and collapse whitespace. Letters and
- * digits in any script are kept, so German umlauts compare as typed.
+ * Normalize for comparison: compatibility-fold Unicode, lowercase, delete
+ * invisible format characters (such as U+200B, which could otherwise split a
+ * copied template without a visible change), turn punctuation and symbols into
+ * spaces, and collapse whitespace. Letters and digits in any script are kept,
+ * so German umlauts compare as typed. Each character of a script written
+ * without spaces becomes its own token, so word pairs there are character
+ * pairs and an embedded phrase can still match.
  */
 export function normalizeMessage(text: string): string {
   return text
     .normalize("NFKC")
+    .replace(/\p{Cf}+/gu, "")
     .toLowerCase()
     .replace(/[\p{P}\p{S}]+/gu, " ")
+    .replace(UNSPACED_SCRIPT, " $1 ")
     .replace(/\s+/gu, " ")
     .trim();
 }
+
+/** Letters and digits only, so added token spaces do not change the length. */
+const contentLength = (normalized: string) =>
+  normalized.replaceAll(" ", "").length;
 
 /**
  * Word pairs, so word order matters but a single substituted name only breaks
@@ -134,20 +148,22 @@ function matchReason(match: TemplateMatch): string {
 }
 
 export class RuleBasedTemplateDetector implements TemplateClassifier {
-  readonly settings: DetectorSettings;
+  /** Frozen after validation, so a caller cannot bypass the checks later. */
+  readonly settings: Readonly<DetectorSettings>;
 
   constructor(settings: Partial<DetectorSettings> = {}) {
-    this.settings = { ...DEFAULT_DETECTOR_SETTINGS, ...settings };
-    validateDetectorSettings(this.settings);
+    const merged = { ...DEFAULT_DETECTOR_SETTINGS, ...settings };
+    validateDetectorSettings(merged);
+    this.settings = Object.freeze(merged);
   }
 
   classify(input: TemplateInput): TemplateVerdict {
     const normalized = normalizeMessage(input.text);
-    if (normalized.length < this.settings.minimumMessageLength)
+    if (contentLength(normalized) < this.settings.minimumMessageLength)
       return {
         status: "too-short",
         reasons: [
-          `The message is shorter than ${this.settings.minimumMessageLength} characters, so it is not checked. Short openers are too often identical by chance.`,
+          `The message has fewer than ${this.settings.minimumMessageLength} letters or digits, so it is not checked. Short openers are too often identical by chance.`,
         ],
       };
     const message = shingles(normalized);
@@ -172,7 +188,7 @@ export class RuleBasedTemplateDetector implements TemplateClassifier {
     for (const prior of input.priorMessages) {
       if (prior.id === input.messageId) continue;
       const other = normalizeMessage(prior.text);
-      if (other.length < this.settings.minimumMessageLength) continue;
+      if (contentLength(other) < this.settings.minimumMessageLength) continue;
       const similarity =
         other === normalized ? 1 : jaccard(message, shingles(other));
       if (similarity >= this.settings.priorMessageThreshold)

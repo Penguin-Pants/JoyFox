@@ -53,17 +53,21 @@ export carries the member directory rather than dangling member IDs.
 
 ## Qualification and spam records
 
-A ProfileSnapshot ID is `snapshot:<member>:<captured at>`, each component
-percent-encoded. A snapshot is written only for a resolved member identity and
-never when every fact is unknown. Merging takes a fact observed now first, then
-the newest same-member snapshot that knows it.
+A ProfileSnapshot ID is `snapshot:<member>:<captured at>:<random UUID>`, each
+component percent-encoded. The random part keeps two observations in the same
+millisecond apart. Snapshots are ordered by parsed instant, never by the text of
+`capturedAt`, because valid ISO dates may use different offsets. A snapshot is
+written only for a resolved member identity and never when every fact is
+unknown. Merging takes a fact observed now first, then the newest same-member
+snapshot that knows it.
 
 A SpamPhrase ID is `phrase:<normalized phrase>`, so two spellings that normalize
 alike are one record. The stored phrase keeps the spelling the user typed.
 
 The sender-specific "not spam" correction is an ExtensionPreference with ID and
 key `spam-override:<member>` and the value `{ kind: "not-spam", memberId }`. A
-preference under that key with any other value is not treated as a correction.
+record counts as a correction only when its key and stored member both name the
+sender being classified. Marking a sender again repairs any other record there.
 No schema change was needed.
 
 No entity stores message text. Earlier messages for similarity are supplied by

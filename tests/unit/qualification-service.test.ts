@@ -139,6 +139,30 @@ describe("M1 qualification service", () => {
     expect(result.overall).toBe("qualified");
   });
 
+  it("keeps two observations captured in the same millisecond", async () => {
+    const frozen = new QualificationService(
+      repositories.profileSnapshots,
+      repositories.joyClubMembers,
+      () => "2026-06-01T00:00:00.000Z",
+    );
+    await frozen.recordSnapshot(ACCOUNT, identity, {
+      ...UNKNOWN_FACTS,
+      verification: true,
+    });
+    await frozen.recordSnapshot(ACCOUNT, identity, {
+      ...UNKNOWN_FACTS,
+      photoCount: 4,
+    });
+    expect(await repositories.profileSnapshots.list(ACCOUNT)).toHaveLength(2);
+    const result = await frozen.qualify(
+      ACCOUNT,
+      identity,
+      {},
+      { requireVerification: true, minimumPhotoCount: 3 },
+    );
+    expect(result.overall).toBe("qualified");
+  });
+
   it("requires an explicit active account", async () => {
     await expect(service.qualify(" ", identity, {}, {})).rejects.toThrow(
       "explicit active account",

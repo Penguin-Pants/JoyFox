@@ -29,9 +29,11 @@
 - Spam similarity compares against earlier messages supplied by the caller. No
   message history is stored, so each classification sees only the messages its
   caller passes in.
-- The minimum message length (40 characters) and the similarity thresholds (0.7
-  for earlier messages, 0.8 for phrases) are implementation defaults, not values
-  tuned against real inbox data.
+- The minimum message length (40 letters or digits) and the similarity
+  thresholds (0.7 for earlier messages, 0.8 for phrases) are implementation
+  defaults, not values tuned against real inbox data.
 - Cached profile facts carry their capture time but do not expire.
+- Text in scripts written without spaces is compared character pair by character
+  pair, not by dictionary words, so fuzzy matches there are coarser.
 - Database version 1 supplies a migration boundary. No historical schema yet
   exists to migrate.

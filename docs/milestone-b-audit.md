@@ -62,10 +62,12 @@ allow.
 - `RuleBasedTemplateDetector` implements the `TemplateClassifier` interface, so
   a later classifier can replace it without a triage rewrite. It is local,
   deterministic and has no AI.
-- Normalization: Unicode NFKC, lowercase, punctuation and symbols to spaces,
-  whitespace collapsed. Letters in any script stay as typed.
-- Messages below a configurable minimum length (default 40 normalized
-  characters) are `too-short` and never flagged.
+- Normalization: Unicode NFKC, invisible format characters removed, lowercase,
+  punctuation and symbols to spaces, whitespace collapsed. Letters in any script
+  stay as typed. In scripts written without spaces (Han, Kana, Thai, Lao, Khmer,
+  Myanmar) each character is a token.
+- Messages below a configurable minimum length (default 40 letters or digits
+  after normalization) are `too-short` and never flagged.
 - Similarity to earlier messages is Jaccard over word pairs (default 0.7). Saved
   phrases match exactly on word boundaries, or fuzzily by the share of the
   phrase's word pairs in the message (default 0.8).
@@ -88,6 +90,25 @@ allow.
 - Member registration and the identity refusal outcome were private to M5 but
   are needed by M1 and M3. Both moved to shared modules without a behavior
   change, so the three services cannot drift apart.
+
+### Confirmed issues fixed after PR review (second increment)
+
+Automated review on PR #6 found six issues. Each was confirmed with a test that
+fails on the reviewed commit and passes after the fix.
+
+- Snapshots were ordered by `capturedAt` text, so an older date with a `+02:00`
+  offset could outrank a newer UTC date. Merge and retention now compare parsed
+  instants.
+- Two snapshots of one member in the same millisecond had the same ID, so one
+  overwrote the other. Snapshot IDs now carry a random part.
+- A "not spam" record was accepted on `kind` alone. It now must name the sender
+  in both its key and its value, and marking again repairs it.
+- Detector settings could be changed after validation. They are now frozen.
+- Invisible format characters such as U+200B survived normalization and could
+  hide a copy. They are now removed.
+- A saved phrase inside Chinese or Japanese text never matched, as the whole
+  text was one word. Characters of unspaced scripts are now separate tokens, and
+  the minimum length counts letters and digits only.
 
 ### Confirmed issues deferred (second increment)
 

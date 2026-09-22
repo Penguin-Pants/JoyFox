@@ -55,9 +55,19 @@ function requireAccountId(accountId: string): void {
     );
 }
 
-function isOverride(preference: ExtensionPreference | undefined): boolean {
-  const value = preference?.value as Partial<NotSpamOverride> | undefined;
-  return value?.kind === "not-spam";
+/**
+ * `ExtensionPreference.value` is untyped, so the whole record is checked: the
+ * key and the stored member must both name this sender, or it is not treated
+ * as a correction for them.
+ */
+function isOverrideFor(
+  preference: ExtensionPreference | undefined,
+  memberId: string,
+): boolean {
+  if (!preference || preference.key !== notSpamOverrideId(memberId))
+    return false;
+  const value = preference.value as Partial<NotSpamOverride> | null;
+  return value?.kind === "not-spam" && value.memberId === memberId;
 }
 
 /**
@@ -138,8 +148,10 @@ export class SpamService {
     if (identity.status === "unresolved") return disabled(identity.reason);
     const id = notSpamOverrideId(identity.memberId);
     const existing = await this.preferences.get(accountId, id);
-    if (existing && isOverride(existing)) return ok(existing);
+    if (existing && isOverrideFor(existing, identity.memberId))
+      return ok(existing);
     const timestamp = this.now();
+    // A malformed record under this ID is replaced, keeping its creation time.
     const value: NotSpamOverride = {
       kind: "not-spam",
       memberId: identity.memberId,
@@ -149,7 +161,7 @@ export class SpamService {
       accountId,
       key: id,
       value,
-      createdAt: timestamp,
+      createdAt: existing?.createdAt ?? timestamp,
       updatedAt: timestamp,
     };
     await ensureMemberRegistered(
@@ -196,7 +208,8 @@ export class SpamService {
       accountId,
       notSpamOverrideId(identity.memberId),
     );
-    if (!override || !isOverride(override)) return verdict;
+    if (!override || !isOverrideFor(override, identity.memberId))
+      return verdict;
     return {
       status: "overridden",
       matches: verdict.matches,

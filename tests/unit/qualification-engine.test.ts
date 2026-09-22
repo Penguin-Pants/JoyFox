@@ -188,6 +188,23 @@ describe("M1 qualification engine", () => {
     });
   });
 
+  it("orders snapshots by instant, not by text", () => {
+    const merged = mergeProfileFacts(MEMBER, {}, [
+      // 23:00 UTC on 28 February: older, but sorts after the other as text.
+      snapshot({
+        id: "older",
+        capturedAt: "2026-03-01T01:00:00+02:00",
+        photoCount: 1,
+      }),
+      snapshot({
+        id: "newer",
+        capturedAt: "2026-03-01T00:30:00Z",
+        photoCount: 6,
+      }),
+    ]);
+    expect(merged.photoCount.value).toBe(6);
+  });
+
   it("ignores snapshots that belong to another member", () => {
     const merged = mergeProfileFacts(MEMBER, {}, [
       snapshot({
