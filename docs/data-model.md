@@ -28,3 +28,25 @@ record until it is deleted explicitly.
 Profile facts that cannot be observed are represented as `unknown`, never as a
 negative result. Sync configuration may store explicit derivation parameters,
 but never a passphrase.
+
+## Account directory and record keys
+
+An ExtensionAccount is its own scope: its `accountId` equals its `id`. The
+account repository therefore offers one extra read, `listAllAccounts`, because
+the active scope is chosen from that directory before any scope exists. No other
+store may be read without a scope.
+
+The active account is a pointer, not a record. It lives in `storage.local` under
+`joyfox.activeAccountId` so it can be read before the database opens. A pointer
+that no longer resolves reports no active account rather than falling back to
+another one.
+
+Notes and tags derive their record IDs from the member identity: `note:<member>`
+and `tag:<member>:<tag key>`, each component percent-encoded so an identifier
+containing the separator cannot collide. A member carries at most one note per
+account. A tag key is the label with whitespace collapsed and case folded, so
+one member cannot hold two spellings of the same tag. The stored label keeps the
+spelling the user typed.
+
+Saving a note or tag also registers the JoyClubMember record it refers to, so an
+export carries the member directory rather than dangling member IDs.

@@ -13,6 +13,7 @@
       "run_at": "document_idle"
     }
   ],
+  "options_ui": { "page": "options.html", "open_in_tab": true },
   "browser_specific_settings": {
     "gecko": { "id": "joyfox@example.invalid", "strict_min_version": "121.0" }
   }

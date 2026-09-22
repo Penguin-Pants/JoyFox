@@ -34,6 +34,25 @@ Matches the PRD's Section 19.1 scope exactly. Nothing here is not in that list, 
 | M9 | Quick Ignore and Delete, Mode A | F7, F5 | Correct sender ignored and correct message deleted in 100 percent of test cases; a partial failure always shows which step failed (PRD 21.2) | L |
 | M10 | Message Templates and Composition Assistance | F6 | A saved template inserts with no corruption in every compose context, including event ClubMail (PRD 21.2) | M |
 
+## Status
+
+| ID | Status | Notes |
+| --- | --- | --- |
+| F0 to F6 | Done | See `foundation-audit.md`. F2's live acceptance waits on F1. |
+| F1, F7, F8, F9 | Blocked | Human-assisted verification. See `manual-verification-needed.md`. |
+| M5 | Partial | Notes and tags persist, keyed to account plus a resolved member identity. Writes are refused while no member selector is verified, and the profile UI waits on F1. See `milestone-b-audit.md`. |
+| M7 | Partial | Explicit active account, account-scoped repositories, options switcher, and the Section 14 isolation test. Automatic account detection waits on F1 and F9. |
+| M1, M2, M3, M4, M6, M8, M9, M10 | Not started | |
+
+### Follow-up work recorded during M5 and M7
+
+- Add a member index for user tags so per-member tag reads do not scan the
+  account. This changes the database schema and belongs with M8.
+- Make account creation atomic, so two concurrent creates cannot both pass the
+  duplicate identifier check.
+- Replace the user-declared account identifier with a verified one once F1 and
+  F9 establish where the JoyClub account identity appears.
+
 M9 is the largest and riskiest MVP task, both in size and in its dependency on F7's still-unverified in-page-versus-navigation question. If F1 through F7 push MVP's timeline out meaningfully, M9 is the one task worth reconsidering for a fast-follow release rather than the rest of MVP slipping with it. That is a scope call, not a technical one, and stays with the person running this project.
 
 ## V1 Phase, for Context

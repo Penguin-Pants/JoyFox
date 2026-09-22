@@ -15,9 +15,11 @@
 ## Current phase status
 
 Milestone A remains partially complete because F2's live extraction acceptance
-depends on F1. The backlog does not permit Milestone B to start before that
-dependency is complete. All remaining Foundation work that can be implemented
-without inventing JoyClub behavior is complete.
+depends on F1. All remaining Foundation work that can be implemented without
+inventing JoyClub behavior is complete.
+
+Milestone B has started with M5 and M7, which depend on F6 rather than F1. See
+`milestone-b-audit.md` for what those cover and what they still leave blocked.
 
 ## Review findings
 

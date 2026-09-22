@@ -1,11 +1,20 @@
-import type { EntityMap, EntityName, ProfileSnapshot } from "../domain/types";
+import type {
+  EntityMap,
+  EntityName,
+  ExtensionAccount,
+  ProfileSnapshot,
+} from "../domain/types";
 import {
   ENTITY_NAMES,
   openDatabase,
   requestResult,
   transactionDone,
 } from "./database";
-import { IndexedDbRepository, type Stored } from "./repository";
+import {
+  IndexedDbRepository,
+  withoutStorageKey,
+  type Stored,
+} from "./repository";
 
 /**
  * Profile snapshots are time-series personal data, so the store keeps only the
@@ -17,6 +26,22 @@ export const PROFILE_SNAPSHOT_RETENTION = 20;
 export class ExtensionAccountRepository extends IndexedDbRepository<"extensionAccounts"> {
   constructor() {
     super("extensionAccounts");
+  }
+  /**
+   * The account directory is the one store that must be readable without an
+   * account scope, because the scope itself is chosen from its contents. Every
+   * account record is self-scoped (`accountId === id`), so this reads the
+   * directory and never another account's data.
+   */
+  async listAllAccounts(): Promise<ExtensionAccount[]> {
+    const db = await openDatabase();
+    const stored = await requestResult(
+      db
+        .transaction("extensionAccounts")
+        .objectStore("extensionAccounts")
+        .getAll() as IDBRequest<Array<Stored<ExtensionAccount>>>,
+    );
+    return stored.map(withoutStorageKey);
   }
 }
 export class JoyClubMemberRepository extends IndexedDbRepository<"joyClubMembers"> {

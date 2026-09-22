@@ -13,6 +13,21 @@
    again, and confirm the stored value increases rather than resetting.
 6. Confirm normal use creates no extension-originated network requests.
 
+## Accounts, notes and tags
+
+7. Open the extension options page and confirm it reports
+   `Active account: None selected` before any account exists.
+8. Add an account, then confirm it is listed and marked `Active` in words, not
+   only by styling.
+9. Add a second account, switch to it, reopen the options page, and confirm the
+   choice survived the reload.
+10. Confirm every control is reachable and operable by keyboard alone.
+11. Click `Remove` once and confirm nothing is deleted until the second,
+    explicit confirmation.
+12. Remove an account and confirm the remaining account's data is unchanged.
+13. Confirm a note or tag cannot be saved anywhere in the live UI while
+    selectors are unverified, and that the refusal states nothing was stored.
+
 Live selector and action acceptance must wait for the evidence checklist in
 `manual-verification-needed.md`. Never perform destructive action testing
 automatically.

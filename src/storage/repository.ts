@@ -15,7 +15,7 @@ export type Stored<T> = T & { storageKey: string };
 const keyPart = (value: string) => encodeURIComponent(value);
 const key = (accountId: string, id: string) =>
   `${keyPart(accountId)}:${keyPart(id)}`;
-function withoutStorageKey<T>(stored: Stored<T>): T {
+export function withoutStorageKey<T>(stored: Stored<T>): T {
   const copy: Partial<Stored<T>> = { ...stored };
   delete copy.storageKey;
   return copy as T;

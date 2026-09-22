@@ -12,3 +12,12 @@ transport exists in this milestone.
 
 Synthetic tests use invented names and text only. No real member information or
 captured page is committed.
+
+Notes and tags describe an identifiable third party, so they are written only
+when a stable member identity is available. While no member-identifier selector
+is verified, every note and tag write is refused and the reason is shown to the
+user. Nothing is stored from a display name.
+
+Removing an account from the options page deletes every record in that scope and
+clears the active-account pointer first, so an interrupted removal cannot leave
+the extension active on a half-removed scope.
