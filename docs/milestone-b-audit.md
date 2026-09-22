@@ -174,8 +174,9 @@ counts words rather than characters, and has no phrase-adding service.
 The inbox, conversation and profile pages are verified from sanitized evidence
 in `docs/live-evidence/`. Page detection and pure extractors now resolve the
 member ID, the conversation ID, verification and gender codes, photo count and
-profile word count, with synthetic fixtures and tests. The F9 matrix is done:
-join date appears on no page, so account age is always unknown.
+profile word count, with synthetic fixtures and tests. The F9 matrix is partly
+done: no join date has been found, so account age stays unknown, and the
+profile-type codes are not fully mapped.
 
 ## Blocked or remaining
 

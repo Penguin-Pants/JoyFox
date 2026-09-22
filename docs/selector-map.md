@@ -60,7 +60,7 @@ app (`09-navigation.md`) and the inbox list can stay in the DOM.
 | Profile      | Verification code | `[data-e2e="profile-header-base-info"] j-veri-icon[…]`                    | Numeric code                             |
 | Profile      | Photo count       | `.amount-badge[aria-label]`                                               | `"<n> Fotos"` or `"1 Foto"`              |
 | Profile      | Profile text      | `.profile-description-motto__text`, `.profile-description-maintext__text` | Word count of both blocks together       |
-| Profile      | Join date         | None                                                                      | Absent on the site; always unknown       |
+| Profile      | Join date         | None                                                                      | Not found; unknown until verified        |
 
 ## Open points
 
@@ -69,6 +69,12 @@ app (`09-navigation.md`) and the inbox list can stay in the DOM.
   confirmed, every code reads as unknown, so verification never passes or fails
   on a guess.
 - **Gender codes `2` and `3`** are unconfirmed. No feature uses gender yet.
+- **Inbox loading.** Whether scrolling loads more rows is unconfirmed. The
+  extractor reads only the rows rendered at the time; later rows are read on the
+  next mutation event only if the site appends them to the same list.
+- **Message identifiers** were not looked for, so no per-message ID exists yet.
+- **Composer events.** The events the composer needs after a programmatic value
+  change are unknown, so template insertion (M10) stays blocked.
 - **Message text.** `cm-message-bubble--left` and `--right` probably mean
   received and sent, inferred from layout. Nothing reads message text until that
   is confirmed and the message-caching toggle from ADR 0004 exists.

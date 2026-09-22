@@ -2,9 +2,16 @@
 
 ## Status (2026-09-22)
 
-Items 1, 2, 3 and 8 are done, and item 9 is partly done. The evidence is in
+Item 3 is done, and items 1, 2, 6, 8 and 9 are partly done. The evidence is in
 `docs/live-evidence/`, and the inbox, conversation and profile selectors are
 verified from it. Still open:
+
+- **Item 1:** whether scrolling the inbox loads more conversations, and how.
+- **Item 2:** whether a message has a stable identifier.
+- **Item 6:** which input or change events the standard composer needs after its
+  value is set programmatically.
+- **Item 8:** whether a join date or account age appears anywhere, and what
+  `universal-gender` codes `2` and `3` mean.
 
 - **Verification codes (from item 1):** confirm what `verification-status` `1`
   and `3` mean, for example from the badge tooltip on your own and on a verified

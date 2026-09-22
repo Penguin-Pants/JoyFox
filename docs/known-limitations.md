@@ -9,9 +9,10 @@
   still unknown. Features must not use display names as identifiers.
 - No profile-page note or tag UI exists yet. Notes and tags can now resolve a
   member identity from a verified page, but nothing on a page calls them.
-- JoyClub shows no join date or account age on the inbox, the conversation or
-  the profile (`08-attribute-matrix.md`). The account-age criterion is therefore
-  always unknown, which gives Partial information whenever it is configured.
+- No join date or account age has been found on the inbox, the conversation or
+  the profile, and its absence is not yet established
+  (`08-attribute-matrix.md`). Until one is verified, the account-age criterion
+  is always unknown, which gives Partial information whenever it is configured.
 - The meaning of the `verification-status` codes is unconfirmed, so verification
   is always unknown until it is confirmed.
 - The profile word count adds the motto and the main text. The conversation

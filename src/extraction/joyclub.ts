@@ -214,7 +214,7 @@ export interface ProfileExtraction {
   photoCount: ExtractionResult<number>;
   /** Words in the motto and the main text together. */
   profileWordCount: ExtractionResult<number>;
-  /** No join date exists on any verified page (08-attribute-matrix.md). */
+  /** No join date has been found on any page (08-attribute-matrix.md). */
   joinedAt: ExtractionResult<string>;
 }
 
@@ -279,6 +279,6 @@ export function extractProfile(
             ),
             "profile.text",
           ),
-    joinedAt: missing("profile.joinedAt:absent-on-site"),
+    joinedAt: missing("profile.joinedAt:no-verified-selector"),
   };
 }

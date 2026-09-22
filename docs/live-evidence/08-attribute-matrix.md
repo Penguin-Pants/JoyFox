@@ -6,8 +6,8 @@ Filled in from 01-inbox.md, 02-conversation.md, and 03-profile.md.
 | --------------------------------- | --------- | ----------------- | ------------ |
 | Verification badge                | Present   | Present           | Present      |
 | Photo count                       | Absent    | Absent            | Present      |
-| Account age or join date          | Absent    | Absent            | Absent       |
-| Profile type (man, woman, couple) | Present   | Present           | Present      |
+| Account age or join date          | Unclear   | Unclear           | Unclear      |
+| Profile type (man, woman, couple) | Unclear   | Unclear           | Unclear      |
 | Profile text or word count        | Absent    | Present           | Present      |
 
 ## Notes
@@ -24,3 +24,16 @@ Filled in from 01-inbox.md, 02-conversation.md, and 03-profile.md.
 - Profile text: absent on the inbox row (only a message preview exists there,
   which is different from profile text); present on both the conversation header
   (short description) and the full profile (motto + main text blocks).
+
+## Corrections after review
+
+Two rows were first recorded as Absent and Present. They are Unclear, because
+the evidence does not establish more:
+
+- **Account age or join date:** the search matched class names only. The profile
+  evidence states that a field under another naming convention cannot be ruled
+  out, and the inbox was not searched for it.
+- **Profile type:** an icon is present on all three pages, but only
+  `universal-gender="1"` (man) is mapped. Codes `2` and `3`, used by 14 of the
+  25 inbox rows, are unmapped, so the icon cannot yet be read as man, woman or
+  couple.
