@@ -1,8 +1,11 @@
 import { detectPage } from "./page-detector";
 import { NavigationCoordinator } from "./navigation-coordinator";
+import { hasVerifiedSelectors } from "../selectors/registry";
 
-const coordinator = new NavigationCoordinator(detectPage);
-coordinator.subscribe(() => {
-  /* Features remain disabled until selectors are verified. */
-});
-coordinator.start();
+if (hasVerifiedSelectors()) {
+  const coordinator = new NavigationCoordinator(detectPage);
+  coordinator.subscribe(() => {
+    /* Features subscribe here only after their selectors are verified. */
+  });
+  coordinator.start();
+}

@@ -1,11 +1,18 @@
-import type { EntityMap, EntityName } from "../domain/types";
+import type { EntityMap, EntityName, ProfileSnapshot } from "../domain/types";
 import {
   ENTITY_NAMES,
   openDatabase,
   requestResult,
   transactionDone,
 } from "./database";
-import { IndexedDbRepository } from "./repository";
+import { IndexedDbRepository, type Stored } from "./repository";
+
+/**
+ * Profile snapshots are time-series personal data, so the store keeps only the
+ * newest snapshots per member. Without a bound, ordinary revisits grow storage
+ * indefinitely and retain obsolete profile facts.
+ */
+export const PROFILE_SNAPSHOT_RETENTION = 20;
 
 export class ExtensionAccountRepository extends IndexedDbRepository<"extensionAccounts"> {
   constructor() {
@@ -20,6 +27,25 @@ export class JoyClubMemberRepository extends IndexedDbRepository<"joyClubMembers
 export class ProfileSnapshotRepository extends IndexedDbRepository<"profileSnapshots"> {
   constructor() {
     super("profileSnapshots");
+  }
+  protected override async applyRetention(
+    store: IDBObjectStore,
+    accountId: string,
+    entity: ProfileSnapshot,
+  ): Promise<void> {
+    const stored = await requestResult(
+      store.index("accountId").getAll(accountId) as IDBRequest<
+        Array<Stored<ProfileSnapshot>>
+      >,
+    );
+    const newestFirst = stored
+      .filter((snapshot) => snapshot.memberId === entity.memberId)
+      .sort(
+        (a, b) =>
+          b.capturedAt.localeCompare(a.capturedAt) || b.id.localeCompare(a.id),
+      );
+    for (const obsolete of newestFirst.slice(PROFILE_SNAPSHOT_RETENTION))
+      store.delete(obsolete.storageKey);
   }
 }
 export class UserNoteRepository extends IndexedDbRepository<"userNotes"> {
