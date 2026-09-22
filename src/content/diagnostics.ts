@@ -26,3 +26,39 @@ export function summarizeInbox(rows: readonly InboxRowExtraction[]): string {
     `readState=${foundCount(rows.map((row) => row.readState))}`,
   ].join(" ");
 }
+
+type StorageChanges = Record<string, { newValue?: unknown }>;
+type ChangeListener = (changes: StorageChanges, areaName: string) => void;
+
+/**
+ * Tracks the diagnostics flag for the lifetime of a tab. It reads the flag
+ * once and then follows `storage.onChanged`, so turning diagnostics off (or
+ * on) takes effect without a reload. Any storage failure leaves it off.
+ */
+export class DiagnosticsFlag {
+  #enabled = false;
+
+  constructor(
+    read: () => Promise<Record<string, unknown>>,
+    onChanged?: { addListener(listener: ChangeListener): void },
+  ) {
+    onChanged?.addListener((changes, areaName) => {
+      if (areaName !== "local" || !(DIAGNOSTICS_KEY in changes)) return;
+      this.#enabled = changes[DIAGNOSTICS_KEY]?.newValue === true;
+    });
+    this.ready = read()
+      .then((settings) => {
+        this.#enabled = settings[DIAGNOSTICS_KEY] === true;
+      })
+      .catch(() => {
+        this.#enabled = false;
+      });
+  }
+
+  /** Settles once the initial value is known. */
+  readonly ready: Promise<void>;
+
+  get enabled(): boolean {
+    return this.#enabled;
+  }
+}

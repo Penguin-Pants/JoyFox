@@ -1,6 +1,10 @@
 // @vitest-environment jsdom
 import { beforeEach, describe, expect, it } from "vitest";
-import { summarizeInbox } from "../../src/content/diagnostics";
+import {
+  DIAGNOSTICS_KEY,
+  DiagnosticsFlag,
+  summarizeInbox,
+} from "../../src/content/diagnostics";
 import { detectPage } from "../../src/content/page-detector";
 import {
   extractConversation,
@@ -306,5 +310,36 @@ describe("M1 on verified profile data", () => {
       ["accountAge", "unknown"],
     ]);
     expect(result.outcome).toBe("partial-information");
+  });
+});
+
+describe("F2 diagnostics flag", () => {
+  it("follows storage changes after the initial read", async () => {
+    let listener:
+      | ((
+          changes: Record<string, { newValue?: unknown }>,
+          area: string,
+        ) => void)
+      | undefined;
+    const flag = new DiagnosticsFlag(
+      async () => ({ [DIAGNOSTICS_KEY]: true }),
+      { addListener: (added) => (listener = added) },
+    );
+    await flag.ready;
+    expect(flag.enabled).toBe(true);
+    listener?.({ [DIAGNOSTICS_KEY]: {} }, "local");
+    expect(flag.enabled).toBe(false);
+    listener?.({ [DIAGNOSTICS_KEY]: { newValue: true } }, "sync");
+    expect(flag.enabled).toBe(false);
+    listener?.({ [DIAGNOSTICS_KEY]: { newValue: true } }, "local");
+    expect(flag.enabled).toBe(true);
+  });
+
+  it("stays off when storage cannot be read", async () => {
+    const flag = new DiagnosticsFlag(async () => {
+      throw new Error("synthetic storage failure");
+    });
+    await flag.ready;
+    expect(flag.enabled).toBe(false);
   });
 });

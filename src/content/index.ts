@@ -1,7 +1,11 @@
 import { extractInboxRows } from "../extraction/joyclub";
 import { hasVerifiedSelectors, VERIFIED_HOSTS } from "../selectors/registry";
 import { runtimeSettingsArea } from "../storage/local-settings";
-import { DIAGNOSTICS_KEY, summarizeInbox } from "./diagnostics";
+import {
+  DIAGNOSTICS_KEY,
+  DiagnosticsFlag,
+  summarizeInbox,
+} from "./diagnostics";
 import { NavigationCoordinator } from "./navigation-coordinator";
 import { detectPage } from "./page-detector";
 
@@ -12,25 +16,21 @@ import { detectPage } from "./page-detector";
  */
 if (hasVerifiedSelectors() && VERIFIED_HOSTS.includes(location.hostname)) {
   const coordinator = new NavigationCoordinator(detectPage);
+  const diagnostics = new DiagnosticsFlag(
+    () => runtimeSettingsArea.get([DIAGNOSTICS_KEY]),
+    (globalThis as { browser?: typeof browser }).browser?.storage?.onChanged,
+  );
   let lastSummary = "";
-  // Read the diagnostics flag before starting, so a listener subscribes in
-  // time for the initial event. A storage failure leaves diagnostics off.
-  void runtimeSettingsArea
-    .get([DIAGNOSTICS_KEY])
-    .then((settings) => settings[DIAGNOSTICS_KEY] === true)
-    .catch(() => false)
-    .then((diagnostics) => {
-      if (diagnostics)
-        coordinator.subscribe(({ page }) => {
-          if (page.status !== "found" || page.value !== "inbox") return;
-          const summary = summarizeInbox(
-            extractInboxRows(document, location.href),
-          );
-          // Mutations fire often; log only when the counts change.
-          if (summary === lastSummary) return;
-          lastSummary = summary;
-          console.debug(`JoyFox ${summary}`);
-        });
-      coordinator.start();
-    });
+  coordinator.subscribe(({ page }) => {
+    // Checked on every event, so removing the flag stops output at once.
+    if (!diagnostics.enabled) return;
+    if (page.status !== "found" || page.value !== "inbox") return;
+    const summary = summarizeInbox(extractInboxRows(document, location.href));
+    // Mutations fire often; log only when the counts change.
+    if (summary === lastSummary) return;
+    lastSummary = summary;
+    console.debug(`JoyFox ${summary}`);
+  });
+  // Start after the initial flag is known, so the first event is not missed.
+  void diagnostics.ready.then(() => coordinator.start());
 }

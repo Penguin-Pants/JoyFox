@@ -12,7 +12,8 @@
 - No join date or account age has been found on the inbox, the conversation or
   the profile, and its absence is not yet established
   (`08-attribute-matrix.md`). Until one is verified, the account-age criterion
-  is always unknown, which gives Partial information whenever it is configured.
+  is always unknown. When it is configured, the result is Partial information
+  unless another configured criterion fails, which gives Does not meet rule.
 - The meaning of the `verification-status` codes is unconfirmed, so verification
   is always unknown until it is confirmed.
 - Conversation header data is used only when its member ID matches a number in

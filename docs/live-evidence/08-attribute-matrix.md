@@ -2,13 +2,13 @@
 
 Filled in from 01-inbox.md, 02-conversation.md, and 03-profile.md.
 
-| Criterion                         | Inbox row | Open conversation | Open profile |
-| --------------------------------- | --------- | ----------------- | ------------ |
-| Verification badge                | Present   | Present           | Present      |
-| Photo count                       | Absent    | Absent            | Present      |
-| Account age or join date          | Unclear   | Unclear           | Unclear      |
-| Profile type (man, woman, couple) | Unclear   | Unclear           | Unclear      |
-| Profile text or word count        | Absent    | Present           | Present      |
+| Criterion                         | Inbox row | Open conversation | Open profile | Cached snapshot |
+| --------------------------------- | --------- | ----------------- | ------------ | --------------- |
+| Verification badge                | Present   | Present           | Present      | Stored          |
+| Photo count                       | Unclear   | Absent            | Present      | Stored          |
+| Account age or join date          | Unclear   | Unclear           | Unclear      | Field exists    |
+| Profile type (man, woman, couple) | Unclear   | Unclear           | Unclear      | Not stored      |
+| Profile text or word count        | Absent    | Present           | Present      | Stored          |
 
 ## Notes
 
@@ -37,3 +37,18 @@ the evidence does not establish more:
   `universal-gender="1"` (man) is mapped. Codes `2` and `3`, used by 14 of the
   25 inbox rows, are unmapped, so the icon cannot yet be read as man, woman or
   couple.
+- **Photo count on the inbox row:** Unclear, not Absent. The inbox evidence does
+  not record a search for a photo count.
+
+## Cached snapshot column
+
+Added after review, from the `ProfileSnapshot` schema rather than from the site.
+A snapshot can only hold what an open profile showed, so it fills a gap on the
+inbox or conversation only for a member whose profile was opened before.
+
+- **Stored:** the snapshot has a field for it, and the profile page supplies it
+  (verification as a code, photo count, word count).
+- **Field exists:** the snapshot has a `joinedAt` field, but no page supplies a
+  join date yet, so it stays unknown.
+- **Not stored:** the snapshot has no field for profile type. A profile-type
+  criterion therefore cannot be filled from a cache.
