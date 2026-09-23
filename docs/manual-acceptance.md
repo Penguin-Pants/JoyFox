@@ -180,6 +180,37 @@ build from `main` at 9583284 and confirmed every item.
   tab's console, which has no `browser`. The steps now name the options page
   console.
 
+## M5 live acceptance (notes and tags)
+
+Use your own account and a member you are allowed to view. Use invented note
+text; never record the member's real data in this repository.
+
+36. Build and load the extension (item 14), with an account active. Open a
+    member's profile. Confirm "Your notes and tags (none yet)" appears after the
+    JoyFox panel (or after the profile header), not inside a JoyClub element,
+    and is closed.
+37. Open it. Type a note with two lines, an umlaut and an emoji, and click "Save
+    note". Add one tag with Enter and one with "Add tag". Confirm "Note saved."
+    and "Tag added." and both tags in the list.
+38. Reload the page, then quit and restart Firefox and open the profile again.
+    Confirm the note text is exact and both tags are shown, open by default (M5
+    acceptance: the note survives a restart).
+39. Open a conversation with the same member. Confirm the same note and tags
+    appear after the JoyFox panel below the conversation header, and that
+    clicking in the editor does not open the profile.
+40. In the options page, switch to another account. Confirm the editor on the
+    open JoyClub tab disappears at once and then shows no note for the other
+    account. Switch back and confirm the original note and tags are unchanged.
+41. Open the same profile in two tabs. Save a new note in the first and confirm
+    the second shows it at once. In the second tab, type other text but do not
+    save. Save another change in the first tab, then click "Save note" in the
+    second. Confirm the warning that the note changed elsewhere, that your text
+    stays in the box, and that saving again replaces the note.
+42. With the keyboard only, open the editor, type a note, save it, add a tag and
+    remove it. Confirm every control is reachable and named. Then, in "Your
+    data", delete the "Notes" data type and confirm the open profile's editor
+    shows no note.
+
 Live selector and action acceptance must wait for the evidence checklist in
 `manual-verification-needed.md`. Never perform destructive action testing
 automatically.

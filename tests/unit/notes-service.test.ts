@@ -152,4 +152,50 @@ describe("M5 notes and tags", () => {
     expect(value(await service.readNote(ACCOUNT, tricky))?.body).toBe("First");
     expect(await repositories.userNotes.list(ACCOUNT)).toHaveLength(2);
   });
+
+  it("saves over the note the editor showed, and refuses a changed one", async () => {
+    expect(
+      value(
+        await service.saveNoteIfUnchanged(ACCOUNT, identity, "First", null),
+      ),
+    ).toEqual({ status: "saved", current: "First" });
+    // Another tab saved "Other" after this editor drew "First".
+    await service.saveNote(ACCOUNT, identity, "Other");
+    expect(
+      value(
+        await service.saveNoteIfUnchanged(ACCOUNT, identity, "Mine", "First"),
+      ),
+    ).toEqual({ status: "conflict", current: "Other" });
+    expect(value(await service.readNote(ACCOUNT, identity))?.body).toBe(
+      "Other",
+    );
+    // Saving again over what is stored now replaces it.
+    expect(
+      value(
+        await service.saveNoteIfUnchanged(ACCOUNT, identity, "Mine", "Other"),
+      ),
+    ).toEqual({ status: "saved", current: "Mine" });
+  });
+
+  it("refuses to recreate a note deleted since the editor drew it", async () => {
+    await service.saveNote(ACCOUNT, identity, "First");
+    await service.deleteNote(ACCOUNT, identity);
+    expect(
+      value(
+        await service.saveNoteIfUnchanged(ACCOUNT, identity, "Edit", "First"),
+      ),
+    ).toEqual({ status: "conflict", current: null });
+    expect(await repositories.userNotes.list(ACCOUNT)).toEqual([]);
+  });
+
+  it("removes the note on an empty save, and refuses an unresolved member", async () => {
+    await service.saveNote(ACCOUNT, identity, "First");
+    expect(
+      value(await service.saveNoteIfUnchanged(ACCOUNT, identity, " ", "First")),
+    ).toEqual({ status: "saved", current: null });
+    expect(await repositories.userNotes.list(ACCOUNT)).toEqual([]);
+    expect(
+      await service.saveNoteIfUnchanged(ACCOUNT, unresolved, "Text", null),
+    ).toMatchObject({ status: "disabled", reason: "selector-unverified" });
+  });
 });

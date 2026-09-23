@@ -130,6 +130,77 @@
   cursor: pointer;
 }
 
+/* M5 note and tag editor, placed after the member panel. */
+.joyfox-notes__summary {
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.joyfox-notes__label {
+  display: block;
+  margin-top: var(--joyfox-space);
+  font-weight: 600;
+}
+
+.joyfox-notes__text,
+.joyfox-notes__tag-input {
+  box-sizing: border-box;
+  font: inherit;
+  color: var(--joyfox-ink);
+  background: var(--joyfox-surface);
+  border: 1px solid var(--joyfox-line);
+  border-radius: var(--joyfox-radius);
+  padding: 0.25em 0.5em;
+}
+
+.joyfox-notes__text {
+  display: block;
+  width: 100%;
+  resize: vertical;
+}
+
+.joyfox-notes__summary:focus-visible,
+.joyfox-notes__text:focus-visible,
+.joyfox-notes__tag-input:focus-visible {
+  outline: 2px solid var(--joyfox-focus);
+  outline-offset: 2px;
+}
+
+.joyfox-notes__heading {
+  font-size: 0.875rem;
+  margin: var(--joyfox-space) 0 0;
+}
+
+.joyfox-notes__tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--joyfox-space);
+  margin: var(--joyfox-space) 0;
+  padding: 0;
+  list-style: none;
+}
+
+.joyfox-notes__tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25em;
+  padding-inline-start: 0.5em;
+  border: 1px solid var(--joyfox-line);
+  border-radius: var(--joyfox-radius);
+}
+
+/*
+ * Kept in the accessibility tree while empty, so a screen reader announces
+ * the first status it shows.
+ */
+.joyfox-notes__status {
+  margin: var(--joyfox-space) 0 0;
+}
+
+.joyfox-notes__status:empty {
+  margin: 0;
+}
+
 /* M10 composer template picker, placed after JoyClub's composer form. */
 .joyfox-template-picker {
   box-sizing: border-box;

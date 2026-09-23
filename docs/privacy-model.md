@@ -14,9 +14,13 @@ Synthetic tests use invented names and text only. No real member information or
 captured page is committed.
 
 Notes and tags describe an identifiable third party, so they are written only
-when a stable member identity is available. While no member-identifier selector
-is verified, every note and tag write is refused and the reason is shown to the
-user. Nothing is stored from a display name.
+when a stable member identity is available: the verified numeric member ID from
+the profile URL or the conversation header. On any other page the editor does
+not appear, and the service refuses a write without a resolved identity. Nothing
+is stored from a display name. The editor says the note is private and stored
+only in this browser, and sets note and tag text as text, never as markup. While
+the editor is shown, its text is part of the JoyClub page's document, so the
+editor does not claim that JoyClub cannot see it.
 
 The template spam detector stores the normalized form of messages the user
 already had on screen, never the original text, and purges them on the 12-month

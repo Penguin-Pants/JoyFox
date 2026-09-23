@@ -48,7 +48,7 @@ Matches the PRD's Section 19.1 scope exactly. Nothing here is not in that list, 
 | M4 | Partial | One global rule in the V1-compatible schema, a pure evaluator with explicit unknown handling, and the two-box options builder are complete and tested. Presets are deferred. Live acceptance passed on 2026-09-23. |
 | M6 | Partial | Point-count trust score with a full explanation, outcome logging and undo on conversation and profile pages are complete and tested. Live acceptance passed on 2026-09-23. |
 | M3 | Partial | Normalization, the pluggable similarity engine, duplicate and known-phrase matching, explanations, and the persisted per-sender override are complete. Nothing reads a message from a page yet, which waits on F1. |
-| M5 | Partial | Notes and tags persist, keyed to account plus a resolved member identity. Writes are refused while no member selector is verified, and the profile UI waits on F1. See `milestone-b-audit.md`. |
+| M5 | Partial | Notes and tags persist, keyed to account plus a verified member ID. The note and tag editor is complete and tested on the profile and conversation pages, including the acceptance "survives a restart and a markup change that keeps the same profile ID" (`milestone-b-audit.md`, M5 editor). Live acceptance (`manual-acceptance.md`, items 36 to 42) is pending. Inbox, search and event surfaces are "later" in build plan Section 12. |
 | M7 | Partial | Explicit active account, account-scoped repositories, options switcher, and the Section 14 isolation test. Automatic account detection waits on F1 and F9. |
 | M8 | Done | Account selector, counts, per-entity inspection, delete record, data type, account data and everything, account and full JSON export with the schema version. Export completeness is tested item by item against every entity (`milestone-d-audit.md`). Live acceptance passed on 2026-09-23 (`manual-acceptance.md`, items 27 to 30 and 35). |
 | M10 | Partial | Create, edit, delete, folders and exact insertion at the cursor are complete, tested and accepted live on the standard composer (items 31 to 34, 2026-09-23). The picker is on by default (ADR 0007). The event ClubMail composer is unverified, so "every compose context" stays open. |
@@ -101,6 +101,14 @@ Matches the PRD's Section 19.1 scope exactly. Nothing here is not in that list, 
 - Add a failure-injection test that an account-wide delete rolls back.
 - Template variables, once plain insertion is accepted live (build plan
   Section 17).
+
+### Follow-up work recorded during the M5 editor
+
+- Show notes and tags on the inbox, search and event surfaces (build plan
+  Section 12, "reusable later"), once search and events are verified.
+- Decide whether to isolate the note editor from JoyClub's scripts, for example
+  in a closed shadow root. It would not stop a page script that records
+  keystrokes, so it needs a design decision first.
 
 M9 is the largest and riskiest MVP task, both in size and in its dependency on F7's still-unverified in-page-versus-navigation question. If F1 through F7 push MVP's timeline out meaningfully, M9 is the one task worth reconsidering for a fast-follow release rather than the rest of MVP slipping with it. That is a scope call, not a technical one, and stays with the person running this project.
 

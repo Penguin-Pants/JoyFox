@@ -6,8 +6,17 @@
 - The member ID is the number in the profile URL. Whether JoyClub ever reuses
   such a number is unconfirmed. Account, event and message identity sources are
   still unknown. Features must not use display names as identifiers.
-- No profile-page note or tag UI exists yet. Notes and tags can now resolve a
-  member identity from a verified page, but nothing on a page calls them.
+- The note and tag editor (M5) shows on the profile page and on a conversation
+  page, after the JoyFox panel. The inbox, search and event pages do not show
+  notes or tags yet (build plan Section 12: "reusable later").
+- Text typed in the note box and not saved is dropped when the active account
+  changes or the page moves to another member, so it can never be saved under
+  the wrong account or member. It is kept while the page briefly hides the
+  header for the same member.
+- While the editor is on a JoyClub page, the note and tag text is part of that
+  page's document, which JoyClub's own scripts could read. JoyFox never sends it
+  anywhere. Isolating the editor (for example in a closed shadow root) is a
+  recorded follow-up; it would not stop a page script that records keystrokes.
 - Account age comes only from the profile badge "Angemeldet seit <n> <unit>",
   which is a rounded duration, not a date. It becomes a join window widened one
   unit either side, because JoyClub's rounding is not confirmed. An age minimum

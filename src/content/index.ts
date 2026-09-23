@@ -2,6 +2,7 @@ import { ACTIVE_ACCOUNT_SETTING_KEY } from "../accounts/account-service";
 import { extractInboxRows } from "../extraction/joyclub";
 import { hasVerifiedSelectors, VERIFIED_HOSTS } from "../selectors/registry";
 import { runtimeSettingsArea } from "../storage/local-settings";
+import { NOTES_REVISION_KEY } from "../storage/notes-revision";
 import { TRIAGE_REVISION_KEY } from "../storage/triage-revision";
 import {
   DIAGNOSTICS_KEY,
@@ -9,6 +10,7 @@ import {
   summarizeInbox,
 } from "./diagnostics";
 import { InboxTriage, inboxListShown, inboxListState } from "./inbox-triage";
+import { MemberNotes, runtimeNotesClient } from "./member-notes";
 import { MemberPanel } from "./member-panel";
 import { NavigationCoordinator } from "./navigation-coordinator";
 import { detectPage } from "./page-detector";
@@ -41,6 +43,7 @@ if (hasVerifiedSelectors() && VERIFIED_HOSTS.includes(location.hostname)) {
   const client = runtimeTriageClient();
   const inbox = new InboxTriage(document, client);
   const panel = new MemberPanel(document, client);
+  const notes = new MemberNotes(document, runtimeNotesClient());
   const picker = new TemplatePicker(document, runtimeTemplateClient());
   let lastType: string | undefined;
   const updatePicker = () => {
@@ -54,8 +57,13 @@ if (hasVerifiedSelectors() && VERIFIED_HOSTS.includes(location.hostname)) {
     // the list beside an open conversation, also after a reply is sent.
     if (inboxListShown(document)) inbox.update();
     else inbox.leave();
-    if (type === "conversation" || type === "profile") panel.update(type);
-    else panel.leave();
+    if (type === "conversation" || type === "profile") {
+      panel.update(type);
+      notes.update(type);
+    } else {
+      panel.leave();
+      notes.leave();
+    }
     lastType = type;
     updatePicker();
   });
@@ -90,10 +98,17 @@ if (hasVerifiedSelectors() && VERIFIED_HOSTS.includes(location.hostname)) {
     if (ACTIVE_ACCOUNT_SETTING_KEY in changes) {
       inbox.accountChanged();
       panel.accountChanged();
+      notes.accountChanged();
       picker.accountChanged();
     } else if (TRIAGE_REVISION_KEY in changes) {
+      // Also set by every delete in the data inspector, so a deleted note
+      // or tag leaves an open page at once.
       inbox.invalidate();
       panel.invalidate();
+      notes.invalidate();
+    } else if (NOTES_REVISION_KEY in changes) {
+      // A note or tag saved in another tab.
+      notes.invalidate();
     }
   });
   // Start after the initial flag is known, so the first event is not missed.

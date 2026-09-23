@@ -1,15 +1,13 @@
 import type { TriagePlacement } from "../domain/types";
-import { ExtensionError } from "../errors";
 import type { MessageRouter } from "../messaging/router";
-import { withAccountLock } from "../storage/account-lock";
 import type { ProfileFacts } from "../qualification/facts";
 import {
-  isMemberId,
   MAX_MEMBERS_PER_REQUEST,
   type TriageRequestMember,
   type TriageService,
 } from "../triage/triage-service";
 import type { TrustOutcomeKind, TrustService } from "../trust/trust-service";
+import { invalid, lockedWrite, memberId } from "./handler-guards";
 
 export interface TriageHandlerDeps {
   triage: TriageService;
@@ -30,14 +28,6 @@ const OUTCOMES: readonly TrustOutcomeKind[] = [
   "neutral",
 ];
 
-const invalid = (what: string) =>
-  new ExtensionError("ExtractionInvalid", `Invalid ${what}`);
-
-function memberId(value: unknown): string {
-  if (!isMemberId(value)) throw invalid("member ID");
-  return value;
-}
-
 /** Only an object passes; the fact merge then drops unusable values. */
 function observed(value: unknown): Partial<ProfileFacts> {
   if (value === undefined) return {};
@@ -55,40 +45,6 @@ function members(value: unknown): TriageRequestMember[] {
       memberId: memberId(entry.memberId),
       observed: observed(entry.observed),
     };
-  });
-}
-
-/**
- * The account a write may use: the active one, and only if it is the account
- * the page's data came from. A write sent or queued before an account switch
- * is dropped instead of landing in the newly active account.
- */
-async function writeAccount(
-  deps: TriageHandlerDeps,
-  expected: unknown,
-): Promise<string | undefined> {
-  if (typeof expected !== "string" || expected.length === 0)
-    throw invalid("account");
-  const active = await deps.activeAccountId();
-  return active === expected ? active : undefined;
-}
-
-/**
- * Run a write under the account lock, checking inside the lock that the
- * account is still the active one (and so still exists). A removal or
- * another context's write to the same account cannot interleave with it.
- */
-async function lockedWrite<T>(
-  deps: TriageHandlerDeps,
-  expected: unknown,
-  refused: T,
-  write: (accountId: string) => Promise<T>,
-): Promise<T> {
-  if (typeof expected !== "string" || expected.length === 0)
-    throw invalid("account");
-  return withAccountLock(expected, async () => {
-    const accountId = await writeAccount(deps, expected);
-    return accountId ? write(accountId) : refused;
   });
 }
 

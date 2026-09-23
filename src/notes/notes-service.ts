@@ -11,9 +11,15 @@ import {
   UserNoteRepository,
   UserTagRepository,
 } from "../storage/repositories";
+import { MAX_NOTE_LENGTH, MAX_TAG_LENGTH } from "./limits";
 
-export const MAX_NOTE_LENGTH = 4000;
-export const MAX_TAG_LENGTH = 64;
+export { MAX_NOTE_LENGTH, MAX_TAG_LENGTH };
+
+/** `current` is the stored note after the call (`null`: none). */
+export interface SaveNoteResult {
+  status: "saved" | "conflict";
+  current: string | null;
+}
 
 export const noteId = (memberId: string) =>
   `note:${encodeURIComponent(memberId)}`;
@@ -111,6 +117,31 @@ export class NotesService {
     await this.#ensureMember(accountId, identity.memberId);
     await this.notes.put(accountId, note);
     return ok(note);
+  }
+
+  /**
+   * Save only if the stored note still has the text the editor was drawn
+   * from (`null`: no note). A save from another tab, or a delete in the data
+   * inspector, is then never overwritten unseen. Text is compared rather
+   * than a timestamp, so two saves in one millisecond cannot hide a change,
+   * and a save over identical text is let through. The caller holds the
+   * account lock, so nothing writes between the check and the save.
+   */
+  async saveNoteIfUnchanged(
+    accountId: string,
+    identity: MemberIdentity,
+    body: string,
+    expectedBody: string | null,
+  ): Promise<PersistenceOutcome<SaveNoteResult>> {
+    requireAccountId(accountId);
+    if (identity.status === "unresolved") return disabled(identity.reason);
+    const current =
+      (await this.notes.get(accountId, noteId(identity.memberId)))?.body ??
+      null;
+    if (current !== expectedBody) return ok({ status: "conflict", current });
+    const saved = await this.saveNote(accountId, identity, body);
+    if (saved.status === "disabled") return disabled(saved.reason);
+    return ok({ status: "saved", current: saved.value?.body ?? null });
   }
 
   async deleteNote(

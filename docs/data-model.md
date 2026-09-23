@@ -59,6 +59,14 @@ spelling the user typed.
 Saving a note or tag also registers the JoyClubMember record it refers to, so an
 export carries the member directory rather than dangling member IDs.
 
+A save from the page editor names the note text it was typed over (`null` for
+none). Under the account lock, the save is refused as a conflict if the stored
+note differs, so a newer note from another tab or a delete in the data inspector
+is never overwritten unseen. Text is compared rather than a timestamp. Every
+committed note or tag write sets `joyfox.notesRevision` in `storage.local` to a
+random token, so another open page reloads its editor at once. It is separate
+from the triage revision, so a note does not make open inboxes re-evaluate.
+
 ## Schema versions
 
 Version 1 created the 16 PRD entities. Version 2 adds `messageObservations` and

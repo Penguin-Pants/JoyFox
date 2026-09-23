@@ -1,9 +1,11 @@
 import { AccountService } from "../accounts/account-service";
 import { MessageRouter } from "../messaging/router";
+import { NotesService } from "../notes/notes-service";
 import { TemplateService } from "../templates/template-service";
 import { TriageService } from "../triage/triage-service";
 import { TrustService } from "../trust/trust-service";
 import { incrementPersistentWakeCounter } from "./lifecycle";
+import { registerNotesHandlers } from "./notes-handlers";
 import { registerTemplateHandlers } from "./template-handlers";
 import { registerTriageHandlers } from "./triage-handlers";
 
@@ -25,6 +27,7 @@ registerTriageHandlers(router, {
   activeAccountId,
   openOptions: () => browser.runtime.openOptionsPage(),
 });
+registerNotesHandlers(router, { notes: new NotesService(), activeAccountId });
 registerTemplateHandlers(router, {
   templates: new TemplateService(),
   activeAccountId,

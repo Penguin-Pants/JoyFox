@@ -23,6 +23,41 @@ import {
 
 export type MemberPage = "conversation" | "profile";
 
+/** Marks the member panel, which the note editor is placed after. */
+export const MEMBER_PANEL = "member-panel";
+
+export type PageMember = { anchor: Element; memberId: string } & (
+  | { page: "conversation"; extraction: ReturnType<typeof extractConversation> }
+  | { page: "profile"; extraction: ReturnType<typeof extractProfile> }
+);
+
+/**
+ * The member a conversation or profile page shows, and the JoyClub element
+ * JoyFox UI is placed after. `undefined` unless the member ID resolves
+ * through a verified selector: without a stable member ID nothing is shown
+ * or stored (build plan Section 12).
+ */
+export function pageMember(
+  document: Document,
+  page: MemberPage,
+): PageMember | undefined {
+  const root = selectorRegistry[page].root;
+  const anchor = root ? document.querySelector(root) : null;
+  if (!anchor) return undefined;
+  const url = document.URL;
+  const member =
+    page === "conversation"
+      ? { page, extraction: extractConversation(document, url) }
+      : { page, extraction: extractProfile(document, url) };
+  const identity = resolveMemberIdentity({
+    page,
+    field: "memberId",
+    extraction: member.extraction.memberId,
+  });
+  if (identity.status !== "resolved") return undefined;
+  return { ...member, anchor, memberId: identity.memberId } as PageMember;
+}
+
 /**
  * `accountId` is the account the answer was computed for; captures and
  * writes name it, so none of them can land in another account.
@@ -92,7 +127,7 @@ export class MemberPanel {
     // the header element. The old panel's buttons act on the old member, so
     // they go at once rather than when the new answer arrives.
     const shown = this.document.querySelector(
-      `[${UI_ATTRIBUTE}="member-panel"]`,
+      `[${UI_ATTRIBUTE}="${MEMBER_PANEL}"]`,
     );
     if (shown && shown.getAttribute("data-member") !== target.memberId)
       this.teardown();
@@ -140,40 +175,25 @@ export class MemberPanel {
 
   teardown(): void {
     for (const node of Array.from(
-      this.document.querySelectorAll(`[${UI_ATTRIBUTE}="member-panel"]`),
+      this.document.querySelectorAll(`[${UI_ATTRIBUTE}="${MEMBER_PANEL}"]`),
     ))
       node.remove();
     this.#rendered = "";
   }
 
   #target(page: MemberPage): Target | undefined {
-    const root = selectorRegistry[page].root;
-    const anchor = root ? this.document.querySelector(root) : null;
-    if (!anchor) return undefined;
-    const url = this.document.URL;
-    const extraction =
-      page === "conversation"
-        ? extractConversation(this.document, url)
-        : extractProfile(this.document, url);
-    const identity = resolveMemberIdentity({
-      page,
-      field: "memberId",
-      extraction: extraction.memberId,
-    });
-    // Without a stable member ID nothing is shown or stored (build plan 12).
-    if (identity.status !== "resolved") return undefined;
+    const member = pageMember(this.document, page);
+    if (!member) return undefined;
     const observed =
-      page === "conversation"
-        ? observedFromConversation(
-            extraction as ReturnType<typeof extractConversation>,
-          )
-        : observedFromProfile(extraction as ReturnType<typeof extractProfile>);
+      member.page === "conversation"
+        ? observedFromConversation(member.extraction)
+        : observedFromProfile(member.extraction);
     return {
       page,
-      memberId: identity.memberId,
+      memberId: member.memberId,
       observed,
-      anchor,
-      key: `${page}|${identity.memberId}|${factsKey(observed)}`,
+      anchor: member.anchor,
+      key: `${page}|${member.memberId}|${factsKey(observed)}`,
     };
   }
 
@@ -240,7 +260,7 @@ export class MemberPanel {
   #render(target: Target, data: PanelData): void {
     const key = JSON.stringify([target.key, data, this.#error]);
     const existing = this.document.querySelector(
-      `[${UI_ATTRIBUTE}="member-panel"]`,
+      `[${UI_ATTRIBUTE}="${MEMBER_PANEL}"]`,
     );
     if (
       existing &&
@@ -255,7 +275,7 @@ export class MemberPanel {
     existing?.remove();
     this.#rendered = key;
     const panel = element(this.document, "section", "joyfox-panel");
-    panel.setAttribute(UI_ATTRIBUTE, "member-panel");
+    panel.setAttribute(UI_ATTRIBUTE, MEMBER_PANEL);
     panel.setAttribute("data-member", target.memberId);
     panel.setAttribute("aria-label", "JoyFox");
     panel.append(

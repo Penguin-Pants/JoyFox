@@ -15,6 +15,20 @@ export interface TemplateSummary {
   body: string;
 }
 
+/**
+ * One member's note and tags under the active account (M5). `accountId` is
+ * the account they were read for; writes send it back.
+ */
+export type MemberNotesResponse =
+  | { status: "no-account" }
+  | {
+      status: "ok";
+      accountId: string;
+      /** The stored note, or `null` when there is none. */
+      note: string | null;
+      tags: string[];
+    };
+
 export interface ExtensionMessage<T = unknown> {
   type: string;
   requestId: string;
@@ -80,6 +94,35 @@ export interface MessageContract {
   "template.list": {
     request: Record<string, never>;
     response: { accountId?: string; templates: TemplateSummary[] };
+  };
+  "note.get": {
+    request: { memberId: string };
+    response: MemberNotesResponse;
+  };
+  /**
+   * Save one member's note, or remove it with an empty body. `expectedBody`
+   * is the note the editor was drawn from (`null`: none). A note changed
+   * since is not overwritten: the answer is `conflict` with the stored text.
+   * `refused` means the account is no longer active.
+   */
+  "note.save": {
+    request: {
+      accountId: string;
+      memberId: string;
+      body: string;
+      expectedBody: string | null;
+    };
+    response:
+      | { status: "saved" | "conflict"; current: string | null }
+      | { status: "refused" };
+  };
+  "tag.add": {
+    request: { accountId: string; memberId: string; label: string };
+    response: { done: boolean };
+  };
+  "tag.remove": {
+    request: { accountId: string; memberId: string; label: string };
+    response: { done: boolean };
   };
   /** Content scripts cannot open the options page themselves. */
   "options.open": {
