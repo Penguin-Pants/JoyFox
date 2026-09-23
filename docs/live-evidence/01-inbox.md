@@ -133,7 +133,9 @@ recorded, per instruction.
 
 ## Confirmation (2026-09-23)
 
-The project owner confirmed the shield labels from the site: the grey shield
-(`verification-status="1"`) is "geprüft" and the green shield
-(`verification-status="3"`) is "persönlich bekannt". Both are verification
-levels.
+The project owner confirmed the shield labels from the site:
+
+- Grey shield (`verification-status="1"`): "geprüft", verified by JoyClub.
+- Green shield (`verification-status="3"`): "persönlich bekannt", meaning the
+  logged-in user has marked this member as met in real life. It is the viewer's
+  own confirmation, not JoyClub's verification.

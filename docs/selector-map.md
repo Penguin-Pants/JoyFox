@@ -48,7 +48,7 @@ app (`09-navigation.md`) and the inbox list can stay in the DOM.
 | Inbox        | Row               | `.cm-conversation-list-item`                                              | One conversation                                     |
 | Inbox        | Sender name       | `[data-e2e="conversation-list-item-name"]`                                | Display only                                         |
 | Inbox        | Member ID         | `.cm-conversation-list-item__avatar[href]`                                | Digits in `/profile/<n>.<nickname>.html`             |
-| Inbox        | Verification code | `j-veri-icon[verification-status]`                                        | `1` geprüft, `3` persönlich bekannt: both verified   |
+| Inbox        | Verification code | `j-veri-icon[verification-status]`                                        | `1` verified; `3` personally known (separate signal) |
 | Inbox        | Gender code       | `j-gender-icon[universal-gender]`                                         | Numeric code, `1` = man                              |
 | Inbox        | Read state        | `.cm-conversation-list-item__read-status`                                 | BEM modifier; on some rows only; meaning unconfirmed |
 | Conversation | Conversation ID   | URL path                                                                  | `personal-<n>-<n>`, kept opaque                      |
@@ -68,9 +68,11 @@ app (`09-navigation.md`) and the inbox list can stay in the DOM.
 ## Open points
 
 - **Verification codes.** Confirmed by the project owner on 2026-09-23: `1` is
-  the grey shield "geprüft" and `3` is the green shield "persönlich bekannt".
-  Both count as verified. Code `2`, any other code and a missing shield read as
-  unknown, never as "not verified".
+  the grey shield "geprüft", verified by JoyClub. `3` is the green shield
+  "persönlich bekannt": the logged-in user marked the member as met in person.
+  Only `1` counts as verified. `3` is a separate "personally known" signal and
+  hides JoyClub's verification, which then reads as unknown. Code `2`, any other
+  code and a missing shield read as unknown, never as "not verified".
 - **Gender codes `2` and `3`** are unconfirmed. No feature uses gender yet.
 - **Conversation header.** Switching conversations is client-side, so the URL
   can change before the header re-renders. Header data is used only when the

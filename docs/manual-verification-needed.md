@@ -12,9 +12,11 @@ verified from it. Still open:
   value is set programmatically.
 - **Item 8:** whether a join date or account age appears anywhere, and what
   `universal-gender` codes `2` and `3` mean.
-- **Verification codes:** `1` and `3` are confirmed (grey "geprüft", green
-  "persönlich bekannt"). Still open: whether code `2` exists and what it means,
-  and what an unverified member shows (no shield, or a code).
+- **Verification codes:** `1` (grey, "geprüft", verified by JoyClub) and `3`
+  (green, "persönlich bekannt", you met them) are confirmed. Still open: whether
+  code `2` exists and what it means, what an unverified member shows (no shield,
+  or a code), and whether a member who is both verified and personally known
+  always shows green.
 - **Read-status icon (from the F2 check):** a read state was extracted from 9 of
   25 rows. Check how many rows show the icon at all, which modifier classes
   appear (for example `--received`, `--read`), and whether the rows with the
