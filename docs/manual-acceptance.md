@@ -115,11 +115,15 @@ unchanged).
 
 - Finding: JoyClub keeps the conversation list on screen beside an open
   conversation. After opening and answering a message, the tab bar was gone from
-  that list until a reload or a click on "Postfach". Inbox triage now stays on
-  for a conversation page while the list is visible there, and still turns off
-  when the list is kept in the page but hidden. The fix needs a re-check: open a
-  conversation from the inbox, answer it, and confirm the tab bar and badges
-  stay on the list.
+  that list until a reload or a click on "Postfach". A first fix (triage on for
+  conversation pages with a visible list) did not help: the owner's re-check
+  showed the bar still vanished after sending a reply. Triage now follows the
+  list itself, on any page where it is visible, and also notices the list being
+  hidden and shown in place.
+- Re-check: open a conversation from the inbox, send a reply, and confirm the
+  tab bar and badges stay on the list. If the bar still vanishes, turn on
+  diagnostics (item 15), repeat, and send the `JoyFox page=... inboxList=...`
+  lines from the page console. They hold page types only, never a URL or ID.
 
 Live selector and action acceptance must wait for the evidence checklist in
 `manual-verification-needed.md`. Never perform destructive action testing

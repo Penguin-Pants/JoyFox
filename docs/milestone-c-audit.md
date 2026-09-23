@@ -179,11 +179,14 @@ and all passed. A badge click did not open the conversation, and scrolling and
 row clicks behaved as before, so the two earlier possible risks about badge
 clicks and hidden rows are closed.
 
-One finding, fixed: JoyClub shows the conversation list beside an open
-conversation, but JoyFox turned inbox triage off on every conversation page, so
-the tab bar disappeared from that list. Triage now stays on for a conversation
-page while the list is visible (`inboxListShown`). The fix is tested against a
-synthetic split view and needs a live re-check.
+One finding: JoyClub shows the conversation list beside an open conversation,
+and the tab bar disappeared from that list, at the latest after sending a reply.
+A first fix keyed on the conversation URL did not help in the owner's re-check.
+Triage now follows the list itself (`inboxListShown`): it runs on any page where
+the list is visible, and the observer also watches `class`, `style` and
+`hidden`, so in-place hiding and showing is noticed. A new diagnostics line
+(`page=... inboxList=...`) reports page detection and list state without any URL
+or ID. Needs a live re-check.
 
 ### Possible risks
 
