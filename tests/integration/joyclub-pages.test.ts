@@ -11,6 +11,7 @@ import {
   extractInboxRows,
   extractProfile,
   memberIdFromProfileHref,
+  personallyKnownFromCode,
   verificationFromCode,
 } from "../../src/extraction/joyclub";
 import { resolveMemberIdentity } from "../../src/identity/member-identity";
@@ -276,20 +277,32 @@ describe("F1/F9 extraction from the verified profile", () => {
 });
 
 describe("M1 on verified profile data", () => {
-  it("maps only the confirmed verification codes", () => {
+  it("maps only JoyClub's own verification code as verified", () => {
     const code = (value: number) =>
       verificationFromCode({ status: "found", value, source: "t" });
-    // 1 = grey "geprüft", 3 = green "persönlich bekannt": both verified.
+    // 1 = grey "geprüft": verified by JoyClub.
     expect(code(1)).toBe(true);
-    expect(code(3)).toBe(true);
-    for (const value of [0, 2, 4])
+    // 3 = green "persönlich bekannt" is the viewer's own mark; it hides
+    // JoyClub's verification, which is then unknown.
+    for (const value of [0, 2, 3, 4])
       expect(code(value), String(value)).toBe("unknown");
     expect(verificationFromCode({ status: "missing", source: "t" })).toBe(
       "unknown",
     );
   });
 
-  it("scores extracted facts and leaves the missing join date unknown", () => {
+  it("reads personally known as its own signal", () => {
+    const code = (value: number) =>
+      personallyKnownFromCode({ status: "found", value, source: "t" });
+    expect(code(3)).toBe(true);
+    for (const value of [0, 1, 2, 4])
+      expect(code(value), String(value)).toBe("unknown");
+    expect(personallyKnownFromCode({ status: "missing", source: "t" })).toBe(
+      "unknown",
+    );
+  });
+
+  it("scores extracted facts and leaves hidden or missing facts unknown", () => {
     const extracted = extractProfile(load("profile"), PROFILE_URL);
     const value = <T>(result: { status: string; value?: T }) =>
       result.status === "found" ? (result.value as T) : ("unknown" as const);
@@ -310,7 +323,9 @@ describe("M1 on verified profile data", () => {
       },
     });
     expect(result.criteria.map(({ name, state }) => [name, state])).toEqual([
-      ["verification", "pass"],
+      // The fixture shows code 3 ("persönlich bekannt"), which hides
+      // JoyClub's verification.
+      ["verification", "unknown"],
       ["photoCount", "pass"],
       ["profileWordCount", "pass"],
       ["accountAge", "unknown"],
