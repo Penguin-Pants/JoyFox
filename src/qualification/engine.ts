@@ -123,7 +123,7 @@ const DAY_MS = 24 * 60 * 60 * 1000;
 /**
  * The possible account age in whole days for a join window: the minimum from
  * the latest possible join, the maximum from the earliest. `unknown` when the
- * window is unusable or lies in the future.
+ * window is unusable or any part of it lies in the future.
  */
 export function accountAgeRange(
   window: JoinWindow | "unknown",
@@ -134,9 +134,11 @@ export function accountAgeRange(
   const max = Math.floor(
     (now.getTime() - Date.parse(window.earliest)) / DAY_MS,
   );
-  if (!Number.isFinite(min) || !Number.isFinite(max) || max < 0)
+  // Any possible join in the future makes the window unusable, like a future
+  // exact date: an extraction or clock error, never a basis for a failure.
+  if (!Number.isFinite(min) || !Number.isFinite(max) || min < 0)
     return "unknown";
-  return { min: Math.max(min, 0), max };
+  return { min, max };
 }
 
 /**

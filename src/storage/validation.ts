@@ -1,3 +1,4 @@
+import { isStrictIsoDate } from "../domain/iso-date";
 import type { AccountScopedEntity, EntityName } from "../domain/types";
 
 export class ValidationError extends Error {}
@@ -116,8 +117,11 @@ function validateProfileSnapshot(record: Record<string, unknown>): void {
       "joinedEarliest and joinedLatest must be present together",
     );
   if (hasEarliest) {
-    requireDate(record, "joinedEarliest");
-    requireDate(record, "joinedLatest");
+    // Strict, as the qualification merge reads these with the same check: a
+    // date Date.parse repairs must not be stored as a usable window.
+    for (const field of ["joinedEarliest", "joinedLatest"] as const)
+      if (!isStrictIsoDate(requireString(record, field)))
+        throw new ValidationError(`${field} must be a strict ISO 8601 date`);
     if (
       Date.parse(record.joinedEarliest as string) >
       Date.parse(record.joinedLatest as string)

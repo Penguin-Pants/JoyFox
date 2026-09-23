@@ -322,8 +322,16 @@ function subtractUnits(from: Date, unit: DurationUnit, count: number): Date {
   const date = new Date(from.getTime());
   if (unit === "day") date.setUTCDate(date.getUTCDate() - count);
   else if (unit === "week") date.setUTCDate(date.getUTCDate() - 7 * count);
-  else if (unit === "month") date.setUTCMonth(date.getUTCMonth() - count);
-  else date.setUTCFullYear(date.getUTCFullYear() - count);
+  else {
+    // Calendar months and years, with the day clamped to the target month's
+    // last day: 31 March minus one month is 28 or 29 February, not 3 March.
+    const months = unit === "month" ? count : 12 * count;
+    const total = date.getUTCFullYear() * 12 + date.getUTCMonth() - months;
+    const year = Math.floor(total / 12);
+    const month = total - year * 12;
+    const lastDay = new Date(Date.UTC(year, month + 1, 0)).getUTCDate();
+    date.setUTCFullYear(year, month, Math.min(date.getUTCDate(), lastDay));
+  }
   return date;
 }
 

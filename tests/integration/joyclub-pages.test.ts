@@ -11,6 +11,7 @@ import {
   extractInboxRows,
   extractProfile,
   memberIdFromProfileHref,
+  joinWindowFromDuration,
   parseMemberSince,
   personallyKnownFromCode,
   verificationFromCode,
@@ -262,6 +263,22 @@ describe("F1/F9 extraction from the verified profile", () => {
       source: "profile.memberSince",
     });
     expect(result.joinedAt.status).toBe("missing");
+  });
+
+  it("clamps calendar subtraction to the end of a shorter month", () => {
+    const window = joinWindowFromDuration(
+      { count: 2, unit: "month" },
+      new Date("2026-03-31T12:00:00.000Z"),
+    );
+    // Latest = 1 month ago (widened), clamped to the end of February.
+    expect(window.latest).toBe("2026-02-28T12:00:00.000Z");
+    expect(window.earliest).toBe("2025-12-31T12:00:00.000Z");
+    const leap = joinWindowFromDuration(
+      { count: 2, unit: "year" },
+      new Date("2028-02-29T00:00:00.000Z"),
+    );
+    expect(leap.latest).toBe("2027-02-28T00:00:00.000Z");
+    expect(leap.earliest).toBe("2025-02-28T00:00:00.000Z");
   });
 
   it("parses each membership duration form and rejects others", () => {

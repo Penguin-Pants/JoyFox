@@ -234,6 +234,14 @@ describe("F6 repositories", () => {
         joinedLatest: "2025-11-01T00:00:00.000Z",
       }),
     ).rejects.toThrow("must not be after");
+    for (const bad of ["1 March 2026", "2026-02-30"])
+      await expect(
+        repositories.profileSnapshots.put("account-a", {
+          ...base,
+          joinedEarliest: bad,
+          joinedLatest: "2026-03-10T00:00:00.000Z",
+        }),
+      ).rejects.toThrow("strict ISO 8601");
   });
   it("rejects malformed action log steps", async () => {
     const malformed = {

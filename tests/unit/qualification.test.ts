@@ -287,6 +287,19 @@ describe("M1 qualification engine", () => {
     expect(state(331)).toBe("fail");
     expect(state(315)).toBe("unknown");
     expect(accountAgeRange("unknown", NOW)).toBe("unknown");
+    // A window reaching into the future is unusable, never a failure.
+    const partlyFuture = {
+      earliest: "2026-09-01T00:00:00.000Z",
+      latest: "2026-10-01T00:00:00.000Z",
+    };
+    expect(accountAgeRange(partlyFuture, NOW)).toBe("unknown");
+    expect(
+      evaluateQualification({
+        facts: { ...UNKNOWN_FACTS, joinedWindow: partlyFuture },
+        criteria: { minimumAccountAgeDays: 100 },
+        now: NOW,
+      }).criteria[0]?.state,
+    ).toBe("unknown");
     expect(
       accountAgeRange({ earliest: "2027-01-01", latest: "2027-02-01" }, NOW),
     ).toBe("unknown");
