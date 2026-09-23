@@ -210,32 +210,176 @@ export const repositories = {
 export interface DataExport {
   schemaVersion: typeof DATABASE_VERSION;
   exportedAt: string;
+  scope: "account";
   accountId: string;
   entities: { [N in EntityName]: EntityMap[N][] };
 }
 
+/**
+ * Every record in every store, whatever its scope. It also carries records
+ * whose scope is not a registered account (for example the diagnostic wake
+ * counter), so "everything" is literally everything the database holds.
+ */
+export interface FullDataExport {
+  schemaVersion: typeof DATABASE_VERSION;
+  exportedAt: string;
+  scope: "all";
+  entities: { [N in EntityName]: EntityMap[N][] };
+}
+
+export type EntityCounts = { [N in EntityName]: number };
+
+/** Reads every store in one transaction, so the export is one consistent view. */
 export async function exportAccount(accountId: string): Promise<DataExport> {
+  const db = await openDatabase();
+  const transaction = db.transaction([...ENTITY_NAMES]);
   const entries = await Promise.all(
     ENTITY_NAMES.map(
-      async (name) => [name, await repositories[name].list(accountId)] as const,
+      async (name) =>
+        [
+          name,
+          (
+            await requestResult(
+              transaction
+                .objectStore(name)
+                .index("accountId")
+                .getAll(accountId) as IDBRequest<
+                Array<Stored<EntityMap[typeof name]>>
+              >,
+            )
+          ).map(withoutStorageKey),
+        ] as const,
     ),
   );
   return {
     schemaVersion: DATABASE_VERSION,
     exportedAt: new Date().toISOString(),
+    scope: "account",
     accountId,
     entities: Object.fromEntries(entries) as DataExport["entities"],
   };
 }
 
-export async function deleteAccountData(accountId: string): Promise<void> {
+/** Reads every store in one transaction, so the export is one consistent view. */
+export async function exportAllData(): Promise<FullDataExport> {
   const db = await openDatabase();
-  for (const name of ENTITY_NAMES) {
-    const transaction = db.transaction(name, "readwrite");
-    const index = transaction.objectStore(name).index("accountId");
-    const keys = await requestResult(index.getAllKeys(accountId));
-    for (const recordKey of keys)
-      transaction.objectStore(name).delete(recordKey);
-    await transactionDone(transaction);
+  const transaction = db.transaction([...ENTITY_NAMES]);
+  const entries = await Promise.all(
+    ENTITY_NAMES.map(
+      async (name) =>
+        [
+          name,
+          (
+            await requestResult(
+              transaction.objectStore(name).getAll() as IDBRequest<
+                Array<Stored<EntityMap[typeof name]>>
+              >,
+            )
+          ).map(withoutStorageKey),
+        ] as const,
+    ),
+  );
+  return {
+    schemaVersion: DATABASE_VERSION,
+    exportedAt: new Date().toISOString(),
+    scope: "all",
+    entities: Object.fromEntries(entries) as FullDataExport["entities"],
+  };
+}
+
+/** Record counts per entity for one account, read in one transaction. */
+export async function countAccountRecords(
+  accountId: string,
+): Promise<EntityCounts> {
+  const db = await openDatabase();
+  const transaction = db.transaction([...ENTITY_NAMES]);
+  const entries = await Promise.all(
+    ENTITY_NAMES.map(
+      async (name) =>
+        [
+          name,
+          await requestResult(
+            transaction.objectStore(name).index("accountId").count(accountId),
+          ),
+        ] as const,
+    ),
+  );
+  return Object.fromEntries(entries) as EntityCounts;
+}
+
+/**
+ * Deletes every record of the given entities in one account, in one
+ * transaction, so a failure leaves all of them in place rather than some.
+ */
+export async function deleteAccountEntities(
+  accountId: string,
+  names: readonly EntityName[],
+): Promise<void> {
+  if (names.length === 0) return;
+  const db = await openDatabase();
+  const transaction = db.transaction([...names], "readwrite");
+  for (const name of names) {
+    const store = transaction.objectStore(name);
+    const keys = await requestResult(
+      store.index("accountId").getAllKeys(accountId),
+    );
+    for (const recordKey of keys) store.delete(recordKey);
   }
+  await transactionDone(transaction);
+}
+
+export async function deleteAccountData(accountId: string): Promise<void> {
+  await deleteAccountEntities(accountId, ENTITY_NAMES);
+}
+
+/**
+ * Empties every store, including records whose scope is not a registered
+ * account. The stores themselves stay, so no schema upgrade is needed later.
+ */
+export async function clearAllData(): Promise<void> {
+  const db = await openDatabase();
+  const transaction = db.transaction([...ENTITY_NAMES], "readwrite");
+  for (const name of ENTITY_NAMES) transaction.objectStore(name).clear();
+  await transactionDone(transaction);
+}
+
+/**
+ * Every scope that holds at least one record, registered account or not, so
+ * "delete all" can lock each of them.
+ */
+export async function listStoredScopes(): Promise<string[]> {
+  const db = await openDatabase();
+  const transaction = db.transaction([...ENTITY_NAMES]);
+  const scopes = await Promise.all(
+    ENTITY_NAMES.map(
+      (name) =>
+        new Promise<string[]>((resolve, reject) => {
+          const found: string[] = [];
+          const request = transaction
+            .objectStore(name)
+            .index("accountId")
+            .openKeyCursor(null, "nextunique");
+          request.onsuccess = () => {
+            const cursor = request.result;
+            if (!cursor) return resolve(found);
+            found.push(String(cursor.key));
+            cursor.continue();
+          };
+          request.onerror = () => reject(request.error);
+        }),
+    ),
+  );
+  return [...new Set(scopes.flat())];
+}
+
+/** The total record count over every store and scope. */
+export async function countAllRecords(): Promise<number> {
+  const db = await openDatabase();
+  const transaction = db.transaction([...ENTITY_NAMES]);
+  const counts = await Promise.all(
+    ENTITY_NAMES.map((name) =>
+      requestResult(transaction.objectStore(name).count()),
+    ),
+  );
+  return counts.reduce((sum, count) => sum + count, 0);
 }

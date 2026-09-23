@@ -38,3 +38,20 @@ export function withAccountLock<T>(
   });
   return run;
 }
+
+/**
+ * Hold the locks of several accounts at once, for an action that spans them
+ * (deleting all data). Locks are taken in one fixed order, so two such
+ * actions cannot each hold a lock the other waits for.
+ */
+export function withAccountLocks<T>(
+  accountIds: readonly string[],
+  action: () => Promise<T>,
+): Promise<T> {
+  const ordered = [...new Set(accountIds)].sort();
+  const acquire = (index: number): Promise<T> =>
+    index === ordered.length
+      ? action()
+      : withAccountLock(ordered[index]!, () => acquire(index + 1));
+  return acquire(0);
+}

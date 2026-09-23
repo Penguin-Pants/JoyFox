@@ -44,6 +44,8 @@ export class AccountPanel {
   constructor(
     private readonly root: HTMLElement,
     private readonly service = new AccountService(),
+    /** Called after every action, so other panels can follow a change. */
+    private readonly onChange: () => void = () => undefined,
   ) {
     this.root.classList.add(PANEL_CLASS);
     this.root.setAttribute(MOUNTED, "true");
@@ -314,6 +316,7 @@ export class AccountPanel {
         "error",
       );
     }
+    this.onChange();
     await this.render();
   }
 }
@@ -326,10 +329,9 @@ export class AccountPanel {
 export async function mountAccountPanel(
   root: HTMLElement,
   service?: AccountService,
+  onChange?: () => void,
 ): Promise<AccountPanel> {
-  const panel =
-    mounted.get(root) ??
-    (service ? new AccountPanel(root, service) : new AccountPanel(root));
+  const panel = mounted.get(root) ?? new AccountPanel(root, service, onChange);
   mounted.set(root, panel);
   await panel.render();
   return panel;

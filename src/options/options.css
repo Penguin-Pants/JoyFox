@@ -99,3 +99,54 @@
 .joyfox-rule__condition input[type="number"] {
   width: 7em;
 }
+
+.joyfox-data__counts {
+  border-collapse: collapse;
+  width: 100%;
+  margin: var(--joyfox-space-2) 0;
+}
+
+.joyfox-data__counts th,
+.joyfox-data__counts td {
+  border-bottom: 1px solid var(--joyfox-border);
+  padding: var(--joyfox-space-1) var(--joyfox-space-2);
+  text-align: left;
+  vertical-align: top;
+}
+
+.joyfox-data__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--joyfox-space-1);
+}
+
+.joyfox-data__record-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.joyfox-data__record {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--joyfox-space-2);
+  align-items: flex-start;
+  margin-bottom: var(--joyfox-space-2);
+}
+
+.joyfox-data__details {
+  flex: 1 1 20rem;
+  min-width: 0;
+}
+
+.joyfox-data__json {
+  overflow-x: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-size: 0.8125em;
+}
+
+.joyfox-templates__preview {
+  flex-basis: 100%;
+  font-size: 0.875em;
+}
