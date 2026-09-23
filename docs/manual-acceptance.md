@@ -10,7 +10,13 @@
 4. Send `diagnostic.ping` from extension devtools and confirm the reply
    preserves its request ID and payload.
 5. Invoke the background wake-counter, terminate the background page, invoke it
-   again, and confirm the stored value increases rather than resetting.
+   again, and confirm the stored value increases rather than resetting. From the
+   options page console (`about:addons` → JoyFox → Preferences, then
+   Ctrl+Shift+K), run:
+   `await browser.runtime.sendMessage({ type: "diagnostic.wake", requestId: "r1", payload: { accountId: "acceptance" } })`
+   and note `payload.wakeCount`. In `about:debugging`, click **Terminate
+   background script** on JoyFox. Run the same command again (with requestId
+   `"r2"`) and confirm `wakeCount` is one higher.
 6. Confirm normal use creates no extension-originated network requests.
 
 ## Accounts, notes and tags
@@ -53,6 +59,26 @@
     `senderName` and `memberId` equal `rows` (or record which rows differ).
 18. Turn diagnostics off again in the options page console with
     `browser.storage.local.remove("joyfox.diagnostics")`.
+
+**Result (2026-09-23): passed.** The project owner reloaded the inbox ten times
+with diagnostics on. Each load logged the same two lines:
+
+```text
+JoyFox inbox.extracted rows=0 senderName=0 memberId=0 verificationCode=0 readState=0
+JoyFox inbox.extracted rows=25 senderName=25 memberId=25 verificationCode=24 readState=9
+```
+
+- The first line is the list container rendering before its rows. The second
+  follows once the rows arrive: the extractor reads what is rendered and runs
+  again on the next mutation. Zero rows can therefore be transient; it is not
+  yet known how a truly empty inbox renders.
+- Sender name and member ID were found on all 25 rows, every time.
+- `verificationCode=24` matches the evidence: one row has no verification icon.
+- `readState=9`: a read state was extracted from 9 rows. This does not show how
+  many rows carry the icon, because a row with the icon but no recognized
+  modifier also counts as missing. Its meaning is not confirmed (see
+  `known-limitations.md`).
+- The lines held counts only; no name or number appeared.
 
 Live selector and action acceptance must wait for the evidence checklist in
 `manual-verification-needed.md`. Never perform destructive action testing

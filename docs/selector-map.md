@@ -43,27 +43,27 @@ app (`09-navigation.md`) and the inbox list can stay in the DOM.
 
 ## Fields
 
-| Page         | Field             | Selector                                                                  | Value                                    |
-| ------------ | ----------------- | ------------------------------------------------------------------------- | ---------------------------------------- |
-| Inbox        | Row               | `.cm-conversation-list-item`                                              | One conversation                         |
-| Inbox        | Sender name       | `[data-e2e="conversation-list-item-name"]`                                | Display only                             |
-| Inbox        | Member ID         | `.cm-conversation-list-item__avatar[href]`                                | Digits in `/profile/<n>.<nickname>.html` |
-| Inbox        | Verification code | `j-veri-icon[verification-status]`                                        | Numeric code, meaning unconfirmed        |
-| Inbox        | Gender code       | `j-gender-icon[universal-gender]`                                         | Numeric code, `1` = man                  |
-| Inbox        | Read state        | `.cm-conversation-list-item__read-status`                                 | BEM modifier: `received`, `read`         |
-| Conversation | Conversation ID   | URL path                                                                  | `personal-<n>-<n>`, kept opaque          |
-| Conversation | Member ID         | `a.cm-conversation-header[href]`                                          | Digits in the profile link               |
-| Conversation | Verification code | `.cm-conversation-header j-veri-icon[verification-status]`                | Numeric code                             |
-| Conversation | Gender code       | `.cm-conversation-header j-gender-icon[universal-gender]`                 | Numeric code                             |
-| Conversation | Short description | `.cm-conversation-header__description`                                    | Word count only                          |
-| Conversation | Message item      | `li.cm-message-list-item`                                                 | Recorded, not read (see below)           |
-| Conversation | Composer          | `textarea.joy-input-wonder__input`                                        | Recorded only                            |
-| Conversation | Send              | `button.joy-input-wonder__button[data-e2e="button-submit"]`               | Recorded only, never clicked             |
-| Profile      | Member ID         | URL path                                                                  | Digits before the first `.`              |
-| Profile      | Verification code | `[data-e2e="profile-header-base-info"] j-veri-icon[…]`                    | Numeric code                             |
-| Profile      | Photo count       | `.amount-badge[aria-label]`                                               | `"<n> Fotos"` or `"1 Foto"`              |
-| Profile      | Profile text      | `.profile-description-motto__text`, `.profile-description-maintext__text` | Word count of both blocks together       |
-| Profile      | Join date         | None                                                                      | Not found; unknown until verified        |
+| Page         | Field             | Selector                                                                  | Value                                                |
+| ------------ | ----------------- | ------------------------------------------------------------------------- | ---------------------------------------------------- |
+| Inbox        | Row               | `.cm-conversation-list-item`                                              | One conversation                                     |
+| Inbox        | Sender name       | `[data-e2e="conversation-list-item-name"]`                                | Display only                                         |
+| Inbox        | Member ID         | `.cm-conversation-list-item__avatar[href]`                                | Digits in `/profile/<n>.<nickname>.html`             |
+| Inbox        | Verification code | `j-veri-icon[verification-status]`                                        | Numeric code, meaning unconfirmed                    |
+| Inbox        | Gender code       | `j-gender-icon[universal-gender]`                                         | Numeric code, `1` = man                              |
+| Inbox        | Read state        | `.cm-conversation-list-item__read-status`                                 | BEM modifier; on some rows only; meaning unconfirmed |
+| Conversation | Conversation ID   | URL path                                                                  | `personal-<n>-<n>`, kept opaque                      |
+| Conversation | Member ID         | `a.cm-conversation-header[href]`                                          | Digits in the profile link                           |
+| Conversation | Verification code | `.cm-conversation-header j-veri-icon[verification-status]`                | Numeric code                                         |
+| Conversation | Gender code       | `.cm-conversation-header j-gender-icon[universal-gender]`                 | Numeric code                                         |
+| Conversation | Short description | `.cm-conversation-header__description`                                    | Word count only                                      |
+| Conversation | Message item      | `li.cm-message-list-item`                                                 | Recorded, not read (see below)                       |
+| Conversation | Composer          | `textarea.joy-input-wonder__input`                                        | Recorded only                                        |
+| Conversation | Send              | `button.joy-input-wonder__button[data-e2e="button-submit"]`               | Recorded only, never clicked                         |
+| Profile      | Member ID         | URL path                                                                  | Digits before the first `.`                          |
+| Profile      | Verification code | `[data-e2e="profile-header-base-info"] j-veri-icon[…]`                    | Numeric code                                         |
+| Profile      | Photo count       | `.amount-badge[aria-label]`                                               | `"<n> Fotos"` or `"1 Foto"`                          |
+| Profile      | Profile text      | `.profile-description-motto__text`, `.profile-description-maintext__text` | Word count of both blocks together                   |
+| Profile      | Join date         | None                                                                      | Not found; unknown until verified                    |
 
 ## Open points
 
