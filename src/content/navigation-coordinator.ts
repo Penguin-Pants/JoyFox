@@ -14,6 +14,10 @@ export const WATCHED_ATTRIBUTES: readonly string[] = [
   "verification-status",
   "universal-gender",
   "aria-label",
+  // Visibility: JoyClub can hide and show the conversation list in place.
+  "class",
+  "style",
+  "hidden",
 ];
 
 export class NavigationCoordinator {

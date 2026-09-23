@@ -8,7 +8,7 @@ import {
   DiagnosticsFlag,
   summarizeInbox,
 } from "./diagnostics";
-import { InboxTriage, inboxListShown } from "./inbox-triage";
+import { InboxTriage, inboxListShown, inboxListState } from "./inbox-triage";
 import { MemberPanel } from "./member-panel";
 import { NavigationCoordinator } from "./navigation-coordinator";
 import { detectPage } from "./page-detector";
@@ -33,17 +33,29 @@ if (hasVerifiedSelectors() && VERIFIED_HOSTS.includes(location.hostname)) {
   let lastSummary = "";
   coordinator.subscribe(({ page }) => {
     const type = page.status === "found" ? page.value : undefined;
-    // JoyClub shows the conversation list beside an open conversation, so
-    // triage stays on there while the list is visible.
-    if (inboxListShown(type, document)) inbox.update();
+    // Triage follows the conversation list itself, not the URL: JoyClub shows
+    // the list beside an open conversation, also after a reply is sent.
+    if (inboxListShown(document)) inbox.update();
     else inbox.leave();
     if (type === "conversation" || type === "profile") panel.update(type);
     else panel.leave();
   });
+  let lastPageLine = "";
   coordinator.subscribe(({ page }) => {
     // Checked on every event, so removing the flag stops output at once.
     if (!diagnostics.enabled) return;
-    if (page.status !== "found" || page.value !== "inbox") return;
+    // Page detection and list state, for diagnosing triage on live pages.
+    // Holds only page types and detection sources, never a URL or an ID.
+    const pageLine = `page=${
+      page.status === "found"
+        ? page.value
+        : `${page.status}:${page.source ?? ""}`
+    } inboxList=${inboxListState(document)}`;
+    if (pageLine !== lastPageLine) {
+      lastPageLine = pageLine;
+      console.debug(`JoyFox ${pageLine}`);
+    }
+    if (!inboxListShown(document)) return;
     const summary = summarizeInbox(extractInboxRows(document, location.href));
     // Mutations fire often; log only when the counts change.
     if (summary === lastSummary) return;

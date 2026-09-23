@@ -4,6 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   InboxTriage,
   inboxListShown,
+  inboxListState,
   PLACEMENT_ATTRIBUTE,
   VIEW_ATTRIBUTE,
 } from "../../src/content/inbox-triage";
@@ -378,16 +379,28 @@ describe("M2 inbox triage", () => {
       "/clubmail/conversation/conversation-wrapper-personal-1234567-7654321",
       inboxHtml + conversationHtml,
     );
-    expect(inboxListShown("conversation", document)).toBe(true);
+    expect(inboxListShown(document)).toBe(true);
     const inbox = new InboxTriage(document, serviceClient());
     inbox.update();
     await vi.waitFor(() => expect(bar()).not.toBeNull());
     expect(placements()).toEqual(["qualified", "quarantined", "needs-review"]);
     // A list JoyClub keeps in the page but hides does not count.
     list().setAttribute("style", "display: none");
-    expect(inboxListShown("conversation", document)).toBe(false);
-    expect(inboxListShown("inbox", document)).toBe(true);
-    expect(inboxListShown("profile", document)).toBe(false);
+    expect(inboxListState(document)).toBe("hidden");
+    // Any page without the list, such as a profile, is not triaged.
+    setPage("/profile/1234567.synthetic_one.html", profileHtml);
+    expect(inboxListState(document)).toBe("missing");
+    inbox.leave();
+  });
+
+  it("follows the list, not the URL, after a reply changes the route", async () => {
+    await rules.saveGlobalRule(ACCOUNT, knownRule());
+    // After a reply the URL may match no known page, but the list is shown.
+    setPage("/clubmail/some-unknown-route/", inboxHtml + conversationHtml);
+    expect(inboxListShown(document)).toBe(true);
+    const inbox = new InboxTriage(document, serviceClient());
+    inbox.update();
+    await vi.waitFor(() => expect(bar()).not.toBeNull());
     inbox.leave();
   });
 

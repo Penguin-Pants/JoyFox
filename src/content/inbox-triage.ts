@@ -24,26 +24,34 @@ export type TriageView =
   | "all";
 
 /**
- * Whether inbox triage belongs on this page. On the inbox, always. On a
- * conversation, only while JoyClub shows the conversation list beside it:
- * the owner's live check (2026-09-23) showed the list stays on screen next
- * to an open conversation. A list JoyClub keeps in the page but hides does
- * not count.
+ * Whether JoyClub's conversation list is on screen: `shown`, `hidden` (kept
+ * in the page but not visible) or `missing`.
  */
-export function inboxListShown(
-  page: string | undefined,
-  document: Document,
-): boolean {
-  if (page === "inbox") return true;
-  if (page !== "conversation") return false;
+export type InboxListState = "shown" | "hidden" | "missing";
+
+export function inboxListState(document: Document): InboxListState {
   const root = selectorRegistry.inbox.root;
-  if (!root || selectorRegistry.inbox.status !== "verified") return false;
+  if (!root || selectorRegistry.inbox.status !== "verified") return "missing";
   const list = document.querySelector<HTMLElement>(root);
-  if (!list) return false;
+  if (!list) return "missing";
   const check = (list as { checkVisibility?: () => boolean }).checkVisibility;
-  return typeof check === "function"
-    ? check.call(list)
-    : list.ownerDocument.defaultView?.getComputedStyle(list).display !== "none";
+  const visible =
+    typeof check === "function"
+      ? check.call(list)
+      : list.ownerDocument.defaultView?.getComputedStyle(list).display !==
+        "none";
+  return visible ? "shown" : "hidden";
+}
+
+/**
+ * Whether inbox triage belongs on the page: whenever the conversation list is
+ * on screen, whatever the URL. The owner's live checks (2026-09-23) showed
+ * the list beside an open conversation, and the tab bar still vanished after
+ * sending a reply there, so the URL is not a reliable signal for the list.
+ * A list JoyClub keeps in the page but hides does not count.
+ */
+export function inboxListShown(document: Document): boolean {
+  return inboxListState(document) === "shown";
 }
 
 export const VIEW_ATTRIBUTE = "data-joyfox-view";

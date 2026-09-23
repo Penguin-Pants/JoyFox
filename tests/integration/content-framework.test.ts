@@ -79,6 +79,10 @@ describe("F2 content framework", () => {
     shield.setAttribute("data-joyfox-placement", "qualified");
     await vi.advanceTimersByTimeAsync(50);
     expect(listener).toHaveBeenCalledTimes(2);
+    // Showing or hiding an element in place is noticed too.
+    shield.setAttribute("style", "display: none");
+    await vi.advanceTimersByTimeAsync(50);
+    expect(listener).toHaveBeenCalledTimes(3);
     coordinator.stop();
     shield.remove();
     vi.useRealTimers();
