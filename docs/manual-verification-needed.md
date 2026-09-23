@@ -15,6 +15,8 @@ verified from it. Still open:
 - **Verification codes (from item 1):** confirm what `verification-status` `1`
   and `3` mean, for example from the badge tooltip on your own and on a verified
   profile. Until then verification is always unknown.
+- **Read-status icon (from the F2 check):** only 9 of 25 rows show it. Confirm
+  whether those are the conversations where you sent the last message.
 - **Item 7:** whether the conversation "Optionen" menu contains Ignore or Block.
   The menu was not opened.
 - **Item 9:** profile → Back, inbox → search and inbox → events.
@@ -72,5 +74,5 @@ what it matches, or a screenshot with DOM inspection notes.
 
 ## Phase gate
 
-Items 1 and 9 are returned for the inbox, so F2's live acceptance can now be run
-by hand with the diagnostic steps in `manual-acceptance.md` (items 14 to 18).
+F2's live acceptance passed on 2026-09-23 (`manual-acceptance.md`, items 14 to
+18). Milestone A is complete.

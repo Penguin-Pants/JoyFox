@@ -54,6 +54,23 @@
 18. Turn diagnostics off again in the options page console with
     `browser.storage.local.remove("joyfox.diagnostics")`.
 
+**Result (2026-09-23): passed.** The project owner reloaded the inbox ten times
+with diagnostics on. Each load logged the same two lines:
+
+```text
+JoyFox inbox.extracted rows=0 senderName=0 memberId=0 verificationCode=0 readState=0
+JoyFox inbox.extracted rows=25 senderName=25 memberId=25 verificationCode=24 readState=9
+```
+
+- The first line is the list container rendering before its rows. The second
+  follows once the rows arrive. This is expected: the extractor reads what is
+  rendered and runs again on the next mutation.
+- Sender name and member ID were found on all 25 rows, every time.
+- `verificationCode=24` matches the evidence: one row has no verification icon.
+- `readState=9`: only 9 rows carry the read-status icon. Its meaning is not
+  confirmed (see `known-limitations.md`).
+- The lines held counts only; no name or number appeared.
+
 Live selector and action acceptance must wait for the evidence checklist in
 `manual-verification-needed.md`. Never perform destructive action testing
 automatically.

@@ -38,7 +38,7 @@ Matches the PRD's Section 19.1 scope exactly. Nothing here is not in that list, 
 
 | ID | Status | Notes |
 | --- | --- | --- |
-| F0 to F6 | Done | See `foundation-audit.md`. F2's live acceptance waits on F1. |
+| F0 to F6 | Done | See `foundation-audit.md`. F2's live acceptance passed on 2026-09-23 (10 of 10 inbox loads). |
 | F1 | Partial | Inbox, conversation and profile verified from `docs/live-evidence/`. Search, events and the ClubMail composer remain. |
 | F9 | Partial | Matrix in `08-attribute-matrix.md`. Verification appears on all three pages, photo count only on the profile, profile text on the conversation and the profile. Join date and profile type are Unclear. |
 | F7, F8 | Blocked | Human-assisted verification. See `manual-verification-needed.md`. |

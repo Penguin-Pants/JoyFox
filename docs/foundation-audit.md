@@ -14,9 +14,11 @@
 
 ## Current phase status
 
-Milestone A remains partially complete because F2's live extraction acceptance
-depends on F1. All remaining Foundation work that can be implemented without
-inventing JoyClub behavior is complete.
+Milestone A is complete. F2's live acceptance passed on 2026-09-23: across ten
+real inbox loads, the content script detected the inbox and extracted the sender
+name and member ID from all 25 rendered rows (see `manual-acceptance.md`). F1,
+F7 and F9 remain partly open, as the build plan allows them to run alongside the
+software foundation.
 
 Milestone B has started with M5 and M7, which depend on F6 rather than F1. See
 `milestone-b-audit.md` for what those cover and what they still leave blocked.
@@ -52,8 +54,8 @@ Milestone B has started with M5 and M7, which depend on F6 rather than F1. See
 
 ## Blocked by live verification
 
-- F1 verified page structure and selectors.
-- The live portion of F2.
+- F1 search, event and composer pages (inbox, conversation and profile are
+  verified).
 - F7 Ignore and Delete behavior.
 - F9 qualification availability and identity sources.
 
