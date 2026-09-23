@@ -11,6 +11,8 @@ import {
   extractInboxRows,
   extractProfile,
   memberIdFromProfileHref,
+  joinWindowFromDuration,
+  parseMemberSince,
   personallyKnownFromCode,
   verificationFromCode,
 } from "../../src/extraction/joyclub";
@@ -248,6 +250,80 @@ describe("F1/F9 extraction from the verified profile", () => {
     });
   });
 
+  it("reads the membership duration as a join window", () => {
+    const now = new Date("2026-09-23T00:00:00.000Z");
+    const result = extractProfile(load("profile"), PROFILE_URL, now);
+    // "Angemeldet seit 11 Monaten", widened one unit either side.
+    expect(result.joinedWindow).toEqual({
+      status: "found",
+      value: {
+        earliest: "2025-09-23T00:00:00.000Z",
+        latest: "2025-11-23T00:00:00.000Z",
+      },
+      source: "profile.memberSince",
+    });
+    expect(result.joinedAt.status).toBe("missing");
+  });
+
+  it("clamps calendar subtraction to the end of a shorter month", () => {
+    const window = joinWindowFromDuration(
+      { count: 2, unit: "month" },
+      new Date("2026-03-31T12:00:00.000Z"),
+    );
+    // Latest = 1 month ago (widened), clamped to the end of February.
+    expect(window.latest).toBe("2026-02-28T12:00:00.000Z");
+    expect(window.earliest).toBe("2025-12-31T12:00:00.000Z");
+    const leap = joinWindowFromDuration(
+      { count: 2, unit: "year" },
+      new Date("2028-02-29T00:00:00.000Z"),
+    );
+    expect(leap.latest).toBe("2027-02-28T00:00:00.000Z");
+    expect(leap.earliest).toBe("2025-02-28T00:00:00.000Z");
+  });
+
+  it("parses each membership duration form and rejects others", () => {
+    expect(parseMemberSince("Angemeldet seit 11 Monaten")).toEqual({
+      count: 11,
+      unit: "month",
+    });
+    expect(parseMemberSince("  Angemeldet   seit 2 Jahren ")).toEqual({
+      count: 2,
+      unit: "year",
+    });
+    expect(parseMemberSince("Angemeldet seit einem Jahr")).toEqual({
+      count: 1,
+      unit: "year",
+    });
+    expect(parseMemberSince("Angemeldet seit einer Woche")).toEqual({
+      count: 1,
+      unit: "week",
+    });
+    expect(parseMemberSince("Angemeldet seit 5 Tagen")).toEqual({
+      count: 5,
+      unit: "day",
+    });
+    for (const text of [
+      "Member since 11 months",
+      "Angemeldet seit heute",
+      "Angemeldet seit 11 Monaten und 2 Tagen",
+      "Angemeldet seit Januar",
+    ])
+      expect(parseMemberSince(text), text).toBeUndefined();
+  });
+
+  it("reports an unexpected membership text as invalid", () => {
+    load("profile");
+    const badge = Array.from(
+      document.querySelectorAll(
+        ".profile-sidebar-container__badge-list j-list-item",
+      ),
+    ).find((item) => item.textContent?.includes("Angemeldet"));
+    if (badge) badge.textContent = "Angemeldet seit kurzem";
+    expect(extractProfile(document, PROFILE_URL).joinedWindow.status).toBe(
+      "invalid",
+    );
+  });
+
   it("parses the singular photo label and rejects an unexpected one", () => {
     load("profile");
     const badge = document.querySelector(".amount-badge");
@@ -295,7 +371,9 @@ describe("M1 on verified profile data", () => {
     const code = (value: number) =>
       personallyKnownFromCode({ status: "found", value, source: "t" });
     expect(code(3)).toBe(true);
-    for (const value of [0, 1, 2, 4])
+    // Grey means not personally known: green would replace it otherwise.
+    expect(code(1)).toBe(false);
+    for (const value of [0, 2, 4])
       expect(code(value), String(value)).toBe("unknown");
     expect(personallyKnownFromCode({ status: "missing", source: "t" })).toBe(
       "unknown",
@@ -312,6 +390,9 @@ describe("M1 on verified profile data", () => {
       photoCount: value<number>(extracted.photoCount),
       profileWordCount: value<number>(extracted.profileWordCount),
       joinedAt: value<string>(extracted.joinedAt),
+      joinedWindow: value<{ earliest: string; latest: string }>(
+        extracted.joinedWindow,
+      ),
     });
     const result = evaluateQualification({
       facts: merged.facts,
@@ -331,8 +412,10 @@ describe("M1 on verified profile data", () => {
       ["personallyKnown", "pass"],
       ["photoCount", "pass"],
       ["profileWordCount", "pass"],
-      ["accountAge", "unknown"],
+      // "Angemeldet seit 11 Monaten" is at least ten months: above 30 days.
+      ["accountAge", "pass"],
     ]);
+    // Verification is still unknown (hidden by the green shield).
     expect(result.outcome).toBe("partial-information");
   });
 });

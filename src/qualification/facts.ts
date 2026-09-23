@@ -1,4 +1,7 @@
+import { isStrictIsoDate } from "../domain/iso-date";
 import { newestCaptureFirst } from "../domain/snapshot-order";
+
+export { isStrictIsoDate };
 import type { ProfileSnapshot } from "../domain/types";
 
 /**
@@ -16,12 +19,31 @@ export interface ProfileFacts {
   personallyKnown: boolean | "unknown";
   photoCount: number | "unknown";
   profileWordCount: number | "unknown";
+  /** An exact join date, when a page shows one. */
   joinedAt: string | "unknown";
+  /**
+   * The window the member joined in, when the page gives only a relative
+   * duration ("Angemeldet seit 11 Monaten"). Used when no exact date exists.
+   */
+  joinedWindow: JoinWindow | "unknown";
+}
+
+/** Earliest and latest possible join instants, as strict ISO dates. */
+export interface JoinWindow {
+  earliest: string;
+  latest: string;
 }
 
 /** Facts read only from the current page, never filled from a snapshot. */
 type LiveOnlyFact = "personallyKnown";
 export type CachedFactName = Exclude<keyof ProfileFacts, LiveOnlyFact>;
+
+/** The snapshot fields a merge reads. The window is stored as two fields. */
+export type CachedFacts = Pick<
+  ProfileSnapshot,
+  Exclude<CachedFactName, "joinedWindow">
+> &
+  Partial<Pick<ProfileSnapshot, "joinedEarliest" | "joinedLatest">>;
 const LIVE_ONLY_FACTS: ReadonlySet<keyof ProfileFacts> = new Set([
   "personallyKnown",
 ]);
@@ -33,35 +55,8 @@ export const UNKNOWN_FACTS: Readonly<ProfileFacts> = Object.freeze({
   photoCount: "unknown",
   profileWordCount: "unknown",
   joinedAt: "unknown",
+  joinedWindow: "unknown",
 });
-
-const ISO_DATE =
-  /^(\d{4})-(\d{2})-(\d{2})(?:T(\d{2}):(\d{2})(?::(\d{2})(?:\.\d{1,9})?)?(?:Z|[+-](\d{2}):(\d{2})))?$/;
-
-/**
- * Accept only an ISO 8601 date or date-time with a real calendar date and
- * clock time. `Date.parse` alone repairs `2026-02-30` to 2 March and accepts
- * trailing text, which would turn an extraction error into a known fact.
- */
-export function isStrictIsoDate(value: string): boolean {
-  const match = ISO_DATE.exec(value);
-  if (!match) return false;
-  const [, y, m, d, hh, mm, ss, oh, om] = match;
-  const year = Number(y);
-  const month = Number(m);
-  const day = Number(d);
-  const calendar = new Date(Date.UTC(year, month - 1, day));
-  if (
-    calendar.getUTCFullYear() !== year ||
-    calendar.getUTCMonth() !== month - 1 ||
-    calendar.getUTCDate() !== day
-  )
-    return false;
-  if (hh !== undefined && (Number(hh) > 23 || Number(mm) > 59)) return false;
-  if (ss !== undefined && Number(ss) > 59) return false;
-  if (oh !== undefined && (Number(oh) > 23 || Number(om) > 59)) return false;
-  return Number.isFinite(Date.parse(value));
-}
 
 /**
  * A safe non-negative integer only: above `Number.MAX_SAFE_INTEGER` the value
@@ -84,7 +79,21 @@ function isUsable(field: keyof ProfileFacts, value: unknown): boolean {
       return isCount(value);
     case "joinedAt":
       return typeof value === "string" && isStrictIsoDate(value);
+    case "joinedWindow":
+      return isJoinWindow(value);
   }
+}
+
+export function isJoinWindow(value: unknown): value is JoinWindow {
+  if (!value || typeof value !== "object") return false;
+  const { earliest, latest } = value as Partial<JoinWindow>;
+  return (
+    typeof earliest === "string" &&
+    typeof latest === "string" &&
+    isStrictIsoDate(earliest) &&
+    isStrictIsoDate(latest) &&
+    Date.parse(earliest) <= Date.parse(latest)
+  );
 }
 
 /** Where each merged fact came from, so an explanation can name its source. */
@@ -104,7 +113,7 @@ export interface MergedFacts {
  */
 export function mergeProfileFacts(
   observed: Partial<ProfileFacts>,
-  cached?: Pick<ProfileSnapshot, CachedFactName>,
+  cached?: CachedFacts,
 ): MergedFacts {
   const facts = { ...UNKNOWN_FACTS };
   const sources: Record<keyof ProfileFacts, FactSource> = {
@@ -113,7 +122,12 @@ export function mergeProfileFacts(
     photoCount: "none",
     profileWordCount: "none",
     joinedAt: "none",
+    joinedWindow: "none",
   };
+  const cachedWindow =
+    cached?.joinedEarliest !== undefined && cached.joinedLatest !== undefined
+      ? { earliest: cached.joinedEarliest, latest: cached.joinedLatest }
+      : undefined;
   for (const field of Object.keys(UNKNOWN_FACTS) as Array<keyof ProfileFacts>) {
     const fresh = observed[field];
     if (isUsable(field, fresh)) {
@@ -122,7 +136,10 @@ export function mergeProfileFacts(
       continue;
     }
     if (LIVE_ONLY_FACTS.has(field)) continue;
-    const stored = cached?.[field as CachedFactName];
+    const stored =
+      field === "joinedWindow"
+        ? cachedWindow
+        : cached?.[field as Exclude<CachedFactName, "joinedWindow">];
     if (isUsable(field, stored)) {
       facts[field] = stored as never;
       sources[field] = "cached";

@@ -1,5 +1,11 @@
 import type { CriterionState, TriagePlacement } from "../domain/types";
-import { isStrictIsoDate, type FactSource, type ProfileFacts } from "./facts";
+import {
+  isJoinWindow,
+  isStrictIsoDate,
+  type FactSource,
+  type JoinWindow,
+  type ProfileFacts,
+} from "./facts";
 
 /**
  * The criteria the MVP evaluates. They translate PRD Section 7.2 directly:
@@ -112,6 +118,83 @@ export function accountAgeDays(
   return Math.floor(elapsed / (24 * 60 * 60 * 1000));
 }
 
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+/**
+ * The possible account age in whole days for a join window: the minimum from
+ * the latest possible join, the maximum from the earliest. `unknown` when the
+ * window is unusable or any part of it lies in the future.
+ */
+export function accountAgeRange(
+  window: JoinWindow | "unknown",
+  now: Date,
+): { min: number; max: number } | "unknown" {
+  if (!isJoinWindow(window)) return "unknown";
+  const min = Math.floor((now.getTime() - Date.parse(window.latest)) / DAY_MS);
+  const max = Math.floor(
+    (now.getTime() - Date.parse(window.earliest)) / DAY_MS,
+  );
+  // Any possible join in the future makes the window unusable, like a future
+  // exact date: an extraction or clock error, never a basis for a failure.
+  if (!Number.isFinite(min) || !Number.isFinite(max) || min < 0)
+    return "unknown";
+  return { min, max };
+}
+
+/**
+ * Account age against a minimum, from an exact join date when one is known,
+ * otherwise from a join window. A window passes only when even its youngest
+ * possible age meets the minimum, and fails only when even its oldest does
+ * not; in between it is unknown, so a rounded duration never decides alone.
+ */
+function accountAgeCriterion(
+  facts: ProfileFacts,
+  minimum: number,
+  now: Date,
+  sourceOf: (field: keyof ProfileFacts) => FactSource,
+): EvaluatedCriterion {
+  const exact = accountAgeDays(facts.joinedAt, now);
+  if (exact !== "unknown" || facts.joinedWindow === "unknown")
+    return numericCriterion(
+      "accountAge",
+      "Account age in days",
+      exact,
+      minimum,
+      sourceOf("joinedAt"),
+    );
+  const source = sourceOf("joinedWindow");
+  const range = accountAgeRange(facts.joinedWindow, now);
+  if (range === "unknown")
+    return numericCriterion(
+      "accountAge",
+      "Account age in days",
+      "unknown",
+      minimum,
+      source,
+    );
+  const span = `between ${range.min} and ${range.max} days`;
+  if (range.min >= minimum)
+    return {
+      name: "accountAge",
+      state: "pass",
+      reason: `Account age is ${span}, at or above the required ${minimum}.`,
+      source,
+    };
+  if (range.max < minimum)
+    return {
+      name: "accountAge",
+      state: "fail",
+      reason: `Account age is ${span}, below the required ${minimum}.`,
+      source,
+    };
+  return {
+    name: "accountAge",
+    state: "unknown",
+    reason: `Account age is ${span}, which is too coarse to compare with the required ${minimum}, so it was not counted for or against.`,
+    source,
+  };
+}
+
 /**
  * Evaluate the configured criteria against merged profile facts.
  *
@@ -202,13 +285,7 @@ export function evaluateQualification(input: {
 
   if (criteria.minimumAccountAgeDays !== undefined)
     criteriaResults.push(
-      numericCriterion(
-        "accountAge",
-        "Account age in days",
-        accountAgeDays(facts.joinedAt, now),
-        criteria.minimumAccountAgeDays,
-        sourceOf("joinedAt"),
-      ),
+      accountAgeCriterion(facts, criteria.minimumAccountAgeDays, now, sourceOf),
     );
 
   const outcome: QualificationOutcome = criteriaResults.some(

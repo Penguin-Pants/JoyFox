@@ -41,7 +41,7 @@ Matches the PRD's Section 19.1 scope exactly. Nothing here is not in that list, 
 | F0, F2, F4 to F6 | Done | See `foundation-audit.md`. F2's live acceptance passed on 2026-09-23 (10 of 10 inbox loads). |
 | F3 | Partial | Automated wake-counter test passes. The forced event-page restart in devtools (`manual-acceptance.md`, item 5) is not yet done. |
 | F1 | Partial | Inbox, conversation and profile verified from `docs/live-evidence/`. Search, events and the ClubMail composer remain. |
-| F9 | Partial | Matrix in `08-attribute-matrix.md`. Verification appears on all three pages, photo count only on the profile, profile text on the conversation and the profile. Join date and profile type are Unclear. |
+| F9 | Partial | Matrix in `08-attribute-matrix.md`. Verification appears on all three pages, photo count only on the profile, profile text on the conversation and the profile. Account age comes from the profile's "Angemeldet seit" badge. Profile type is Unclear. |
 | F7, F8 | Blocked | Human-assisted verification. See `manual-verification-needed.md`. |
 | M1 | Partial | The qualification engine and profile-fact merge are complete, pure and tested, including F9's unknown-is-not-failure rule. Resolving the member, collecting observed facts and rendering the badge wait on F1, and the availability matrix on F9. |
 | M3 | Partial | Normalization, the pluggable similarity engine, duplicate and known-phrase matching, explanations, and the persisted per-sender override are complete. Nothing reads a message from a page yet, which waits on F1. |
@@ -57,8 +57,8 @@ Matches the PRD's Section 19.1 scope exactly. Nothing here is not in that list, 
 - "Personally known" (code `3`) is available as the `requirePersonallyKnown`
   criterion. Offer it in the M4 rule builder, and use it in M6 trust and the
   PRD 7.4 triage exception for previously met senders.
-- Establish whether JoyClub shows a join date anywhere. Until it does, the
-  account-age criterion stays unknown.
+- Observe more "Angemeldet seit" forms (days, weeks, years, singular) to
+  confirm the parser, and whether JoyClub rounds the duration down.
 - Build the page UI: the qualification badge on inbox rows and in the
   conversation header, and snapshot capture on the profile page. Content
   scripts must reach storage through background messaging.

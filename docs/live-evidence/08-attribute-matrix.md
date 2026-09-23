@@ -6,7 +6,7 @@ Filled in from 01-inbox.md, 02-conversation.md, and 03-profile.md.
 | --------------------------------- | --------- | ----------------- | ------------ | --------------- |
 | Verification badge                | Present   | Present           | Present      | Stored          |
 | Photo count                       | Unclear   | Absent            | Present      | Stored          |
-| Account age or join date          | Unclear   | Unclear           | Unclear      | Field exists    |
+| Account age or join date          | Unclear   | Unclear           | Present      | Stored          |
 | Profile type (man, woman, couple) | Unclear   | Unclear           | Unclear      | Not stored      |
 | Profile text or word count        | Absent    | Present           | Present      | Stored          |
 
@@ -52,3 +52,10 @@ inbox or conversation only for a member whose profile was opened before.
   join date yet, so it stays unknown.
 - **Not stored:** the snapshot has no field for profile type. A profile-type
   criterion therefore cannot be filled from a cache.
+
+## Update (2026-09-23)
+
+- **Account age on the profile:** Present, as the sidebar badge "Angemeldet seit
+  <n> <unit>" (see `03-profile.md`). It is a rounded duration, stored in a
+  snapshot as a join window (`joinedEarliest`, `joinedLatest`). The inbox and
+  conversation cells stay Unclear.

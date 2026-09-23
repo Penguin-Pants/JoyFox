@@ -88,6 +88,15 @@ records the decision, when it was made and an optional user reason, so the
 explanation shown for an unflagged message can name the user's own earlier
 correction rather than appearing to be a silent exemption.
 
+## Join window
+
+A ProfileSnapshot may carry `joinedEarliest` and `joinedLatest`, two ISO dates
+that are present together or not at all, with the earliest not after the latest.
+They hold the join window derived from the profile's "Angemeldet seit" badge.
+They are optional fields on the existing store, so no database version change
+was needed. `joinedAt` stays for an exact date, which JoyClub does not show
+today.
+
 ## Live-only profile facts
 
 `personallyKnown` ("persönlich bekannt") is a profile fact for qualification but

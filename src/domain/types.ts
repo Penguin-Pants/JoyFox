@@ -30,6 +30,13 @@ export interface ProfileSnapshot extends AccountScopedEntity {
   photoCount: number | "unknown";
   profileWordCount: number | "unknown";
   joinedAt: string | "unknown";
+  /**
+   * The window the member joined in, when the page gives only a relative
+   * duration such as "Angemeldet seit 11 Monaten". Both are ISO dates and are
+   * present together or not at all.
+   */
+  joinedEarliest?: string;
+  joinedLatest?: string;
 }
 
 export interface UserNote extends AccountScopedEntity {

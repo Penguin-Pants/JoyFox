@@ -9,21 +9,23 @@
   still unknown. Features must not use display names as identifiers.
 - No profile-page note or tag UI exists yet. Notes and tags can now resolve a
   member identity from a verified page, but nothing on a page calls them.
-- No join date or account age has been found on the inbox, the conversation or
-  the profile, and its absence is not yet established
-  (`08-attribute-matrix.md`). Until one is verified, the account-age criterion
-  is always unknown. When it is configured, the result is Partial information
-  unless another configured criterion fails, which gives Does not meet rule.
+- Account age comes only from the profile badge "Angemeldet seit <n> <unit>",
+  which is a rounded duration, not a date. It becomes a join window widened one
+  unit either side, because JoyClub's rounding is not confirmed. An age minimum
+  passes or fails only when the whole window is on one side of it; otherwise the
+  criterion is unknown. Only the German text is parsed, and only "11 Monaten"
+  has been observed; the other unit forms follow German grammar. The inbox and
+  conversation show no account age.
 - Only code `1` ("geprüft") counts as JoyClub verification. Code `3`
   ("persönlich bekannt") is the user's own mark of having met the member; the
   shield then hides JoyClub's verification, so it reads as unknown. A missing
   shield and any other code also read as unknown, so an unverified member shows
   Partial information rather than Does not meet rule.
 - "Personally known" is its own criterion (`requirePersonallyKnown`), higher
-  trust than verification. Only code `3` is a confirmed "yes"; other codes read
-  as unknown, not "no", until it is confirmed that the green shield always
-  replaces the grey one. It is read live on each page and never cached, as the
-  user can change the mark. No settings UI exists yet (M4).
+  trust than verification. Code `3` is "yes" and code `1` is "no" (the owner
+  confirmed that green replaces grey). A missing shield and other codes read as
+  unknown. It is read live on each page and never cached, as the user can change
+  the mark. No settings UI exists yet (M4).
 - Conversation header data is used only when its member ID matches a number in
   the conversation URL. If those URL numbers turn out not to be member IDs,
   header data will always read as missing.
