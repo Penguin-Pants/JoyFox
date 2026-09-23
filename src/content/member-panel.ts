@@ -61,6 +61,12 @@ export class MemberPanel {
   #generation = 0;
   #rendered = "";
   #captured = "";
+  /**
+   * Captures run one after another. The background stamps a snapshot when it
+   * writes, so two captures in flight at once could finish out of order and
+   * leave an older, partial reading as the newest snapshot.
+   */
+  #captureQueue: Promise<void> = Promise.resolve();
   #error?: string;
   #page?: MemberPage;
 
@@ -154,12 +160,14 @@ export class MemberPanel {
   #capture(target: Target): void {
     if (this.#captured === target.key) return;
     this.#captured = target.key;
-    void this.client
-      .captureSnapshot(target.memberId, target.observed)
-      .catch(() => {
-        // A failed cache write loses nothing the page still shows.
-        this.#captured = "";
-      });
+    const { key, memberId, observed } = target;
+    this.#captureQueue = this.#captureQueue.then(() =>
+      this.client.captureSnapshot(memberId, observed).catch(() => {
+        // A failed cache write loses nothing the page still shows. Retry
+        // only if no newer reading has been queued since.
+        if (this.#captured === key) this.#captured = "";
+      }),
+    );
   }
 
   #load(target: Target): void {

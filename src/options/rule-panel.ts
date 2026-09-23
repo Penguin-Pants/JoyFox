@@ -321,14 +321,7 @@ export class RulePanel {
     try {
       // The form belongs to the account it was drawn for. If another account
       // became active meanwhile, nothing is written to either.
-      if ((await this.accounts.getActiveAccount())?.id !== accountId) {
-        await this.render();
-        this.#setStatus(
-          "The active account changed. The rule was not saved. Check the form and save again.",
-          "error",
-        );
-        return;
-      }
+      if (!(await this.#confirmAccount(accountId, "saved"))) return;
       await this.rules.saveGlobalRule(accountId, fromBuilderForm(form));
       await this.render();
       const vacuous =
@@ -356,15 +349,16 @@ export class RulePanel {
     );
     button.type = "button";
     button.addEventListener("click", () => {
-      void this.rules
-        .deleteGlobalRule(accountId)
-        .then(() => this.render())
-        .then(() =>
+      void this.#confirmAccount(accountId, "removed")
+        .then(async (current) => {
+          if (!current) return;
+          await this.rules.deleteGlobalRule(accountId);
+          await this.render();
           this.#setStatus(
             "Rule removed. JoyFox no longer sorts the inbox for this account.",
             "info",
-          ),
-        )
+          );
+        })
         .catch(() =>
           this.#setStatus(
             "JoyFox could not remove the rule. Nothing was changed.",
@@ -373,6 +367,24 @@ export class RulePanel {
         );
     });
     return button;
+  }
+
+  /**
+   * Whether the form's account is still the active one. A form drawn for
+   * another account stays clickable until the new render finishes; if it
+   * is stale, nothing is written to either account and the form is redrawn.
+   */
+  async #confirmAccount(
+    accountId: string,
+    action: "saved" | "removed",
+  ): Promise<boolean> {
+    if ((await this.accounts.getActiveAccount())?.id === accountId) return true;
+    await this.render();
+    this.#setStatus(
+      `The active account changed. The rule was not ${action}. Check the form and try again.`,
+      "error",
+    );
+    return false;
   }
 
   #setStatus(text: string, kind: "info" | "error"): void {

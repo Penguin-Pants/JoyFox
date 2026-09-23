@@ -481,6 +481,35 @@ describe("conversation and profile panel", () => {
     );
   });
 
+  it("stores snapshots in the order the page showed them", async () => {
+    setPage("/profile/1234567.synthetic_one.html", profileHtml);
+    const stored: Array<object> = [];
+    let releaseFirst: () => void = () => undefined;
+    let calls = 0;
+    const client = serviceClient();
+    const member = new MemberPanel(document, {
+      ...client,
+      // The first capture is slow; the second, fuller one is fast.
+      captureSnapshot: async (_memberId, observed) => {
+        calls += 1;
+        if (calls === 1)
+          await new Promise<void>((resolve) => (releaseFirst = resolve));
+        stored.push(observed);
+      },
+    });
+    document.querySelector(".amount-badge")!.remove();
+    member.update("profile");
+    setPage("/profile/1234567.synthetic_one.html", profileHtml);
+    member.update("profile");
+    await new Promise((resolve) => setTimeout(resolve, 10));
+    // The second waits for the first, however slow it is.
+    expect(stored).toHaveLength(0);
+    releaseFirst();
+    await vi.waitFor(() => expect(stored).toHaveLength(2));
+    expect(stored[0]).not.toHaveProperty("photoCount");
+    expect(stored[1]).toHaveProperty("photoCount", 12);
+  });
+
   it("leave removes the panel", async () => {
     await rules.saveGlobalRule(ACCOUNT, knownRule());
     setPage("/profile/1234567.synthetic_one.html", profileHtml);

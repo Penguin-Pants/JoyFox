@@ -90,6 +90,15 @@ Codex review of PR #14 found seven more, all confirmed and fixed:
   conditions in a group that did not decide it. Reasons now follow the cause
   through the All/Any tree; the full list still shows every condition.
 
+A second Codex review found two more, both confirmed and fixed:
+
+- Profile captures ran in parallel, so a slow, partial capture could finish last
+  and become the newest snapshot. Captures from one page now run one after
+  another.
+- "Remove rule" deleted the rule of the account the form was drawn for, even
+  after another account became active. It now checks the account first, like
+  saving does.
+
 Each fix has a regression test confirmed to fail without it.
 
 ### Confirmed issues deferred
