@@ -59,6 +59,14 @@ spelling the user typed.
 Saving a note or tag also registers the JoyClubMember record it refers to, so an
 export carries the member directory rather than dangling member IDs.
 
+A save from the page editor names the note text it was typed over (`null` for
+none). Under the account lock, the save is refused as a conflict if the stored
+note differs, so a newer note from another tab or a delete in the data inspector
+is never overwritten unseen. Text is compared rather than a timestamp. Every
+committed note or tag write sets `joyfox.notesRevision` in `storage.local` to a
+random token, so another open page reloads its editor at once. It is separate
+from the triage revision, so a note does not make open inboxes re-evaluate.
+
 ## Schema versions
 
 Version 1 created the 16 PRD entities. Version 2 adds `messageObservations` and
@@ -166,3 +174,21 @@ a folder shows under "General". The body is stored exactly, with line breaks as
 IDs are `template:<random>`. The limits are storage guards chosen by this
 implementation. `folder` is an optional field on the existing store, so no
 database version change was needed.
+
+## ActionLog (Milestone E, M9)
+
+One record per Quick Ignore and Delete run: `action` is `quick-ignore-delete`,
+`memberId` and an optional `conversationId` (the opaque `personal-<n>-<n>` from
+the conversation URL) name the target, and `steps` holds one entry per state
+reached, in order, each with `name`, `ok`, `at` and, for `Failed`, the reason in
+`errorCode`. IDs are `action:<time>:<sequence>:<random>`.
+
+The service appends a step only when the state machine allows it (ADR 0008), so
+a log never shows an impossible sequence. `…Requested` is stored before JoyFox
+clicks, so a crash leaves "not confirmed", never "not done". A run whose last
+step is not terminal and is older than 2 minutes reads as interrupted. The log
+holds IDs, state names and times only, never message text. Starting a run also
+registers the JoyClubMember record. Every stored transition sets
+`joyfox.actionRevision` in `storage.local`, so another open tab follows the run.
+`conversationId` is an optional field on the existing store, so no database
+version change was needed.

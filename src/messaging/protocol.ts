@@ -1,3 +1,9 @@
+import type { BeginAnswer, RecordAnswer } from "../actions/executor";
+import type {
+  ActionFailure,
+  ActionState,
+  OperationReport,
+} from "../actions/ignore-delete";
 import type { TriagePlacement } from "../domain/types";
 import type { ProfileFacts } from "../qualification/facts";
 import type {
@@ -14,6 +20,20 @@ export interface TemplateSummary {
   folder: string;
   body: string;
 }
+
+/**
+ * One member's note and tags under the active account (M5). `accountId` is
+ * the account they were read for; writes send it back.
+ */
+export type MemberNotesResponse =
+  | { status: "no-account" }
+  | {
+      status: "ok";
+      accountId: string;
+      /** The stored note, or `null` when there is none. */
+      note: string | null;
+      tags: string[];
+    };
 
 export interface ExtensionMessage<T = unknown> {
   type: string;
@@ -80,6 +100,69 @@ export interface MessageContract {
   "template.list": {
     request: Record<string, never>;
     response: { accountId?: string; templates: TemplateSummary[] };
+  };
+  "note.get": {
+    request: { memberId: string };
+    response: MemberNotesResponse;
+  };
+  /**
+   * Save one member's note, or remove it with an empty body. `expectedBody`
+   * is the note the editor was drawn from (`null`: none). A note changed
+   * since is not overwritten: the answer is `conflict` with the stored text.
+   * `refused` means the account is no longer active.
+   */
+  "note.save": {
+    request: {
+      accountId: string;
+      memberId: string;
+      body: string;
+      expectedBody: string | null;
+    };
+    response:
+      | { status: "saved" | "conflict"; current: string | null }
+      | { status: "refused" };
+  };
+  "tag.add": {
+    request: { accountId: string; memberId: string; label: string };
+    response: { done: boolean };
+  };
+  "tag.remove": {
+    request: { accountId: string; memberId: string; label: string };
+    response: { done: boolean };
+  };
+  /**
+   * M9: start a Quick Ignore and Delete operation. The content script runs
+   * the steps; the background stores each transition in ActionLog.
+   */
+  "action.ignoreDelete.start": {
+    request: { accountId: string; memberId: string; conversationId: string };
+    response: BeginAnswer;
+  };
+  /** Store one transition; answered only once it is stored. */
+  "action.ignoreDelete.record": {
+    request: {
+      accountId: string;
+      operationId: string;
+      state: ActionState;
+      failure?: ActionFailure;
+    };
+    response: { status: RecordAnswer };
+  };
+  /** The newest operation for one member under the active account. */
+  "action.ignoreDelete.latest": {
+    request: { memberId: string };
+    response:
+      | { status: "no-account" }
+      | { status: "none"; accountId: string }
+      | {
+          status: "ok";
+          accountId: string;
+          /** The conversation the run acted on, when it was stored. */
+          conversationId?: string;
+          /** When the run last moved: its last stored step. */
+          updatedAt: string;
+          report: OperationReport;
+        };
   };
   /** Content scripts cannot open the options page themselves. */
   "options.open": {

@@ -2,6 +2,8 @@ import { ACTIVE_ACCOUNT_SETTING_KEY } from "../accounts/account-service";
 import { extractInboxRows } from "../extraction/joyclub";
 import { hasVerifiedSelectors, VERIFIED_HOSTS } from "../selectors/registry";
 import { runtimeSettingsArea } from "../storage/local-settings";
+import { ACTION_REVISION_KEY } from "../storage/action-revision";
+import { NOTES_REVISION_KEY } from "../storage/notes-revision";
 import { TRIAGE_REVISION_KEY } from "../storage/triage-revision";
 import {
   DIAGNOSTICS_KEY,
@@ -9,9 +11,16 @@ import {
   summarizeInbox,
 } from "./diagnostics";
 import { InboxTriage, inboxListShown, inboxListState } from "./inbox-triage";
+import { MemberNotes, runtimeNotesClient } from "./member-notes";
 import { MemberPanel } from "./member-panel";
 import { NavigationCoordinator } from "./navigation-coordinator";
 import { detectPage } from "./page-detector";
+import {
+  liveQuickActionDriver,
+  QUICK_ACTION_KEY,
+  QuickIgnoreDelete,
+  runtimeQuickActionClient,
+} from "./quick-action";
 import {
   runtimeTemplateClient,
   TEMPLATE_PICKER_KEY,
@@ -38,14 +47,33 @@ if (hasVerifiedSelectors() && VERIFIED_HOSTS.includes(location.hostname)) {
     TEMPLATE_PICKER_KEY,
     true,
   );
+  // M9 is experimental and off unless set to `true`. It also needs a live
+  // driver, which waits on F7, so today it never appears.
+  const quickAction = new DiagnosticsFlag(
+    () => runtimeSettingsArea.get([QUICK_ACTION_KEY]),
+    storageEvents,
+    QUICK_ACTION_KEY,
+  );
   const client = runtimeTriageClient();
   const inbox = new InboxTriage(document, client);
   const panel = new MemberPanel(document, client);
+  const notes = new MemberNotes(document, runtimeNotesClient());
   const picker = new TemplatePicker(document, runtimeTemplateClient());
+  const quick = new QuickIgnoreDelete(
+    document,
+    runtimeQuickActionClient(),
+    liveQuickActionDriver,
+  );
   let lastType: string | undefined;
   const updatePicker = () => {
     if (lastType === "conversation" && templatePicker.enabled) picker.update();
     else picker.leave();
+  };
+  const updateQuickAction = () => {
+    // Turning the flag off also stops a run before its next click.
+    if (!quickAction.enabled) quick.turnOff();
+    else if (lastType === "conversation") quick.update();
+    else quick.leave();
   };
   let lastSummary = "";
   coordinator.subscribe(({ page }) => {
@@ -54,10 +82,16 @@ if (hasVerifiedSelectors() && VERIFIED_HOSTS.includes(location.hostname)) {
     // the list beside an open conversation, also after a reply is sent.
     if (inboxListShown(document)) inbox.update();
     else inbox.leave();
-    if (type === "conversation" || type === "profile") panel.update(type);
-    else panel.leave();
+    if (type === "conversation" || type === "profile") {
+      panel.update(type);
+      notes.update(type);
+    } else {
+      panel.leave();
+      notes.leave();
+    }
     lastType = type;
     updatePicker();
+    updateQuickAction();
   });
   let lastPageLine = "";
   coordinator.subscribe(({ page }) => {
@@ -87,17 +121,31 @@ if (hasVerifiedSelectors() && VERIFIED_HOSTS.includes(location.hostname)) {
     if (area !== "local") return;
     // The flag listener registered first, so it already holds the new value.
     if (TEMPLATE_PICKER_KEY in changes) updatePicker();
+    if (QUICK_ACTION_KEY in changes) updateQuickAction();
+    // A Quick Ignore and Delete run moved, in this tab or another one.
+    if (ACTION_REVISION_KEY in changes) quick.invalidate();
     if (ACTIVE_ACCOUNT_SETTING_KEY in changes) {
       inbox.accountChanged();
       panel.accountChanged();
+      notes.accountChanged();
       picker.accountChanged();
+      quick.accountChanged();
     } else if (TRIAGE_REVISION_KEY in changes) {
+      // Also set by every delete in the data inspector, so a deleted note
+      // or tag leaves an open page at once.
       inbox.invalidate();
       panel.invalidate();
+      notes.invalidate();
+      quick.invalidate();
+    } else if (NOTES_REVISION_KEY in changes) {
+      // A note or tag saved in another tab.
+      notes.invalidate();
     }
   });
   // Start after the initial flag is known, so the first event is not missed.
-  void Promise.all([diagnostics.ready, templatePicker.ready]).then(() =>
-    coordinator.start(),
-  );
+  void Promise.all([
+    diagnostics.ready,
+    templatePicker.ready,
+    quickAction.ready,
+  ]).then(() => coordinator.start());
 }

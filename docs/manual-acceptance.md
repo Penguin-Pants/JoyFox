@@ -180,6 +180,77 @@ build from `main` at 9583284 and confirmed every item.
   tab's console, which has no `browser`. The steps now name the options page
   console.
 
+## M5 live acceptance (notes and tags)
+
+Use your own account and a member you are allowed to view. Use invented note
+text; never record the member's real data in this repository.
+
+36. Build and load the extension (item 14), with an account active. Open a
+    member's profile. Confirm "Your notes and tags (none yet)" appears after the
+    JoyFox panel (or after the profile header), not inside a JoyClub element,
+    and is closed.
+37. Open it. Type a note with two lines, an umlaut and an emoji, and click "Save
+    note". Add one tag with Enter and one with "Add tag". Confirm "Note saved."
+    and "Tag added." and both tags in the list.
+38. Reload the page, then quit and restart Firefox and open the profile again.
+    Confirm the note text is exact and both tags are shown, open by default (M5
+    acceptance: the note survives a restart).
+39. Open a conversation with the same member. Confirm the same note and tags
+    appear after the JoyFox panel below the conversation header, and that
+    clicking in the editor does not open the profile.
+40. In the options page, switch to another account. Confirm the editor on the
+    open JoyClub tab disappears at once and then shows no note for the other
+    account. Switch back and confirm the original note and tags are unchanged.
+41. Open the same profile in two tabs. Save a new note in the first and confirm
+    the second shows it at once. In the second tab, type other text but do not
+    save. Save another change in the first tab, then click "Save note" in the
+    second. Confirm the warning that the note changed elsewhere, that your text
+    stays in the box, and that saving again replaces the note.
+42. With the keyboard only, open the editor, type a note, save it, add a tag and
+    remove it. Confirm every control is reachable and named. Then, in "Your
+    data", delete the "Notes" data type and confirm the open profile's editor
+    shows no note.
+
+## Onboarding (build plan Section 28, PRD Section 21.1)
+
+55. Use a fresh Firefox profile with no JoyFox data. Start a timer, build and
+    load the extension (item 1). Confirm the JoyFox options page opens by itself
+    and "Get started" lists three steps, the first two "Not done yet". Follow
+    the steps: add your account, save and turn on a contact rule, open your
+    JoyClub inbox. Confirm each step changes to "Done" in words, the summary
+    says "JoyFox is set up", and the inbox shows JoyFox's tabs. Stop the timer:
+    PRD Section 21.1 asks for under 10 minutes. Reload the extension and confirm
+    the options page does not open again.
+
+## M9 destructive-action matrix (build plan Section 24)
+
+**Blocked.** These items cannot run yet: no live driver exists until F7 verifies
+the Ignore and Delete path (`manual-verification-needed.md`, item 7; ADR 0008).
+When it exists, run them by hand only, on test conversations you mean to lose,
+with `joyfox.quickIgnoreDelete` set to `true` from the options page console.
+Never run them automatically.
+
+For each item, check three things: JoyClub's final state, the ActionLog record
+in "Your data" (steps, in order, with the `errorCode` of `Failed`), and the
+on-screen notice. Success means every item ends in the expected state with the
+expected ActionLog. Each item has a synthetic test with the same case number in
+`tests/integration/quick-action.test.ts`.
+
+| Item | Case                                   | How to cause it                                                           | Expected ActionLog steps                                                                           | Expected notice                                                          |
+| ---- | -------------------------------------- | ------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------ |
+| 43   | 1. Both succeed                        | Normal run                                                                | `Started`, `IgnoreRequested`, `IgnoreConfirmed`, `DeleteRequested`, `DeleteConfirmed`, `Completed` | "Ignore and Delete finished." Member ignored, conversation in the trash. |
+| 44   | 2. Ignore control missing              | Run where JoyClub shows no Ignore control                                 | `Started`, `Failed:control-missing`                                                                | "Nothing was changed on JoyClub." Both next actions.                     |
+| 45   | 3. Ignore confirmation missing         | Close JoyClub's Ignore confirmation before JoyFox reaches it              | `Started`, `IgnoreRequested`, `Failed:confirmation-missing`                                        | "Ignore: not confirmed." Both next actions. No Delete click.             |
+| 46   | 4. Ignore done, Delete control missing | Hide or remove the Delete control after Ignore                            | … `IgnoreConfirmed`, `Failed:control-missing`                                                      | "Ignore: done." "Delete: not done." "JoyFox did not undo anything."      |
+| 47   | 5. Delete confirmation fails           | Close JoyClub's Delete confirmation                                       | … `DeleteRequested`, `Failed:confirmation-missing` (or `not-verified`)                             | "Delete: not confirmed." The Delete next action.                         |
+| 48   | 6. Navigation interrupted              | Navigate away or go offline during a step                                 | Last step before the stop, then `Failed:timeout` or `Failed:identity-unavailable`                  | Names the step that did not complete.                                    |
+| 49   | 7. Tab closed during the action        | Close the tab after the first click                                       | Ends at the last stored step, with no `Failed`                                                     | On reopening the conversation after 2 minutes: "was interrupted".        |
+| 50   | 8. Member identity mismatch            | Switch to another member's conversation mid-run                           | … `Failed:member-mismatch`                                                                         | "The page showed another member, so JoyFox stopped before …".            |
+| 51   | 9. Conversation identity mismatch      | Switch to another conversation with the same member                       | … `Failed:conversation-mismatch`                                                                   | "The page showed another conversation …". No Delete click.               |
+| 52   | 10. Markup changes between steps       | JoyClub re-renders the header during the run                              | … `Failed:identity-unavailable` or `Failed:control-missing`                                        | Names the step and says JoyFox stopped before it.                        |
+| 53   | 11. Background restarted mid-run       | Click **Terminate background script** in `about:debugging` during the run | The full sequence, or the last stored step then `Failed`                                           | Matches the ActionLog. No step is repeated.                              |
+| 54   | 12. Another account activated mid-run  | Switch the JoyFox account in the options page during the run              | Account A's log ends at its last stored step; account B has no record                              | "The active JoyFox account changed, so JoyFox stopped at …".             |
+
 Live selector and action acceptance must wait for the evidence checklist in
 `manual-verification-needed.md`. Never perform destructive action testing
 automatically.

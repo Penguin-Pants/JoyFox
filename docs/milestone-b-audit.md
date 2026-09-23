@@ -196,7 +196,8 @@ window, and the profile-type codes are not fully mapped.
 - Reading message text, so nothing calls the spam detector yet. It needs the
   sent and received bubble meaning confirmed and the message-caching toggle from
   ADR 0004.
-- The page UI for M3 (template label) and M5 (profile notes). The M1 badge and
+- The page UI for M3 (template label). It waits on reading message text, above.
+  The M5 editor is done (see "M5 note and tag editor" below). The M1 badge and
   the content-script messaging were built in Milestone C
   (`milestone-c-audit.md`).
 - Automatic active-account detection. M7 asks for reliable account identity
@@ -210,3 +211,108 @@ M7, M1's qualification engine and M3's detector and persistence are complete and
 tested, and the three pages they need are now verified and extracted. What
 remains is the page UI and messaging, plus two confirmations: the verification
 codes and the meaning of the message bubble sides.
+
+## M5 note and tag editor (2026-09-23)
+
+The profile and conversation pages are verified (`docs/live-evidence/`), so the
+M5 page UI no longer waits on F1. It is built here.
+
+### Completed
+
+- An editor for one private note and any number of tags, after the JoyFox member
+  panel on the profile page and on a conversation page (PRD Sections 8.4, 10.1
+  and 10.2, flow 2). It appears only for a member ID read through a verified
+  selector, and only while an account is active. It is closed while the member
+  has no note or tag, and open when there is one.
+- Four typed messages: `note.get`, `note.save`, `tag.add` and `tag.remove`
+  (Technical Design names `note.save`). Every write names the account its data
+  came from and runs under that account's lock; the background refuses it if the
+  account is no longer active.
+- A save names the note text it was typed over. If the stored note differs (a
+  save in another tab, a delete in the data inspector), the save is refused, the
+  typed text stays in the box and the user is told. Saving again replaces the
+  note.
+- Typed text survives a redraw, and focus and the cursor position are restored.
+  A keystroke never redraws the editor. Typed text is dropped on an account
+  switch or a route to another member, so it cannot be saved under the wrong
+  account or member.
+- Every control has a label or a name, works by keyboard (Enter adds a tag) and
+  shows its result in a polite live region. No state relies on color.
+- A delete in the data inspector sets the triage revision, which now also
+  reloads an open editor.
+- The M5 acceptance, "a note survives a restart and a markup change that keeps
+  the same profile ID", is an integration test: a new editor instance on changed
+  markup with the same profile URL shows the saved note.
+
+### Review findings
+
+A self-review of the diff found two code issues and one test gap. All are fixed,
+each with a regression test confirmed to fail without the fix:
+
+- A save's answer that arrived after an account switch was checked only against
+  the page and member, which stay the same across a switch. A late "conflict"
+  answer could then put account A's typed text into account B's editor. Each
+  answer is now checked against a session that an account switch or a route
+  change ends.
+- A double click on "Save note" sent two saves with the same expected note, so
+  the second reported a false "changed elsewhere" conflict. A click while a save
+  runs is now ignored.
+- A test for the stale-overwrite guard passed even with the guard removed,
+  because it never reloaded between typing and saving. A test that reloads first
+  was added and fails without the guard.
+
+An independent review then found seven more. All were confirmed; six are fixed
+with regression tests confirmed to fail without the fix, and one is reworded and
+partly deferred:
+
+- Typed text was not tied to an account. If the options page switched accounts
+  before this tab heard of it, a refused save reloaded the editor with the new
+  account's note but kept the typed text, and a second save stored it in the new
+  account. A load that returns another account, and a refused write, now drop
+  typed text and say so.
+- Note and tag writes did not tell other tabs, so a second tab kept a stale note
+  and then showed a conflict about text the user never saw. Every committed
+  write now sets a notes revision in `storage.local`, and open pages reload the
+  editor.
+- `leave()` dropped typed text when JoyClub hid the header for a moment. Typed
+  text now stays for the same member; another member or account drops it.
+- After "Discard my changes" the focused button was disabled, so focus fell to
+  the page. Focus now moves to the note box. The summary also keeps focus across
+  a redraw.
+- A save pending for one member blocked "Save note" for the next member without
+  any message. The guard is now per member and account.
+- The status line was hidden while empty, which can stop a screen reader from
+  announcing the first status. It now stays in the accessibility tree.
+- The scope text said JoyClub and the member never see the note. The editor is
+  part of JoyClub's page, so its scripts could read the text. The text now says
+  only what JoyFox does: it stores the note in this browser and never sends it.
+  Isolating the editor is deferred (below).
+
+Two small gaps found while fixing these are fixed too, with tests: a status
+about the previous account's note stayed on screen after a switch, and saving an
+empty box with no stored note reported "Note removed." It now says to type a
+note first and sends nothing.
+
+### Confirmed issues deferred
+
+- Notes and tags on the inbox, search and event surfaces. Build plan Section 12
+  puts them "later", and search and events are unverified.
+- Isolating the editor from JoyClub's scripts, for example in a closed shadow
+  root. It needs its own styles and would still not stop a page script that
+  records keystrokes, so it needs a design decision first.
+
+### Possible risks
+
+- JoyClub re-rendering the header could move the editor. It follows the header
+  on the next update, like the member panel.
+
+### Validation
+
+`npm test`, `npm run lint` (including the permission allowlist),
+`npm run typecheck`, `npm run format:check` and `npm run build:firefox` pass. No
+permission was added and the schema version is unchanged.
+
+### Status
+
+The editor is complete and tested. Live acceptance is `manual-acceptance.md`,
+items 36 to 42, and is pending.

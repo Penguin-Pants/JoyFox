@@ -14,9 +14,13 @@ Synthetic tests use invented names and text only. No real member information or
 captured page is committed.
 
 Notes and tags describe an identifiable third party, so they are written only
-when a stable member identity is available. While no member-identifier selector
-is verified, every note and tag write is refused and the reason is shown to the
-user. Nothing is stored from a display name.
+when a stable member identity is available: the verified numeric member ID from
+the profile URL or the conversation header. On any other page the editor does
+not appear, and the service refuses a write without a resolved identity. Nothing
+is stored from a display name. The editor says the note is private and stored
+only in this browser, and sets note and tag text as text, never as markup. While
+the editor is shown, its text is part of the JoyClub page's document, so the
+editor does not claim that JoyClub cannot see it.
 
 The template spam detector stores the normalized form of messages the user
 already had on screen, never the original text, and purges them on the 12-month
@@ -51,6 +55,17 @@ holds sensitive data (notes, tags, cached normalized messages). The user chooses
 where the file goes, and its name never holds an account identifier.
 
 Message templates are the user's own text and are stored per account. The
-composer picker is off unless the user turns on the trial flag. It reads the
-template list from the background, inserts at the cursor and never reads what
-the user typed, never sends and never clicks JoyClub's Send button.
+composer picker is on by default and turned off by setting
+`joyfox.templatePicker` to `false` (ADR 0007). It reads the template list from
+the background, inserts at the cursor and never reads what the user typed, never
+sends and never clicks JoyClub's Send button.
+
+An automated test checks that no source file uses a network API or names a
+remote address, and that running every page feature against the synthetic
+fixtures makes no request (build plan Section 23).
+
+Quick Ignore and Delete (M9) is the only feature that would perform a JoyClub
+write. It is off by default and has no live driver until F7 verifies its path,
+so today it never clicks anything. Its ActionLog holds member and conversation
+IDs, step names, times and failure codes, never message text. It never sends a
+message.

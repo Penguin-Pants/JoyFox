@@ -150,3 +150,12 @@
   flex-basis: 100%;
   font-size: 0.875em;
 }
+
+/* "Get started" checklist. Each state is written out in words. */
+.joyfox-get-started__steps {
+  padding-inline-start: 1.5em;
+}
+
+.joyfox-get-started__steps li {
+  margin-bottom: var(--joyfox-space-1);
+}

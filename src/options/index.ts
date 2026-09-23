@@ -2,6 +2,7 @@ import { ACTIVE_ACCOUNT_SETTING_KEY } from "../accounts/account-service";
 import { TRIAGE_REVISION_KEY } from "../storage/triage-revision";
 import { mountAccountPanel, type AccountPanel } from "./account-panel";
 import { DataPanel } from "./data-panel";
+import { GetStartedPanel } from "./get-started";
 import { RulePanel } from "./rule-panel";
 import { TemplatePanel } from "./template-panel";
 
@@ -10,6 +11,10 @@ const find = (id: string) => document.querySelector<HTMLElement>(`#${id}`);
 // Each panel reports its own read failures, and only for its newest render.
 const quietly = (render: () => Promise<void>) => () =>
   void render().catch(() => undefined);
+
+const startRoot = find("joyfox-get-started");
+const start = startRoot ? new GetStartedPanel(startRoot) : undefined;
+const renderStart = quietly(async () => start?.render());
 
 const dataRoot = find("joyfox-data");
 const data = dataRoot
@@ -42,10 +47,12 @@ if (accountRoot)
 /** After a delete in the data panel, every other panel shows what is left. */
 function refreshAll(): void {
   if (accounts) void accounts.render().catch(() => undefined);
+  renderStart();
   renderRules();
   renderTemplates();
 }
 
+renderStart();
 renderRules();
 renderTemplates();
 renderData();
@@ -56,6 +63,7 @@ browser.storage.onChanged.addListener((changes, area) => {
   // "delete all" in another tab, which clears the pointer) redraws them.
   if (ACTIVE_ACCOUNT_SETTING_KEY in changes) {
     if (accounts) void accounts.render().catch(() => undefined);
+    renderStart();
     renderRules();
     renderTemplates();
     renderData();
@@ -63,6 +71,8 @@ browser.storage.onChanged.addListener((changes, area) => {
   // Another tab may have saved or removed the rule. Redraw only if the
   // stored rule differs from the form, so edits in progress are kept.
   else if (TRIAGE_REVISION_KEY in changes) {
+    // Also set by a rule save, which "Get started" reports.
+    renderStart();
     if (rules) void rules.refreshIfChanged().catch(() => undefined);
     renderData();
   }

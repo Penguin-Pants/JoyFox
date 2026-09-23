@@ -6,8 +6,17 @@
 - The member ID is the number in the profile URL. Whether JoyClub ever reuses
   such a number is unconfirmed. Account, event and message identity sources are
   still unknown. Features must not use display names as identifiers.
-- No profile-page note or tag UI exists yet. Notes and tags can now resolve a
-  member identity from a verified page, but nothing on a page calls them.
+- The note and tag editor (M5) shows on the profile page and on a conversation
+  page, after the JoyFox panel. The inbox, search and event pages do not show
+  notes or tags yet (build plan Section 12: "reusable later").
+- Text typed in the note box and not saved is dropped when the active account
+  changes or the page moves to another member, so it can never be saved under
+  the wrong account or member. It is kept while the page briefly hides the
+  header for the same member.
+- While the editor is on a JoyClub page, the note and tag text is part of that
+  page's document, which JoyClub's own scripts could read. JoyFox never sends it
+  anywhere. Isolating the editor (for example in a closed shadow root) is a
+  recorded follow-up; it would not stop a page script that records keystrokes.
 - Account age comes only from the profile badge "Angemeldet seit <n> <unit>",
   which is a rounded duration, not a date. It becomes a join window widened one
   unit either side, because JoyClub's rounding is not confirmed. An age minimum
@@ -91,6 +100,21 @@
   test and by the manual forced event-page restart (passed 2026-09-23).
 - Encryption is an isolated proof of concept. There is no sync transport.
 - Firefox signing and AMO distribution have not been implemented or claimed.
+- Onboarding is minimal: the options page opens once on a fresh install, and
+  "Get started" tracks the account and the rule. JoyFox cannot see whether the
+  inbox was opened, so the third step has no state. A temporary install from
+  `about:debugging` counts as a fresh install each time it is loaded.
+- Quick Ignore and Delete (M9) has no live driver. Its state machine, ActionLog,
+  identity checks and notice are built and tested with test drivers, but where
+  Ignore lives in JoyClub's UI is unverified (F7), so the button never appears,
+  even with `joyfox.quickIgnoreDelete` set to `true` (ADR 0008).
+- M9 does not resume after a page navigation. If F7 shows that Ignore needs the
+  sender's profile (Path B), a pending-action marker in `storage.session` and
+  resume on the next page are still to be built.
+- The M9 step timeout (15 seconds) and the interrupted threshold (2 minutes) are
+  provisional; no document sets them.
+- The PRD's guided alternative for M9 (navigate and stage, the user clicks) is
+  not built. It needs the same F7 evidence.
 - Database version 1 supplies a migration boundary. No historical schema yet
   exists to migrate.
 - Cached profile facts do not expire (ADR 0005). A fact that changed on JoyClub

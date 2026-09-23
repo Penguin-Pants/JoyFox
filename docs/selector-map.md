@@ -15,6 +15,9 @@ Rules:
   for display alone (the F2 proof of concept); it is never an identity, never
   stored and never logged. Message text is never extracted.
 - The content script starts only on a verified host.
+- The member panel (M2, M6) and the note and tag editor (M5) are placed after
+  the conversation and profile roots below, and read only the member ID. If the
+  root or the member ID is missing, neither appears.
 
 | Surface                 | Status     | Evidence             | Runtime behavior       |
 | ----------------------- | ---------- | -------------------- | ---------------------- |

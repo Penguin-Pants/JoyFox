@@ -27,8 +27,11 @@ verified from it. Still open:
   icon are those where you sent the last message.
 - **Empty inbox:** how the inbox renders with no conversations, for example an
   empty-state element. This decides how a feature tells "empty" from "loading".
-- **Item 7:** whether the conversation "Optionen" menu contains Ignore or Block.
-  The menu was not opened.
+- **Item 7 (F7):** whether the conversation "Optionen" menu contains Ignore or
+  Block. The menu was not opened. This is now the only blocker for M9: the state
+  machine, ActionLog, identity checks and notice are built and tested with test
+  drivers (ADR 0008). The live driver needs the answers listed under item 7
+  below.
 - **Item 9:** profile → Back, inbox → search and inbox → events.
 - **Items 4, 5, 6 (event ClubMail composer) and 10:** not started.
 
@@ -68,7 +71,20 @@ what it matches, or a screenshot with DOM inspection notes.
    available in-page or requires profile navigation. Record the visible steps,
    confirmations, success indicators, Delete path, and behavior after each step.
    This gates the destructive state machine. Send notes/screenshots with
-   identities hidden; do not perform the action unless you intend to.
+   identities hidden; do not perform the action unless you intend to. The Delete
+   control is already observed
+   (`j-control-button[data-e2e="button-delete-conversation"]`); its confirmation
+   and success signal are not. The M9 driver (`QuickActionDriver` in
+   `src/actions/executor.ts`) needs, for Ignore and for Delete separately:
+   - the control: where it is (on the conversation page, inside "Optionen", or
+     on the profile) and a selector, preferably a `data-e2e` hook;
+   - the confirmation: whether JoyClub asks, the dialog's root and its confirm
+     button, and its cancel button;
+   - success: what JoyClub shows afterwards (a message, a changed control, a
+     route change) and how long it takes;
+   - identity: whether the dialog or the page after each step still shows the
+     member ID or the conversation ID in the URL or the DOM;
+   - navigation: whether any step reloads the page or routes elsewhere.
 8. **F9 — Attribute matrix:** For verification, photo count, account age,
    profile type, and profile text/word count, report Present, Absent, or Unclear
    on inbox row, open conversation, and open profile. This establishes when a

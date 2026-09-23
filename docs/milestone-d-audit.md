@@ -110,8 +110,8 @@ Each fix has a regression test confirmed to fail without it.
 
 ### Confirmed issues deferred
 
-- The Accounts panel's "Remove" (Milestone B) has the same double-click
-  weakness. It is outside this phase's code; the same `confirm.ts` guard fits.
+- The Accounts panel's "Remove" (Milestone B) had the same double-click
+  weakness. Fixed later in commit 7caf140 with the same `confirm.ts` guard.
 - The member index for tags and message observations (recorded for M8 during
   Milestone B). No M8 criterion needs it, and it needs a database version change
   best made with its first real caller.
