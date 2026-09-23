@@ -135,7 +135,8 @@ Each fix has a regression test confirmed to fail without it.
   item 6) are unverified. `manual-acceptance.md` items 31 to 34 are the check.
 - The event ClubMail composer has no evidence, so M10's "every compose context"
   criterion stays open.
-- M8 live check: `manual-acceptance.md` items 27 to 30 and 35.
+- M8 live check: items 27 to 30 passed on 2026-09-23. Item 35 (delete all)
+  remains.
 
 ## Validation
 

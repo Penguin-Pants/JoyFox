@@ -50,7 +50,7 @@ Matches the PRD's Section 19.1 scope exactly. Nothing here is not in that list, 
 | M3 | Partial | Normalization, the pluggable similarity engine, duplicate and known-phrase matching, explanations, and the persisted per-sender override are complete. Nothing reads a message from a page yet, which waits on F1. |
 | M5 | Partial | Notes and tags persist, keyed to account plus a resolved member identity. Writes are refused while no member selector is verified, and the profile UI waits on F1. See `milestone-b-audit.md`. |
 | M7 | Partial | Explicit active account, account-scoped repositories, options switcher, and the Section 14 isolation test. Automatic account detection waits on F1 and F9. |
-| M8 | Done, live check pending | Account selector, counts, per-entity inspection, delete record, data type, account data and everything, account and full JSON export with the schema version. Export completeness is tested item by item against every entity (`milestone-d-audit.md`). Live check: `manual-acceptance.md` items 27 to 30 and 35. |
+| M8 | Done, live check pending | Account selector, counts, per-entity inspection, delete record, data type, account data and everything, account and full JSON export with the schema version. Export completeness is tested item by item against every entity (`milestone-d-audit.md`). Live check: items 27 to 30 passed on 2026-09-23; item 35 remains. |
 | M10 | Partial | Create, edit, delete and folders on the options page, and exact insertion at the cursor, are complete and tested. The composer picker is an opt-in trial until the composer's events are verified (item 6, ADR 0007). The event ClubMail composer is unverified. |
 | M9 | Not started | |
 

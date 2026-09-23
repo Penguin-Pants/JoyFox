@@ -140,7 +140,10 @@ to send the text.
     is listed, and the template text is exact.
 30. Click one "Delete" and confirm nothing is deleted until "Confirm". Delete
     one record, then one data type, and confirm the counts drop.
-31. Turn the template trial on in the options page console:
+31. Turn the template trial on from the **JoyFox options page** console, never
+    from a JoyClub tab: a web page's console cannot use `browser` and reports
+    `ReferenceError: browser is not defined`. Open `about:addons` → JoyFox →
+    Preferences, press Ctrl+Shift+K in that tab, and run
     `browser.storage.local.set({ "joyfox.templateInsertionTrial": true })`.
 32. Open a conversation. Confirm a "JoyFox templates" button appears below
     JoyClub's message box, not inside it. Type a few words, place the cursor
@@ -150,13 +153,17 @@ to send the text.
     noticed the text: for example the Send button becomes active, or a character
     counter changes. Then delete the text with the keyboard and confirm JoyClub
     notices that too. Record the result; do not click Send unless you mean it.
-34. Turn the trial off with
+34. Turn the trial off, again in the options page console, with
     `browser.storage.local.remove("joyfox.templateInsertionTrial")` and confirm
     the button disappears at once.
 35. Last, in "Your data", click "Delete all JoyFox data" and "Confirm". Confirm
     that no account, rule or template remains, that the JoyClub inbox shows no
     JoyFox UI, and that `await browser.storage.local.get()` in the options page
     console returns `{}`.
+
+**Items 27 to 30 result (2026-09-23): passed.** The project owner confirmed
+templates, the data panel, both exports and the record and data-type deletes on
+the build from `main` at 9583284. Items 31 to 35 are in progress.
 
 Live selector and action acceptance must wait for the evidence checklist in
 `manual-verification-needed.md`. Never perform destructive action testing
