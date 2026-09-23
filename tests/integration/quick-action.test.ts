@@ -463,6 +463,30 @@ describe("M9 manual test matrix, synthetic (build plan Section 24)", () => {
     expect(driver.clicks).not.toContain("request:delete");
   });
 
+  it("refuses every step of a run that a newer run replaced", async () => {
+    const driver = new FakeDriver();
+    driver.afterClick = async (click) => {
+      if (click !== "request:ignore") return;
+      // This tab stalls past the interrupted threshold; another tab starts
+      // a new run for the same member, which is allowed.
+      clock += STALE_AFTER_MS + 60_000;
+      const newer = await client.recorder("account-a").begin(TARGET);
+      expect(newer.status).toBe("started");
+    };
+    const result = await run(driver);
+    // The stalled run finishes the click it was in, then may not go on.
+    expect(driver.clicks).toEqual(["request:ignore", "confirm:ignore"]);
+    expect(result.report.failure).toBe("superseded");
+    expect(result.report.lines).toContain(
+      "A newer Ignore and Delete for this member started, so JoyFox stopped before Delete.",
+    );
+    const logs = await repositories.actionLogs.list("account-a");
+    expect(logs.map((log) => log.steps.at(-1)?.name).sort()).toEqual([
+      "IgnoreRequested",
+      "Started",
+    ]);
+  });
+
   it("refuses a second run for a member while one is running", async () => {
     const recorder = client.recorder("account-a");
     await recorder.begin(TARGET);
@@ -568,6 +592,16 @@ describe("M9 ActionLog messages", () => {
     expect(revision()).toBe(afterStart);
     await recorder.record(begun.operationId, "IgnoreRequested");
     expect(revision()).not.toBe(afterStart);
+  });
+
+  it("returns the stored conversation and when the run last moved", async () => {
+    const begun = await client.recorder("account-a").begin(TARGET);
+    if (begun.status !== "started") throw new Error("not started");
+    expect(await client.latest(MEMBER)).toMatchObject({
+      status: "ok",
+      conversationId: CONVERSATION,
+      updatedAt: new Date(clock).toISOString(),
+    });
   });
 
   it("answers no-account and none", async () => {
@@ -795,6 +829,45 @@ describe("M9 button and notice", () => {
       expect(runButton()?.getAttribute("aria-disabled")).toBe("false"),
     );
     expect(notice()).toContain(QUICK_ACTION_TEXT.previous);
+  });
+
+  it("labels an earlier run from another conversation with the member", async () => {
+    const begun = await client
+      .recorder("account-a")
+      .begin({ ...TARGET, conversationId: "personal-1234567-1111111" });
+    if (begun.status !== "started") throw new Error("not started");
+    await client
+      .recorder("account-a")
+      .record(begun.operationId, "Failed", "control-missing");
+    openConversation(new FakeDriver());
+    await vi.waitFor(() =>
+      expect(notice()).toContain(QUICK_ACTION_TEXT.previousOther),
+    );
+    expect(notice()).not.toContain(QUICK_ACTION_TEXT.previous);
+  });
+
+  it("sets the stale timer once, from when the other run last moved", async () => {
+    const quick = openConversation(new FakeDriver());
+    await vi.waitFor(() => expect(runButton()).toBeDefined());
+    // Another tab's run last moved 110 seconds ago.
+    clock = Date.now() - (STALE_AFTER_MS - 10_000);
+    const begun = await client.recorder("account-a").begin(TARGET);
+    if (begun.status !== "started") throw new Error("not started");
+    const timer = vi.spyOn(globalThis, "setTimeout");
+    const staleTimers = () =>
+      timer.mock.calls.filter(([, delay]) => (delay ?? 0) >= 5_000);
+    quick.invalidate();
+    await vi.waitFor(() =>
+      expect(runButton()?.getAttribute("aria-disabled")).toBe("true"),
+    );
+    expect(staleTimers()).toHaveLength(1);
+    const delay = staleTimers()[0]![1]!;
+    expect(delay).toBeGreaterThan(5_000);
+    expect(delay).toBeLessThan(15_000);
+    // Page mutations redraw often; none may postpone the timer.
+    for (let index = 0; index < 5; index += 1) quick.update();
+    expect(staleTimers()).toHaveLength(1);
+    timer.mockRestore();
   });
 
   it("shows nothing without an active account", async () => {

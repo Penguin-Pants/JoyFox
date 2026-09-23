@@ -46,7 +46,8 @@ export type RecordAnswer =
   | "recorded"
   | "refused"
   | "invalid"
-  | "unknown-operation";
+  | "unknown-operation"
+  | "superseded";
 
 /** Where transitions are stored: the background's ActionLog, in the page. */
 export interface ActionRecorder {
@@ -153,7 +154,8 @@ export async function runQuickIgnoreDelete(
         timeout,
       );
       if (answer === "recorded") return undefined;
-      return answer === "refused" ? "account-changed" : "log-unavailable";
+      if (answer === "refused") return "account-changed";
+      return answer === "superseded" ? "superseded" : "log-unavailable";
     } catch {
       return "log-unavailable";
     }

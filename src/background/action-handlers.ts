@@ -96,8 +96,13 @@ export function registerActionHandlers(
     const accountId = await deps.activeAccountId();
     if (!accountId) return { status: "no-account" };
     const log = await deps.actions.latest(accountId, id);
-    return log
-      ? { status: "ok", accountId, report: reportOperation(log, now()) }
-      : { status: "none", accountId };
+    if (!log) return { status: "none", accountId };
+    return {
+      status: "ok",
+      accountId,
+      ...(log.conversationId ? { conversationId: log.conversationId } : {}),
+      updatedAt: log.steps.at(-1)?.at ?? log.updatedAt,
+      report: reportOperation(log, now()),
+    };
   });
 }

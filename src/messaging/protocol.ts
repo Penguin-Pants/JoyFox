@@ -154,7 +154,15 @@ export interface MessageContract {
     response:
       | { status: "no-account" }
       | { status: "none"; accountId: string }
-      | { status: "ok"; accountId: string; report: OperationReport };
+      | {
+          status: "ok";
+          accountId: string;
+          /** The conversation the run acted on, when it was stored. */
+          conversationId?: string;
+          /** When the run last moved: its last stored step. */
+          updatedAt: string;
+          report: OperationReport;
+        };
   };
   /** Content scripts cannot open the options page themselves. */
   "options.open": {

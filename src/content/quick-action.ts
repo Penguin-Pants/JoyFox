@@ -94,6 +94,8 @@ export const QUICK_ACTION_TEXT = {
   scope:
     "Experimental. One click ignores this member on JoyClub and moves this conversation to JoyClub's trash. JoyFox stops at the first problem and tells you what was done. It never sends a message.",
   previous: "Your last Ignore and Delete for this member:",
+  previousOther:
+    "Your last Ignore and Delete for this member, in another conversation:",
   otherResult: "Your last Ignore and Delete, for another conversation:",
   otherRunning:
     "Ignore and Delete is still running for another conversation. Wait until it ends.",
@@ -144,6 +146,8 @@ export class QuickIgnoreDelete {
   #stop?: ActionFailure;
   #busy = false;
   #staleTimer?: ReturnType<typeof setTimeout>;
+  /** The answer the stale timer was set for; a redraw keeps that timer. */
+  #staleFor?: LatestAnswer;
 
   constructor(
     private readonly document: Document,
@@ -217,8 +221,7 @@ export class QuickIgnoreDelete {
   }
 
   teardown(): void {
-    clearTimeout(this.#staleTimer);
-    this.#staleTimer = undefined;
+    this.#clearStaleTimer();
     for (const node of Array.from(
       this.document.querySelectorAll(`[${UI_ATTRIBUTE}="${QUICK_ACTION}"]`),
     ))
@@ -271,7 +274,17 @@ export class QuickIgnoreDelete {
     return previous === anchor;
   }
 
-  #lines(shown: Shown, previous?: OperationReport): readonly string[] {
+  #clearStaleTimer(): void {
+    clearTimeout(this.#staleTimer);
+    this.#staleTimer = undefined;
+    this.#staleFor = undefined;
+  }
+
+  #lines(
+    shown: Shown,
+    previous?: OperationReport,
+    previousHere = true,
+  ): readonly string[] {
     const running = this.#running;
     if (running)
       return running.key === shown.key
@@ -282,7 +295,15 @@ export class QuickIgnoreDelete {
       return result.key === shown.key
         ? result.lines
         : [QUICK_ACTION_TEXT.otherResult, ...result.lines];
-    return previous ? [QUICK_ACTION_TEXT.previous, ...previous.lines] : [];
+    if (!previous) return [];
+    // The stored run may be for another conversation with the same member;
+    // its next steps then name that conversation, not this one.
+    return [
+      previousHere
+        ? QUICK_ACTION_TEXT.previous
+        : QUICK_ACTION_TEXT.previousOther,
+      ...previous.lines,
+    ];
   }
 
   #render(shown: Shown, latest: LatestAnswer): void {
@@ -317,7 +338,12 @@ export class QuickIgnoreDelete {
     // button; the click is ignored while busy.
     drawn.button.setAttribute("aria-disabled", String(this.#busy));
     // Updated in place, so the live region announces each change.
-    const lines = this.#lines(shown, previous);
+    const lines = this.#lines(
+      shown,
+      previous,
+      latest.status === "ok" &&
+        latest.conversationId === shown.target.conversationId,
+    );
     const text = JSON.stringify(lines);
     if (drawn.lines !== text) {
       drawn.lines = text;
@@ -330,11 +356,22 @@ export class QuickIgnoreDelete {
       }
     }
     // Another tab's run that stops moving becomes interrupted with no event,
-    // so read the log again once it would count as stale.
-    clearTimeout(this.#staleTimer);
-    this.#staleTimer = otherTab
-      ? setTimeout(() => this.invalidate(), STALE_AFTER_MS + 1000)
-      : undefined;
+    // so read the log again once it would count as stale. The timer is set
+    // once per answer, from when the run last moved: page mutations redraw
+    // often and must not keep postponing it.
+    if (!otherTab || latest.status !== "ok") this.#clearStaleTimer();
+    else if (this.#staleFor !== latest) {
+      this.#clearStaleTimer();
+      const moved = Date.parse(latest.updatedAt);
+      const left = Number.isFinite(moved)
+        ? STALE_AFTER_MS - (Date.now() - moved)
+        : STALE_AFTER_MS;
+      this.#staleFor = latest;
+      this.#staleTimer = setTimeout(
+        () => this.invalidate(),
+        Math.max(left, 0) + 1000,
+      );
+    }
   }
 
   #build(shown: Shown, accountId: string): Drawn {

@@ -71,6 +71,8 @@ export type ActionFailure =
   | "account-changed"
   /** The experimental flag was turned off during the run. */
   | "turned-off"
+  /** A newer run for the member started while this one was stalled. */
+  | "superseded"
   /** The action log could not be written, so the run stopped. */
   | "log-unavailable"
   | "timeout"
@@ -85,6 +87,7 @@ export const ACTION_FAILURES: readonly ActionFailure[] = [
   "identity-unavailable",
   "account-changed",
   "turned-off",
+  "superseded",
   "log-unavailable",
   "timeout",
   "step-error",
@@ -204,6 +207,8 @@ function failureText(
       return `The active JoyFox account changed, so JoyFox stopped ${where}.`;
     case "turned-off":
       return `Ignore and Delete was turned off, so JoyFox stopped ${where}.`;
+    case "superseded":
+      return `A newer Ignore and Delete for this member started, so JoyFox stopped ${where}.`;
     case "log-unavailable":
       return `JoyFox could not write to its action log, so it stopped ${where}.`;
     case "timeout":

@@ -82,16 +82,26 @@ fix:
   before Delete, which acts on a conversation. Delete now needs the conversation
   page.
 
+A Codex review of PR #19 found three more, all confirmed and fixed, each with a
+regression test confirmed to fail without the fix:
+
+- A run that read as interrupted (its tab was suspended) could be replaced by a
+  new run, yet its tab could resume and go on clicking. Only the member's newest
+  run may now record a step; an older one is refused (`superseded`) and stops
+  before its next click.
+- `.latest` dropped the stored conversation ID, so an earlier run on another
+  conversation with the same member read as this conversation's run. It now
+  returns the conversation, and such a run is labelled "in another
+  conversation".
+- Every redraw restarted the stale timer, so a page that changes often could
+  keep the button busy after the other tab closed. The timer is now set once per
+  answer, from when the run last moved.
+
 ### Confirmed issues deferred
 
 - A `start` that times out but is stored later leaves a `Started` entry that
   reads as running for 2 minutes, so a retry meanwhile answers `busy`. Nothing
   is clicked either way.
-
-### Possible risks
-
-- The stale timer that re-reads another tab's run is not covered by an automated
-  test; the revision-driven refresh is.
 
 ## Blocked or remaining
 
@@ -106,9 +116,10 @@ fix:
 
 ## Validation
 
-`npm test` (432 tests), `npm run lint` (including the permission allowlist),
-`npm run typecheck`, `npm run format:check` and `npm run build:firefox` pass. No
-permission was added and the schema version is unchanged.
+`npm test` (443 tests after the Codex fixes), `npm run lint` (including the
+permission allowlist), `npm run typecheck`, `npm run format:check` and
+`npm run build:firefox` pass. No permission was added and the schema version is
+unchanged.
 
 ## Phase status
 

@@ -20,7 +20,12 @@ export type BeginResult =
   /** Another operation for this member is still running. */
   | { status: "busy"; report: OperationReport };
 
-export type RecordResult = "recorded" | "invalid" | "unknown-operation";
+export type RecordResult =
+  | "recorded"
+  | "invalid"
+  | "unknown-operation"
+  /** A newer run for the member started; this one may not continue. */
+  | "superseded";
 
 function requireAccountId(accountId: string): void {
   if (accountId.trim().length === 0)
@@ -82,7 +87,10 @@ export class ActionLogService {
 
   /**
    * Append one transition. `Failed` needs a reason and no other state may
-   * carry one.
+   * carry one. Only the member's newest run may move: a run that read as
+   * interrupted (its tab was suspended, for example) and was replaced by a
+   * newer one is refused if its tab resumes, so two runs never act on one
+   * member at once.
    */
   async record(
     accountId: string,
@@ -96,6 +104,10 @@ export class ActionLogService {
     const last = log.steps.at(-1)?.name as ActionState | undefined;
     if (!last || !canTransition(last, state)) return "invalid";
     if ((state === "Failed") !== (failure !== undefined)) return "invalid";
+    if (log.memberId) {
+      const newest = await this.latest(accountId, log.memberId);
+      if (newest && newest.id !== log.id) return "superseded";
+    }
     const at = this.now();
     await this.logs.put(accountId, {
       ...log,

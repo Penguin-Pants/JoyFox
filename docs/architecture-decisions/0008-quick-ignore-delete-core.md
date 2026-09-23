@@ -50,7 +50,9 @@ Several details were open:
    the step's control is clicked and again before JoyClub's confirmation is
    clicked. A missing value is a failure, never a match.
 5. **One run per member at a time.** A second start while one is running is
-   answered `busy` and nothing is clicked. An interrupted run does not block.
+   answered `busy` and nothing is clicked. An interrupted run does not block,
+   and once a newer run starts, the older one may record no further step, so a
+   suspended tab that resumes stops before its next click.
 6. **The report comes from the steps alone.** It states what was done, what was
    not, why it stopped (naming the step) and the next manual action. It never
    claims a rollback, and says "Nothing was changed on JoyClub" only when no
