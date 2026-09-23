@@ -31,6 +31,6 @@ verification.
 
 The options page also holds message templates and "Your data", where every
 stored record can be inspected, exported as JSON and deleted, per account or for
-the whole extension. The template picker on JoyClub's composer is an opt-in
-trial until the composer's events are verified; see `docs/manual-acceptance.md`,
-items 27 to 35.
+the whole extension. A "JoyFox templates" button below JoyClub's message box
+inserts a template at the cursor; it never sends. See
+`docs/manual-acceptance.md`, items 27 to 35.

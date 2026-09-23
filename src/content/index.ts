@@ -14,7 +14,7 @@ import { NavigationCoordinator } from "./navigation-coordinator";
 import { detectPage } from "./page-detector";
 import {
   runtimeTemplateClient,
-  TEMPLATE_TRIAL_KEY,
+  TEMPLATE_PICKER_KEY,
   TemplatePicker,
 } from "./template-picker";
 import { runtimeTriageClient } from "./triage-client";
@@ -32,10 +32,11 @@ if (hasVerifiedSelectors() && VERIFIED_HOSTS.includes(location.hostname)) {
     () => runtimeSettingsArea.get([DIAGNOSTICS_KEY]),
     storageEvents,
   );
-  const templateTrial = new DiagnosticsFlag(
-    () => runtimeSettingsArea.get([TEMPLATE_TRIAL_KEY]),
+  const templatePicker = new DiagnosticsFlag(
+    () => runtimeSettingsArea.get([TEMPLATE_PICKER_KEY]),
     storageEvents,
-    TEMPLATE_TRIAL_KEY,
+    TEMPLATE_PICKER_KEY,
+    true,
   );
   const client = runtimeTriageClient();
   const inbox = new InboxTriage(document, client);
@@ -43,7 +44,7 @@ if (hasVerifiedSelectors() && VERIFIED_HOSTS.includes(location.hostname)) {
   const picker = new TemplatePicker(document, runtimeTemplateClient());
   let lastType: string | undefined;
   const updatePicker = () => {
-    if (lastType === "conversation" && templateTrial.enabled) picker.update();
+    if (lastType === "conversation" && templatePicker.enabled) picker.update();
     else picker.leave();
   };
   let lastSummary = "";
@@ -85,7 +86,7 @@ if (hasVerifiedSelectors() && VERIFIED_HOSTS.includes(location.hostname)) {
   storageEvents?.addListener((changes, area) => {
     if (area !== "local") return;
     // The flag listener registered first, so it already holds the new value.
-    if (TEMPLATE_TRIAL_KEY in changes) updatePicker();
+    if (TEMPLATE_PICKER_KEY in changes) updatePicker();
     if (ACTIVE_ACCOUNT_SETTING_KEY in changes) {
       inbox.accountChanged();
       panel.accountChanged();
@@ -96,7 +97,7 @@ if (hasVerifiedSelectors() && VERIFIED_HOSTS.includes(location.hostname)) {
     }
   });
   // Start after the initial flag is known, so the first event is not missed.
-  void Promise.all([diagnostics.ready, templateTrial.ready]).then(() =>
+  void Promise.all([diagnostics.ready, templatePicker.ready]).then(() =>
     coordinator.start(),
   );
 }

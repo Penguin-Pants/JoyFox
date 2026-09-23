@@ -24,8 +24,9 @@ What each partial item still lacks:
   sentinel class cannot detect a scroll listener or a virtualized list.
 - **2:** message identifiers. No stable per-message ID was looked for, so it is
   neither present nor recorded as absent.
-- **6:** the input and change events the standard composer needs after its value
-  is set. They were not exercised, so template insertion stays blocked.
+- **6:** the standard composer accepts a programmatic change followed by `input`
+  and `change` (confirmed live on 2026-09-23, `manual-acceptance.md` item 33).
+  The event ClubMail composer is not captured.
 - **8:** photo count on the inbox row, and account age on the inbox and
   conversation, are Unclear. Profile type (codes confirmed 2026-09-23) and the
   profile's account age are resolved; see `08-attribute-matrix.md`.

@@ -32,9 +32,10 @@ type ChangeListener = (changes: StorageChanges, areaName: string) => void;
 
 /**
  * Tracks a `storage.local` flag for the lifetime of a tab: the diagnostics
- * flag by default, or another opt-in key. It reads the flag once and then
- * follows `storage.onChanged`, so turning it off (or on) takes effect without
- * a reload. Any storage failure leaves it off.
+ * flag by default, or another key. An opt-in flag (the default) is on only
+ * when set to `true`; a default-on flag is on unless set to `false`. It reads
+ * the flag once and then follows `storage.onChanged`, so a change takes
+ * effect without a reload. A storage failure leaves the flag at its default.
  */
 export class DiagnosticsFlag {
   #enabled = false;
@@ -45,18 +46,22 @@ export class DiagnosticsFlag {
     read: () => Promise<Record<string, unknown>>,
     onChanged?: { addListener(listener: ChangeListener): void },
     key: string = DIAGNOSTICS_KEY,
+    defaultEnabled = false,
   ) {
+    const enabledBy = (value: unknown) =>
+      defaultEnabled ? value !== false : value === true;
+    this.#enabled = defaultEnabled;
     onChanged?.addListener((changes, areaName) => {
       if (areaName !== "local" || !(key in changes)) return;
       this.#changed = true;
-      this.#enabled = changes[key]?.newValue === true;
+      this.#enabled = enabledBy(changes[key]?.newValue);
     });
     this.ready = read()
       .then((settings) => {
-        if (!this.#changed) this.#enabled = settings[key] === true;
+        if (!this.#changed) this.#enabled = enabledBy(settings[key]);
       })
       .catch(() => {
-        if (!this.#changed) this.#enabled = false;
+        if (!this.#changed) this.#enabled = defaultEnabled;
       });
   }
 
