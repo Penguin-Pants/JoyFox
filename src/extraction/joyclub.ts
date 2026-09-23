@@ -1,4 +1,5 @@
 import type { ExtractionResult } from "../domain/types";
+import type { JoinWindow } from "../qualification/facts";
 import {
   FROM_URL,
   selectorRegistry,
@@ -87,11 +88,13 @@ function codeAttribute(
  *   member as met in person. It is the viewer's own mark, not JoyClub's
  *   verification.
  *
- * The icon shows one state, so for a code-3 member JoyClub's own verification
- * is hidden and reads as unknown. By the owner's decision, "personally known"
- * is a separate signal (for trust and triage exceptions, PRD 7.4), not a
- * substitute for verification. Code `2`, any other code and a missing shield
- * are unconfirmed and read as unknown, never as "not verified".
+ * The icon shows one state: green replaces grey for a member who is both, and
+ * a member can be personally known without being verified (owner, same day).
+ * So code `3` says nothing about JoyClub's verification, which reads as
+ * unknown, and code `1` means "not personally known". By the owner's
+ * decision, "personally known" is a separate signal, not a substitute for
+ * verification. Code `2`, any other code and a missing shield are unconfirmed
+ * and read as unknown for both signals.
  */
 export const VERIFICATION_CODE_MEANING: Readonly<Record<number, boolean>> =
   Object.freeze({ 1: true });
@@ -107,17 +110,21 @@ export function verificationFromCode(
   return VERIFICATION_CODE_MEANING[code.value] ?? "unknown";
 }
 
+/** The `verification-status` code for "geprüft" without the green mark. */
+export const VERIFIED_ONLY_CODE = 1;
+
 /**
- * Whether the logged-in user marked this member as met in person. Only code
- * `3` is a confirmed "yes". Other codes are "unknown" rather than "no",
- * because it is not confirmed that the green shield always replaces the grey
- * one for a member who is both.
+ * Whether the logged-in user marked this member as met in person. Code `3`
+ * is "yes". Code `1` is "no", because green would replace grey if the member
+ * were also personally known. Other codes and a missing shield are unknown.
  */
 export function personallyKnownFromCode(
   code: ExtractionResult<number>,
 ): boolean | "unknown" {
   if (code.status !== "found") return "unknown";
-  return code.value === PERSONALLY_KNOWN_CODE ? true : "unknown";
+  if (code.value === PERSONALLY_KNOWN_CODE) return true;
+  if (code.value === VERIFIED_ONLY_CODE) return false;
+  return "unknown";
 }
 
 const countWords = (text: string) =>
@@ -275,8 +282,72 @@ export interface ProfileExtraction {
   photoCount: ExtractionResult<number>;
   /** Words in the motto and the main text together. */
   profileWordCount: ExtractionResult<number>;
-  /** No join date has been found on any page (08-attribute-matrix.md). */
+  /** No exact join date has been found on any page. */
   joinedAt: ExtractionResult<string>;
+  /** The join window from the "Angemeldet seit ..." badge. */
+  joinedWindow: ExtractionResult<JoinWindow>;
+}
+
+type DurationUnit = "day" | "week" | "month" | "year";
+
+const UNIT_WORDS: Readonly<Record<string, DurationUnit>> = {
+  tag: "day",
+  tagen: "day",
+  woche: "week",
+  wochen: "week",
+  monat: "month",
+  monaten: "month",
+  jahr: "year",
+  jahren: "year",
+};
+
+/**
+ * "Angemeldet seit 11 Monaten" was observed live (2026-09-23). The singular
+ * forms and "einem"/"einer" follow German grammar and are not yet observed.
+ */
+const MEMBER_SINCE =
+  /^Angemeldet seit (\d+|einem|einer) (Tag|Tagen|Woche|Wochen|Monat|Monaten|Jahr|Jahren)$/u;
+
+export function parseMemberSince(
+  text: string,
+): { count: number; unit: DurationUnit } | undefined {
+  const match = MEMBER_SINCE.exec(text.replace(/\s+/gu, " ").trim());
+  if (!match?.[1] || !match[2]) return undefined;
+  const count = /^\d+$/.test(match[1]) ? Number(match[1]) : 1;
+  const unit = UNIT_WORDS[match[2].toLowerCase()];
+  return unit && Number.isSafeInteger(count) ? { count, unit } : undefined;
+}
+
+function subtractUnits(from: Date, unit: DurationUnit, count: number): Date {
+  const date = new Date(from.getTime());
+  if (unit === "day") date.setUTCDate(date.getUTCDate() - count);
+  else if (unit === "week") date.setUTCDate(date.getUTCDate() - 7 * count);
+  else if (unit === "month") date.setUTCMonth(date.getUTCMonth() - count);
+  else date.setUTCFullYear(date.getUTCFullYear() - count);
+  return date;
+}
+
+/**
+ * Turn "for <n> units" into the window the member joined in. It is not
+ * confirmed whether JoyClub rounds down or to the nearest unit, so the window
+ * is widened to one unit either side: from n + 1 units ago to n - 1 units ago.
+ */
+export function joinWindowFromDuration(
+  duration: { count: number; unit: DurationUnit },
+  now: Date,
+): JoinWindow {
+  return {
+    earliest: subtractUnits(
+      now,
+      duration.unit,
+      duration.count + 1,
+    ).toISOString(),
+    latest: subtractUnits(
+      now,
+      duration.unit,
+      Math.max(duration.count - 1, 0),
+    ).toISOString(),
+  };
 }
 
 /** The photo badge's `aria-label`, such as "12 Fotos" or "1 Foto". */
@@ -285,6 +356,7 @@ const PHOTO_LABEL = /^\s*(\d+)\s+Fotos?\s*$/u;
 export function extractProfile(
   root: ParentNode,
   url: string,
+  now: Date = new Date(),
 ): ProfileExtraction {
   let pathname = "";
   try {
@@ -340,6 +412,23 @@ export function extractProfile(
             ),
             "profile.text",
           ),
-    joinedAt: missing("profile.joinedAt:no-verified-selector"),
+    joinedAt: missing("profile.joinedAt:no-exact-date-on-site"),
+    joinedWindow: memberSinceWindow(root, now),
   };
+}
+
+function memberSinceWindow(
+  root: ParentNode,
+  now: Date,
+): ExtractionResult<JoinWindow> {
+  const selector = verifiedSelector("profile", "memberSinceBadge");
+  if (!selector) return missing("profile.memberSince");
+  const badge = Array.from(root.querySelectorAll(selector))
+    .map((element) => (element.textContent ?? "").replace(/\s+/gu, " ").trim())
+    .find((text) => text.startsWith("Angemeldet seit"));
+  if (badge === undefined) return missing("profile.memberSince");
+  const duration = parseMemberSince(badge);
+  return duration
+    ? found(joinWindowFromDuration(duration, now), "profile.memberSince")
+    : invalid("profile.memberSince", "Unexpected membership duration text");
 }

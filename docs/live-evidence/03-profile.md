@@ -45,3 +45,23 @@ this file.
 - No join-date/member-since field was found anywhere on the page by class-name
   search; can't rule out that it exists under a naming convention not covered by
   the search terms used.
+
+## Confirmation (2026-09-23)
+
+The project owner found the membership duration on a profile, as one item of the
+sidebar badge list (`.profile-sidebar-container__badge-list j-list-item`,
+recorded above as "not decoded"). Sanitized fragment; it holds no personal data:
+
+```html
+<j-list-item>
+  <div slot="image" class="profile-badge__icon">
+    <j-icon type="j-ico-user" size="22"></j-icon>
+  </div>
+  <!---->
+  Angemeldet seit 11 Monaten
+</j-list-item>
+```
+
+The earlier "Join date / member-since: Absent" row is superseded: the class-name
+search could not find it because the badge is identified by its text, not a
+class. The duration appears on member and couple profiles.

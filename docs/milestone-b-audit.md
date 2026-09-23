@@ -13,6 +13,11 @@ which the owner rates as higher trust than JoyClub's "geprüft". It is a separat
 qualification criterion, `requirePersonallyKnown`, not a form of verification,
 and it is never filled from a cached snapshot.
 
+The owner also confirmed that the green shield replaces the grey one for a
+member who is both, and that a member can be personally known without being
+verified. So code `1` means "not personally known", and code `3` says nothing
+about JoyClub's verification.
+
 PRD Section 12.1 defines no entity for previous messages and none for a
 per-sender spam correction, yet M3 requires both. Two entities were added at
 schema version 2 on the project owner's decision: `MessageObservation`, holding
@@ -181,8 +186,8 @@ The inbox, conversation and profile pages are verified from sanitized evidence
 in `docs/live-evidence/`. Page detection and pure extractors now resolve the
 member ID, the conversation ID, verification and gender codes, photo count and
 profile word count, with synthetic fixtures and tests. The F9 matrix is partly
-done: no join date has been found, so account age stays unknown, and the
-profile-type codes are not fully mapped.
+done: account age comes from the profile's "Angemeldet seit" badge as a join
+window, and the profile-type codes are not fully mapped.
 
 ## Blocked or remaining
 

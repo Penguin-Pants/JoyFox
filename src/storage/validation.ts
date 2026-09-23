@@ -109,6 +109,23 @@ function validateProfileSnapshot(record: Record<string, unknown>): void {
       );
   }
   if (record.joinedAt !== "unknown") requireDate(record, "joinedAt");
+  const hasEarliest = record.joinedEarliest !== undefined;
+  const hasLatest = record.joinedLatest !== undefined;
+  if (hasEarliest !== hasLatest)
+    throw new ValidationError(
+      "joinedEarliest and joinedLatest must be present together",
+    );
+  if (hasEarliest) {
+    requireDate(record, "joinedEarliest");
+    requireDate(record, "joinedLatest");
+    if (
+      Date.parse(record.joinedEarliest as string) >
+      Date.parse(record.joinedLatest as string)
+    )
+      throw new ValidationError(
+        "joinedEarliest must not be after joinedLatest",
+      );
+  }
 }
 
 function validateSyncConfig(record: Record<string, unknown>): void {

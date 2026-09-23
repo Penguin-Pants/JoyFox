@@ -8,6 +8,7 @@ import {
 } from "../../src/qualification/facts";
 import {
   accountAgeDays,
+  accountAgeRange,
   evaluateQualification,
   OUTCOME_TEXT,
   type QualificationCriteria,
@@ -84,6 +85,7 @@ describe("M1 qualification engine", () => {
       facts: {
         verification: true,
         personallyKnown: "unknown",
+        joinedWindow: "unknown",
         photoCount: 4,
         profileWordCount: 120,
         joinedAt: "2026-01-01T00:00:00.000Z",
@@ -266,6 +268,68 @@ describe("M1 qualification engine", () => {
     expect(mergeProfileFacts({ personallyKnown: true }).sources).toMatchObject({
       personallyKnown: "observed",
     });
+  });
+
+  it("passes, fails or leaves unknown an account age from a join window", () => {
+    // NOW is 2026-09-22. The window is 300 to 330 days before it.
+    const window = {
+      earliest: "2025-10-27T00:00:00.000Z",
+      latest: "2025-11-26T00:00:00.000Z",
+    };
+    expect(accountAgeRange(window, NOW)).toEqual({ min: 300, max: 330 });
+    const state = (minimum: number) =>
+      evaluateQualification({
+        facts: { ...UNKNOWN_FACTS, joinedWindow: window },
+        criteria: { minimumAccountAgeDays: minimum },
+        now: NOW,
+      }).criteria[0]?.state;
+    expect(state(300)).toBe("pass");
+    expect(state(331)).toBe("fail");
+    expect(state(315)).toBe("unknown");
+    expect(accountAgeRange("unknown", NOW)).toBe("unknown");
+    expect(
+      accountAgeRange({ earliest: "2027-01-01", latest: "2027-02-01" }, NOW),
+    ).toBe("unknown");
+  });
+
+  it("prefers an exact join date over a window", () => {
+    const result = evaluateQualification({
+      facts: {
+        ...UNKNOWN_FACTS,
+        joinedAt: "2026-09-12T00:00:00.000Z",
+        joinedWindow: {
+          earliest: "2020-01-01T00:00:00.000Z",
+          latest: "2020-02-01T00:00:00.000Z",
+        },
+      },
+      criteria: { minimumAccountAgeDays: 30 },
+      now: NOW,
+    });
+    expect(result.criteria[0]?.state).toBe("fail");
+  });
+
+  it("fills a join window from a cached snapshot", () => {
+    const merged = mergeProfileFacts(
+      {},
+      snapshot({
+        joinedEarliest: "2025-10-27T00:00:00.000Z",
+        joinedLatest: "2025-11-26T00:00:00.000Z",
+      }),
+    );
+    expect(merged.facts.joinedWindow).toEqual({
+      earliest: "2025-10-27T00:00:00.000Z",
+      latest: "2025-11-26T00:00:00.000Z",
+    });
+    expect(merged.sources.joinedWindow).toBe("cached");
+    // An inverted window is unusable.
+    expect(
+      mergeProfileFacts({
+        joinedWindow: {
+          earliest: "2025-12-01T00:00:00.000Z",
+          latest: "2025-11-01T00:00:00.000Z",
+        },
+      }).facts.joinedWindow,
+    ).toBe("unknown");
   });
 
   it("keeps the unknown default immutable", () => {

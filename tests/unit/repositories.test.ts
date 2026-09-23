@@ -214,6 +214,27 @@ describe("F6 repositories", () => {
     expect(ids).toHaveLength(PROFILE_SNAPSHOT_RETENTION);
     expect(ids).not.toContain("offset-oldest");
   });
+  it("validates a snapshot's join window", async () => {
+    const base = entity("profileSnapshots", "account-a", "window");
+    await repositories.profileSnapshots.put("account-a", {
+      ...base,
+      joinedEarliest: "2025-10-27T00:00:00.000Z",
+      joinedLatest: "2025-11-26T00:00:00.000Z",
+    });
+    await expect(
+      repositories.profileSnapshots.put("account-a", {
+        ...base,
+        joinedEarliest: "2025-10-27T00:00:00.000Z",
+      }),
+    ).rejects.toThrow("present together");
+    await expect(
+      repositories.profileSnapshots.put("account-a", {
+        ...base,
+        joinedEarliest: "2025-12-01T00:00:00.000Z",
+        joinedLatest: "2025-11-01T00:00:00.000Z",
+      }),
+    ).rejects.toThrow("must not be after");
+  });
   it("rejects malformed action log steps", async () => {
     const malformed = {
       ...entity("actionLogs", "account-a", "action"),

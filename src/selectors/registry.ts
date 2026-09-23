@@ -87,6 +87,9 @@ export const selectorRegistry: Readonly<
       genderCode:
         '[data-e2e="profile-header-base-info"] j-gender-icon[universal-gender]',
       photoCount: ".amount-badge[aria-label]",
+      // One badge in this list reads "Angemeldet seit <n> <unit>"; the
+      // extractor picks it by that text, as the badges share one structure.
+      memberSinceBadge: ".profile-sidebar-container__badge-list j-list-item",
       profileMotto: ".profile-description-motto__text",
       profileMainText: ".profile-description-maintext__text",
     },

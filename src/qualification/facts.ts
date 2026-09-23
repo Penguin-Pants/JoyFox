@@ -16,12 +16,31 @@ export interface ProfileFacts {
   personallyKnown: boolean | "unknown";
   photoCount: number | "unknown";
   profileWordCount: number | "unknown";
+  /** An exact join date, when a page shows one. */
   joinedAt: string | "unknown";
+  /**
+   * The window the member joined in, when the page gives only a relative
+   * duration ("Angemeldet seit 11 Monaten"). Used when no exact date exists.
+   */
+  joinedWindow: JoinWindow | "unknown";
+}
+
+/** Earliest and latest possible join instants, as strict ISO dates. */
+export interface JoinWindow {
+  earliest: string;
+  latest: string;
 }
 
 /** Facts read only from the current page, never filled from a snapshot. */
 type LiveOnlyFact = "personallyKnown";
 export type CachedFactName = Exclude<keyof ProfileFacts, LiveOnlyFact>;
+
+/** The snapshot fields a merge reads. The window is stored as two fields. */
+export type CachedFacts = Pick<
+  ProfileSnapshot,
+  Exclude<CachedFactName, "joinedWindow">
+> &
+  Partial<Pick<ProfileSnapshot, "joinedEarliest" | "joinedLatest">>;
 const LIVE_ONLY_FACTS: ReadonlySet<keyof ProfileFacts> = new Set([
   "personallyKnown",
 ]);
@@ -33,6 +52,7 @@ export const UNKNOWN_FACTS: Readonly<ProfileFacts> = Object.freeze({
   photoCount: "unknown",
   profileWordCount: "unknown",
   joinedAt: "unknown",
+  joinedWindow: "unknown",
 });
 
 const ISO_DATE =
@@ -84,7 +104,21 @@ function isUsable(field: keyof ProfileFacts, value: unknown): boolean {
       return isCount(value);
     case "joinedAt":
       return typeof value === "string" && isStrictIsoDate(value);
+    case "joinedWindow":
+      return isJoinWindow(value);
   }
+}
+
+export function isJoinWindow(value: unknown): value is JoinWindow {
+  if (!value || typeof value !== "object") return false;
+  const { earliest, latest } = value as Partial<JoinWindow>;
+  return (
+    typeof earliest === "string" &&
+    typeof latest === "string" &&
+    isStrictIsoDate(earliest) &&
+    isStrictIsoDate(latest) &&
+    Date.parse(earliest) <= Date.parse(latest)
+  );
 }
 
 /** Where each merged fact came from, so an explanation can name its source. */
@@ -104,7 +138,7 @@ export interface MergedFacts {
  */
 export function mergeProfileFacts(
   observed: Partial<ProfileFacts>,
-  cached?: Pick<ProfileSnapshot, CachedFactName>,
+  cached?: CachedFacts,
 ): MergedFacts {
   const facts = { ...UNKNOWN_FACTS };
   const sources: Record<keyof ProfileFacts, FactSource> = {
@@ -113,7 +147,12 @@ export function mergeProfileFacts(
     photoCount: "none",
     profileWordCount: "none",
     joinedAt: "none",
+    joinedWindow: "none",
   };
+  const cachedWindow =
+    cached?.joinedEarliest !== undefined && cached.joinedLatest !== undefined
+      ? { earliest: cached.joinedEarliest, latest: cached.joinedLatest }
+      : undefined;
   for (const field of Object.keys(UNKNOWN_FACTS) as Array<keyof ProfileFacts>) {
     const fresh = observed[field];
     if (isUsable(field, fresh)) {
@@ -122,7 +161,10 @@ export function mergeProfileFacts(
       continue;
     }
     if (LIVE_ONLY_FACTS.has(field)) continue;
-    const stored = cached?.[field as CachedFactName];
+    const stored =
+      field === "joinedWindow"
+        ? cachedWindow
+        : cached?.[field as Exclude<CachedFactName, "joinedWindow">];
     if (isUsable(field, stored)) {
       facts[field] = stored as never;
       sources[field] = "cached";
