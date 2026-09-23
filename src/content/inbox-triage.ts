@@ -120,6 +120,16 @@ export class InboxTriage {
     this.update();
   }
 
+  /**
+   * The active account changed. Everything shown belongs to the previous
+   * account, so it is removed at once, before the new account's answer
+   * arrives: no stale control can send a write under the new account.
+   */
+  accountChanged(): void {
+    this.teardown();
+    this.invalidate();
+  }
+
   /** Remove every trace of JoyFox from the inbox. */
   teardown(): void {
     for (const node of Array.from(
@@ -189,13 +199,10 @@ export class InboxTriage {
           observed: state.observed ?? {},
         });
     if (pending.size === 0) {
-      // No identifiable row to ask about still decides whether triage is on.
-      if (
-        this.#status === "pending" &&
-        rows.length > 0 &&
-        this.#results.size === 0
-      )
-        this.#probe();
+      // With no row to ask about (an empty or still-loading list, or only
+      // unidentified rows), one empty request still decides whether triage
+      // is on, so the tab bar shows for an enabled rule.
+      if (this.#status === "pending") this.#probe();
       return;
     }
     const batch = Array.from(pending.entries()).slice(

@@ -69,6 +69,27 @@ open design decisions are recorded in
 - Leaving and reopening the inbox kept the previous "Why" selection. Teardown
   now clears it.
 
+Codex review of PR #14 found seven more, all confirmed and fixed:
+
+- An account switch left the previous account's inbox placements and panel on
+  screen, with live buttons, until the new answer arrived. The UI is now removed
+  at once on a switch.
+- A profile captured for one account was not captured again after a switch, so
+  the new account never got the snapshot. A switch now resets the capture
+  marker.
+- An older options render could finish after a newer one and draw the wrong
+  account's form, with save handlers for that account. Renders now carry a
+  generation, and a save checks the form's account is still active.
+- "Undo last outcome" showed when the score came only from "personally known",
+  with nothing to undo. It now shows only when an outcome is logged.
+- Two outcomes logged in the same millisecond sorted by random ID, so undo could
+  remove the older one. IDs now carry a logging sequence.
+- An empty inbox never asked whether triage was on, so the tab bar never showed.
+  It now asks once with an empty list.
+- Reasons listed every condition whose outcome matched the result, including
+  conditions in a group that did not decide it. Reasons now follow the cause
+  through the All/Any tree; the full list still shows every condition.
+
 Each fix has a regression test confirmed to fail without it.
 
 ### Confirmed issues deferred

@@ -24,6 +24,7 @@ describe("computeTrustScore", () => {
     expect(score).not.toBe("unknown");
     if (score === "unknown") return;
     expect(score.score).toBe(1);
+    expect(score.logged).toBe(4);
     expect(score.contributions).toEqual([
       { points: 2, reason: "You logged 2 positive outcomes." },
       { points: -1, reason: "You logged 1 negative outcome." },
@@ -39,6 +40,7 @@ describe("computeTrustScore", () => {
     });
     expect(score).toEqual({
       score: 0,
+      logged: 0,
       contributions: [
         { points: 1, reason: "You marked this member as personally known." },
         {

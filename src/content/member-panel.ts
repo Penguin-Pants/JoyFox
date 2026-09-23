@@ -94,6 +94,17 @@ export class MemberPanel {
     if (this.#page) this.update(this.#page);
   }
 
+  /**
+   * The active account changed. The panel shows the previous account's data,
+   * so it goes at once, and the profile is captured again for the new
+   * account on the next update.
+   */
+  accountChanged(): void {
+    this.teardown();
+    this.#captured = "";
+    this.invalidate();
+  }
+
   /** Called when the page is no longer a conversation or profile. */
   leave(): void {
     this.#page = undefined;

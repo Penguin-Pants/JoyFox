@@ -52,10 +52,10 @@ if (hasVerifiedSelectors() && VERIFIED_HOSTS.includes(location.hostname)) {
   // any tab or the options page: re-evaluate what this page shows.
   storageEvents?.addListener((changes, area) => {
     if (area !== "local") return;
-    if (
-      TRIAGE_REVISION_KEY in changes ||
-      ACTIVE_ACCOUNT_SETTING_KEY in changes
-    ) {
+    if (ACTIVE_ACCOUNT_SETTING_KEY in changes) {
+      inbox.accountChanged();
+      panel.accountChanged();
+    } else if (TRIAGE_REVISION_KEY in changes) {
       inbox.invalidate();
       panel.invalidate();
     }

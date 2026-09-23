@@ -156,10 +156,46 @@ describe("evaluateContactRule", () => {
     expect(result.placement).toBe("needs-review");
   });
 
+  it("lists only the conditions that caused the outcome", () => {
+    // ALL fails on verification although photos pass; the exception qualifies.
+    const result = evaluateContactRule(
+      rule(
+        [condition("verified"), condition("minimumPhotos", { value: 3 })],
+        [condition("personallyKnown")],
+      ),
+      input({
+        facts: {
+          ...UNKNOWN_FACTS,
+          verification: false,
+          photoCount: 5,
+          personallyKnown: true,
+        },
+      }),
+    );
+    expect(result.placement).toBe("qualified");
+    expect(result.reasons).toEqual([
+      "This sender meets your contact rule.",
+      "You marked this member as personally known, as the rule requires.",
+    ]);
+    // Every checked condition is still in the full list.
+    expect(result.evaluatedConditions).toHaveLength(3);
+  });
+
+  it("does not credit an exception when an empty ALL box already qualifies", () => {
+    const result = evaluateContactRule(
+      rule([], [condition("verified")]),
+      input({ facts: { ...UNKNOWN_FACTS, verification: true } }),
+    );
+    expect(result.placement).toBe("qualified");
+    expect(result.reasons).toEqual([
+      "Your contact rule has no required conditions, so every sender qualifies.",
+    ]);
+  });
+
   it("qualifies everyone when the rule has no conditions", () => {
     const result = evaluateContactRule(rule([]), input());
     expect(result.placement).toBe("qualified");
-    expect(result.reasons[0]).toMatch(/no conditions/);
+    expect(result.reasons[0]).toMatch(/no required conditions/);
   });
 
   it("reads spam status, including the user's not-spam correction", () => {
@@ -180,13 +216,13 @@ describe("evaluateContactRule", () => {
     expect(
       evaluateContactRule(
         trustRule,
-        input({ trust: { score: 2, contributions: [] } }),
+        input({ trust: { score: 2, contributions: [], logged: 1 } }),
       ).placement,
     ).toBe("qualified");
     expect(
       evaluateContactRule(
         trustRule,
-        input({ trust: { score: 0, contributions: [] } }),
+        input({ trust: { score: 0, contributions: [], logged: 1 } }),
       ).placement,
     ).toBe("quarantined");
     expect(evaluateContactRule(trustRule, input()).placement).toBe(

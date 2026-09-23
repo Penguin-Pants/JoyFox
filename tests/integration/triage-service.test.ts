@@ -170,6 +170,7 @@ describe("TriageService.evaluate", () => {
     expect(result?.placement).toBe("qualified");
     expect(result?.trust).toEqual({
       score: 1,
+      logged: 1,
       contributions: [{ points: 1, reason: "You logged 1 positive outcome." }],
     });
   });
@@ -274,6 +275,24 @@ describe("revision marker", () => {
 });
 
 describe("TrustService", () => {
+  it("undo removes the outcome logged last, even in the same millisecond", async () => {
+    // Random IDs that sort against logging order, at one fixed instant.
+    const ids = ["zzzz", "aaaa"];
+    const sameTime = new TrustService(
+      undefined,
+      undefined,
+      settings,
+      () => NOW.toISOString(),
+      () => ids.shift() ?? "x",
+    );
+    await sameTime.logOutcome(A, MEMBER, "positive");
+    await sameTime.logOutcome(A, MEMBER, "negative");
+    await sameTime.undoLastOutcome(A, MEMBER);
+    expect(
+      (await sameTime.listSignals(A, MEMBER)).map((signal) => signal.kind),
+    ).toEqual(["positive"]);
+  });
+
   it("undo removes only the newest outcome for that member", async () => {
     let tick = 0;
     const clock = new TrustService(undefined, undefined, settings, () =>

@@ -22,6 +22,8 @@ export interface TrustContribution {
 export interface TrustScore {
   score: number;
   contributions: TrustContribution[];
+  /** How many outcomes the user logged, so the UI offers undo only then. */
+  logged: number;
 }
 
 export interface TrustInput {
@@ -76,5 +78,6 @@ export function computeTrustScore(input: TrustInput): TrustScore | "unknown" {
   return {
     score: contributions.reduce((sum, item) => sum + item.points, 0),
     contributions,
+    logged: positive + negative + neutral,
   };
 }

@@ -129,6 +129,56 @@ describe("M4 rule builder panel", () => {
     expect(status()?.textContent).toContain("the ANY box has no effect");
   });
 
+  it("keeps the newest render when an older one finishes last", async () => {
+    const a = await accounts.createAccount({ joyClubAccountId: "a" });
+    const b = await accounts.createAccount({ joyClubAccountId: "b" });
+    await rules.saveGlobalRule(a.id, {
+      schemaVersion: 1,
+      audience: "all",
+      enabled: false,
+      defaultPlacement: "quarantined",
+      root: { type: "group", match: "all", children: [] },
+    });
+    // The first render reads account A slowly; the switch to B renders fast.
+    let releaseA: () => void = () => undefined;
+    let slow = true;
+    const slowAccounts = {
+      getActiveAccount: async () => {
+        const account = await accounts.getActiveAccount();
+        if (slow) {
+          slow = false;
+          await new Promise<void>((resolve) => (releaseA = resolve));
+        }
+        return account;
+      },
+    } as AccountService;
+    panel = new RulePanel(root, rules, slowAccounts);
+    const first = panel.render();
+    await accounts.setActiveAccount(b.id);
+    await panel.render();
+    expect(input("joyfox-rule-enabled").checked).toBe(true);
+    releaseA();
+    await first;
+    // Still only B's (empty) form: A's late render added nothing.
+    expect(root.querySelectorAll("form")).toHaveLength(1);
+    expect(root.querySelectorAll("h2")).toHaveLength(1);
+    expect(root.textContent).toContain("No rule is saved");
+    expect(root.textContent).not.toContain("A rule is saved");
+  });
+
+  it("refuses to save a form drawn for an account that is no longer active", async () => {
+    const a = await accounts.createAccount({ joyClubAccountId: "a" });
+    const b = await accounts.createAccount({ joyClubAccountId: "b" });
+    await panel.render();
+    await accounts.setActiveAccount(b.id);
+    input("joyfox-rule-all-verified-on").checked = true;
+    submit();
+    await settle(() => status()?.getAttribute("data-kind") === "error");
+    expect(status()?.textContent).toContain("The active account changed");
+    expect(await rules.getGlobalRule(a.id)).toBeUndefined();
+    expect(await rules.getGlobalRule(b.id)).toBeUndefined();
+  });
+
   it("does not offer to edit a rule shape it cannot show", async () => {
     const account = await accounts.createAccount({ joyClubAccountId: "a" });
     await rules.saveGlobalRule(account.id, {

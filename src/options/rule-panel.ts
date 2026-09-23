@@ -66,6 +66,8 @@ export class RulePanel {
   #controls = new Map<string, ConditionControls>();
   #enabled?: HTMLInputElement;
   #placement?: HTMLSelectElement;
+  /** Bumped per render, so a slower, older render never replaces a newer one. */
+  #generation = 0;
 
   constructor(
     private readonly root: HTMLElement,
@@ -78,7 +80,16 @@ export class RulePanel {
   }
 
   async render(): Promise<void> {
+    const generation = (this.#generation += 1);
     const document = this.root.ownerDocument;
+    // Read everything first, then build: storage reads are the only awaits,
+    // and a render overtaken by a newer one (for example after an account
+    // switch) stops here without touching the page.
+    const account = await this.accounts.getActiveAccount();
+    const stored = account
+      ? await this.rules.getGlobalRule(account.id)
+      : undefined;
+    if (generation !== this.#generation) return;
     this.root.replaceChildren();
     this.#controls = new Map();
     const heading = element(
@@ -98,7 +109,6 @@ export class RulePanel {
         "The rule only changes how JoyFox groups your own inbox into Qualified, Needs Review and Quarantined. It never stops a message, never deletes anything, and the sender sees nothing.",
       ),
     );
-    const account = await this.accounts.getActiveAccount();
     if (!account) {
       this.root.append(
         element(
@@ -111,7 +121,6 @@ export class RulePanel {
       );
       return;
     }
-    const stored = await this.rules.getGlobalRule(account.id);
     const form = stored ? toBuilderForm(stored) : EMPTY_FORM;
     if (!form) {
       this.root.append(
@@ -310,6 +319,16 @@ export class RulePanel {
       return;
     }
     try {
+      // The form belongs to the account it was drawn for. If another account
+      // became active meanwhile, nothing is written to either.
+      if ((await this.accounts.getActiveAccount())?.id !== accountId) {
+        await this.render();
+        this.#setStatus(
+          "The active account changed. The rule was not saved. Check the form and save again.",
+          "error",
+        );
+        return;
+      }
       await this.rules.saveGlobalRule(accountId, fromBuilderForm(form));
       await this.render();
       const vacuous =

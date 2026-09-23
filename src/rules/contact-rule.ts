@@ -311,36 +311,52 @@ function evaluateCondition(
   };
 }
 
+interface GroupResult {
+  outcome: ConditionOutcome;
+  /** Only the reasons that caused this outcome. */
+  reasons: string[];
+}
+
 /**
  * Three-valued group logic. "All": any unmet condition fails the group, else
  * any condition needing review makes the group need review. "Any": any met
  * condition passes the group, else any needing review makes it need review.
  * An empty group is met, so a rule without conditions qualifies everyone.
+ *
+ * The reasons follow the cause through the tree: a failed "All" reports its
+ * unmet children; a met "Any" reports only its first met child, since that
+ * child alone was enough. A condition inside a group that did not decide the
+ * outcome is never listed as a reason (it still appears in the full list).
  */
 function evaluateGroup(
   group: ConditionGroup,
   input: RuleInput,
   now: Date,
   collected: EvaluatedCondition[],
-): ConditionOutcome {
-  if (group.children.length === 0) return "met";
-  const outcomes = group.children.map((child) =>
-    child.type === "group"
-      ? evaluateGroup(child, input, now, collected)
-      : (() => {
-          const evaluated = evaluateCondition(child, input, now);
-          collected.push(evaluated);
-          return evaluated.outcome;
-        })(),
-  );
+): GroupResult {
+  if (group.children.length === 0) return { outcome: "met", reasons: [] };
+  const results = group.children.map((child): GroupResult => {
+    if (child.type === "group")
+      return evaluateGroup(child, input, now, collected);
+    const evaluated = evaluateCondition(child, input, now);
+    collected.push(evaluated);
+    return { outcome: evaluated.outcome, reasons: [evaluated.reason] };
+  });
+  const having = (outcome: ConditionOutcome) =>
+    results.filter((result) => result.outcome === outcome);
+  const combine = (outcome: ConditionOutcome): GroupResult => ({
+    outcome,
+    reasons: having(outcome).flatMap((result) => result.reasons),
+  });
   if (group.match === "all") {
-    if (outcomes.includes("not-met")) return "not-met";
-    if (outcomes.includes("needs-review")) return "needs-review";
-    return "met";
+    if (having("not-met").length > 0) return combine("not-met");
+    if (having("needs-review").length > 0) return combine("needs-review");
+    return combine("met");
   }
-  if (outcomes.includes("met")) return "met";
-  if (outcomes.includes("needs-review")) return "needs-review";
-  return "not-met";
+  const [firstMet] = having("met");
+  if (firstMet) return firstMet;
+  if (having("needs-review").length > 0) return combine("needs-review");
+  return combine("not-met");
 }
 
 /**
@@ -358,27 +374,29 @@ export function evaluateContactRule(
 ): RuleEvaluation {
   const now = input.now ?? new Date();
   const evaluatedConditions: EvaluatedCondition[] = [];
-  const outcome = evaluateGroup(rule.root, input, now, evaluatedConditions);
+  const { outcome, reasons } = evaluateGroup(
+    rule.root,
+    input,
+    now,
+    evaluatedConditions,
+  );
   const placement: TriagePlacement =
     outcome === "met"
       ? "qualified"
       : outcome === "needs-review"
         ? "needs-review"
         : rule.defaultPlacement;
-  const matching = evaluatedConditions
-    .filter((condition) => condition.outcome === outcome)
-    .map((condition) => condition.reason);
   const headline =
     outcome === "met"
-      ? evaluatedConditions.length === 0
-        ? "Your contact rule has no conditions, so every sender qualifies."
+      ? reasons.length === 0
+        ? "Your contact rule has no required conditions, so every sender qualifies."
         : "This sender meets your contact rule."
       : outcome === "needs-review"
         ? "JoyFox could not decide, because some information is unknown."
         : `This sender does not meet your contact rule, so it goes to ${PLACEMENT_TEXT[rule.defaultPlacement]}.`;
   return {
     placement,
-    reasons: [headline, ...matching],
+    reasons: [headline, ...reasons],
     evaluatedConditions,
   };
 }

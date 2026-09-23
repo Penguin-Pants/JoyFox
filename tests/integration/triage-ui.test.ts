@@ -289,6 +289,47 @@ describe("M2 inbox triage", () => {
     expect(client.evaluations).toBe(1);
   });
 
+  it("shows the tab bar for an enabled rule on an empty inbox", async () => {
+    await rules.saveGlobalRule(ACCOUNT, knownRule());
+    setPage(
+      "/clubmail/",
+      '<div class="cm-conversation-list" aria-label="Synthetic list"></div>',
+    );
+    const inbox = new InboxTriage(document, serviceClient());
+    inbox.update();
+    await vi.waitFor(() => expect(bar()).not.toBeNull());
+    expect(buttonNamed(bar()!, "Quarantined").textContent).toBe(
+      "Quarantined (0)",
+    );
+  });
+
+  it("removes the previous account's UI at once when the account changes", async () => {
+    await rules.saveGlobalRule(ACCOUNT, knownRule());
+    setPage("/clubmail/", inboxHtml);
+    const original = document.body.innerHTML;
+    const client = serviceClient();
+    let release: () => void = () => undefined;
+    const inbox = new InboxTriage(document, {
+      ...client,
+      // Hold the next answer, to look at the page while it is pending.
+      evaluate: (members) =>
+        client.evaluations === 0
+          ? client.evaluate(members)
+          : new Promise((resolve) => {
+              release = () => void client.evaluate(members).then(resolve);
+            }),
+    });
+    inbox.update();
+    await vi.waitFor(() => expect(bar()).not.toBeNull());
+    activeAccount = "account-b";
+    inbox.accountChanged();
+    expect(document.body.innerHTML).toBe(original);
+    release();
+    // Account B has no rule, so nothing comes back.
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    expect(document.body.innerHTML).toBe(original);
+  });
+
   it("fails open when the background cannot answer", async () => {
     setPage("/clubmail/", inboxHtml);
     const original = document.body.innerHTML;
@@ -347,6 +388,8 @@ describe("conversation and profile panel", () => {
     await vi.waitFor(() => expect(panel()).not.toBeNull());
     // Personally known (+1) is already listed as a contribution.
     expect(panel()?.textContent).toContain("Local trust score: 1.");
+    // Nothing is logged yet, so there is nothing to undo.
+    expect(panel()?.textContent).not.toContain("Undo last outcome");
     buttonNamed(panel()!, "Log positive").click();
     await vi.waitFor(() =>
       expect(panel()?.textContent).toContain("Local trust score: 2."),
@@ -420,6 +463,22 @@ describe("conversation and profile panel", () => {
     await vi.waitFor(() => expect(placements()[0]).toBe("qualified"));
     expect(placements()[1]).toBe("needs-review");
     expect(VERIFIED).toBe("98765432");
+  });
+
+  it("captures the profile again for a newly active account", async () => {
+    await rules.saveGlobalRule(ACCOUNT, knownRule());
+    setPage("/profile/1234567.synthetic_one.html", profileHtml);
+    const member = new MemberPanel(document, serviceClient());
+    member.update("profile");
+    await vi.waitFor(() => expect(panel()).not.toBeNull());
+    activeAccount = "account-b";
+    member.accountChanged();
+    expect(panel()).toBeNull();
+    await vi.waitFor(async () =>
+      expect(
+        await repositories.profileSnapshots.list("account-b"),
+      ).toHaveLength(1),
+    );
   });
 
   it("leave removes the panel", async () => {

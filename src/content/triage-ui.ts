@@ -144,7 +144,7 @@ export function trustSection(
         onTrust("negative"),
       ),
     );
-    if (onUndoTrust && trust !== "unknown")
+    if (onUndoTrust && trust !== "unknown" && trust.logged > 0)
       row.append(
         button(document, "joyfox-button", "Undo last outcome", onUndoTrust),
       );

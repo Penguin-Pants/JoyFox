@@ -21,7 +21,11 @@ function requireAccountId(accountId: string): void {
     );
 }
 
-/** Newest first by instant, ties on ID, so "undo" always removes the same one. */
+/**
+ * Newest first by instant, then by ID. IDs carry a per-service sequence, so
+ * two outcomes logged in the same millisecond still sort in the order they
+ * were logged, and "undo" removes the one logged last.
+ */
 const newestFirst = (a: TrustSignal, b: TrustSignal) =>
   Date.parse(b.occurredAt) - Date.parse(a.occurredAt) ||
   b.id.localeCompare(a.id);
@@ -32,6 +36,8 @@ const newestFirst = (a: TrustSignal, b: TrustSignal) =>
  * acceptance criterion.
  */
 export class TrustService {
+  #sequence = 0;
+
   constructor(
     private readonly signals = new TrustSignalRepository(),
     private readonly members = new JoyClubMemberRepository(),
@@ -59,7 +65,8 @@ export class TrustService {
     requireAccountId(accountId);
     const timestamp = this.now();
     const signal: TrustSignal = {
-      id: `trust:${this.newId()}`,
+      // Zero-padded so the text order of IDs is the logging order.
+      id: `trust:${String((this.#sequence += 1)).padStart(12, "0")}:${this.newId()}`,
       accountId,
       memberId,
       kind,
