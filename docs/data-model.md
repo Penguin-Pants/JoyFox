@@ -87,3 +87,9 @@ Holds one per-sender "not spam" correction, keyed `spam-override:<member>`. It
 records the decision, when it was made and an optional user reason, so the
 explanation shown for an unflagged message can name the user's own earlier
 correction rather than appearing to be a silent exemption.
+
+## Live-only profile facts
+
+`personallyKnown` ("persönlich bekannt") is a profile fact for qualification but
+has no ProfileSnapshot field. It is the logged-in user's own mark and can
+change, so it is read from the current page each time and never cached.

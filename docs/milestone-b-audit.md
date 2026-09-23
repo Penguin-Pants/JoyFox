@@ -7,6 +7,12 @@ the qualification engine and M1 (steps 11 and 12), then the spam detector and M3
 
 ## Decisions recorded
 
+"Persönlich bekannt" (verification code `3`) is its own signal, on the project
+owner's decision (2026-09-23). It means the user has met the member in person,
+which the owner rates as higher trust than JoyClub's "geprüft". It is a separate
+qualification criterion, `requirePersonallyKnown`, not a form of verification,
+and it is never filled from a cached snapshot.
+
 PRD Section 12.1 defines no entity for previous messages and none for a
 per-sender spam correction, yet M3 requires both. Two entities were added at
 schema version 2 on the project owner's decision: `MessageObservation`, holding
@@ -180,8 +186,8 @@ profile-type codes are not fully mapped.
 
 ## Blocked or remaining
 
-- The meaning of the `verification-status` codes. It was inferred from colour
-  only, so verification stays unknown until it is confirmed.
+- What an unverified member shows. Code `1` is confirmed as verified and code
+  `3` as "personally known"; a missing shield and code `2` stay unknown.
 - Reading message text, so nothing calls the spam detector yet. It needs the
   sent and received bubble meaning confirmed and the message-caching toggle from
   ADR 0004.

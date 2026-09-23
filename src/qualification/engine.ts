@@ -9,7 +9,13 @@ import { isStrictIsoDate, type FactSource, type ProfileFacts } from "./facts";
  * user-configured values and gives only an illustrative example.
  */
 export interface QualificationCriteria {
+  /** JoyClub's own verification ("geprüft"). */
   requireVerification?: boolean;
+  /**
+   * The logged-in user has met this member ("persönlich bekannt"). Its own
+   * criterion, separate from and stricter than verification.
+   */
+  requirePersonallyKnown?: boolean;
   minimumPhotoCount?: number;
   minimumProfileWordCount?: number;
   minimumAccountAgeDays?: number;
@@ -17,6 +23,7 @@ export interface QualificationCriteria {
 
 export type CriterionName =
   | "verification"
+  | "personallyKnown"
   | "photoCount"
   | "profileWordCount"
   | "accountAge";
@@ -147,6 +154,28 @@ export function evaluateQualification(input: {
           : "The profile is not verified, which the rule requires.",
         source,
       });
+  }
+
+  if (criteria.requirePersonallyKnown) {
+    const source = sourceOf("personallyKnown");
+    criteriaResults.push(
+      facts.personallyKnown === "unknown"
+        ? {
+            name: "personallyKnown",
+            state: "unknown",
+            reason:
+              "Whether you know this member personally is unknown, so it was not counted for or against.",
+            source,
+          }
+        : {
+            name: "personallyKnown",
+            state: facts.personallyKnown ? "pass" : "fail",
+            reason: facts.personallyKnown
+              ? "You marked this member as personally known, as the rule requires."
+              : "You have not marked this member as personally known, which the rule requires.",
+            source,
+          },
+    );
   }
 
   if (criteria.minimumPhotoCount !== undefined)

@@ -79,20 +79,45 @@ function codeAttribute(
 }
 
 /**
- * JoyClub's `verification-status` codes. The evidence (01-inbox.md) saw `1`
- * as a grey shield and `3` as a green shield, and inferred the meaning from
- * colour only. No label confirms it, so no code maps to verified or
- * unverified yet: every code reads as unknown until the owner confirms the
- * meaning, and the raw code is kept for that check.
+ * JoyClub's `verification-status` codes, confirmed by the project owner on
+ * 2026-09-23:
+ *
+ * - `1`, grey shield "geprüft": verified by JoyClub.
+ * - `3`, green shield "persönlich bekannt": the logged-in user marked this
+ *   member as met in person. It is the viewer's own mark, not JoyClub's
+ *   verification.
+ *
+ * The icon shows one state, so for a code-3 member JoyClub's own verification
+ * is hidden and reads as unknown. By the owner's decision, "personally known"
+ * is a separate signal (for trust and triage exceptions, PRD 7.4), not a
+ * substitute for verification. Code `2`, any other code and a missing shield
+ * are unconfirmed and read as unknown, never as "not verified".
  */
 export const VERIFICATION_CODE_MEANING: Readonly<Record<number, boolean>> =
-  Object.freeze({});
+  Object.freeze({ 1: true });
 
+/** The `verification-status` code for "persönlich bekannt". */
+export const PERSONALLY_KNOWN_CODE = 3;
+
+/** JoyClub's own verification, as the qualification rule uses it. */
 export function verificationFromCode(
   code: ExtractionResult<number>,
 ): boolean | "unknown" {
   if (code.status !== "found") return "unknown";
   return VERIFICATION_CODE_MEANING[code.value] ?? "unknown";
+}
+
+/**
+ * Whether the logged-in user marked this member as met in person. Only code
+ * `3` is a confirmed "yes". Other codes are "unknown" rather than "no",
+ * because it is not confirmed that the green shield always replaces the grey
+ * one for a member who is both.
+ */
+export function personallyKnownFromCode(
+  code: ExtractionResult<number>,
+): boolean | "unknown" {
+  if (code.status !== "found") return "unknown";
+  return code.value === PERSONALLY_KNOWN_CODE ? true : "unknown";
 }
 
 const countWords = (text: string) =>

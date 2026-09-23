@@ -11,6 +11,7 @@ import {
   extractInboxRows,
   extractProfile,
   memberIdFromProfileHref,
+  personallyKnownFromCode,
   verificationFromCode,
 } from "../../src/extraction/joyclub";
 import { resolveMemberIdentity } from "../../src/identity/member-identity";
@@ -276,19 +277,38 @@ describe("F1/F9 extraction from the verified profile", () => {
 });
 
 describe("M1 on verified profile data", () => {
-  it("never treats an unconfirmed verification code as verified", () => {
-    for (const value of [0, 1, 2, 3])
-      expect(
-        verificationFromCode({ status: "found", value, source: "t" }),
-      ).toBe("unknown");
+  it("maps only JoyClub's own verification code as verified", () => {
+    const code = (value: number) =>
+      verificationFromCode({ status: "found", value, source: "t" });
+    // 1 = grey "geprüft": verified by JoyClub.
+    expect(code(1)).toBe(true);
+    // 3 = green "persönlich bekannt" is the viewer's own mark; it hides
+    // JoyClub's verification, which is then unknown.
+    for (const value of [0, 2, 3, 4])
+      expect(code(value), String(value)).toBe("unknown");
+    expect(verificationFromCode({ status: "missing", source: "t" })).toBe(
+      "unknown",
+    );
   });
 
-  it("scores known facts and leaves unconfirmed ones unknown", () => {
+  it("reads personally known as its own signal", () => {
+    const code = (value: number) =>
+      personallyKnownFromCode({ status: "found", value, source: "t" });
+    expect(code(3)).toBe(true);
+    for (const value of [0, 1, 2, 4])
+      expect(code(value), String(value)).toBe("unknown");
+    expect(personallyKnownFromCode({ status: "missing", source: "t" })).toBe(
+      "unknown",
+    );
+  });
+
+  it("scores extracted facts and leaves hidden or missing facts unknown", () => {
     const extracted = extractProfile(load("profile"), PROFILE_URL);
     const value = <T>(result: { status: string; value?: T }) =>
       result.status === "found" ? (result.value as T) : ("unknown" as const);
     const merged = mergeProfileFacts({
       verification: verificationFromCode(extracted.verificationCode),
+      personallyKnown: personallyKnownFromCode(extracted.verificationCode),
       photoCount: value<number>(extracted.photoCount),
       profileWordCount: value<number>(extracted.profileWordCount),
       joinedAt: value<string>(extracted.joinedAt),
@@ -298,13 +318,17 @@ describe("M1 on verified profile data", () => {
       sources: merged.sources,
       criteria: {
         requireVerification: true,
+        requirePersonallyKnown: true,
         minimumPhotoCount: 3,
         minimumProfileWordCount: 10,
         minimumAccountAgeDays: 30,
       },
     });
     expect(result.criteria.map(({ name, state }) => [name, state])).toEqual([
+      // The fixture shows code 3 ("persönlich bekannt"), which hides
+      // JoyClub's verification but passes the personally-known criterion.
       ["verification", "unknown"],
+      ["personallyKnown", "pass"],
       ["photoCount", "pass"],
       ["profileWordCount", "pass"],
       ["accountAge", "unknown"],

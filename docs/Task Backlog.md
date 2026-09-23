@@ -51,8 +51,12 @@ Matches the PRD's Section 19.1 scope exactly. Nothing here is not in that list, 
 
 ### Follow-up work recorded during Milestone B
 
-- Confirm the meaning of the `verification-status` codes, then map them in
-  `src/extraction/joyclub.ts`.
+- Confirm what an unverified member shows (no shield, code `2`, or another
+  code), so verification can fail as well as pass. Code `1` is mapped as
+  verified; code `3` is the separate "personally known" signal.
+- "Personally known" (code `3`) is available as the `requirePersonallyKnown`
+  criterion. Offer it in the M4 rule builder, and use it in M6 trust and the
+  PRD 7.4 triage exception for previously met senders.
 - Establish whether JoyClub shows a join date anywhere. Until it does, the
   account-age criterion stays unknown.
 - Build the page UI: the qualification badge on inbox rows and in the

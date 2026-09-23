@@ -14,8 +14,16 @@
   (`08-attribute-matrix.md`). Until one is verified, the account-age criterion
   is always unknown. When it is configured, the result is Partial information
   unless another configured criterion fails, which gives Does not meet rule.
-- The meaning of the `verification-status` codes is unconfirmed, so verification
-  is always unknown until it is confirmed.
+- Only code `1` ("geprüft") counts as JoyClub verification. Code `3`
+  ("persönlich bekannt") is the user's own mark of having met the member; the
+  shield then hides JoyClub's verification, so it reads as unknown. A missing
+  shield and any other code also read as unknown, so an unverified member shows
+  Partial information rather than Does not meet rule.
+- "Personally known" is its own criterion (`requirePersonallyKnown`), higher
+  trust than verification. Only code `3` is a confirmed "yes"; other codes read
+  as unknown, not "no", until it is confirmed that the green shield always
+  replaces the grey one. It is read live on each page and never cached, as the
+  user can change the mark. No settings UI exists yet (M4).
 - Conversation header data is used only when its member ID matches a number in
   the conversation URL. If those URL numbers turn out not to be member IDs,
   header data will always read as missing.
