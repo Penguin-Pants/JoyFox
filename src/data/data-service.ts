@@ -4,7 +4,10 @@ import {
 } from "../accounts/account-service";
 import type { EntityMap, EntityName } from "../domain/types";
 import { ExtensionError } from "../errors";
-import { withAccountLock, withAccountLocks } from "../storage/account-lock";
+import {
+  withAccountLock,
+  withExclusiveDataLock,
+} from "../storage/account-lock";
 import { ENTITY_NAMES } from "../storage/database";
 import {
   runtimeSettingsArea,
@@ -17,7 +20,6 @@ import {
   deleteAccountEntities,
   exportAccount,
   exportAllData,
-  listStoredScopes,
   repositories,
   type DataExport,
   type EntityCounts,
@@ -134,25 +136,23 @@ export class DataService {
    * Deletes everything JoyFox stores in this browser profile: every record
    * in every store, whatever its scope, and every `storage.local` setting.
    * The active pointer goes first, so a page or write that runs meanwhile
-   * sees no active account instead of a half-deleted one. The lock of every
-   * account and every stored scope is held while the stores and settings are
-   * emptied, and the stores are checked empty before success is reported.
+   * sees no active account instead of a half-deleted one. The exclusive data
+   * lock is held while the stores and settings are emptied, and both are
+   * checked empty before success is reported.
    */
   async deleteEverything(): Promise<void> {
-    // Every scope that holds data, registered account or not (the wake
-    // counter writes under its own scope, and takes that scope's lock).
-    const scopes = [
-      ...(await this.accounts.listAccounts()).map((a) => a.id),
-      ...(await listStoredScopes()),
-    ];
     await this.settings.remove([ACTIVE_ACCOUNT_SETTING_KEY]);
-    await withAccountLocks(scopes, async () => {
+    // Exclusive: waits for every account-locked write in any scope (account
+    // creation, a switch, the wake counter), and holds back new ones.
+    await withExclusiveDataLock(async () => {
       await clearAllData();
       await this.settings.clear();
-      // A writer to a scope that held no data when the list above was read
-      // is not locked, and may have written meanwhile. Say so rather than
-      // report success.
-      if ((await countAllRecords()) > 0)
+      // Every writer holds the shared lock, so nothing should remain. Check
+      // anyway rather than report success over data left behind.
+      if (
+        (await countAllRecords()) > 0 ||
+        Object.keys(await this.settings.getAll()).length > 0
+      )
         throw new Error("Data was written while deleting");
     });
   }

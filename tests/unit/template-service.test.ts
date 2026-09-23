@@ -132,6 +132,18 @@ describe("M10 template service", () => {
     );
   });
 
+  it("refuses a guarded write once the account is no longer active", async () => {
+    const guard = { activeAccountId: () => Promise.resolve("account-b") };
+    await expect(
+      service.save("account-a", { name: "T", body: "x" }, guard),
+    ).rejects.toThrow("active account changed");
+    const saved = await service.save("account-a", { name: "T", body: "x" });
+    await expect(service.delete("account-a", saved.id, guard)).rejects.toThrow(
+      "active account changed",
+    );
+    expect(await service.list("account-a")).toHaveLength(1);
+  });
+
   it("keeps each account's templates separate (M7)", async () => {
     await service.save("account-a", { name: "Only A", body: "x" });
     expect(await service.list("account-b")).toEqual([]);

@@ -86,6 +86,26 @@ A Codex review of PR #15 found three more, all confirmed and fixed:
 
 Each fix has a regression test confirmed to fail without it.
 
+A second Codex review of PR #15 found four more after it merged. All were
+confirmed and fixed in a follow-up PR:
+
+- Account creation and account switches wrote without a lock, so "delete all"
+  could report success over a new account or active pointer. Every account lock
+  now also holds a global data lock in shared mode. "Delete all" takes it
+  exclusively, and account creation now runs under its new account's lock.
+- A template save or delete checked the active account before taking the lock,
+  and a switch did not lock, so a write could land in the account just left. A
+  switch now holds the locks of the account left and the one activated, and
+  template writes check the active account inside the lock. Rule saves and
+  background writes, which already checked inside the lock, gain the same
+  guarantee.
+- A double submit of "Add template" stored two templates. The form now ignores a
+  submit while a save runs.
+- An export did not disarm a pending delete, so "Confirm" stayed live after its
+  prompt was replaced. Exports and "Show more" now disarm it at once.
+
+Each fix has a regression test confirmed to fail without it.
+
 ### Confirmed issues deferred
 
 - The Accounts panel's "Remove" (Milestone B) has the same double-click
@@ -119,7 +139,7 @@ Each fix has a regression test confirmed to fail without it.
 
 ## Validation
 
-`npm test` (340 tests), `npm run lint` (including the permission allowlist),
+`npm test` (345 tests), `npm run lint` (including the permission allowlist),
 `npm run typecheck`, `npm run format:check` and `npm run build:firefox` pass. No
 permission was added.
 

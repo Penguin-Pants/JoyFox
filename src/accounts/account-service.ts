@@ -4,7 +4,7 @@ import {
   runtimeSettingsArea,
   type SettingsArea,
 } from "../storage/local-settings";
-import { withAccountLock } from "../storage/account-lock";
+import { withAccountLock, withAccountLocks } from "../storage/account-lock";
 import {
   deleteAccountData,
   ExtensionAccountRepository,
@@ -73,9 +73,13 @@ export class AccountService {
       createdAt: timestamp,
       updatedAt: timestamp,
     };
-    await this.accounts.put(id, account);
-    if ((await this.getActiveAccount()) === undefined)
-      await this.setActiveAccount(id);
+    // Under the new account's lock (and so the shared data lock), so
+    // "delete all" cannot run between this write and the activation.
+    await withAccountLock(id, async () => {
+      await this.accounts.put(id, account);
+      if ((await this.getActiveAccount()) === undefined)
+        await this.settings.set({ [ACTIVE_ACCOUNT_SETTING_KEY]: id });
+    });
     return account;
   }
 
@@ -96,13 +100,32 @@ export class AccountService {
     return this.accounts.get(activeId, activeId);
   }
 
+  /**
+   * Holds the locks of the account being left and the account being
+   * activated. A write that checked, under its account's lock, that its
+   * account is active therefore finishes before the switch, or sees the
+   * switch and refuses.
+   */
   async setActiveAccount(accountId: string): Promise<void> {
-    if ((await this.accounts.get(accountId, accountId)) === undefined)
-      throw new ExtensionError(
-        "IdentityMismatch",
-        "Cannot activate an account that is not registered",
+    for (;;) {
+      const current = await this.getActiveAccountId();
+      const switched = await withAccountLocks(
+        current ? [current, accountId] : [accountId],
+        async () => {
+          // Another tab switched meanwhile: the lock held is not the one
+          // being left, so start again with the new pointer.
+          if ((await this.getActiveAccountId()) !== current) return false;
+          if ((await this.accounts.get(accountId, accountId)) === undefined)
+            throw new ExtensionError(
+              "IdentityMismatch",
+              "Cannot activate an account that is not registered",
+            );
+          await this.settings.set({ [ACTIVE_ACCOUNT_SETTING_KEY]: accountId });
+          return true;
+        },
       );
-    await this.settings.set({ [ACTIVE_ACCOUNT_SETTING_KEY]: accountId });
+      if (switched) return;
+    }
   }
 
   async clearActiveAccount(): Promise<void> {

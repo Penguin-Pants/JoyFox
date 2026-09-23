@@ -57,6 +57,11 @@ export class TemplatePanel {
   #pendingDelete: string | undefined;
   #armedAt = 0;
   #form: TemplateForm | undefined;
+  /** Set while a save runs, so a double submit cannot add a template twice. */
+  #saving = false;
+  readonly #guard = {
+    activeAccountId: () => this.accounts.getActiveAccountId(),
+  };
 
   constructor(
     private readonly root: HTMLElement,
@@ -237,7 +242,7 @@ export class TemplatePanel {
       if (!confirmAllowed(event, this.#armedAt)) return;
       void this.#run(accountId, async () => {
         this.#pendingDelete = undefined;
-        await this.templates.delete(accountId, template.id);
+        await this.templates.delete(accountId, template.id, this.#guard);
         if (this.#editing?.id === template.id) this.#editing = undefined;
         this.#setStatus(`Deleted ${template.name}.`, "info");
       });
@@ -323,6 +328,7 @@ export class TemplatePanel {
     }
     form.addEventListener("submit", (event) => {
       event.preventDefault();
+      if (this.#saving) return;
       const id = editing?.id;
       const input = {
         ...(id ? { id } : {}),
@@ -330,11 +336,13 @@ export class TemplatePanel {
         folder: folder.value,
         body: body.value,
       };
+      this.#saving = true;
+      submit.disabled = true;
       void this.#run(accountId, async () => {
         this.#pendingDelete = undefined;
         let saved: MessageTemplate;
         try {
-          saved = await this.templates.save(accountId, input);
+          saved = await this.templates.save(accountId, input, this.#guard);
         } catch (error) {
           // The template being edited was deleted in another tab. Keep what
           // the user typed as a new template, so a retry adds it instead of
@@ -356,6 +364,9 @@ export class TemplatePanel {
           id ? `Saved ${saved.name}.` : `Added ${saved.name}.`,
           "info",
         );
+      }).finally(() => {
+        this.#saving = false;
+        submit.disabled = false;
       });
     });
     return { editingId: editing?.id, form, name, folder, body };

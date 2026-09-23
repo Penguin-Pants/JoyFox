@@ -328,6 +328,25 @@ describe("M8 inspection and delete", () => {
     expect(done).toBe(true);
   });
 
+  it("holds back account creation and switches until it ends", async () => {
+    let release!: () => void;
+    const held = withAccountLock(
+      "account-a",
+      () => new Promise<void>((resolve) => (release = resolve)),
+    );
+    const deleting = data.deleteEverything();
+    await new Promise((resolve) => setTimeout(resolve, 10));
+    // Queued behind the exclusive lock: lands after the delete, not in it.
+    const creating = accounts.createAccount({ joyClubAccountId: "late" });
+    release();
+    await Promise.all([held, deleting]);
+    const created = await creating;
+    expect((await accounts.listAccounts()).map((a) => a.id)).toEqual([
+      created.id,
+    ]);
+    expect((await accounts.getActiveAccount())?.id).toBe(created.id);
+  });
+
   it("deletes everything, in every scope, with every setting", async () => {
     await repositories.extensionPreferences.put(
       "acceptance",

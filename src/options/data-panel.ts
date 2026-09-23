@@ -320,6 +320,7 @@ export class DataPanel {
           `Show ${Math.min(RECORD_PAGE_SIZE, records.length - this.#shownLimit)} more`,
           undefined,
           () => {
+            this.#pending = undefined;
             this.#shownLimit += RECORD_PAGE_SIZE;
             void this.render();
           },
@@ -338,6 +339,8 @@ export class DataPanel {
         undefined,
         () =>
           void this.#guard(async () => {
+            // Any other action disarms a pending delete, at once.
+            this.#pending = undefined;
             const accountId = this.#requireSelected();
             const exported = await this.data.exportAccount(accountId);
             this.saveFile(exportFileName(exported), serializeExport(exported));
@@ -369,6 +372,8 @@ export class DataPanel {
         undefined,
         () =>
           void this.#guard(async () => {
+            // Any other action disarms a pending delete, at once.
+            this.#pending = undefined;
             const exported = await this.data.exportAll();
             this.saveFile(exportFileName(exported), serializeExport(exported));
             this.#setStatus("Export of all JoyFox data created.", "info");

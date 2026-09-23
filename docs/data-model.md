@@ -153,8 +153,9 @@ the repository layer (`src/storage/repositories.ts`) and `DataService`
   **Delete all** clears every store and every `storage.local` key. See ADR 0007.
 - Each export reads in one transaction. Account-wide deletes run in one
   transaction, so a failure leaves all records in place rather than some. Every
-  delete holds the account lock and sets the triage revision, so open pages
-  re-evaluate at once.
+  delete holds the account lock (and so the shared data lock; "delete all" holds
+  it exclusively) and sets the triage revision, so open pages re-evaluate at
+  once.
 
 ## MessageTemplate (Milestone D, M10)
 
