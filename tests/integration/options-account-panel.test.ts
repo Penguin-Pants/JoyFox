@@ -7,6 +7,7 @@ import {
   mountAccountPanel,
   PANEL_CLASS,
 } from "../../src/options/account-panel";
+import { confirmTiming } from "../../src/options/confirm";
 import { repositories } from "../../src/storage/repositories";
 import { freshDatabase } from "../setup-indexeddb";
 import { MemorySettingsArea } from "../memory-settings";
@@ -16,6 +17,8 @@ let root: HTMLElement;
 
 beforeEach(async () => {
   await freshDatabase();
+  // Tests confirm at once; the double-click test restores the grace period.
+  confirmTiming.graceMs = 0;
   service = new AccountService(
     repositories.extensionAccounts,
     new MemorySettingsArea(),
@@ -30,6 +33,9 @@ const button = (selector: string) =>
   root.querySelector<HTMLButtonElement>(selector);
 const items = () => Array.from(root.querySelectorAll(".joyfox-panel__item"));
 const status = () => root.querySelector(".joyfox-panel__status");
+// The status updates before the re-render, so wait on the armed node itself.
+const armed = () =>
+  button(".joyfox-panel__remove")?.textContent === "Confirm removal";
 const failed = () => status()?.getAttribute("data-kind") === "error";
 
 /**
@@ -112,22 +118,45 @@ describe("M7 options account switcher", () => {
   it("requires a second click before deleting an account and its data", async () => {
     await mountAccountPanel(root, service);
     await addAccount("synthetic-a", "Account A");
-    await click(button(".joyfox-panel__remove")!, () =>
-      text().includes("Click again to confirm"),
-    );
+    await click(button(".joyfox-panel__remove")!, armed);
+    expect(text()).toContain("Click again to confirm");
     expect(await service.listAccounts()).toHaveLength(1);
     await click(button(".joyfox-panel__remove")!, () => items().length === 0);
     expect(await service.listAccounts()).toEqual([]);
     expect(text()).toContain("Removed Account A");
   });
 
+  it("a double-click never confirms a removal", async () => {
+    confirmTiming.graceMs = 500;
+    await mountAccountPanel(root, service);
+    await addAccount("synthetic-a", "Account A");
+    // The first click of a double-click arms; its second click is ignored.
+    button(".joyfox-panel__remove")!.dispatchEvent(
+      new MouseEvent("click", { detail: 1 }),
+    );
+    button(".joyfox-panel__remove")!.dispatchEvent(
+      new MouseEvent("click", { detail: 2 }),
+    );
+    await settle(armed);
+    const confirm = button(".joyfox-panel__remove")!;
+    // The second click of a double-click on the armed node, and a fast single click.
+    confirm.dispatchEvent(new MouseEvent("click", { detail: 2 }));
+    confirm.dispatchEvent(new MouseEvent("click", { detail: 1 }));
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    expect(await service.listAccounts()).toHaveLength(1);
+    expect(items()).toHaveLength(1);
+    // After the grace period, a single click confirms.
+    confirmTiming.graceMs = 0;
+    confirm.dispatchEvent(new MouseEvent("click", { detail: 1 }));
+    await settle(() => items().length === 0);
+    expect(await service.listAccounts()).toEqual([]);
+  });
+
   it("disarms a pending removal when another action intervenes", async () => {
     await mountAccountPanel(root, service);
     await addAccount("synthetic-a", "Account A");
     await addAccount("synthetic-b", "Account B");
-    await click(button(".joyfox-panel__remove")!, () =>
-      text().includes("Click again to confirm"),
-    );
+    await click(button(".joyfox-panel__remove")!, armed);
     await click(
       button(".joyfox-panel__activate")!,
       () => items()[1]?.getAttribute("aria-current") === "true",
