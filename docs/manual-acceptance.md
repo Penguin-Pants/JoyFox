@@ -108,6 +108,19 @@ Use your own account. Never click Ignore, Block or Delete on JoyClub.
 26. In the options page, untick "Sort my JoyClub inbox with this rule" and save.
     Confirm the inbox tab bar, badges and hidden rows disappear.
 
+**Result (2026-09-23): passed, with one finding.** The project owner ran items
+19 to 26 on the PR #14 build. Every item was confirmed, including item 23 (a
+badge click did not open the conversation) and item 24 (scrolling and row clicks
+unchanged).
+
+- Finding: JoyClub keeps the conversation list on screen beside an open
+  conversation. After opening and answering a message, the tab bar was gone from
+  that list until a reload or a click on "Postfach". Inbox triage now stays on
+  for a conversation page while the list is visible there, and still turns off
+  when the list is kept in the page but hidden. The fix needs a re-check: open a
+  conversation from the inbox, answer it, and confirm the tab bar and badges
+  stay on the list.
+
 Live selector and action acceptance must wait for the evidence checklist in
 `manual-verification-needed.md`. Never perform destructive action testing
 automatically.

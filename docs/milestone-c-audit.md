@@ -172,14 +172,24 @@ Each fix has a regression test confirmed to fail without it.
 - Per-audience rules and nested groups in the builder are V1 scope. The schema
   already holds them, and the builder refuses to edit a rule it cannot show.
 
+### Live acceptance (2026-09-23)
+
+The project owner ran `manual-acceptance.md` items 19 to 26 on the PR #14 build,
+and all passed. A badge click did not open the conversation, and scrolling and
+row clicks behaved as before, so the two earlier possible risks about badge
+clicks and hidden rows are closed.
+
+One finding, fixed: JoyClub shows the conversation list beside an open
+conversation, but JoyFox turned inbox triage off on every conversation page, so
+the tab bar disappeared from that list. Triage now stays on for a conversation
+page while the list is visible (`inboxListShown`). The fix is tested against a
+synthetic split view and needs a live re-check.
+
 ### Possible risks
 
-- The badge is inserted after the sender-name element inside a JoyClub row. If
-  JoyClub re-creates that element, the badge is added again on the next
-  mutation; if JoyClub handles clicks on `mousedown` or in the capture phase, a
-  badge click may also open the conversation. Both need a live check.
-- Hiding rows with `display: none` inside a framework-managed list is assumed to
-  leave JoyClub's scrolling and loading intact. Not yet checked live.
+- If JoyClub hides the list with a method `checkVisibility` does not detect,
+  triage could stay on for a list the user cannot see. It changes nothing
+  visible in that case.
 
 ## Blocked or remaining
 
@@ -187,11 +197,11 @@ Each fix has a regression test confirmed to fail without it.
   (M3 blocker). Only the user's own "not spam" correction counts.
 - The automatic existing-conversation exception (PRD Section 7.4) waits on the
   read-status meaning.
-- Live acceptance of the triage UI on JoyClub (see `manual-acceptance.md`, items
-  19 to 26).
+- A live re-check of the split-view fix (see `manual-acceptance.md`, the result
+  under item 26).
 - M1's 95 percent acceptance over 50 messages needs a manual trial.
 
 ## Phase status
 
-Milestone C is implemented and tested against synthetic fixtures. Live
-acceptance on JoyClub remains.
+Milestone C is implemented, tested against synthetic fixtures and accepted live
+on JoyClub (items 19 to 26), with one split-view fix awaiting a live re-check.

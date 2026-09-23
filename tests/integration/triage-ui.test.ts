@@ -3,6 +3,7 @@ import "../setup-indexeddb";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   InboxTriage,
+  inboxListShown,
   PLACEMENT_ATTRIBUTE,
   VIEW_ATTRIBUTE,
 } from "../../src/content/inbox-triage";
@@ -367,6 +368,26 @@ describe("M2 inbox triage", () => {
     await vi.waitFor(() => expect(client.evaluations).toBeGreaterThan(second));
     await vi.waitFor(() => expect(bar()).not.toBeNull());
     // Leave no active instance behind for the next test's page.
+    inbox.leave();
+  });
+
+  it("stays on beside an open conversation while the list is shown", async () => {
+    await rules.saveGlobalRule(ACCOUNT, knownRule());
+    // JoyClub's split view: the list and the open conversation together.
+    setPage(
+      "/clubmail/conversation/conversation-wrapper-personal-1234567-7654321",
+      inboxHtml + conversationHtml,
+    );
+    expect(inboxListShown("conversation", document)).toBe(true);
+    const inbox = new InboxTriage(document, serviceClient());
+    inbox.update();
+    await vi.waitFor(() => expect(bar()).not.toBeNull());
+    expect(placements()).toEqual(["qualified", "quarantined", "needs-review"]);
+    // A list JoyClub keeps in the page but hides does not count.
+    list().setAttribute("style", "display: none");
+    expect(inboxListShown("conversation", document)).toBe(false);
+    expect(inboxListShown("inbox", document)).toBe(true);
+    expect(inboxListShown("profile", document)).toBe(false);
     inbox.leave();
   });
 

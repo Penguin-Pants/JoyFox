@@ -25,6 +25,12 @@ moved to `/profile/...`. This is consistent with title and URL updating via
 separate client-side calls that aren't perfectly synchronized, rather than a
 report of two more manual navigations occurring in between.
 
+## Confirmation (2026-09-23)
+
+The project owner observed during the Milestone C live check that the
+conversation list stays on screen beside an open conversation: opening a
+conversation from the inbox is a split view, not a separate page.
+
 ## Skipped or unclear
 
 - Profile → back (browser Back button): not exercised this session.

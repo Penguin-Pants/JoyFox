@@ -69,8 +69,9 @@
   user-configured values. Until the user saves a rule, JoyFox does not sort the
   inbox. Presets (PRD Section 11.3) are not built.
 - Inbox triage groups rows by hiding them in place (ADR 0006). Within a group
-  the rows keep JoyClub's order. The triage UI has not yet been checked on the
-  live site (`manual-acceptance.md`, items 19 to 26).
+  the rows keep JoyClub's order. Live acceptance passed on 2026-09-23
+  (`manual-acceptance.md`, items 19 to 26). Triage also runs on a conversation
+  page while JoyClub shows the list beside it.
 - The inbox shows only the verification shield. Photos, profile words and
   account age come from snapshots of profiles the user opened before, so a
   sender whose profile was never opened reads those facts as unknown.

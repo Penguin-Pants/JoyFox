@@ -8,7 +8,7 @@ import {
   DiagnosticsFlag,
   summarizeInbox,
 } from "./diagnostics";
-import { InboxTriage } from "./inbox-triage";
+import { InboxTriage, inboxListShown } from "./inbox-triage";
 import { MemberPanel } from "./member-panel";
 import { NavigationCoordinator } from "./navigation-coordinator";
 import { detectPage } from "./page-detector";
@@ -33,7 +33,9 @@ if (hasVerifiedSelectors() && VERIFIED_HOSTS.includes(location.hostname)) {
   let lastSummary = "";
   coordinator.subscribe(({ page }) => {
     const type = page.status === "found" ? page.value : undefined;
-    if (type === "inbox") inbox.update();
+    // JoyClub shows the conversation list beside an open conversation, so
+    // triage stays on there while the list is visible.
+    if (inboxListShown(type, document)) inbox.update();
     else inbox.leave();
     if (type === "conversation" || type === "profile") panel.update(type);
     else panel.leave();

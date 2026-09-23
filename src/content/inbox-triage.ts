@@ -23,6 +23,29 @@ export type TriageView =
   | "quarantined"
   | "all";
 
+/**
+ * Whether inbox triage belongs on this page. On the inbox, always. On a
+ * conversation, only while JoyClub shows the conversation list beside it:
+ * the owner's live check (2026-09-23) showed the list stays on screen next
+ * to an open conversation. A list JoyClub keeps in the page but hides does
+ * not count.
+ */
+export function inboxListShown(
+  page: string | undefined,
+  document: Document,
+): boolean {
+  if (page === "inbox") return true;
+  if (page !== "conversation") return false;
+  const root = selectorRegistry.inbox.root;
+  if (!root || selectorRegistry.inbox.status !== "verified") return false;
+  const list = document.querySelector<HTMLElement>(root);
+  if (!list) return false;
+  const check = (list as { checkVisibility?: () => boolean }).checkVisibility;
+  return typeof check === "function"
+    ? check.call(list)
+    : list.ownerDocument.defaultView?.getComputedStyle(list).display !== "none";
+}
+
 export const VIEW_ATTRIBUTE = "data-joyfox-view";
 export const ROW_ATTRIBUTE = "data-joyfox-row";
 export const PLACEMENT_ATTRIBUTE = "data-joyfox-placement";
