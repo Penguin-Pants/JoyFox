@@ -8,6 +8,7 @@ import { TrustService } from "../trust/trust-service";
 import { registerActionHandlers } from "./action-handlers";
 import { incrementPersistentWakeCounter } from "./lifecycle";
 import { registerNotesHandlers } from "./notes-handlers";
+import { registerOnboarding } from "./onboarding";
 import { registerTemplateHandlers } from "./template-handlers";
 import { registerTriageHandlers } from "./triage-handlers";
 
@@ -39,6 +40,7 @@ registerTemplateHandlers(router, {
   templates: new TemplateService(),
   activeAccountId,
 });
+registerOnboarding(browser.runtime);
 browser.runtime.onMessage.addListener((message: unknown) =>
   router.route(message as never),
 );

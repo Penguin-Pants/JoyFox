@@ -211,6 +211,17 @@ text; never record the member's real data in this repository.
     data", delete the "Notes" data type and confirm the open profile's editor
     shows no note.
 
+## Onboarding (build plan Section 28, PRD Section 21.1)
+
+55. Use a fresh Firefox profile with no JoyFox data. Start a timer, build and
+    load the extension (item 1). Confirm the JoyFox options page opens by itself
+    and "Get started" lists three steps, the first two "Not done yet". Follow
+    the steps: add your account, save and turn on a contact rule, open your
+    JoyClub inbox. Confirm each step changes to "Done" in words, the summary
+    says "JoyFox is set up", and the inbox shows JoyFox's tabs. Stop the timer:
+    PRD Section 21.1 asks for under 10 minutes. Reload the extension and confirm
+    the options page does not open again.
+
 ## M9 destructive-action matrix (build plan Section 24)
 
 **Blocked.** These items cannot run yet: no live driver exists until F7 verifies

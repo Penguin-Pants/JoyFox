@@ -54,6 +54,29 @@ Matches the PRD's Section 19.1 scope exactly. Nothing here is not in that list, 
 | M10 | Partial | Create, edit, delete, folders and exact insertion at the cursor are complete, tested and accepted live on the standard composer (items 31 to 34, 2026-09-23). The picker is on by default (ADR 0007). The event ClubMail composer is unverified, so "every compose context" stays open. |
 | M9 | Partial | The F7-free core is complete and tested (ADR 0008, `milestone-e-audit.md`): the state machine, immediate ActionLog writes, identity checks before every click, the partial-failure notice, the off-by-default flag and the Section 24 matrix as synthetic tests. Blocked on F7: the live driver, resume after navigation (Path B only) and the guided mode. The manual matrix (`manual-acceptance.md`, items 43 to 54) waits on the live driver. |
 
+### MVP release gate (build plan Section 28)
+
+| Gate item | Status |
+| --- | --- |
+| Cold installation works | Met: build, load, no errors (`manual-acceptance.md`, items 1 to 3) |
+| Onboarding gets the extension into a usable state | Built: the options page opens on install and "Get started" tracks the steps. Timed live check pending (item 55) |
+| Triage operates without hidden network access | Met: automated network-isolation test on every build |
+| Missing sender information is shown as Unknown | Met (M1, M2) |
+| Every triage decision can be explained | Met (M2, M4) |
+| Classification overrides persist | Met (M2) |
+| Profile notes survive restart | Met in automated tests (M5); live check pending (items 36 to 42) |
+| Accounts remain isolated | Met: automated isolation tests (M7, M5 editor) |
+| Data export covers all stored entities | Met (M8) |
+| Complete data deletion works | Met (M8, item 35) |
+| No automated Send action exists | Met: tests prove the picker never sends; M9 never sends |
+| Synthetic-fixture tests pass | Met |
+| Live manual selector acceptance passes | Partial: inbox, conversation and profile pass; search, events and the ClubMail composer are unverified (F1) |
+| Unsupported markup causes graceful degradation | Met: features stay off without a verified selector |
+| Permissions match documentation | Met: permission check in lint |
+
+M9 is judged separately, under its own matrix (items 43 to 54), which waits on
+F7.
+
 ### Follow-up work recorded during Milestone B
 
 - Confirm what an unverified member shows (no shield, code `2`, or another
@@ -96,8 +119,8 @@ Matches the PRD's Section 19.1 scope exactly. Nothing here is not in that list, 
 - The member index for user tags and message observations (recorded during
   Milestone B for M8) is deferred: no M8 acceptance criterion needs it, and it
   needs a database version change best made with its first real caller.
-- Apply the double-click guard (`src/options/confirm.ts`) to the Accounts
-  panel's "Remove".
+- Done (commit 7caf140): the double-click guard (`src/options/confirm.ts`) on
+  the Accounts panel's "Remove".
 - Add a failure-injection test that an account-wide delete rolls back.
 - Template variables, once plain insertion is accepted live (build plan
   Section 17).

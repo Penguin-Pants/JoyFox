@@ -42,6 +42,15 @@ Milestone B has started with M5 and M7, which depend on F6 rather than F1. See
   hooks. It now performs no page work until at least one selector definition is
   verified.
 
+### Confirmed issues fixed in the final review (2026-09-23)
+
+- Build plan Section 23 requires every build to verify network isolation, and
+  the Test Strategy asks for an integration test. None existed.
+  `tests/integration/network-isolation.test.ts` now checks that no source file
+  uses a network API or names a remote address, that the manifest allows no
+  other origin, and that every page feature run against the fixtures makes no
+  request. It runs in `npm test`, so CI checks it on every push.
+
 ### Confirmed issues deferred
 
 - Live page detection and one-field extraction cannot be completed until F1

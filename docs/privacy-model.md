@@ -55,9 +55,14 @@ holds sensitive data (notes, tags, cached normalized messages). The user chooses
 where the file goes, and its name never holds an account identifier.
 
 Message templates are the user's own text and are stored per account. The
-composer picker is off unless the user turns on the trial flag. It reads the
-template list from the background, inserts at the cursor and never reads what
-the user typed, never sends and never clicks JoyClub's Send button.
+composer picker is on by default and turned off by setting
+`joyfox.templatePicker` to `false` (ADR 0007). It reads the template list from
+the background, inserts at the cursor and never reads what the user typed, never
+sends and never clicks JoyClub's Send button.
+
+An automated test checks that no source file uses a network API or names a
+remote address, and that running every page feature against the synthetic
+fixtures makes no request (build plan Section 23).
 
 Quick Ignore and Delete (M9) is the only feature that would perform a JoyClub
 write. It is off by default and has no live driver until F7 verifies its path,

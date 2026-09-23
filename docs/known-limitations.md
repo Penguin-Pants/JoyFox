@@ -100,6 +100,10 @@
   test and by the manual forced event-page restart (passed 2026-09-23).
 - Encryption is an isolated proof of concept. There is no sync transport.
 - Firefox signing and AMO distribution have not been implemented or claimed.
+- Onboarding is minimal: the options page opens once on a fresh install, and
+  "Get started" tracks the account and the rule. JoyFox cannot see whether the
+  inbox was opened, so the third step has no state. A temporary install from
+  `about:debugging` counts as a fresh install each time it is loaded.
 - Quick Ignore and Delete (M9) has no live driver. Its state machine, ActionLog,
   identity checks and notice are built and tested with test drivers, but where
   Ignore lives in JoyClub's UI is unverified (F7), so the button never appears,

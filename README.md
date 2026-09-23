@@ -23,12 +23,14 @@ been manually verified and enabled in source.
 The database is at schema version 2. An existing version 1 installation upgrades
 in place and keeps its records.
 
-The options page holds the account switcher. JoyFox cannot detect which JoyClub
-login a tab uses, so the active account is the one selected there, and every
-stored note, tag and rule belongs to it. A private note and tags can be kept for
-a member on their profile page and in a conversation with them, below the JoyFox
-panel. They are stored only for a verified member ID, never a display name. See
-`docs/manual-acceptance.md`, items 36 to 42.
+On a fresh install the options page opens once, and "Get started" at its top
+lists the three steps to a triaged inbox. The options page holds the account
+switcher. JoyFox cannot detect which JoyClub login a tab uses, so the active
+account is the one selected there, and every stored note, tag and rule belongs
+to it. A private note and tags can be kept for a member on their profile page
+and in a conversation with them, below the JoyFox panel. They are stored only
+for a verified member ID, never a display name. See `docs/manual-acceptance.md`,
+items 36 to 42.
 
 The options page also holds message templates and "Your data", where every
 stored record can be inspected, exported as JSON and deleted, per account or for
