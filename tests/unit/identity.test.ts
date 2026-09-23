@@ -14,15 +14,26 @@ const found = (value: string) =>
   ({ status: "found", value, source: "synthetic" }) as const;
 
 describe("M5 member identity resolution", () => {
-  it("refuses every field while the shipped registry is unverified", () => {
+  it("refuses a field the shipped registry has not verified", () => {
     expect(
       resolveMemberIdentity({
-        page: "profile",
+        page: "search",
         field: "memberId",
         extraction: found("member-1"),
       }),
     ).toEqual({ status: "unresolved", reason: "selector-unverified" });
-    expect(verifiedSelector("profile", "memberId")).toBeUndefined();
+    expect(verifiedSelector("search", "memberId")).toBeUndefined();
+    expect(verifiedSelector("profile", "memberId")).toBeDefined();
+  });
+
+  it("refuses a verified field that is not an identity field", () => {
+    for (const field of ["readStatus", "verificationCode", "row", "MemberId"])
+      expect(
+        resolveMemberIdentity(
+          { page: "inbox", field, extraction: found("received") },
+          verified,
+        ),
+      ).toEqual({ status: "unresolved", reason: "not-identity-field" });
   });
 
   it("refuses display-name fields even when their selector is verified", () => {

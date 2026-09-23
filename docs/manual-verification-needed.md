@@ -1,5 +1,25 @@
 # Manual verification needed
 
+## Status (2026-09-22)
+
+Item 3 is done, and items 1, 2, 6, 8 and 9 are partly done. The evidence is in
+`docs/live-evidence/`, and the inbox, conversation and profile selectors are
+verified from it. Still open:
+
+- **Item 1:** whether scrolling the inbox loads more conversations, and how.
+- **Item 2:** whether a message has a stable identifier.
+- **Item 6:** which input or change events the standard composer needs after its
+  value is set programmatically.
+- **Item 8:** whether a join date or account age appears anywhere, and what
+  `universal-gender` codes `2` and `3` mean.
+- **Verification codes (from item 1):** confirm what `verification-status` `1`
+  and `3` mean, for example from the badge tooltip on your own and on a verified
+  profile. Until then verification is always unknown.
+- **Item 7:** whether the conversation "Optionen" menu contains Ignore or Block.
+  The menu was not opened.
+- **Item 9:** profile → Back, inbox → search and inbox → events.
+- **Items 4, 5, 6 (ClubMail composer) and 10:** not started.
+
 Do not include another member's real name, profile text, preferences, messages,
 or images. Replace personal values with invented placeholders. For DOM fields,
 send either a sanitized relevant HTML fragment, a selector with a description of
@@ -52,6 +72,5 @@ what it matches, or a screenshot with DOM inspection notes.
 
 ## Phase gate
 
-Milestone A cannot meet F2's live acceptance criterion until items 1 and 9 are
-returned. Milestone B must not start before that Foundation dependency is
-complete.
+Items 1 and 9 are returned for the inbox, so F2's live acceptance can now be run
+by hand with the diagnostic steps in `manual-acceptance.md` (items 14 to 18).

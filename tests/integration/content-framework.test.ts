@@ -2,26 +2,53 @@
 import { describe, expect, it, vi } from "vitest";
 import { detectPage } from "../../src/content/page-detector";
 import { NavigationCoordinator } from "../../src/content/navigation-coordinator";
+import { resolveMemberIdentity } from "../../src/identity/member-identity";
 import {
   hasVerifiedSelectors,
   selectorRegistry,
   verifiedSelector,
 } from "../../src/selectors/registry";
+import inboxEvidence from "../../docs/live-evidence/01-inbox.md?raw";
+import conversationEvidence from "../../docs/live-evidence/02-conversation.md?raw";
+import profileEvidence from "../../docs/live-evidence/03-profile.md?raw";
 
-describe("F2 unverified content framework", () => {
-  it("does not infer a page or expose invented selectors", () => {
-    expect(detectPage()).toEqual({
-      status: "missing",
-      source: "selector-registry-unverified",
-    });
+const EVIDENCE: Record<string, string> = {
+  "01-inbox.md": inboxEvidence,
+  "02-conversation.md": conversationEvidence,
+  "03-profile.md": profileEvidence,
+};
+
+describe("F2 content framework", () => {
+  it("verifies only pages backed by live evidence", () => {
+    for (const [page, definition] of Object.entries(selectorRegistry)) {
+      if (definition.status === "verified") {
+        expect(definition.evidence, page).toMatch(/^0\d-[a-z-]+\.md$/);
+        expect(EVIDENCE[definition.evidence ?? ""], page).toMatch(/^# /);
+      } else expect(Object.keys(definition.fields), page).toHaveLength(0);
+    }
+    expect(verifiedSelector("search", "row")).toBeUndefined();
+    // The sender name is verified for display, but never as an identity.
     expect(
-      Object.values(selectorRegistry).every(
-        ({ status, fields }) =>
-          status === "unverified" && Object.keys(fields).length === 0,
-      ),
-    ).toBe(true);
-    expect(verifiedSelector("inbox", "senderName")).toBeUndefined();
-    expect(hasVerifiedSelectors()).toBe(false);
+      resolveMemberIdentity({
+        page: "inbox",
+        field: "senderName",
+        extraction: { status: "found", value: "Synthetic", source: "t" },
+      }),
+    ).toEqual({ status: "unresolved", reason: "unstable-identifier" });
+    expect(hasVerifiedSelectors()).toBe(true);
+  });
+
+  it("never selects on build-hash attributes", () => {
+    for (const definition of Object.values(selectorRegistry))
+      for (const selector of [
+        definition.root ?? "",
+        ...Object.values(definition.fields),
+      ])
+        expect(selector).not.toMatch(/data-v-/);
+  });
+
+  it("detects no page on a non-JoyClub document", () => {
+    expect(detectPage().status).toBe("missing");
   });
   it("coordinates initial and debounced mutation notifications", async () => {
     vi.useFakeTimers();

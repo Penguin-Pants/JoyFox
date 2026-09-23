@@ -1,0 +1,34 @@
+# Live evidence
+
+Sanitized observations of the live JoyClub site, captured on 2026-09-22 with
+Claude in Chrome from the project owner's own logged-in account. They are the
+evidence that `docs/manual-verification-needed.md` requires before a selector
+may be marked verified.
+
+Every name, message, profile text, image and URL nickname was replaced with a
+placeholder (`NAME`, `TEXT`, `X`, `IMG`), and every digit in an identifier was
+replaced with `0`. The code values in `01-inbox.md` (`verification-status`,
+`universal-gender`) are site enumeration codes, not personal data.
+
+| File                     | Covers                                        | Checklist item                                 |
+| ------------------------ | --------------------------------------------- | ---------------------------------------------- |
+| `01-inbox.md`            | Inbox list, row structure, code values        | 1 (partial)                                    |
+| `02-conversation.md`     | Open conversation, header, composer, controls | 2 (partial), 6 (partial), 7 (observation only) |
+| `03-profile.md`          | Profile page fields                           | 3                                              |
+| `08-attribute-matrix.md` | Where each qualification criterion appears    | 8 (partial)                                    |
+| `09-navigation.md`       | Full page load versus client-side navigation  | 9 (partial)                                    |
+
+What each partial item still lacks:
+
+- **1:** loading behavior. Scrolling was not exercised, and a search for a
+  sentinel class cannot detect a scroll listener or a virtualized list.
+- **2:** message identifiers. No stable per-message ID was looked for, so it is
+  neither present nor recorded as absent.
+- **6:** the input and change events the standard composer needs after its value
+  is set. They were not exercised, so template insertion stays blocked.
+- **8:** join date and profile type are Unclear (see the corrections in
+  `08-attribute-matrix.md`).
+
+Not yet captured: search (4), events (5), event ClubMail composer (6), the
+content of the conversation options menu (7), the remaining navigation moves (9)
+and the distribution channel (10).

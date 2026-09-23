@@ -37,6 +37,20 @@
 16. Confirm no message is cached anywhere while selectors are unverified, since
     nothing reads a page yet.
 
+## F2 live acceptance (inbox)
+
+14. Build the extension, load `dist/firefox/manifest.json` temporarily from
+    `about:debugging`, and log in to JoyClub yourself.
+15. In the extension's devtools console (about:debugging → Inspect), run
+    `browser.storage.local.set({ "joyfox.diagnostics": true })`.
+16. Open the inbox and the page's console. Confirm a line such as
+    `JoyFox inbox.extracted rows=25 senderName=25 memberId=25 ...` appears. It
+    must contain counts only, never a name or number.
+17. Reload the inbox ten times. Confirm the line appears each time and that
+    `senderName` and `memberId` equal `rows` (or record which rows differ).
+18. Turn diagnostics off again with
+    `browser.storage.local.remove("joyfox.diagnostics")`.
+
 Live selector and action acceptance must wait for the evidence checklist in
 `manual-verification-needed.md`. Never perform destructive action testing
 automatically.

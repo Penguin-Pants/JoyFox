@@ -27,3 +27,8 @@ to log. Comparison is local and deterministic, with no model and no network.
 Removing an account from the options page deletes every record in that scope and
 clears the active-account pointer first, so an interrupted removal cannot leave
 the extension active on a half-removed scope.
+
+On verified JoyClub pages the content script reads member IDs, badge codes,
+photo counts and word counts. The inbox sender name is read for display alone:
+it is never used as an identity, never stored and never logged. The optional
+development diagnostics log counts only.

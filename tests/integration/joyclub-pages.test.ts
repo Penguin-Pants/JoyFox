@@ -1,0 +1,368 @@
+// @vitest-environment jsdom
+import { beforeEach, describe, expect, it } from "vitest";
+import {
+  DIAGNOSTICS_KEY,
+  DiagnosticsFlag,
+  summarizeInbox,
+} from "../../src/content/diagnostics";
+import { detectPage } from "../../src/content/page-detector";
+import {
+  extractConversation,
+  extractInboxRows,
+  extractProfile,
+  memberIdFromProfileHref,
+  verificationFromCode,
+} from "../../src/extraction/joyclub";
+import { resolveMemberIdentity } from "../../src/identity/member-identity";
+import { evaluateQualification } from "../../src/qualification/engine";
+import { mergeProfileFacts } from "../../src/qualification/facts";
+import conversationHtml from "../fixtures/joyclub/conversation.html?raw";
+import inboxHtml from "../fixtures/joyclub/inbox.html?raw";
+import profileHtml from "../fixtures/joyclub/profile.html?raw";
+
+const FIXTURES: Record<string, string> = {
+  inbox: inboxHtml,
+  conversation: conversationHtml,
+  profile: profileHtml,
+};
+const fixture = (name: string) => FIXTURES[name] ?? "";
+
+const INBOX_URL = "https://www.joyclub.de/clubmail/";
+const CONVERSATION_URL =
+  "https://www.joyclub.de/clubmail/conversation/conversation-wrapper-personal-1234567-7654321/";
+const PROFILE_URL = "https://www.joyclub.de/profile/1234567.synthetic_one.html";
+
+function load(name: string): Document {
+  document.body.innerHTML = fixture(name);
+  return document;
+}
+
+beforeEach(() => {
+  document.body.innerHTML = "";
+});
+
+describe("F1/F2 page detection from verified selectors", () => {
+  it("detects each verified page once its root has rendered", () => {
+    expect(detectPage(INBOX_URL, load("inbox"))).toMatchObject({
+      status: "found",
+      value: "inbox",
+    });
+    expect(detectPage(CONVERSATION_URL, load("conversation"))).toMatchObject({
+      status: "found",
+      value: "conversation",
+    });
+    expect(detectPage(PROFILE_URL, load("profile"))).toMatchObject({
+      status: "found",
+      value: "profile",
+    });
+  });
+
+  it("lets the URL decide while the inbox list stays rendered", () => {
+    document.body.innerHTML = fixture("inbox") + fixture("conversation");
+    expect(detectPage(CONVERSATION_URL, document)).toMatchObject({
+      value: "conversation",
+    });
+  });
+
+  it("waits while a matching page has not rendered its root", () => {
+    expect(detectPage(PROFILE_URL, document)).toEqual({
+      status: "missing",
+      source: "profile:root-not-rendered",
+    });
+  });
+
+  it("detects nothing on unverified hosts, paths or URLs", () => {
+    load("inbox");
+    expect(detectPage("https://www.joyce.app/clubmail/", document)).toEqual({
+      status: "missing",
+      source: "host-unverified",
+    });
+    expect(detectPage("https://www.joyclub.de/search/", document).status).toBe(
+      "missing",
+    );
+    expect(
+      detectPage("https://www.joyclub.de/clubmail/other/", document).status,
+    ).toBe("missing");
+    expect(detectPage("not a url", document).status).toBe("invalid");
+  });
+});
+
+describe("F1 extraction from the verified inbox", () => {
+  it("reads member IDs and codes without the nickname or the name", () => {
+    const rows = extractInboxRows(load("inbox"), INBOX_URL);
+    expect(rows).toHaveLength(3);
+    expect(rows[0]).toMatchObject({
+      memberId: { status: "found", value: "1234567" },
+      verificationCode: { status: "found", value: 3 },
+      genderCode: { status: "found", value: 1 },
+      readState: { status: "found", value: "received" },
+    });
+    expect(rows[1]).toMatchObject({
+      memberId: { status: "found", value: "98765432" },
+      readState: { status: "found", value: "read" },
+    });
+    const serialized = JSON.stringify(
+      rows.map((row) => [
+        row.memberId,
+        row.verificationCode,
+        row.genderCode,
+        row.readState,
+      ]),
+    );
+    expect(serialized).not.toMatch(/synthetic_one|Synthetic One|preview/);
+  });
+
+  it("reads the sender name for display only (F2 proof of concept)", () => {
+    const rows = extractInboxRows(load("inbox"), INBOX_URL);
+    expect(rows.map((row) => row.senderName)).toEqual([
+      { status: "found", value: "Synthetic One", source: "inbox.senderName" },
+      { status: "found", value: "Synthetic Two", source: "inbox.senderName" },
+      { status: "found", value: "Synthetic Three", source: "inbox.senderName" },
+    ]);
+  });
+
+  it("summarizes an inbox for diagnostics with counts only", () => {
+    const summary = summarizeInbox(extractInboxRows(load("inbox"), INBOX_URL));
+    expect(summary).toBe(
+      "inbox.extracted rows=3 senderName=3 memberId=2 verificationCode=2 readState=2",
+    );
+    expect(summary).not.toMatch(/Synthetic|1234567|98765432/);
+  });
+
+  it("reports a row without avatar or icons as missing, never as a value", () => {
+    const [, , bare] = extractInboxRows(load("inbox"), INBOX_URL);
+    expect(bare).toMatchObject({
+      memberId: { status: "missing" },
+      verificationCode: { status: "missing" },
+      genderCode: { status: "missing" },
+      readState: { status: "missing" },
+    });
+  });
+
+  it("rejects a profile link of an unexpected shape", () => {
+    for (const href of ["/profile/abc.name.html", "/clubmail/", "/profile/1"])
+      expect(memberIdFromProfileHref(href, INBOX_URL, "t").status).toBe(
+        "invalid",
+      );
+    expect(memberIdFromProfileHref("", INBOX_URL, "t").status).toBe("missing");
+  });
+
+  it("resolves a stable member identity from the verified member ID field", () => {
+    const [row] = extractInboxRows(load("inbox"), INBOX_URL);
+    if (!row) throw new Error("fixture has no row");
+    expect(
+      resolveMemberIdentity({
+        page: "inbox",
+        field: "memberId",
+        extraction: row.memberId,
+      }),
+    ).toEqual({
+      status: "resolved",
+      memberId: "1234567",
+      source: "inbox.memberId",
+    });
+    expect(
+      resolveMemberIdentity({
+        page: "inbox",
+        field: "senderName",
+        extraction: { status: "found", value: "Synthetic One", source: "t" },
+      }),
+    ).toEqual({ status: "unresolved", reason: "unstable-identifier" });
+  });
+});
+
+describe("F1 extraction from the verified conversation", () => {
+  it("reads the conversation ID from the URL and the sender from the header", () => {
+    expect(extractConversation(load("conversation"), CONVERSATION_URL)).toEqual(
+      {
+        conversationId: {
+          status: "found",
+          value: "personal-1234567-7654321",
+          source: "conversation.url",
+        },
+        memberId: {
+          status: "found",
+          value: "1234567",
+          source: "conversation.memberId",
+        },
+        verificationCode: {
+          status: "found",
+          value: 3,
+          source: "conversation.verificationCode",
+        },
+        genderCode: {
+          status: "found",
+          value: 1,
+          source: "conversation.genderCode",
+        },
+        descriptionWordCount: {
+          status: "found",
+          value: 4,
+          source: "conversation.profileDescription",
+        },
+      },
+    );
+  });
+
+  it("ignores a header that still shows the previous conversation", () => {
+    // Client-side switch: the URL names a new conversation, the old header is
+    // still rendered.
+    const result = extractConversation(
+      load("conversation"),
+      "https://www.joyclub.de/clubmail/conversation/conversation-wrapper-personal-5555555-7654321/",
+    );
+    expect(result.conversationId).toMatchObject({
+      status: "found",
+      value: "personal-5555555-7654321",
+    });
+    for (const field of [
+      result.memberId,
+      result.verificationCode,
+      result.genderCode,
+      result.descriptionWordCount,
+    ])
+      expect(field).toMatchObject({
+        status: "missing",
+        source: expect.stringContaining("header-not-matched-to-url"),
+      });
+  });
+
+  it("reports missing fields on an unrendered page", () => {
+    const result = extractConversation(document, CONVERSATION_URL);
+    expect(result.memberId.status).toBe("missing");
+    expect(result.descriptionWordCount.status).toBe("missing");
+    expect(result.conversationId.status).toBe("found");
+  });
+});
+
+describe("F1/F9 extraction from the verified profile", () => {
+  it("reads member ID, photo count and word count; join date stays missing", () => {
+    const result = extractProfile(load("profile"), PROFILE_URL);
+    expect(result).toMatchObject({
+      memberId: { status: "found", value: "1234567" },
+      verificationCode: { status: "found", value: 3 },
+      photoCount: { status: "found", value: 12 },
+      profileWordCount: { status: "found", value: 13 },
+      joinedAt: { status: "missing" },
+    });
+  });
+
+  it("parses the singular photo label and rejects an unexpected one", () => {
+    load("profile");
+    const badge = document.querySelector(".amount-badge");
+    badge?.setAttribute("aria-label", "1 Foto");
+    expect(extractProfile(document, PROFILE_URL).photoCount).toMatchObject({
+      status: "found",
+      value: 1,
+    });
+    badge?.setAttribute("aria-label", "Fotos ansehen");
+    expect(extractProfile(document, PROFILE_URL).photoCount.status).toBe(
+      "invalid",
+    );
+  });
+
+  it("keeps the word count missing when no text block rendered", () => {
+    load("profile");
+    for (const element of Array.from(
+      document.querySelectorAll(
+        ".profile-description-motto__text, .profile-description-maintext__text",
+      ),
+    ))
+      element.remove();
+    expect(extractProfile(document, PROFILE_URL).profileWordCount.status).toBe(
+      "missing",
+    );
+  });
+});
+
+describe("M1 on verified profile data", () => {
+  it("never treats an unconfirmed verification code as verified", () => {
+    for (const value of [0, 1, 2, 3])
+      expect(
+        verificationFromCode({ status: "found", value, source: "t" }),
+      ).toBe("unknown");
+  });
+
+  it("scores known facts and leaves unconfirmed ones unknown", () => {
+    const extracted = extractProfile(load("profile"), PROFILE_URL);
+    const value = <T>(result: { status: string; value?: T }) =>
+      result.status === "found" ? (result.value as T) : ("unknown" as const);
+    const merged = mergeProfileFacts({
+      verification: verificationFromCode(extracted.verificationCode),
+      photoCount: value<number>(extracted.photoCount),
+      profileWordCount: value<number>(extracted.profileWordCount),
+      joinedAt: value<string>(extracted.joinedAt),
+    });
+    const result = evaluateQualification({
+      facts: merged.facts,
+      sources: merged.sources,
+      criteria: {
+        requireVerification: true,
+        minimumPhotoCount: 3,
+        minimumProfileWordCount: 10,
+        minimumAccountAgeDays: 30,
+      },
+    });
+    expect(result.criteria.map(({ name, state }) => [name, state])).toEqual([
+      ["verification", "unknown"],
+      ["photoCount", "pass"],
+      ["profileWordCount", "pass"],
+      ["accountAge", "unknown"],
+    ]);
+    expect(result.outcome).toBe("partial-information");
+  });
+});
+
+describe("F2 diagnostics flag", () => {
+  it("follows storage changes after the initial read", async () => {
+    let listener:
+      | ((
+          changes: Record<string, { newValue?: unknown }>,
+          area: string,
+        ) => void)
+      | undefined;
+    const flag = new DiagnosticsFlag(
+      async () => ({ [DIAGNOSTICS_KEY]: true }),
+      { addListener: (added) => (listener = added) },
+    );
+    await flag.ready;
+    expect(flag.enabled).toBe(true);
+    listener?.({ [DIAGNOSTICS_KEY]: {} }, "local");
+    expect(flag.enabled).toBe(false);
+    listener?.({ [DIAGNOSTICS_KEY]: { newValue: true } }, "sync");
+    expect(flag.enabled).toBe(false);
+    listener?.({ [DIAGNOSTICS_KEY]: { newValue: true } }, "local");
+    expect(flag.enabled).toBe(true);
+  });
+
+  it("keeps a change made while the initial read is pending", async () => {
+    for (const [initial, changed] of [
+      [true, undefined],
+      [false, true],
+    ] as const) {
+      let listener:
+        | ((
+            changes: Record<string, { newValue?: unknown }>,
+            area: string,
+          ) => void)
+        | undefined;
+      let resolveRead: (value: Record<string, unknown>) => void = () => {};
+      const flag = new DiagnosticsFlag(
+        () => new Promise((resolve) => (resolveRead = resolve)),
+        { addListener: (added) => (listener = added) },
+      );
+      listener?.({ [DIAGNOSTICS_KEY]: { newValue: changed } }, "local");
+      resolveRead({ [DIAGNOSTICS_KEY]: initial });
+      await flag.ready;
+      expect(flag.enabled).toBe(changed === true);
+    }
+  });
+
+  it("stays off when storage cannot be read", async () => {
+    const flag = new DiagnosticsFlag(async () => {
+      throw new Error("synthetic storage failure");
+    });
+    await flag.ready;
+    expect(flag.enabled).toBe(false);
+  });
+});

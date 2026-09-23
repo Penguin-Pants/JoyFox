@@ -39,7 +39,9 @@ Matches the PRD's Section 19.1 scope exactly. Nothing here is not in that list, 
 | ID | Status | Notes |
 | --- | --- | --- |
 | F0 to F6 | Done | See `foundation-audit.md`. F2's live acceptance waits on F1. |
-| F1, F7, F8, F9 | Blocked | Human-assisted verification. See `manual-verification-needed.md`. |
+| F1 | Partial | Inbox, conversation and profile verified from `docs/live-evidence/`. Search, events and the ClubMail composer remain. |
+| F9 | Partial | Matrix in `08-attribute-matrix.md`. Verification appears on all three pages, photo count only on the profile, profile text on the conversation and the profile. Join date and profile type are Unclear. |
+| F7, F8 | Blocked | Human-assisted verification. See `manual-verification-needed.md`. |
 | M1 | Partial | The qualification engine and profile-fact merge are complete, pure and tested, including F9's unknown-is-not-failure rule. Resolving the member, collecting observed facts and rendering the badge wait on F1, and the availability matrix on F9. |
 | M3 | Partial | Normalization, the pluggable similarity engine, duplicate and known-phrase matching, explanations, and the persisted per-sender override are complete. Nothing reads a message from a page yet, which waits on F1. |
 | M5 | Partial | Notes and tags persist, keyed to account plus a resolved member identity. Writes are refused while no member selector is verified, and the profile UI waits on F1. See `milestone-b-audit.md`. |
@@ -47,6 +49,14 @@ Matches the PRD's Section 19.1 scope exactly. Nothing here is not in that list, 
 | M2, M4, M6, M8, M9, M10 | Not started | |
 
 ### Follow-up work recorded during Milestone B
+
+- Confirm the meaning of the `verification-status` codes, then map them in
+  `src/extraction/joyclub.ts`.
+- Establish whether JoyClub shows a join date anywhere. Until it does, the
+  account-age criterion stays unknown.
+- Build the page UI: the qualification badge on inbox rows and in the
+  conversation header, and snapshot capture on the profile page. Content
+  scripts must reach storage through background messaging.
 
 - Add a member index for user tags and message observations, so per-member
   reads and the retention purge do not scan the account. This changes the

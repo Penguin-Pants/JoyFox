@@ -1,6 +1,6 @@
 # Synthetic DOM fixtures
 
-Only invented data may be stored here. Live JoyClub markup is not yet verified,
-so page fixtures remain intentionally absent. Once sanitized structure and
-verified selectors are supplied, add a fixture and selector-map update in the
-same change.
+Only invented data may be stored here. Each fixture in `joyclub/` reproduces the
+structure of one sanitized evidence file in `docs/live-evidence/`, with invented
+names, numbers and text. Update a fixture in the same change as the selector it
+supports, as `docs/selector-map.md` requires.
