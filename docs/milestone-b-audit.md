@@ -7,6 +7,12 @@ the qualification engine and M1 (steps 11 and 12), then the spam detector and M3
 
 ## Decisions recorded
 
+"Persönlich bekannt" (verification code `3`) is its own signal, on the project
+owner's decision (2026-09-23). It means the user has met the member in person,
+which the owner rates as higher trust than JoyClub's "geprüft". It is a separate
+qualification criterion, `requirePersonallyKnown`, not a form of verification,
+and it is never filled from a cached snapshot.
+
 PRD Section 12.1 defines no entity for previous messages and none for a
 per-sender spam correction, yet M3 requires both. Two entities were added at
 schema version 2 on the project owner's decision: `MessageObservation`, holding

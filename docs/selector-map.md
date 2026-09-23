@@ -48,7 +48,7 @@ app (`09-navigation.md`) and the inbox list can stay in the DOM.
 | Inbox        | Row               | `.cm-conversation-list-item`                                              | One conversation                                     |
 | Inbox        | Sender name       | `[data-e2e="conversation-list-item-name"]`                                | Display only                                         |
 | Inbox        | Member ID         | `.cm-conversation-list-item__avatar[href]`                                | Digits in `/profile/<n>.<nickname>.html`             |
-| Inbox        | Verification code | `j-veri-icon[verification-status]`                                        | `1` verified; `3` personally known (separate signal) |
+| Inbox        | Verification code | `j-veri-icon[verification-status]`                                        | `1` verified; `3` personally known (own criterion)   |
 | Inbox        | Gender code       | `j-gender-icon[universal-gender]`                                         | Numeric code, `1` = man                              |
 | Inbox        | Read state        | `.cm-conversation-list-item__read-status`                                 | BEM modifier; on some rows only; meaning unconfirmed |
 | Conversation | Conversation ID   | URL path                                                                  | `personal-<n>-<n>`, kept opaque                      |

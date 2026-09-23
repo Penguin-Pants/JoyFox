@@ -6,15 +6,30 @@ import type { ProfileSnapshot } from "../domain/types";
  * when it was not observed, never a negative value standing in for absence.
  */
 export interface ProfileFacts {
+  /** JoyClub's own verification ("geprüft"). */
   verification: boolean | "unknown";
+  /**
+   * The logged-in user marked this member as met in person ("persönlich
+   * bekannt"). A separate, higher-trust signal than verification, and a
+   * viewer's own mark, so it is read live and never taken from a snapshot.
+   */
+  personallyKnown: boolean | "unknown";
   photoCount: number | "unknown";
   profileWordCount: number | "unknown";
   joinedAt: string | "unknown";
 }
 
+/** Facts read only from the current page, never filled from a snapshot. */
+type LiveOnlyFact = "personallyKnown";
+export type CachedFactName = Exclude<keyof ProfileFacts, LiveOnlyFact>;
+const LIVE_ONLY_FACTS: ReadonlySet<keyof ProfileFacts> = new Set([
+  "personallyKnown",
+]);
+
 /** Frozen, because callers spread it as a starting point and must not change it. */
 export const UNKNOWN_FACTS: Readonly<ProfileFacts> = Object.freeze({
   verification: "unknown",
+  personallyKnown: "unknown",
   photoCount: "unknown",
   profileWordCount: "unknown",
   joinedAt: "unknown",
@@ -62,6 +77,7 @@ const isCount = (value: unknown): value is number =>
 function isUsable(field: keyof ProfileFacts, value: unknown): boolean {
   switch (field) {
     case "verification":
+    case "personallyKnown":
       return typeof value === "boolean";
     case "photoCount":
     case "profileWordCount":
@@ -88,11 +104,12 @@ export interface MergedFacts {
  */
 export function mergeProfileFacts(
   observed: Partial<ProfileFacts>,
-  cached?: Pick<ProfileSnapshot, keyof ProfileFacts>,
+  cached?: Pick<ProfileSnapshot, CachedFactName>,
 ): MergedFacts {
   const facts = { ...UNKNOWN_FACTS };
   const sources: Record<keyof ProfileFacts, FactSource> = {
     verification: "none",
+    personallyKnown: "none",
     photoCount: "none",
     profileWordCount: "none",
     joinedAt: "none",
@@ -104,7 +121,8 @@ export function mergeProfileFacts(
       sources[field] = "observed";
       continue;
     }
-    const stored = cached?.[field];
+    if (LIVE_ONLY_FACTS.has(field)) continue;
+    const stored = cached?.[field as CachedFactName];
     if (isUsable(field, stored)) {
       facts[field] = stored as never;
       sources[field] = "cached";

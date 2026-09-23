@@ -83,6 +83,7 @@ describe("M1 qualification engine", () => {
     const result = evaluateQualification({
       facts: {
         verification: true,
+        personallyKnown: "unknown",
         photoCount: 4,
         profileWordCount: 120,
         joinedAt: "2026-01-01T00:00:00.000Z",
@@ -229,6 +230,42 @@ describe("M1 qualification engine", () => {
     });
     const newer = snapshot({ id: "newer", capturedAt: "2026-03-01T00:30:00Z" });
     expect(newestSnapshot([older, newer])?.id).toBe("newer");
+  });
+
+  it("evaluates personally known as its own criterion", () => {
+    const evaluate = (personallyKnown: boolean | "unknown") =>
+      evaluateQualification({
+        facts: { ...UNKNOWN_FACTS, verification: true, personallyKnown },
+        criteria: { requireVerification: true, requirePersonallyKnown: true },
+        now: NOW,
+      });
+    expect(evaluate(true).outcome).toBe("qualified");
+    expect(evaluate(false)).toMatchObject({
+      outcome: "does-not-meet-rule",
+      reasons: [
+        "You have not marked this member as personally known, which the rule requires.",
+      ],
+    });
+    expect(evaluate("unknown").outcome).toBe("partial-information");
+    // Verification alone does not satisfy the personally-known criterion.
+    expect(
+      evaluate("unknown").criteria.map(({ name, state }) => [name, state]),
+    ).toEqual([
+      ["verification", "pass"],
+      ["personallyKnown", "unknown"],
+    ]);
+  });
+
+  it("never fills personally known from a cached snapshot", () => {
+    const merged = mergeProfileFacts({}, {
+      ...snapshot(),
+      personallyKnown: true,
+    } as never);
+    expect(merged.facts.personallyKnown).toBe("unknown");
+    expect(merged.sources.personallyKnown).toBe("none");
+    expect(mergeProfileFacts({ personallyKnown: true }).sources).toMatchObject({
+      personallyKnown: "observed",
+    });
   });
 
   it("keeps the unknown default immutable", () => {

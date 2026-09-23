@@ -308,6 +308,7 @@ describe("M1 on verified profile data", () => {
       result.status === "found" ? (result.value as T) : ("unknown" as const);
     const merged = mergeProfileFacts({
       verification: verificationFromCode(extracted.verificationCode),
+      personallyKnown: personallyKnownFromCode(extracted.verificationCode),
       photoCount: value<number>(extracted.photoCount),
       profileWordCount: value<number>(extracted.profileWordCount),
       joinedAt: value<string>(extracted.joinedAt),
@@ -317,6 +318,7 @@ describe("M1 on verified profile data", () => {
       sources: merged.sources,
       criteria: {
         requireVerification: true,
+        requirePersonallyKnown: true,
         minimumPhotoCount: 3,
         minimumProfileWordCount: 10,
         minimumAccountAgeDays: 30,
@@ -324,8 +326,9 @@ describe("M1 on verified profile data", () => {
     });
     expect(result.criteria.map(({ name, state }) => [name, state])).toEqual([
       // The fixture shows code 3 ("persönlich bekannt"), which hides
-      // JoyClub's verification.
+      // JoyClub's verification but passes the personally-known criterion.
       ["verification", "unknown"],
+      ["personallyKnown", "pass"],
       ["photoCount", "pass"],
       ["profileWordCount", "pass"],
       ["accountAge", "unknown"],
