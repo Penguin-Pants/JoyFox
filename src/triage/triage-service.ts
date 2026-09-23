@@ -274,7 +274,15 @@ export class TriageService {
     const { facts } = mergeProfileFacts(observed);
     const window =
       facts.joinedWindow === "unknown" ? undefined : facts.joinedWindow;
-    const values = {
+    const values: Pick<
+      ProfileSnapshot,
+      | "verification"
+      | "photoCount"
+      | "profileWordCount"
+      | "joinedAt"
+      | "joinedEarliest"
+      | "joinedLatest"
+    > = {
       verification: facts.verification,
       photoCount: facts.photoCount,
       profileWordCount: facts.profileWordCount,
@@ -294,6 +302,28 @@ export class TriageService {
     const newest = newestSnapshot(
       all.filter((snapshot) => snapshot.memberId === memberId),
     );
+    // A page that has not rendered a field yet (the photo badge often comes
+    // late) must not erase what an earlier capture knew. A field not seen now
+    // keeps its newest known value, which a later observation replaces
+    // (ADR 0005).
+    if (newest) {
+      if (values.verification === "unknown")
+        values.verification = newest.verification;
+      if (values.photoCount === "unknown")
+        values.photoCount = newest.photoCount;
+      if (values.profileWordCount === "unknown")
+        values.profileWordCount = newest.profileWordCount;
+      if (values.joinedAt === "unknown") values.joinedAt = newest.joinedAt;
+      if (
+        !window &&
+        newest.joinedEarliest !== undefined &&
+        newest.joinedLatest !== undefined
+      )
+        Object.assign(values, {
+          joinedEarliest: newest.joinedEarliest,
+          joinedLatest: newest.joinedLatest,
+        });
+    }
     if (
       newest &&
       SNAPSHOT_FIELDS.every((field) =>

@@ -276,6 +276,46 @@ describe("snapshot capture", () => {
     expect(result?.placement).toBe("qualified");
   });
 
+  it("keeps a known fact when a later capture has not seen it yet", async () => {
+    await rules.saveGlobalRule(A, photoRule());
+    let tick = 0;
+    const later = new TriageService(
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      settings,
+      () => new Date(NOW.getTime() + (tick += 1000)),
+    );
+    await later.captureSnapshot(A, MEMBER, {
+      verification: true,
+      photoCount: 4,
+      joinedWindow: {
+        earliest: "2025-09-23T12:00:00.000Z",
+        latest: "2025-11-23T12:00:00.000Z",
+      },
+    });
+    // The photo badge and join badge have not rendered on this visit yet.
+    expect(
+      await later.captureSnapshot(A, MEMBER, { profileWordCount: 9 }),
+    ).toBe(true);
+    const [result] = ok(
+      await later.evaluate(A, [{ memberId: MEMBER, observed: {} }]),
+    );
+    expect(result?.placement).toBe("qualified");
+    const newest = (await repositories.profileSnapshots.list(A)).sort((a, b) =>
+      b.capturedAt.localeCompare(a.capturedAt),
+    )[0];
+    expect(newest).toMatchObject({
+      verification: true,
+      photoCount: 4,
+      profileWordCount: 9,
+      joinedEarliest: "2025-09-23T12:00:00.000Z",
+    });
+  });
+
   it("drops a value of the wrong shape instead of storing it", async () => {
     await triage.captureSnapshot(A, MEMBER, {
       photoCount: -3 as never,

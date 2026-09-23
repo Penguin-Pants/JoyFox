@@ -140,6 +140,13 @@ plus an observer change:
   noticed. It now also watches those attributes and text changes, never JoyFox's
   own `data-joyfox-*` attributes.
 
+A sixth Codex review found one more, confirmed and fixed:
+
+- A capture made before the page rendered every field stored the missing fields
+  as unknown, and inbox triage then lost facts an earlier capture knew (listed
+  earlier as a possible risk). A field not seen now keeps its newest known value
+  until a later observation replaces it.
+
 Each fix has a regression test confirmed to fail without it.
 
 ### Confirmed issues deferred
@@ -160,9 +167,6 @@ Each fix has a regression test confirmed to fail without it.
   badge click may also open the conversation. Both need a live check.
 - Hiding rows with `display: none` inside a framework-managed list is assumed to
   leave JoyClub's scrolling and loading intact. Not yet checked live.
-- Snapshots keep the newest capture only per read. A capture made before the
-  page finished rendering can hold unknowns that a later, complete capture
-  replaces; until then the inbox reads the unknowns.
 
 ## Blocked or remaining
 
