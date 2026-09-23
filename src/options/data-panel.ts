@@ -11,6 +11,7 @@ import type { EntityName, ExtensionAccount } from "../domain/types";
 import { isExtensionError } from "../errors";
 import { ENTITY_NAMES } from "../storage/database";
 import type { EntityCounts } from "../storage/repositories";
+import { confirmAllowed, confirmTiming } from "./confirm";
 
 function element<K extends keyof HTMLElementTagNameMap>(
   document: Document,
@@ -75,6 +76,7 @@ export class DataPanel {
   #shown: EntityName | undefined;
   #shownLimit = RECORD_PAGE_SIZE;
   #pending: Pending | undefined;
+  #armedAt = 0;
 
   constructor(
     private readonly root: HTMLElement,
@@ -391,7 +393,7 @@ export class DataPanel {
     className: string,
     text: string,
     ariaLabel: string | undefined,
-    onClick: () => void,
+    onClick: (event: MouseEvent) => void,
   ): HTMLButtonElement {
     const node = element(document, "button", className, text);
     node.type = "button";
@@ -414,19 +416,25 @@ export class DataPanel {
     action: (accountId: string) => Promise<void>,
     done: string,
   ): HTMLButtonElement {
+    // Whether this node was drawn armed, fixed at draw time: a click on a
+    // node drawn unarmed can only arm, never confirm.
     const armed = samePending(this.#pending, pending);
     const node = this.#button(
       document,
       "joyfox-panel__remove",
       armed ? "Confirm" : text,
       armed ? `Confirm: ${ariaLabel}` : ariaLabel,
-      () => {
-        if (!samePending(this.#pending, pending)) {
+      (event) => {
+        if (!armed) {
+          if (event.detail > 1) return;
           this.#pending = pending;
+          this.#armedAt = confirmTiming.now();
           this.#setStatus(prompt, "info");
           void this.render();
           return;
         }
+        if (!samePending(this.#pending, pending)) return;
+        if (!confirmAllowed(event, this.#armedAt)) return;
         this.#pending = undefined;
         void this.#guard(async () => {
           await action(this.#requireSelected(pending.kind === "all"));

@@ -295,6 +295,27 @@ describe("M8 inspection and delete", () => {
     );
   });
 
+  it("reports an account added while everything was being deleted", async () => {
+    const racing = new DataService(
+      {
+        listAccounts: (() => {
+          let calls = 0;
+          return async () => {
+            calls += 1;
+            // The second read, inside the locks, sees a newcomer.
+            if (calls === 2)
+              await repositories.extensionAccounts.put("late", {
+                ...record("extensionAccounts", "late", "late"),
+              });
+            return accounts.listAccounts();
+          };
+        })(),
+      } as unknown as AccountService,
+      settings,
+    );
+    await expect(racing.deleteEverything()).rejects.toThrow("added");
+  });
+
   it("deletes everything, in every scope, with every setting", async () => {
     await repositories.extensionPreferences.put(
       "acceptance",

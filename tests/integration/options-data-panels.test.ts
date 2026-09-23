@@ -3,6 +3,7 @@ import "../setup-indexeddb";
 import { beforeEach, describe, expect, it } from "vitest";
 import { AccountService } from "../../src/accounts/account-service";
 import { DataService } from "../../src/data/data-service";
+import { confirmTiming } from "../../src/options/confirm";
 import { DataPanel, RECORD_PAGE_SIZE } from "../../src/options/data-panel";
 import { TemplatePanel } from "../../src/options/template-panel";
 import { ENTITY_NAMES } from "../../src/storage/database";
@@ -20,6 +21,8 @@ let b: string;
 
 beforeEach(async () => {
   await freshDatabase();
+  // Tests confirm at once; the double-click test restores the grace period.
+  confirmTiming.graceMs = 0;
   settings = new MemorySettingsArea();
   accounts = new AccountService(repositories.extensionAccounts, settings);
   templates = new TemplateService();
@@ -205,6 +208,36 @@ describe("M8 data panel", () => {
     expect(await templates.list(b)).toHaveLength(1);
   });
 
+  it("a double-click never confirms a delete", async () => {
+    confirmTiming.graceMs = 500;
+    const target = () => byLabel("Delete all JoyFox data in this browser");
+    target().dispatchEvent(new MouseEvent("click", { detail: 1 }));
+    await settle(
+      () => byLabel("Confirm: Delete all JoyFox data in this browser") !== null,
+    );
+    const confirm = byLabel("Confirm: Delete all JoyFox data in this browser");
+    // The second click of a double-click, and a fast single click.
+    confirm.dispatchEvent(new MouseEvent("click", { detail: 2 }));
+    confirm.dispatchEvent(new MouseEvent("click", { detail: 1 }));
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    expect(await accounts.listAccounts()).toHaveLength(2);
+    // A double-click on the unarmed button does not arm it twice either.
+    confirmTiming.graceMs = 0;
+    confirm.dispatchEvent(new MouseEvent("click", { detail: 1 }));
+    await settle(() => text().includes("No accounts yet."));
+  });
+
+  it("includes every JoyFox setting in the full export", async () => {
+    await settings.set({ "joyfox.diagnostics": true });
+    root.querySelector<HTMLButtonElement>(".joyfox-data__export-all")!.click();
+    await settle(() => saved.length === 1);
+    const all = JSON.parse(saved[0]!.text);
+    expect(all.settings).toMatchObject({
+      "joyfox.activeAccountId": a,
+      "joyfox.diagnostics": true,
+    });
+  });
+
   it("deletes all JoyFox data after confirmation", async () => {
     await settings.set({ "joyfox.diagnostics": true });
     byLabel("Delete all JoyFox data in this browser").click();
@@ -298,6 +331,29 @@ describe("M10 template panel", () => {
     await settle(() => text().includes("No templates yet."));
     expect(text()).toContain("Deleted One.");
     expect(await templates.list(a)).toEqual([]);
+  });
+
+  it("keeps the typed text as a new template when the edited one was deleted", async () => {
+    await submit("Gone", "Old");
+    await settle(() => byLabel("Edit template Gone") !== null);
+    byLabel("Edit template Gone").click();
+    await settle(
+      () => field<HTMLInputElement>("joyfox-template-name").value === "Gone",
+    );
+    const [stored] = await templates.list(a);
+    await templates.delete(a, stored!.id);
+    await submit("Kept", "Typed text");
+    await settle(() => status()?.getAttribute("data-kind") === "error");
+    await settle(
+      () =>
+        root.querySelector("form")?.getAttribute("aria-label") ===
+        "Add a template",
+    );
+    expect(field<HTMLTextAreaElement>("joyfox-template-body").value).toBe(
+      "Typed text",
+    );
+    root.querySelector<HTMLFormElement>("form")!.requestSubmit();
+    await settle(() => byLabel("Edit template Kept") !== null);
   });
 
   it("refuses to write after the active account changed", async () => {

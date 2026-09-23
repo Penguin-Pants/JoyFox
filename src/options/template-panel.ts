@@ -9,6 +9,7 @@ import {
   SUGGESTED_FOLDERS,
   TemplateService,
 } from "../templates/template-service";
+import { confirmAllowed, confirmTiming } from "./confirm";
 
 function element<K extends keyof HTMLElementTagNameMap>(
   document: Document,
@@ -54,6 +55,7 @@ export class TemplatePanel {
   #accountId: string | undefined;
   #editing: MessageTemplate | undefined;
   #pendingDelete: string | undefined;
+  #armedAt = 0;
   #form: TemplateForm | undefined;
 
   constructor(
@@ -118,7 +120,7 @@ export class TemplatePanel {
         document,
         "p",
         "joyfox-panel__hint",
-        "A template fills JoyClub's message field at the cursor. You can still edit the text, and you always click JoyClub's Send button yourself. JoyFox never sends a message.",
+        "Templates are stored here. Inserting one into JoyClub's message field is an opt-in trial for now, turned on by a setting described in the JoyFox documentation. A template then fills the field at the cursor; you can still edit the text, and you always click JoyClub's Send button yourself. JoyFox never sends a message.",
       ),
     );
     if (!accountId) {
@@ -216,9 +218,12 @@ export class TemplatePanel {
         ? `Confirm deleting template ${template.name}`
         : `Delete template ${template.name}`,
     );
-    remove.addEventListener("click", () => {
-      if (this.#pendingDelete !== template.id) {
+    remove.addEventListener("click", (event) => {
+      // `confirming` is fixed at draw time: a node drawn unarmed only arms.
+      if (!confirming) {
+        if (event.detail > 1) return;
         this.#pendingDelete = template.id;
+        this.#armedAt = confirmTiming.now();
         this.#setStatus(
           `Click "Confirm delete" to delete ${template.name}.`,
           "info",
@@ -226,6 +231,8 @@ export class TemplatePanel {
         void this.render();
         return;
       }
+      if (this.#pendingDelete !== template.id) return;
+      if (!confirmAllowed(event, this.#armedAt)) return;
       void this.#run(accountId, async () => {
         this.#pendingDelete = undefined;
         await this.templates.delete(accountId, template.id);
@@ -323,7 +330,23 @@ export class TemplatePanel {
       };
       void this.#run(accountId, async () => {
         this.#pendingDelete = undefined;
-        const saved = await this.templates.save(accountId, input);
+        let saved: MessageTemplate;
+        try {
+          saved = await this.templates.save(accountId, input);
+        } catch (error) {
+          // The template being edited was deleted in another tab. Keep what
+          // the user typed as a new template, so a retry adds it instead of
+          // failing the same way again.
+          if (
+            id &&
+            !(await this.templates.list(accountId)).some((t) => t.id === id)
+          ) {
+            this.#editing = undefined;
+            if (this.#form) this.#form.editingId = undefined;
+            await this.render();
+          }
+          throw error;
+        }
         this.#editing = undefined;
         // Saved: the next render starts from an empty form.
         this.#form = undefined;

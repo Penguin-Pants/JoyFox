@@ -143,16 +143,18 @@ the repository layer (`src/storage/repositories.ts`) and `DataService`
   has none.
 - **Full export** (`scope: "all"`): `schemaVersion`, `exportedAt` and every
   record in every store, whatever its scope. This includes records whose scope
-  is not a registered account, such as the diagnostic wake counter.
+  is not a registered account, such as the diagnostic wake counter, plus a
+  `settings` object with every `storage.local` key.
 - Both are indented JSON. `storageKey`, an internal key, is never exported. No
   passphrase exists to export (SyncConfig refuses one).
 - **Delete record** and **delete entity** act in one account. **Delete account
   data** removes every record of the account except its ExtensionAccount record.
   The account record is removed only with the whole account (Accounts panel).
   **Delete all** clears every store and every `storage.local` key. See ADR 0007.
-- Account-wide deletes run in one transaction, so a failure leaves all records
-  in place rather than some. Every delete holds the account lock and sets the
-  triage revision, so open pages re-evaluate at once.
+- Each export reads in one transaction. Account-wide deletes run in one
+  transaction, so a failure leaves all records in place rather than some. Every
+  delete holds the account lock and sets the triage revision, so open pages
+  re-evaluate at once.
 
 ## MessageTemplate (Milestone D, M10)
 

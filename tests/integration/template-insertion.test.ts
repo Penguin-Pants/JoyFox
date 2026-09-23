@@ -226,6 +226,16 @@ describe("M10 composer template picker", () => {
     expect(items()).toHaveLength(0);
   });
 
+  it("closes an open list when the account changes", async () => {
+    const view = new TemplatePicker(document, client());
+    view.update();
+    toggle().click();
+    await settle(() => items().length === 2);
+    view.accountChanged();
+    expect(items()).toHaveLength(0);
+    expect(toggle().getAttribute("aria-expanded")).toBe("false");
+  });
+
   it("reports a failed read without touching the composer", async () => {
     const api: TemplateClient = {
       listTemplates: () => Promise.reject(new Error("offline")),

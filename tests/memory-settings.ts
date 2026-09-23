@@ -18,6 +18,9 @@ export class MemorySettingsArea implements SettingsArea {
     for (const key of keys) this.items.delete(key);
     return Promise.resolve();
   }
+  getAll(): Promise<Record<string, unknown>> {
+    return Promise.resolve(Object.fromEntries(this.items));
+  }
   clear(): Promise<void> {
     this.items.clear();
     return Promise.resolve();

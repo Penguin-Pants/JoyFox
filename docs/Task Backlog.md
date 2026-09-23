@@ -99,6 +99,9 @@ Matches the PRD's Section 19.1 scope exactly. Nothing here is not in that list, 
 - The member index for user tags and message observations (recorded during
   Milestone B for M8) is deferred: no M8 acceptance criterion needs it, and it
   needs a database version change best made with its first real caller.
+- Apply the double-click guard (`src/options/confirm.ts`) to the Accounts
+  panel's "Remove".
+- Add a failure-injection test that an account-wide delete rolls back.
 - Template variables, once plain insertion is accepted live (build plan
   Section 17).
 

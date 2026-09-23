@@ -89,8 +89,14 @@ export class DataService {
     return exportAccount(accountId);
   }
 
-  exportAll(): Promise<FullDataExport> {
-    return exportAllData();
+  async exportAll(): Promise<
+    FullDataExport & { settings: Record<string, unknown> }
+  > {
+    const [data, settings] = await Promise.all([
+      exportAllData(),
+      this.settingsSnapshot(),
+    ]);
+    return { ...data, settings };
   }
 
   async deleteRecord(
@@ -132,8 +138,22 @@ export class DataService {
   async deleteEverything(): Promise<void> {
     const accountIds = (await this.accounts.listAccounts()).map((a) => a.id);
     await this.settings.remove([ACTIVE_ACCOUNT_SETTING_KEY]);
-    await withAccountLocks(accountIds, () => clearAllData());
-    await this.settings.clear();
+    await withAccountLocks(accountIds, async () => {
+      await clearAllData();
+      await this.settings.clear();
+      // An account added in another tab after the list above was read is
+      // not locked and may have survived. Say so rather than report success.
+      if ((await this.accounts.listAccounts()).length > 0)
+        throw new Error("An account was added while deleting");
+    });
+  }
+
+  /**
+   * Every JoyFox setting in `storage.local` (the active pointer and opt-in
+   * flags), for the full export. Values are small and never sensitive.
+   */
+  settingsSnapshot(): Promise<Record<string, unknown>> {
+    return this.settings.getAll();
   }
 
   #requireDeletable(name: EntityName): void {

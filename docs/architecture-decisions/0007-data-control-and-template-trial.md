@@ -34,12 +34,14 @@ Milestone D (M8, M10) needed decisions that no planning document made:
    shows it but offers no delete for it.
 3. **"Delete all JoyFox data" empties every store and `storage.local`.** It
    clears every store, whatever the scope, and every `storage.local` key. The
-   active pointer goes first, and every account lock is held while the stores
-   are emptied. The database and its stores stay, so no upgrade is needed.
+   active pointer goes first, every account lock is held while the stores and
+   settings are emptied, and an account that appears meanwhile is reported as a
+   failure. The database and its stores stay, so no upgrade is needed.
 4. **Two exports.** "Export this account" holds the account's records in every
    entity. "Export all JoyFox data" holds every record in every store, whatever
-   its scope. Both carry the schema version and are indented JSON. The file name
-   holds only the scope and date, never an account identifier.
+   its scope, plus every `storage.local` setting. Both carry the schema version
+   and are indented JSON. The file name holds only the scope and date, never an
+   account identifier.
 5. **One optional `folder` text field.** A template without one shows under
    "General". The three PRD folders are offered as suggestions; any name is
    allowed. No database version change is needed (an optional field, as with the

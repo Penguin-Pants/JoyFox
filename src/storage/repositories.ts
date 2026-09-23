@@ -229,10 +229,26 @@ export interface FullDataExport {
 
 export type EntityCounts = { [N in EntityName]: number };
 
+/** Reads every store in one transaction, so the export is one consistent view. */
 export async function exportAccount(accountId: string): Promise<DataExport> {
+  const db = await openDatabase();
+  const transaction = db.transaction([...ENTITY_NAMES]);
   const entries = await Promise.all(
     ENTITY_NAMES.map(
-      async (name) => [name, await repositories[name].list(accountId)] as const,
+      async (name) =>
+        [
+          name,
+          (
+            await requestResult(
+              transaction
+                .objectStore(name)
+                .index("accountId")
+                .getAll(accountId) as IDBRequest<
+                Array<Stored<EntityMap[typeof name]>>
+              >,
+            )
+          ).map(withoutStorageKey),
+        ] as const,
     ),
   );
   return {
