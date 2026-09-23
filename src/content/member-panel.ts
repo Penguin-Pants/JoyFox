@@ -194,7 +194,9 @@ export class MemberPanel {
     const generation = this.#generation;
     const done = (data: PanelData) => {
       if (generation !== this.#generation) return;
-      this.#inFlight = undefined;
+      // A newer load (another member after a client-side route) keeps its
+      // in-flight guard.
+      if (this.#inFlight === target.key) this.#inFlight = undefined;
       this.#data.set(target.key, data);
       this.update(target.page);
     };
@@ -221,7 +223,10 @@ export class MemberPanel {
         });
       })
       .catch(() => {
-        if (generation !== this.#generation) return;
+        // A failure of a superseded load (the page moved to another member)
+        // must not remove the current member's panel.
+        if (generation !== this.#generation || this.#inFlight !== target.key)
+          return;
         // Fail closed for the panel: without an answer, show nothing.
         this.#inFlight = undefined;
         this.teardown();

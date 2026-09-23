@@ -217,7 +217,7 @@ describe("M4 rule builder panel", () => {
     expect(await rules.getGlobalRule(a.id)).toBeUndefined();
   });
 
-  it("serializes a save and a remove from two options tabs", async () => {
+  it("does not let a stale second tab recreate a removed rule", async () => {
     const a = await accounts.createAccount({ joyClubAccountId: "a" });
     await rules.saveGlobalRule(a.id, {
       schemaVersion: 1,
@@ -231,8 +231,7 @@ describe("M4 rule builder panel", () => {
     document.body.append(otherRoot);
     const other = new RulePanel(otherRoot, rules, accounts);
     await other.render();
-    // Save in this tab, then Remove in the other, without waiting.
-    submit();
+    // The other tab removes the rule and finishes.
     otherRoot
       .querySelector<HTMLButtonElement>(".joyfox-panel__remove")!
       .click();
@@ -242,8 +241,31 @@ describe("M4 rule builder panel", () => {
           .querySelector(".joyfox-panel__status")
           ?.textContent?.startsWith("Rule removed") ?? false,
     );
-    await new Promise((resolve) => setTimeout(resolve, 50));
+    // Later, this tab saves its old form without having redrawn.
+    submit();
+    await settle(() => status()?.getAttribute("data-kind") === "error");
+    expect(status()?.textContent).toContain("changed in another tab");
     expect(await rules.getGlobalRule(a.id)).toBeUndefined();
+  });
+
+  it("redraws on another tab's rule change but keeps edits otherwise", async () => {
+    const a = await accounts.createAccount({ joyClubAccountId: "a" });
+    await panel.render();
+    input("joyfox-rule-all-verified-on").checked = true;
+    // An unrelated revision (a trust log, a snapshot) keeps the edit.
+    await panel.refreshIfChanged();
+    expect(input("joyfox-rule-all-verified-on").checked).toBe(true);
+    // Another tab saves a rule: the form redraws from storage.
+    await rules.saveGlobalRule(a.id, {
+      schemaVersion: 1,
+      audience: "all",
+      enabled: false,
+      defaultPlacement: "needs-review",
+      root: { type: "group", match: "all", children: [] },
+    });
+    await panel.refreshIfChanged();
+    expect(input("joyfox-rule-enabled").checked).toBe(false);
+    expect(status()?.textContent).toContain("changed in another tab");
   });
 
   it("does not offer to edit a rule shape it cannot show", async () => {

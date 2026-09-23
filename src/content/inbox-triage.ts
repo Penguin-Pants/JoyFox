@@ -72,12 +72,14 @@ export class InboxTriage {
   #detailsKey = "";
   #writeQueue: Promise<void> = Promise.resolve();
   #active = false;
+  #day?: string;
   /** The account the current answers were computed for; writes name it. */
   #accountId?: string;
 
   constructor(
     private readonly document: Document,
     private readonly client: TriageClient,
+    private readonly now: () => Date = () => new Date(),
   ) {}
 
   get view(): TriageView {
@@ -89,6 +91,9 @@ export class InboxTriage {
    * every mutation.
    */
   update(): void {
+    // Re-entering the inbox asks again: placements can depend on the date
+    // (account age), and nothing else may have changed meanwhile.
+    if (!this.#active) this.#forget();
     this.#active = true;
     this.#refresh();
   }
@@ -103,8 +108,24 @@ export class InboxTriage {
     this.teardown();
   }
 
+  /** Drop every answer so the next refresh asks again. */
+  #forget(): void {
+    this.#generation += 1;
+    this.#results.clear();
+    this.#status = "pending";
+    this.#inFlight = false;
+    this.#detailsKey = "";
+  }
+
   #refresh(): void {
     if (!this.#active) return;
+    // An account-age condition can change its result when the date changes,
+    // with no change on the page, so answers last one UTC day at most.
+    const day = this.now().toISOString().slice(0, 10);
+    if (day !== this.#day) {
+      if (this.#day !== undefined) this.#forget();
+      this.#day = day;
+    }
     const list = this.#list();
     if (!list || this.#status === "off") {
       this.teardown();
@@ -135,11 +156,7 @@ export class InboxTriage {
 
   /** Forget every result, for example after the rule or a placement changed. */
   invalidate(): void {
-    this.#generation += 1;
-    this.#results.clear();
-    this.#status = "pending";
-    this.#inFlight = false;
-    this.#detailsKey = "";
+    this.#forget();
     this.#refresh();
   }
 

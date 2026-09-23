@@ -147,6 +147,19 @@ A sixth Codex review found one more, confirmed and fixed:
   earlier as a possible risk). A field not seen now keeps its newest known value
   until a later observation replaces it.
 
+A seventh Codex review found three more, all confirmed and fixed:
+
+- A second options tab kept a stale form and could later overwrite or recreate a
+  rule another tab had changed. Save and remove now check, inside the account
+  lock, that the stored rule is the one the form was drawn from, and the form
+  redraws when another tab changes the rule (edits in progress are kept on
+  unrelated changes).
+- A late failure of a superseded panel load removed the new member's panel. Only
+  the current load's failure removes it now.
+- Cached inbox placements never expired, so an account-age condition kept an old
+  result. The inbox now asks again on a new UTC day and on re-entering the
+  inbox.
+
 Each fix has a regression test confirmed to fail without it.
 
 ### Confirmed issues deferred

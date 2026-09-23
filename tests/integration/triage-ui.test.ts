@@ -345,6 +345,31 @@ describe("M2 inbox triage", () => {
     expect(document.body.innerHTML).toBe(original);
   });
 
+  it("asks again on a new day and on re-entering the inbox", async () => {
+    await rules.saveGlobalRule(ACCOUNT, knownRule());
+    setPage("/clubmail/", inboxHtml);
+    const client = serviceClient();
+    let now = new Date("2026-09-23T23:59:00.000Z");
+    const inbox = new InboxTriage(document, client, () => now);
+    inbox.update();
+    await vi.waitFor(() => expect(bar()).not.toBeNull());
+    const first = client.evaluations;
+    inbox.update();
+    expect(client.evaluations).toBe(first);
+    // Past midnight UTC, an account-age condition may now pass.
+    now = new Date("2026-09-24T00:01:00.000Z");
+    inbox.update();
+    await vi.waitFor(() => expect(client.evaluations).toBeGreaterThan(first));
+    await vi.waitFor(() => expect(bar()).not.toBeNull());
+    const second = client.evaluations;
+    inbox.leave();
+    inbox.update();
+    await vi.waitFor(() => expect(client.evaluations).toBeGreaterThan(second));
+    await vi.waitFor(() => expect(bar()).not.toBeNull());
+    // Leave no active instance behind for the next test's page.
+    inbox.leave();
+  });
+
   it("fails open when the background cannot answer", async () => {
     setPage("/clubmail/", inboxHtml);
     const original = document.body.innerHTML;
@@ -447,6 +472,43 @@ describe("conversation and profile panel", () => {
       .setAttribute("href", "/profile/5550001.synthetic_four.html");
     member.update("conversation");
     expect(panel()).toBeNull();
+  });
+
+  it("keeps the new member's panel when the old member's load fails late", async () => {
+    await rules.saveGlobalRule(ACCOUNT, knownRule());
+    setPage(
+      "/clubmail/conversation/conversation-wrapper-personal-1234567-7654321",
+      conversationHtml,
+    );
+    const client = serviceClient();
+    let failFirst: () => void = () => undefined;
+    let calls = 0;
+    const member = new MemberPanel(document, {
+      ...client,
+      evaluate: (members) => {
+        calls += 1;
+        return calls === 1
+          ? new Promise((_resolve, reject) => {
+              failFirst = () => reject(new Error("slow failure"));
+            })
+          : client.evaluate(members);
+      },
+    });
+    member.update("conversation");
+    // A client-side route to another member before the first answer.
+    window.history.replaceState(
+      null,
+      "",
+      "/clubmail/conversation/conversation-wrapper-personal-5550001-7654321",
+    );
+    document
+      .querySelector(".cm-conversation-header")!
+      .setAttribute("href", "/profile/5550001.synthetic_four.html");
+    member.update("conversation");
+    await vi.waitFor(() => expect(panel()).not.toBeNull());
+    failFirst();
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    expect(panel()?.getAttribute("data-member")).toBe("5550001");
   });
 
   it("runs trust writes in click order, so undo removes the outcome just logged", async () => {

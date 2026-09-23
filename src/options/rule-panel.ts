@@ -72,6 +72,13 @@ export class RulePanel {
    * "Save" then "Remove" can never end with the rule saved again.
    */
   #mutations: Promise<void> = Promise.resolve();
+  /**
+   * The stored rule's `updatedAt` the form was drawn from (`none` for no
+   * rule). A save or remove checks it inside the account lock, so a form
+   * left open in a second tab cannot overwrite or recreate a rule another
+   * tab changed since.
+   */
+  #drawnStamp = "none";
   /** Bumped per render, so a slower, older render never replaces a newer one. */
   #generation = 0;
 
@@ -96,6 +103,7 @@ export class RulePanel {
       ? await this.rules.getGlobalRule(account.id)
       : undefined;
     if (generation !== this.#generation) return;
+    this.#drawnStamp = stored?.updatedAt ?? "none";
     this.root.replaceChildren();
     this.#controls = new Map();
     const heading = element(
@@ -329,11 +337,12 @@ export class RulePanel {
       // The form belongs to the account it was drawn for. If another account
       // became active meanwhile, nothing is written to either.
       const saved = await withAccountLock(accountId, async () => {
-        if (!(await this.#isActive(accountId))) return false;
+        if (!(await this.#isActive(accountId))) return "account";
+        if (!(await this.#isCurrent(accountId))) return "rule";
         await this.rules.saveGlobalRule(accountId, fromBuilderForm(form));
-        return true;
+        return "saved";
       });
-      if (!saved) return this.#reportStale("saved");
+      if (saved !== "saved") return this.#reportStale("saved", saved);
       await this.render();
       const vacuous =
         Object.keys(form.all).length === 0 && Object.keys(form.any).length > 0;
@@ -363,11 +372,13 @@ export class RulePanel {
       void this.#serial(async () => {
         try {
           const removed = await withAccountLock(accountId, async () => {
-            if (!(await this.#isActive(accountId))) return false;
+            if (!(await this.#isActive(accountId))) return "account";
+            if (!(await this.#isCurrent(accountId))) return "rule";
             await this.rules.deleteGlobalRule(accountId);
-            return true;
+            return "removed";
           });
-          if (!removed) return this.#reportStale("removed");
+          if (removed !== "removed")
+            return this.#reportStale("removed", removed);
           await this.render();
           this.#setStatus(
             "Rule removed. JoyFox no longer sorts the inbox for this account.",
@@ -393,12 +404,44 @@ export class RulePanel {
     return (await this.accounts.getActiveAccount())?.id === accountId;
   }
 
-  /** Nothing was written to either account; redraw and say so. */
-  async #reportStale(action: "saved" | "removed"): Promise<void> {
+  /**
+   * Whether the stored rule is still the one this panel last drew. Read when
+   * the queued write runs, so this panel's own earlier save (which redraws)
+   * counts as current, and only another tab's change does not.
+   */
+  async #isCurrent(accountId: string): Promise<boolean> {
+    const stored = await this.rules.getGlobalRule(accountId);
+    return (stored?.updatedAt ?? "none") === this.#drawnStamp;
+  }
+
+  /** Nothing was written; redraw from storage and say why. */
+  async #reportStale(
+    action: "saved" | "removed",
+    reason: "account" | "rule",
+  ): Promise<void> {
     await this.render();
     this.#setStatus(
-      `The active account changed. The rule was not ${action}. Check the form and try again.`,
+      reason === "account"
+        ? `The active account changed. The rule was not ${action}. Check the form and try again.`
+        : `The rule was changed in another tab. It was not ${action}. The form now shows the saved rule.`,
       "error",
+    );
+  }
+
+  /**
+   * Redraw when the stored rule changed elsewhere (another options tab),
+   * but not on unrelated changes, so edits in progress are kept.
+   */
+  async refreshIfChanged(): Promise<void> {
+    const account = await this.accounts.getActiveAccount();
+    const stored = account
+      ? await this.rules.getGlobalRule(account.id)
+      : undefined;
+    if ((stored?.updatedAt ?? "none") === this.#drawnStamp) return;
+    await this.render();
+    this.#setStatus(
+      "The rule was changed in another tab. The form now shows the saved rule.",
+      "info",
     );
   }
 
