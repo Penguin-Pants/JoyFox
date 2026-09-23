@@ -1,9 +1,8 @@
 # Known limitations
 
 - Only the inbox, conversation and profile pages on `www.joyclub.de` are
-  verified (`docs/selector-map.md`). The content script now starts its
-  navigation observer on JoyClub pages, but no feature renders anything on a
-  page yet. Search, events and JOYCE stay disabled.
+  verified (`docs/selector-map.md`). Inbox triage and the conversation and
+  profile panel render there. Search, events and JOYCE stay disabled.
 - The member ID is the number in the profile URL. Whether JoyClub ever reuses
   such a number is unconfirmed. Account, event and message identity sources are
   still unknown. Features must not use display names as identifiers.
@@ -66,10 +65,24 @@
 - A very short known phrase matches almost every message, because phrase
   matching includes substring containment. The phrase list is user-authored and
   no minimum length is documented, so none is enforced.
-- Qualification evaluates only criteria the caller supplies. No default rule is
-  shipped, because the PRD states these thresholds as user-configured values and
-  gives only an illustrative example. The rule builder that sets them is M4,
-  which has not started.
+- No default rule is shipped, because the PRD states the thresholds as
+  user-configured values. Until the user saves a rule, JoyFox does not sort the
+  inbox. Presets (PRD Section 11.3) are not built.
+- Inbox triage groups rows by hiding them in place (ADR 0006). Within a group
+  the rows keep JoyClub's order. The triage UI has not yet been checked on the
+  live site (`manual-acceptance.md`, items 19 to 26).
+- The inbox shows only the verification shield. Photos, profile words and
+  account age come from snapshots of profiles the user opened before, so a
+  sender whose profile was never opened reads those facts as unknown.
+- Spam status is unknown on every page, because no page reads message text yet.
+  Only the user's own "not spam" correction counts.
+- An existing conversation does not bypass triage (PRD Section 7.4), because
+  JoyFox cannot yet tell whether the user replied. The per-sender manual
+  placement is the workaround.
+- If the background does not answer, the inbox stays untriaged until the rule,
+  account, a placement or a trust outcome changes, or the page reloads.
+- The local trust score counts only what the user logged and saw in this
+  browser. It is not a community reputation.
 - Per-member message and tag reads list the account's records and filter in
   memory. There is no member or timestamp index yet, so both the retention purge
   and each classification cost grows with the stored record count.

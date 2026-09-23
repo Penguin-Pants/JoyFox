@@ -1,0 +1,130 @@
+/*
+ * JoyFox page styles. Loaded by the manifest, so the page's own content
+ * security policy does not apply. Every selector targets JoyFox's own
+ * `joyfox-` classes or `data-joyfox-` attributes; no JoyClub class is styled.
+ */
+/* Design tokens, scoped to JoyFox elements rather than the page root. */
+.joyfox-triage,
+.joyfox-panel,
+.joyfox-badge {
+  --joyfox-ink: #1f2328;
+  --joyfox-muted: #57606a;
+  --joyfox-surface: #ffffff;
+  --joyfox-line: #8c959f;
+  --joyfox-focus: #0969da;
+  --joyfox-qualified: #1a7f37;
+  --joyfox-review: #9a6700;
+  --joyfox-quarantined: #cf222e;
+  --joyfox-space: 0.5em;
+  --joyfox-radius: 0.375em;
+}
+
+/*
+ * Triage views filter rows in place. A row without a placement is still
+ * being checked and stays visible in the default and "Show all" views.
+ */
+[data-joyfox-view="default"]
+  [data-joyfox-row][data-joyfox-placement="quarantined"],
+[data-joyfox-view="qualified"]
+  [data-joyfox-row]:not([data-joyfox-placement="qualified"]),
+[data-joyfox-view="needs-review"]
+  [data-joyfox-row]:not([data-joyfox-placement="needs-review"]),
+[data-joyfox-view="quarantined"]
+  [data-joyfox-row]:not([data-joyfox-placement="quarantined"]) {
+  display: none !important;
+}
+
+.joyfox-triage,
+.joyfox-panel {
+  box-sizing: border-box;
+  margin: var(--joyfox-space) 0;
+  padding: var(--joyfox-space);
+  border: 1px solid var(--joyfox-line);
+  border-radius: var(--joyfox-radius);
+  background: var(--joyfox-surface);
+  color: var(--joyfox-ink);
+  font: inherit;
+  font-size: 0.875rem;
+  line-height: 1.4;
+}
+
+.joyfox-triage__views,
+.joyfox-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--joyfox-space);
+  margin: var(--joyfox-space) 0;
+}
+
+.joyfox-button,
+.joyfox-badge {
+  font: inherit;
+  font-size: 0.8125rem;
+  padding: 0.125em 0.625em;
+  border: 1px solid var(--joyfox-line);
+  border-radius: var(--joyfox-radius);
+  background: var(--joyfox-surface);
+  color: var(--joyfox-ink);
+  cursor: pointer;
+}
+
+.joyfox-button[aria-pressed="true"] {
+  border-width: 2px;
+  font-weight: 700;
+}
+
+.joyfox-button:disabled {
+  cursor: default;
+  opacity: 0.6;
+}
+
+.joyfox-button:focus-visible,
+.joyfox-badge:focus-visible,
+.joyfox-triage__details:focus-visible {
+  outline: 2px solid var(--joyfox-focus);
+  outline-offset: 2px;
+}
+
+/* The badge text names the placement; the border color only repeats it. */
+.joyfox-badge {
+  margin-inline: var(--joyfox-space);
+  border-width: 2px;
+}
+.joyfox-badge[data-placement="qualified"] {
+  border-color: var(--joyfox-qualified);
+}
+.joyfox-badge[data-placement="needs-review"] {
+  border-color: var(--joyfox-review);
+  border-style: dashed;
+}
+.joyfox-badge[data-placement="quarantined"] {
+  border-color: var(--joyfox-quarantined);
+  border-style: double;
+  border-width: 3px;
+}
+
+.joyfox-note {
+  color: var(--joyfox-muted);
+  margin: var(--joyfox-space) 0;
+}
+
+.joyfox-error {
+  color: var(--joyfox-quarantined);
+  font-weight: 700;
+}
+
+.joyfox-panel__heading,
+.joyfox-triage__heading {
+  font-size: 1rem;
+  margin: 0 0 var(--joyfox-space);
+}
+
+.joyfox-explain__list {
+  margin: var(--joyfox-space) 0;
+  padding-inline-start: 1.25em;
+}
+
+.joyfox-explain__conditions summary,
+.joyfox-trust__details summary {
+  cursor: pointer;
+}

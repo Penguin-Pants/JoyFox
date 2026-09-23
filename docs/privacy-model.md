@@ -32,3 +32,12 @@ On verified JoyClub pages the content script reads member IDs, badge codes,
 photo counts and word counts. The inbox sender name is read for display alone:
 it is never used as an identity, never stored and never logged. The optional
 development diagnostics log counts only.
+
+Milestone C adds local triage. When an account is active, opening a profile page
+stores a snapshot of its counts, codes and join dates, never its text. Logged
+trust outcomes and manual placements are stored per account and per member ID.
+The trust score uses only this browser's own records; nothing is shared with
+other members or sent anywhere. Triage changes only what the user's own inbox
+shows: it never deletes, archives, sends or changes anything on JoyClub. The
+sender name appears in the "Why" panel as JoyClub shows it and is never stored
+or logged.

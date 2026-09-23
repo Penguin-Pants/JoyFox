@@ -1,0 +1,117 @@
+import type { TriagePlacement } from "../domain/types";
+import { ExtensionError } from "../errors";
+import type { MessageRouter } from "../messaging/router";
+import type { ProfileFacts } from "../qualification/facts";
+import {
+  isMemberId,
+  MAX_MEMBERS_PER_REQUEST,
+  type TriageRequestMember,
+  type TriageService,
+} from "../triage/triage-service";
+import type { TrustOutcomeKind, TrustService } from "../trust/trust-service";
+
+export interface TriageHandlerDeps {
+  triage: TriageService;
+  trust: TrustService;
+  /** The active account's ID, or `undefined` when none is selected. */
+  activeAccountId: () => Promise<string | undefined>;
+  openOptions: () => Promise<void>;
+}
+
+const PLACEMENTS: readonly TriagePlacement[] = [
+  "qualified",
+  "needs-review",
+  "quarantined",
+];
+const OUTCOMES: readonly TrustOutcomeKind[] = [
+  "positive",
+  "negative",
+  "neutral",
+];
+
+const invalid = (what: string) =>
+  new ExtensionError("ExtractionInvalid", `Invalid ${what}`);
+
+function memberId(value: unknown): string {
+  if (!isMemberId(value)) throw invalid("member ID");
+  return value;
+}
+
+/** Only an object passes; the fact merge then drops unusable values. */
+function observed(value: unknown): Partial<ProfileFacts> {
+  if (value === undefined) return {};
+  if (!value || typeof value !== "object" || Array.isArray(value))
+    throw invalid("observed facts");
+  return value as Partial<ProfileFacts>;
+}
+
+function members(value: unknown): TriageRequestMember[] {
+  if (!Array.isArray(value) || value.length > MAX_MEMBERS_PER_REQUEST)
+    throw invalid("member list");
+  return value.map((item: unknown) => {
+    const entry = (item ?? {}) as Record<string, unknown>;
+    return {
+      memberId: memberId(entry.memberId),
+      observed: observed(entry.observed),
+    };
+  });
+}
+
+/**
+ * Register the triage, trust and snapshot handlers. Every payload comes from a
+ * content script, so each field is checked here before a service sees it.
+ * Writes without an active account do nothing rather than guess a scope.
+ */
+export function registerTriageHandlers(
+  router: MessageRouter,
+  deps: TriageHandlerDeps,
+): void {
+  router.register("triage.evaluate", async (payload) =>
+    deps.triage.evaluate(
+      await deps.activeAccountId(),
+      members(payload?.members),
+    ),
+  );
+  router.register("triage.setOverride", async (payload) => {
+    const id = memberId(payload?.memberId);
+    const placement = payload?.placement;
+    if (placement !== null && !PLACEMENTS.includes(placement))
+      throw invalid("placement");
+    const accountId = await deps.activeAccountId();
+    if (!accountId) return { done: false };
+    await deps.triage.setOverride(accountId, id, placement);
+    return { done: true };
+  });
+  router.register("trust.log", async (payload) => {
+    const id = memberId(payload?.memberId);
+    if (!OUTCOMES.includes(payload?.kind)) throw invalid("outcome");
+    const accountId = await deps.activeAccountId();
+    if (!accountId) return { done: false };
+    await deps.trust.logOutcome(accountId, id, payload.kind);
+    return { done: true };
+  });
+  router.register("trust.get", async (payload) =>
+    deps.triage.trustFor(
+      await deps.activeAccountId(),
+      memberId(payload?.memberId),
+      observed(payload?.observed),
+    ),
+  );
+  router.register("trust.undo", async (payload) => {
+    const id = memberId(payload?.memberId);
+    const accountId = await deps.activeAccountId();
+    if (!accountId) return { removed: false };
+    return { removed: await deps.trust.undoLastOutcome(accountId, id) };
+  });
+  router.register("snapshot.capture", async (payload) => {
+    const id = memberId(payload?.memberId);
+    const facts = observed(payload?.observed);
+    const accountId = await deps.activeAccountId();
+    if (!accountId) return { stored: false };
+    return { stored: await deps.triage.captureSnapshot(accountId, id, facts) };
+  });
+  router.register("options.open", async () => {
+    await deps.openOptions();
+    return { done: true };
+  });
+}

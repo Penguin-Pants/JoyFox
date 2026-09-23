@@ -102,3 +102,32 @@ today.
 `personallyKnown` ("persönlich bekannt") is a profile fact for qualification but
 has no ProfileSnapshot field. It is the logged-in user's own mark and can
 change, so it is read from the current page each time and never cached.
+
+## ContactRule (Milestone C)
+
+The ContactRule entity now holds the V1-compatible rule schema from
+`src/rules/contact-rule.ts`: `schemaVersion` (1), `audience` (`all`, `man`,
+`woman` or `couple`), `enabled`, `defaultPlacement` (`needs-review` or
+`quarantined`, for a sender who does not meet the rule) and `root`, a tree of
+All/Any groups (at most 4 levels, 32 children each) whose conditions each carry
+a kind, an optional whole-number threshold and a `whenUnknown` handling. The
+earlier placeholder field `conditions` is gone; no record with it could exist,
+as nothing wrote rules before. No database version change was needed. The MVP
+keeps one rule per account, with ID `rule:global`.
+
+## ConversationClassification (Milestone C)
+
+Holds only the user's manual placement for one sender, with ID
+`classification:<member>`: `placement`, `source` (`user`), `decidedAt`, an
+optional `ruleId` and the reason text. `conversationId` is optional, because the
+inbox shows no conversation ID. Clearing the placement deletes the record.
+Automatic placements are never stored; they are recomputed from the rule.
+
+## TrustSignal and snapshot capture (Milestone C)
+
+Each logged outcome is one TrustSignal (`trust:<random>`). A profile page stores
+a ProfileSnapshot when its facts differ from the newest one (the join window is
+compared by day). Rule, placement, trust and snapshot writes set
+`joyfox.triageRevision` in `storage.local` to a random token, so open pages
+re-evaluate. Saving a note, placement, outcome or snapshot also registers the
+JoyClubMember record.

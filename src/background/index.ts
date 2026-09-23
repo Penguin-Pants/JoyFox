@@ -1,5 +1,9 @@
+import { AccountService } from "../accounts/account-service";
 import { MessageRouter } from "../messaging/router";
+import { TriageService } from "../triage/triage-service";
+import { TrustService } from "../trust/trust-service";
 import { incrementPersistentWakeCounter } from "./lifecycle";
+import { registerTriageHandlers } from "./triage-handlers";
 
 const router = new MessageRouter();
 router.register("diagnostic.ping", ({ value }) => ({ value }));
@@ -9,6 +13,15 @@ router.register("diagnostic.ping", ({ value }) => ({ value }));
 router.register("diagnostic.wake", async ({ accountId }) => ({
   wakeCount: await incrementPersistentWakeCounter(accountId),
 }));
+const accounts = new AccountService();
+registerTriageHandlers(router, {
+  triage: new TriageService(),
+  trust: new TrustService(),
+  // Resolved on every request, so switching accounts in the options page
+  // takes effect without a restart, and a dangling pointer means no account.
+  activeAccountId: async () => (await accounts.getActiveAccount())?.id,
+  openOptions: () => browser.runtime.openOptionsPage(),
+});
 browser.runtime.onMessage.addListener((message: unknown) =>
   router.route(message as never),
 );

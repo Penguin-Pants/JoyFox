@@ -1,5 +1,6 @@
 import { isStrictIsoDate } from "../domain/iso-date";
 import type { AccountScopedEntity, EntityName } from "../domain/types";
+import { contactRuleProblem } from "../rules/contact-rule";
 
 export class ValidationError extends Error {}
 
@@ -200,23 +201,22 @@ export function validateEntity(
       requireEnum(record, "kind", ["positive", "negative", "neutral"]);
       requireDate(record, "occurredAt");
       break;
-    case "contactRules":
+    case "contactRules": {
       requireString(record, "name");
-      requireArray(record, "conditions");
-      requireEnum(record, "defaultPlacement", [
-        "qualified",
-        "needs-review",
-        "quarantined",
-      ]);
+      const problem = contactRuleProblem(record);
+      if (problem) throw new ValidationError(problem);
       break;
+    }
     case "conversationClassifications":
       requireString(record, "memberId");
-      requireString(record, "conversationId");
+      optionalString(record, "conversationId");
       requireEnum(record, "placement", [
         "qualified",
         "needs-review",
         "quarantined",
       ]);
+      requireEnum(record, "source", ["user"]);
+      requireDate(record, "decidedAt");
       requireStringArray(record, "reasons");
       optionalString(record, "ruleId");
       break;

@@ -1,0 +1,109 @@
+# Milestone C audit
+
+Milestone C is M2, M4 and M6 (build plan Section 27): incoming messages are
+explained and sorted locally into Qualified, Needs Review and Quarantined. The
+open design decisions are recorded in
+`architecture-decisions/0006-triage-presentation-and-trust.md`.
+
+## Completed
+
+### M4 global contact rule
+
+- `src/rules/contact-rule.ts` holds the rule in the V1-compatible schema: schema
+  version, audience (`all` in the MVP; `man`, `woman`, `couple` stored for V1),
+  enabled flag, the placement for a sender who does not meet the rule, and a
+  condition tree of All/Any groups.
+- Conditions: verified, personally known, minimum photos, minimum profile words
+  (completeness), minimum account age in days, not template spam and minimum
+  local trust score. Each condition states what an unknown fact counts as: Needs
+  Review (default), met or not met.
+- `evaluateContactRule` is pure. It returns `placement`, `reasons` and
+  `evaluatedConditions`, as build plan Section 11 requires. An unknown fact
+  never fails a condition unless the user chose "count as not met".
+- `RuleService` stores one global rule per account and validates it before any
+  write. The options page has a rule builder with PRD Section 11.5's two boxes
+  (ALL of these, or ANY of these) in plain language.
+
+### M2 inbox triage and quarantine
+
+- A tab bar above the inbox list, with counts. The default view hides
+  Quarantined rows only. Every row gets a badge that names its placement in
+  words; its "Why" panel lists the reasons and every checked condition.
+- One click moves a sender to any group, and "Use my rule again" clears it. The
+  change shows at once, in this tab and in other open tabs.
+- Rows that load later are triaged on the next page mutation. JoyFox writes to
+  the page only when a value changes, so its own mutations settle.
+- With no account, no rule, a disabled rule or no answer from the background,
+  JoyFox changes nothing on the page. `teardown` restores the list exactly.
+- The inbox shows only the shield, so photos, profile words and account age come
+  from cached profile snapshots. A profile page now stores one snapshot when its
+  facts change (counts, codes and dates only).
+
+### M6 basic local trust score
+
+- `computeTrustScore` is pure and lists every point (ADR 0006). It states that
+  it is not a JoyClub or community rating.
+- The conversation and profile pages show a JoyFox panel after JoyClub's header
+  with the placement, the trust score and buttons to log a positive, neutral or
+  negative outcome, or undo the last one. The score updates at once after a log
+  (M6 acceptance).
+
+### Messaging
+
+- New typed messages: `triage.evaluate`, `triage.setOverride`, `trust.get`,
+  `trust.log`, `trust.undo`, `snapshot.capture` and `options.open`. The
+  background checks every payload field and resolves the active account on each
+  request.
+
+## Review findings
+
+### Confirmed issues fixed now
+
+- Every inbox update rewrote each badge's `data-member` attribute, so the page
+  never settled. The write is now skipped when the value is unchanged.
+- Vitest blanked the content stylesheet in tests, so the view-hiding rules were
+  not tested. The config now processes it, and a test checks which rows each
+  view hides.
+- Saving a rule stored extra fields inside condition nodes. The service now
+  copies only the fields each node defines.
+- Leaving and reopening the inbox kept the previous "Why" selection. Teardown
+  now clears it.
+
+Each fix has a regression test confirmed to fail without it.
+
+### Confirmed issues deferred
+
+- A failed background answer turns the inbox off until the next rule, account,
+  placement or trust change, or a page reload. Retrying on its own would need a
+  retry policy no document sets.
+- Presets (PRD Section 11.3) are not built. "Complete profiles only" and
+  "High-trust members" need thresholds no document defines.
+- Per-audience rules and nested groups in the builder are V1 scope. The schema
+  already holds them, and the builder refuses to edit a rule it cannot show.
+
+### Possible risks
+
+- The badge is inserted after the sender-name element inside a JoyClub row. If
+  JoyClub re-creates that element, the badge is added again on the next
+  mutation; if JoyClub handles clicks on `mousedown` or in the capture phase, a
+  badge click may also open the conversation. Both need a live check.
+- Hiding rows with `display: none` inside a framework-managed list is assumed to
+  leave JoyClub's scrolling and loading intact. Not yet checked live.
+- Snapshots keep the newest capture only per read. A capture made before the
+  page finished rendering can hold unknowns that a later, complete capture
+  replaces; until then the inbox reads the unknowns.
+
+## Blocked or remaining
+
+- Spam status is always unknown on pages, because no page reads message text yet
+  (M3 blocker). Only the user's own "not spam" correction counts.
+- The automatic existing-conversation exception (PRD Section 7.4) waits on the
+  read-status meaning.
+- Live acceptance of the triage UI on JoyClub (see `manual-acceptance.md`, items
+  19 to 26).
+- M1's 95 percent acceptance over 50 messages needs a manual trial.
+
+## Phase status
+
+Milestone C is implemented and tested against synthetic fixtures. Live
+acceptance on JoyClub remains.

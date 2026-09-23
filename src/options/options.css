@@ -80,3 +80,22 @@
   outline: 2px solid var(--joyfox-accent);
   outline-offset: 2px;
 }
+
+.joyfox-rule__box {
+  border: 1px solid var(--joyfox-border);
+  border-radius: var(--joyfox-radius);
+  margin: var(--joyfox-space-3) 0;
+  padding: var(--joyfox-space-2);
+}
+
+.joyfox-rule__condition {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--joyfox-space-2);
+  align-items: center;
+  margin-bottom: var(--joyfox-space-2);
+}
+
+.joyfox-rule__condition input[type="number"] {
+  width: 7em;
+}

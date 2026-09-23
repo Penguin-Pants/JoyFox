@@ -196,9 +196,9 @@ window, and the profile-type codes are not fully mapped.
 - Reading message text, so nothing calls the spam detector yet. It needs the
   sent and received bubble meaning confirmed and the message-caching toggle from
   ADR 0004.
-- The page UI for M1 (badge), M3 (template label) and M5 (profile notes). The
-  selectors and extractors exist; content-script to background messaging and the
-  rendering do not.
+- The page UI for M3 (template label) and M5 (profile notes). The M1 badge and
+  the content-script messaging were built in Milestone C
+  (`milestone-c-audit.md`).
 - Automatic active-account detection. M7 asks for reliable account identity
   detection; until F1 and F9 establish where that identity exists, the active
   account stays a user choice and the UI says so.

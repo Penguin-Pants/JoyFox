@@ -1,0 +1,430 @@
+import type { TriagePlacement } from "../domain/types";
+import {
+  extractInboxRows,
+  type InboxRowExtraction,
+} from "../extraction/joyclub";
+import { resolveMemberIdentity } from "../identity/member-identity";
+import type { ProfileFacts } from "../qualification/facts";
+import { PLACEMENT_TEXT } from "../rules/contact-rule";
+import { selectorRegistry, verifiedSelector } from "../selectors/registry";
+import {
+  MAX_MEMBERS_PER_REQUEST,
+  type MemberTriage,
+} from "../triage/triage-service";
+import { factsKey, observedFromInboxRow } from "./observed-facts";
+import type { TriageClient } from "./triage-client";
+import { button, element, explanation, UI_ATTRIBUTE } from "./triage-ui";
+
+/** The triage views (owner's decision, 2026-09-23). */
+export type TriageView =
+  | "default"
+  | "qualified"
+  | "needs-review"
+  | "quarantined"
+  | "all";
+
+export const VIEW_ATTRIBUTE = "data-joyfox-view";
+export const ROW_ATTRIBUTE = "data-joyfox-row";
+export const PLACEMENT_ATTRIBUTE = "data-joyfox-placement";
+
+const VIEW_TEXT: Record<TriageView, string> = {
+  default: "Inbox",
+  qualified: "Qualified",
+  "needs-review": "Needs Review",
+  quarantined: "Quarantined",
+  all: "Show all",
+};
+
+interface RowState {
+  row: Element;
+  key?: string;
+  memberId?: string;
+  observed?: Partial<ProfileFacts>;
+  /** Display only: shown in the details panel, never stored or logged. */
+  name?: string;
+}
+
+const UNIDENTIFIED_REASON =
+  "JoyFox could not read this sender's profile number, so it could not check your rule. The row stays visible.";
+
+/**
+ * M2 inbox triage. Rows are grouped by filtering in place: a JoyFox view
+ * attribute on the list and a placement attribute on each row, which the
+ * extension stylesheet uses to hide rows outside the chosen view. No JoyClub
+ * node is moved, removed or changed otherwise, so JoyClub's own list keeps
+ * rendering normally, and `teardown` restores it exactly.
+ *
+ * The default view shows everything except Quarantined. A row not yet
+ * evaluated is never hidden from the default view, and any failure leaves
+ * the list untouched.
+ *
+ * Every write to the page is compared with the current value first. The
+ * navigation coordinator reacts to JoyFox's own mutations too, so an update
+ * that always wrote would never settle.
+ */
+export class InboxTriage {
+  readonly #results = new Map<string, MemberTriage>();
+  #status: "pending" | "ok" | "off" = "pending";
+  #inFlight = false;
+  #generation = 0;
+  #view: TriageView = "default";
+  #selected?: string;
+  #detailsKey = "";
+
+  constructor(
+    private readonly document: Document,
+    private readonly client: TriageClient,
+  ) {}
+
+  get view(): TriageView {
+    return this.#view;
+  }
+
+  /** Re-read the page and apply placements. Safe to call on every mutation. */
+  update(): void {
+    const list = this.#list();
+    if (!list || this.#status === "off") {
+      this.teardown();
+      return;
+    }
+    const rows = this.#rows();
+    this.#requestMissing(rows);
+    if (this.#status !== "ok") return;
+    this.#ensureBar(list);
+    setAttribute(list, VIEW_ATTRIBUTE, this.#view);
+    const counts: Record<TriagePlacement, number> = {
+      qualified: 0,
+      "needs-review": 0,
+      quarantined: 0,
+    };
+    for (const state of rows) {
+      const placement = this.#placementFor(state);
+      setAttribute(state.row, ROW_ATTRIBUTE, "");
+      if (placement) {
+        setAttribute(state.row, PLACEMENT_ATTRIBUTE, placement);
+        counts[placement] += 1;
+      } else state.row.removeAttribute(PLACEMENT_ATTRIBUTE);
+      this.#ensureBadge(state, placement);
+    }
+    this.#renderCounts(counts);
+    this.#renderDetails(rows);
+  }
+
+  /** Forget every result, for example after the rule or a placement changed. */
+  invalidate(): void {
+    this.#generation += 1;
+    this.#results.clear();
+    this.#status = "pending";
+    this.#inFlight = false;
+    this.#detailsKey = "";
+    this.update();
+  }
+
+  /** Remove every trace of JoyFox from the inbox. */
+  teardown(): void {
+    for (const node of Array.from(
+      this.document.querySelectorAll(`[${UI_ATTRIBUTE}]`),
+    ))
+      if (node.getAttribute(UI_ATTRIBUTE) !== "member-panel") node.remove();
+    for (const node of Array.from(
+      this.document.querySelectorAll(`[${ROW_ATTRIBUTE}]`),
+    )) {
+      node.removeAttribute(ROW_ATTRIBUTE);
+      node.removeAttribute(PLACEMENT_ATTRIBUTE);
+    }
+    for (const node of Array.from(
+      this.document.querySelectorAll(`[${VIEW_ATTRIBUTE}]`),
+    ))
+      node.removeAttribute(VIEW_ATTRIBUTE);
+    this.#detailsKey = "";
+    this.#selected = undefined;
+  }
+
+  setView(view: TriageView): void {
+    this.#view = view;
+    this.update();
+  }
+
+  #list(): Element | null {
+    const root = selectorRegistry.inbox.root;
+    return root && selectorRegistry.inbox.status === "verified"
+      ? this.document.querySelector(root)
+      : null;
+  }
+
+  #rows(): RowState[] {
+    return extractInboxRows(this.document, this.document.URL).map(
+      (row: InboxRowExtraction) => {
+        const identity = resolveMemberIdentity({
+          page: "inbox",
+          field: "memberId",
+          extraction: row.memberId,
+        });
+        const name =
+          row.senderName.status === "found" ? row.senderName.value : undefined;
+        if (identity.status !== "resolved") return { row: row.row, name };
+        const memberId = identity.memberId;
+        const observed = observedFromInboxRow(row);
+        return {
+          row: row.row,
+          memberId,
+          observed,
+          name,
+          key: `${memberId}|${factsKey(observed)}`,
+        };
+      },
+    );
+  }
+
+  #requestMissing(rows: readonly RowState[]): void {
+    if (this.#inFlight) return;
+    const pending = new Map<
+      string,
+      { memberId: string; observed: Partial<ProfileFacts> }
+    >();
+    for (const state of rows)
+      if (state.key && state.memberId && !this.#results.has(state.key))
+        pending.set(state.key, {
+          memberId: state.memberId,
+          observed: state.observed ?? {},
+        });
+    if (pending.size === 0) {
+      // No identifiable row to ask about still decides whether triage is on.
+      if (
+        this.#status === "pending" &&
+        rows.length > 0 &&
+        this.#results.size === 0
+      )
+        this.#probe();
+      return;
+    }
+    const batch = Array.from(pending.entries()).slice(
+      0,
+      MAX_MEMBERS_PER_REQUEST,
+    );
+    this.#send(
+      batch.map(([, value]) => value),
+      batch.map(([key]) => key),
+    );
+  }
+
+  /** Ask with an empty list, only to learn whether a rule is on. */
+  #probe(): void {
+    this.#send([], []);
+  }
+
+  #send(
+    members: Array<{ memberId: string; observed: Partial<ProfileFacts> }>,
+    keys: string[],
+  ): void {
+    const generation = this.#generation;
+    this.#inFlight = true;
+    this.client
+      .evaluate(members)
+      .then((response) => {
+        if (generation !== this.#generation) return;
+        this.#inFlight = false;
+        if (response.status !== "ok") {
+          this.#status = "off";
+          this.teardown();
+          return;
+        }
+        response.results.forEach((result, index) => {
+          const key = keys[index];
+          if (key) this.#results.set(key, result);
+        });
+        this.#status = "ok";
+        this.update();
+      })
+      .catch(() => {
+        if (generation !== this.#generation) return;
+        // Fail open: without an answer, nothing is hidden or labeled.
+        this.#inFlight = false;
+        this.#status = "off";
+        this.teardown();
+      });
+  }
+
+  #placementFor(state: RowState): TriagePlacement | undefined {
+    if (!state.memberId) return "needs-review";
+    return state.key ? this.#results.get(state.key)?.placement : undefined;
+  }
+
+  #ensureBar(list: Element): void {
+    const existing = this.document.querySelector(
+      `[${UI_ATTRIBUTE}="triage-bar"]`,
+    );
+    if (existing && existing.nextElementSibling === list) return;
+    existing?.remove();
+    const bar = element(this.document, "div", "joyfox-triage");
+    bar.setAttribute(UI_ATTRIBUTE, "triage-bar");
+    bar.setAttribute("role", "region");
+    bar.setAttribute("aria-label", "JoyFox triage");
+    const group = element(this.document, "div", "joyfox-triage__views");
+    group.setAttribute("role", "group");
+    group.setAttribute("aria-label", "Show messages");
+    for (const view of Object.keys(VIEW_TEXT) as TriageView[]) {
+      const tab = button(
+        this.document,
+        "joyfox-button joyfox-triage__view",
+        VIEW_TEXT[view],
+        () => this.setView(view),
+      );
+      tab.dataset.view = view;
+      group.append(tab);
+    }
+    bar.append(
+      group,
+      element(
+        this.document,
+        "p",
+        "joyfox-note",
+        "Inbox hides Quarantined rows from this view only. Nothing is deleted, and JoyFox changes nothing on JoyClub.",
+      ),
+    );
+    const details = element(this.document, "div", "joyfox-triage__details");
+    details.hidden = true;
+    bar.append(details);
+    list.before(bar);
+  }
+
+  #renderCounts(counts: Record<TriagePlacement, number>): void {
+    for (const tab of Array.from(
+      this.document.querySelectorAll<HTMLButtonElement>(
+        `[${UI_ATTRIBUTE}="triage-bar"] .joyfox-triage__view`,
+      ),
+    )) {
+      const view = tab.dataset.view as TriageView;
+      const label =
+        view === "default" || view === "all"
+          ? VIEW_TEXT[view]
+          : `${VIEW_TEXT[view]} (${counts[view]})`;
+      setText(tab, label);
+      setAttribute(tab, "aria-pressed", String(view === this.#view));
+    }
+  }
+
+  #ensureBadge(state: RowState, placement: TriagePlacement | undefined): void {
+    const text = placement ? PLACEMENT_TEXT[placement] : "Checking";
+    let badge = state.row.querySelector<HTMLButtonElement>(
+      `[${UI_ATTRIBUTE}="badge"]`,
+    );
+    if (!badge) {
+      const created: HTMLButtonElement = button(
+        this.document,
+        "joyfox-badge",
+        text,
+        () => {
+          // Read at click time: JoyClub may reuse a row for another sender.
+          this.#selected = created.dataset.member ?? "";
+          this.#detailsKey = "";
+          this.update();
+          const details = this.document.querySelector<HTMLElement>(
+            `[${UI_ATTRIBUTE}="triage-bar"] .joyfox-triage__details`,
+          );
+          details?.scrollIntoView?.({ block: "nearest" });
+          details?.focus();
+        },
+      );
+      badge = created;
+      badge.setAttribute(UI_ATTRIBUTE, "badge");
+      const nameSelector = verifiedSelector("inbox", "senderName");
+      const name = nameSelector ? state.row.querySelector(nameSelector) : null;
+      if (name) name.after(badge);
+      else state.row.append(badge);
+    }
+    setText(badge, text);
+    setAttribute(badge, "data-placement", placement ?? "pending");
+    setAttribute(badge, "aria-label", `JoyFox: ${text}. Show why.`);
+    // The member the badge opens, read on click from the row's current state.
+    setAttribute(badge, "data-member", state.memberId ?? "");
+  }
+
+  #renderDetails(rows: readonly RowState[]): void {
+    const details = this.document.querySelector<HTMLElement>(
+      `[${UI_ATTRIBUTE}="triage-bar"] .joyfox-triage__details`,
+    );
+    if (!details || this.#selected === undefined) return;
+    const state = rows.find((row) => (row.memberId ?? "") === this.#selected);
+    const result = state?.key ? this.#results.get(state.key) : undefined;
+    const key = JSON.stringify([this.#selected, state?.name, result]);
+    if (key === this.#detailsKey) return;
+    this.#detailsKey = key;
+    details.hidden = false;
+    details.tabIndex = -1;
+    const heading = element(
+      this.document,
+      "h2",
+      "joyfox-triage__heading",
+      // The name is shown as JoyClub shows it, never stored or logged.
+      state?.name ? `Why: ${state.name}` : "Why this placement",
+    );
+    const close = button(this.document, "joyfox-button", "Close", () => {
+      this.#selected = undefined;
+      this.#detailsKey = "";
+      details.hidden = true;
+      details.replaceChildren();
+    });
+    if (!state) {
+      details.replaceChildren(
+        heading,
+        element(this.document, "p", "", "This row is no longer shown."),
+        close,
+      );
+      return;
+    }
+    if (!state.memberId) {
+      details.replaceChildren(
+        heading,
+        element(this.document, "p", "", UNIDENTIFIED_REASON),
+        close,
+      );
+      return;
+    }
+    if (!result) {
+      details.replaceChildren(
+        heading,
+        element(
+          this.document,
+          "p",
+          "",
+          "JoyFox is still checking this sender.",
+        ),
+        close,
+      );
+      return;
+    }
+    const memberId = state.memberId;
+    details.replaceChildren(
+      heading,
+      explanation(this.document, result, {
+        onOverride: (placement) => {
+          void this.client
+            .setOverride(memberId, placement)
+            .then(() => this.invalidate())
+            .catch(() => this.#showError(details));
+        },
+      }),
+      close,
+    );
+  }
+
+  #showError(details: HTMLElement): void {
+    details.append(
+      element(
+        this.document,
+        "p",
+        "joyfox-error",
+        "JoyFox could not save that change. Nothing was changed.",
+      ),
+    );
+  }
+}
+
+function setAttribute(node: Element, name: string, value: string): void {
+  if (node.getAttribute(name) !== value) node.setAttribute(name, value);
+}
+
+function setText(node: Element, text: string): void {
+  if (node.textContent !== text) node.textContent = text;
+}
