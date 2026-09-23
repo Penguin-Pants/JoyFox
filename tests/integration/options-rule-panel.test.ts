@@ -217,6 +217,35 @@ describe("M4 rule builder panel", () => {
     expect(await rules.getGlobalRule(a.id)).toBeUndefined();
   });
 
+  it("serializes a save and a remove from two options tabs", async () => {
+    const a = await accounts.createAccount({ joyClubAccountId: "a" });
+    await rules.saveGlobalRule(a.id, {
+      schemaVersion: 1,
+      audience: "all",
+      enabled: true,
+      defaultPlacement: "quarantined",
+      root: { type: "group", match: "all", children: [] },
+    });
+    await panel.render();
+    const otherRoot = document.createElement("section");
+    document.body.append(otherRoot);
+    const other = new RulePanel(otherRoot, rules, accounts);
+    await other.render();
+    // Save in this tab, then Remove in the other, without waiting.
+    submit();
+    otherRoot
+      .querySelector<HTMLButtonElement>(".joyfox-panel__remove")!
+      .click();
+    await settle(
+      () =>
+        otherRoot
+          .querySelector(".joyfox-panel__status")
+          ?.textContent?.startsWith("Rule removed") ?? false,
+    );
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    expect(await rules.getGlobalRule(a.id)).toBeUndefined();
+  });
+
   it("does not offer to edit a rule shape it cannot show", async () => {
     const account = await accounts.createAccount({ joyClubAccountId: "a" });
     await rules.saveGlobalRule(account.id, {

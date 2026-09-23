@@ -1,6 +1,7 @@
 import type { TriagePlacement } from "../domain/types";
 import { ExtensionError } from "../errors";
 import type { MessageRouter } from "../messaging/router";
+import { withAccountLock } from "../storage/account-lock";
 import type { ProfileFacts } from "../qualification/facts";
 import {
   isMemberId,
@@ -73,6 +74,25 @@ async function writeAccount(
 }
 
 /**
+ * Run a write under the account lock, checking inside the lock that the
+ * account is still the active one (and so still exists). A removal or
+ * another context's write to the same account cannot interleave with it.
+ */
+async function lockedWrite<T>(
+  deps: TriageHandlerDeps,
+  expected: unknown,
+  refused: T,
+  write: (accountId: string) => Promise<T>,
+): Promise<T> {
+  if (typeof expected !== "string" || expected.length === 0)
+    throw invalid("account");
+  return withAccountLock(expected, async () => {
+    const accountId = await writeAccount(deps, expected);
+    return accountId ? write(accountId) : refused;
+  });
+}
+
+/**
  * Register the triage, trust and snapshot handlers. Every payload comes from a
  * content script, so each field is checked here before a service sees it.
  * A write carries the account its data came from and does nothing unless
@@ -93,18 +113,29 @@ export function registerTriageHandlers(
     const placement = payload?.placement;
     if (placement !== null && !PLACEMENTS.includes(placement))
       throw invalid("placement");
-    const accountId = await writeAccount(deps, payload?.accountId);
-    if (!accountId) return { done: false };
-    await deps.triage.setOverride(accountId, id, placement);
-    return { done: true };
+    return lockedWrite<{ done: boolean }>(
+      deps,
+      payload?.accountId,
+      { done: false },
+      async (accountId) => {
+        await deps.triage.setOverride(accountId, id, placement);
+        return { done: true };
+      },
+    );
   });
   router.register("trust.log", async (payload) => {
     const id = memberId(payload?.memberId);
     if (!OUTCOMES.includes(payload?.kind)) throw invalid("outcome");
-    const accountId = await writeAccount(deps, payload?.accountId);
-    if (!accountId) return { done: false };
-    await deps.trust.logOutcome(accountId, id, payload.kind);
-    return { done: true };
+    const kind = payload.kind;
+    return lockedWrite<{ done: boolean }>(
+      deps,
+      payload?.accountId,
+      { done: false },
+      async (accountId) => {
+        await deps.trust.logOutcome(accountId, id, kind);
+        return { done: true };
+      },
+    );
   });
   router.register("trust.get", async (payload) =>
     deps.triage.trustFor(
@@ -115,16 +146,26 @@ export function registerTriageHandlers(
   );
   router.register("trust.undo", async (payload) => {
     const id = memberId(payload?.memberId);
-    const accountId = await writeAccount(deps, payload?.accountId);
-    if (!accountId) return { removed: false };
-    return { removed: await deps.trust.undoLastOutcome(accountId, id) };
+    return lockedWrite<{ removed: boolean }>(
+      deps,
+      payload?.accountId,
+      { removed: false },
+      async (accountId) => ({
+        removed: await deps.trust.undoLastOutcome(accountId, id),
+      }),
+    );
   });
   router.register("snapshot.capture", async (payload) => {
     const id = memberId(payload?.memberId);
     const facts = observed(payload?.observed);
-    const accountId = await writeAccount(deps, payload?.accountId);
-    if (!accountId) return { stored: false };
-    return { stored: await deps.triage.captureSnapshot(accountId, id, facts) };
+    return lockedWrite<{ stored: boolean }>(
+      deps,
+      payload?.accountId,
+      { stored: false },
+      async (accountId) => ({
+        stored: await deps.triage.captureSnapshot(accountId, id, facts),
+      }),
+    );
   });
   router.register("options.open", async () => {
     await deps.openOptions();

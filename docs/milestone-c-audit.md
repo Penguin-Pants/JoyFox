@@ -126,6 +126,20 @@ A fourth Codex review found four more, all confirmed and fixed:
 - A quick "Save rule" then "Remove rule" could end with the rule saved. The
   options panel now runs them in click order.
 
+A fifth Codex review found four more, all confirmed and fixed with one mechanism
+plus an observer change:
+
+- A write accepted just before an account removal could land after the sweep and
+  recreate data for a removed account. Writes from different tabs (rule save and
+  remove, profile captures) could also interleave. Every write and the account
+  removal now hold one lock per account, shared by the background and all
+  options tabs (Web Locks API), and a write re-checks inside the lock that its
+  account is still active.
+- The navigation observer saw only added and removed nodes, so an in-place
+  change to a profile link, shield code, gender code or photo label was not
+  noticed. It now also watches those attributes and text changes, never JoyFox's
+  own `data-joyfox-*` attributes.
+
 Each fix has a regression test confirmed to fail without it.
 
 ### Confirmed issues deferred

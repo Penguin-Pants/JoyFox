@@ -1,5 +1,6 @@
 import "../setup-indexeddb";
 import { beforeEach, describe, expect, it } from "vitest";
+import { AccountService } from "../../src/accounts/account-service";
 import { registerTriageHandlers } from "../../src/background/triage-handlers";
 import { MessageRouter } from "../../src/messaging/router";
 import type { ContactRuleDefinition } from "../../src/rules/contact-rule";
@@ -527,5 +528,42 @@ describe("background triage handlers", () => {
     });
     await send("options.open", {});
     expect(opened).toBe(1);
+  });
+});
+
+describe("account lock", () => {
+  it("never lets an accepted write outlive the account's removal", async () => {
+    const accounts = new AccountService(
+      repositories.extensionAccounts,
+      settings,
+    );
+    const account = await accounts.createAccount({ joyClubAccountId: "a" });
+    const router = new MessageRouter();
+    registerTriageHandlers(router, {
+      triage,
+      trust,
+      activeAccountId: async () => (await accounts.getActiveAccount())?.id,
+      openOptions: () => Promise.resolve(),
+    });
+    // The write is accepted, then the account is removed while it runs.
+    const writing = router.route({
+      type: "trust.log",
+      requestId: "r1",
+      payload: { accountId: account.id, memberId: MEMBER, kind: "positive" },
+    } as never);
+    const capturing = router.route({
+      type: "snapshot.capture",
+      requestId: "r2",
+      payload: {
+        accountId: account.id,
+        memberId: MEMBER,
+        observed: { photoCount: 3 },
+      },
+    } as never);
+    await accounts.deleteAccount(account.id);
+    await Promise.all([writing, capturing]);
+    expect(await repositories.trustSignals.list(account.id)).toEqual([]);
+    expect(await repositories.profileSnapshots.list(account.id)).toEqual([]);
+    expect(await repositories.joyClubMembers.list(account.id)).toEqual([]);
   });
 });

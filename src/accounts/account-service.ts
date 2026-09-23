@@ -4,6 +4,7 @@ import {
   runtimeSettingsArea,
   type SettingsArea,
 } from "../storage/local-settings";
+import { withAccountLock } from "../storage/account-lock";
 import {
   deleteAccountData,
   ExtensionAccountRepository,
@@ -114,8 +115,12 @@ export class AccountService {
    * half-removed scope.
    */
   async deleteAccount(accountId: string): Promise<void> {
-    if ((await this.getActiveAccountId()) === accountId)
-      await this.clearActiveAccount();
-    await deleteAccountData(accountId);
+    // Held with every write to this account, so no accepted write can land
+    // after the sweep and recreate data for a removed account.
+    await withAccountLock(accountId, async () => {
+      if ((await this.getActiveAccountId()) === accountId)
+        await this.clearActiveAccount();
+      await deleteAccountData(accountId);
+    });
   }
 }

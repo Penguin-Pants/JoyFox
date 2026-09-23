@@ -15,6 +15,7 @@ import {
   type BuilderForm,
 } from "../rules/rule-builder";
 import { RuleService } from "../rules/rule-service";
+import { withAccountLock } from "../storage/account-lock";
 
 type BoxName = "all" | "any";
 
@@ -327,8 +328,12 @@ export class RulePanel {
     try {
       // The form belongs to the account it was drawn for. If another account
       // became active meanwhile, nothing is written to either.
-      if (!(await this.#confirmAccount(accountId, "saved"))) return;
-      await this.rules.saveGlobalRule(accountId, fromBuilderForm(form));
+      const saved = await withAccountLock(accountId, async () => {
+        if (!(await this.#isActive(accountId))) return false;
+        await this.rules.saveGlobalRule(accountId, fromBuilderForm(form));
+        return true;
+      });
+      if (!saved) return this.#reportStale("saved");
       await this.render();
       const vacuous =
         Object.keys(form.all).length === 0 && Object.keys(form.any).length > 0;
@@ -357,8 +362,12 @@ export class RulePanel {
     button.addEventListener("click", () => {
       void this.#serial(async () => {
         try {
-          if (!(await this.#confirmAccount(accountId, "removed"))) return;
-          await this.rules.deleteGlobalRule(accountId);
+          const removed = await withAccountLock(accountId, async () => {
+            if (!(await this.#isActive(accountId))) return false;
+            await this.rules.deleteGlobalRule(accountId);
+            return true;
+          });
+          if (!removed) return this.#reportStale("removed");
           await this.render();
           this.#setStatus(
             "Rule removed. JoyFox no longer sorts the inbox for this account.",
@@ -377,20 +386,20 @@ export class RulePanel {
 
   /**
    * Whether the form's account is still the active one. A form drawn for
-   * another account stays clickable until the new render finishes; if it
-   * is stale, nothing is written to either account and the form is redrawn.
+   * another account stays clickable until the new render finishes. Checked
+   * inside the account lock, so the answer holds for the write that follows.
    */
-  async #confirmAccount(
-    accountId: string,
-    action: "saved" | "removed",
-  ): Promise<boolean> {
-    if ((await this.accounts.getActiveAccount())?.id === accountId) return true;
+  async #isActive(accountId: string): Promise<boolean> {
+    return (await this.accounts.getActiveAccount())?.id === accountId;
+  }
+
+  /** Nothing was written to either account; redraw and say so. */
+  async #reportStale(action: "saved" | "removed"): Promise<void> {
     await this.render();
     this.#setStatus(
       `The active account changed. The rule was not ${action}. Check the form and try again.`,
       "error",
     );
-    return false;
   }
 
   #serial(action: () => Promise<void>): Promise<void> {

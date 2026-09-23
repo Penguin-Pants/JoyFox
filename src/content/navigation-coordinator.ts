@@ -8,6 +8,14 @@ export interface NavigationEvent {
 }
 export type NavigationListener = (event: NavigationEvent) => void;
 
+/** Attributes whose in-place change can alter what a feature reads. */
+export const WATCHED_ATTRIBUTES: readonly string[] = [
+  "href",
+  "verification-status",
+  "universal-gender",
+  "aria-label",
+];
+
 export class NavigationCoordinator {
   readonly #listeners = new Set<NavigationListener>();
   #observer?: MutationObserver;
@@ -34,6 +42,13 @@ export class NavigationCoordinator {
     this.#observer.observe(document.documentElement, {
       childList: true,
       subtree: true,
+      // JoyClub can patch a triage input in place: a row's profile link, a
+      // shield or gender code, or the photo count label. Only these
+      // attributes are watched, never JoyFox's own `data-joyfox-*` ones, so
+      // JoyFox's writes cannot wake the coordinator.
+      attributes: true,
+      attributeFilter: [...WATCHED_ATTRIBUTES],
+      characterData: true,
     });
     this.#urlTimer = globalThis.setInterval(() => {
       if (location.href !== this.#lastUrl) this.#emit("history");

@@ -63,6 +63,27 @@ describe("F2 content framework", () => {
     vi.useRealTimers();
   });
 
+  it("wakes on an in-place change to a watched attribute, not on JoyFox's own", async () => {
+    vi.useFakeTimers();
+    const shield = document.createElement("j-veri-icon");
+    shield.setAttribute("verification-status", "1");
+    document.body.append(shield);
+    const listener = vi.fn();
+    const coordinator = new NavigationCoordinator(detectPage);
+    coordinator.subscribe(listener);
+    coordinator.start();
+    expect(listener).toHaveBeenCalledTimes(1);
+    shield.setAttribute("verification-status", "3");
+    await vi.advanceTimersByTimeAsync(50);
+    expect(listener).toHaveBeenCalledTimes(2);
+    shield.setAttribute("data-joyfox-placement", "qualified");
+    await vi.advanceTimersByTimeAsync(50);
+    expect(listener).toHaveBeenCalledTimes(2);
+    coordinator.stop();
+    shield.remove();
+    vi.useRealTimers();
+  });
+
   it("keeps delivering to other listeners when one throws", async () => {
     vi.useFakeTimers();
     const failure = vi.spyOn(console, "error").mockImplementation(() => {});
