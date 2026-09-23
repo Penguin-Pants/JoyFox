@@ -160,6 +160,17 @@ A seventh Codex review found three more, all confirmed and fixed:
   result. The inbox now asks again on a new UTC day and on re-entering the
   inbox.
 
+An eighth Codex review found three more, all confirmed and fixed:
+
+- An older options render's late read failure replaced the newer account's form
+  with an error. Only the newest render may report a failure now.
+- Leaving a conversation or profile did not cancel its pending load, so a late
+  answer could bring back the old member's panel. Leaving now cancels it.
+- A queued save or remove compared against the form version at run time, so a
+  redraw from another tab's change while it waited let it through. The version
+  is now captured at click time; only this panel's own later writes count as
+  current.
+
 Each fix has a regression test confirmed to fail without it.
 
 ### Confirmed issues deferred

@@ -13,11 +13,8 @@ if (root)
 const ruleRoot = document.querySelector<HTMLElement>("#joyfox-rule");
 if (ruleRoot) {
   const rules = new RulePanel(ruleRoot);
-  const render = () =>
-    rules.render().catch(() => {
-      ruleRoot.textContent =
-        "JoyFox could not read the contact rule. No rule was changed.";
-    });
+  // `render` reports its own read failures, and only for the newest render.
+  const render = () => rules.render().catch(() => undefined);
   void render();
   // The rule belongs to the active account, so a switch shows that account's.
   browser.storage.onChanged.addListener((changes, area) => {

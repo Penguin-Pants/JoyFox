@@ -19,6 +19,12 @@ import { withAccountLock } from "../storage/account-lock";
 
 type BoxName = "all" | "any";
 
+/** The stored-rule version a click acted on, and this panel's write count. */
+interface FormVersion {
+  stamp: string;
+  sequence: number;
+}
+
 const BOX_LEGEND: Record<BoxName, string> = {
   all: "A sender qualifies when ALL of these are met",
   any: "Or a sender qualifies when ANY of these is met",
@@ -79,6 +85,9 @@ export class RulePanel {
    * tab changed since.
    */
   #drawnStamp = "none";
+  /** Writes this panel made, so a queued click can tell them from others'. */
+  #ownWrites: Array<{ stamp: string; sequence: number }> = [];
+  #writeSequence = 0;
   /** Bumped per render, so a slower, older render never replaces a newer one. */
   #generation = 0;
 
@@ -98,10 +107,19 @@ export class RulePanel {
     // Read everything first, then build: storage reads are the only awaits,
     // and a render overtaken by a newer one (for example after an account
     // switch) stops here without touching the page.
-    const account = await this.accounts.getActiveAccount();
-    const stored = account
-      ? await this.rules.getGlobalRule(account.id)
-      : undefined;
+    let account: Awaited<ReturnType<AccountService["getActiveAccount"]>>;
+    let stored: Awaited<ReturnType<RuleService["getGlobalRule"]>>;
+    try {
+      account = await this.accounts.getActiveAccount();
+      stored = account ? await this.rules.getGlobalRule(account.id) : undefined;
+    } catch {
+      // Only the newest render may show a failure: an older render's late
+      // error must not replace a form a newer render already drew.
+      if (generation === this.#generation)
+        this.root.textContent =
+          "JoyFox could not read the contact rule. No rule was changed.";
+      return;
+    }
     if (generation !== this.#generation) return;
     this.#drawnStamp = stored?.updatedAt ?? "none";
     this.root.replaceChildren();
@@ -228,7 +246,8 @@ export class RulePanel {
       event.preventDefault();
       // Read the form now, at click time, then queue the write.
       const form = this.#readForm();
-      void this.#serial(() => this.#save(accountId, form));
+      const version = this.#version();
+      void this.#serial(() => this.#save(accountId, form, version));
     });
     return node;
   }
@@ -328,7 +347,11 @@ export class RulePanel {
     return form;
   }
 
-  async #save(accountId: string, form: BuilderForm | string): Promise<void> {
+  async #save(
+    accountId: string,
+    form: BuilderForm | string,
+    version: FormVersion,
+  ): Promise<void> {
     if (typeof form === "string") {
       this.#setStatus(`${form} The rule was not saved.`, "error");
       return;
@@ -338,8 +361,12 @@ export class RulePanel {
       // became active meanwhile, nothing is written to either.
       const saved = await withAccountLock(accountId, async () => {
         if (!(await this.#isActive(accountId))) return "account";
-        if (!(await this.#isCurrent(accountId))) return "rule";
-        await this.rules.saveGlobalRule(accountId, fromBuilderForm(form));
+        if (!(await this.#isCurrent(accountId, version))) return "rule";
+        const rule = await this.rules.saveGlobalRule(
+          accountId,
+          fromBuilderForm(form),
+        );
+        this.#recordOwnWrite(rule.updatedAt);
         return "saved";
       });
       if (saved !== "saved") return this.#reportStale("saved", saved);
@@ -369,12 +396,14 @@ export class RulePanel {
     );
     button.type = "button";
     button.addEventListener("click", () => {
+      const version = this.#version();
       void this.#serial(async () => {
         try {
           const removed = await withAccountLock(accountId, async () => {
             if (!(await this.#isActive(accountId))) return "account";
-            if (!(await this.#isCurrent(accountId))) return "rule";
+            if (!(await this.#isCurrent(accountId, version))) return "rule";
             await this.rules.deleteGlobalRule(accountId);
+            this.#recordOwnWrite("none");
             return "removed";
           });
           if (removed !== "removed")
@@ -404,14 +433,31 @@ export class RulePanel {
     return (await this.accounts.getActiveAccount())?.id === accountId;
   }
 
+  /** The form version a click acts on, captured at click time. */
+  #version(): FormVersion {
+    return { stamp: this.#drawnStamp, sequence: this.#writeSequence };
+  }
+
+  #recordOwnWrite(stamp: string): void {
+    this.#writeSequence += 1;
+    this.#ownWrites.push({ stamp, sequence: this.#writeSequence });
+    // Only recent writes can matter to a queued click.
+    if (this.#ownWrites.length > 20) this.#ownWrites.shift();
+  }
+
   /**
-   * Whether the stored rule is still the one this panel last drew. Read when
-   * the queued write runs, so this panel's own earlier save (which redraws)
-   * counts as current, and only another tab's change does not.
+   * Whether the stored rule is still the version the click acted on, or one
+   * this panel itself wrote after that click (a quick "Save" then "Remove"
+   * in the same tab). Any other change came from another tab, even if this
+   * panel redrew meanwhile, so the queued write is refused.
    */
-  async #isCurrent(accountId: string): Promise<boolean> {
-    const stored = await this.rules.getGlobalRule(accountId);
-    return (stored?.updatedAt ?? "none") === this.#drawnStamp;
+  async #isCurrent(accountId: string, version: FormVersion): Promise<boolean> {
+    const stored = (await this.rules.getGlobalRule(accountId))?.updatedAt;
+    const current = stored ?? "none";
+    if (current === version.stamp) return true;
+    return this.#ownWrites.some(
+      (write) => write.sequence > version.sequence && write.stamp === current,
+    );
   }
 
   /** Nothing was written; redraw from storage and say why. */

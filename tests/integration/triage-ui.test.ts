@@ -545,6 +545,29 @@ describe("conversation and profile panel", () => {
     expect(panel()?.getAttribute("data-member")).toBe("5550001");
   });
 
+  it("does not bring a panel back after leaving, when its load ends late", async () => {
+    await rules.saveGlobalRule(ACCOUNT, knownRule());
+    setPage(
+      "/clubmail/conversation/conversation-wrapper-personal-1234567-7654321",
+      conversationHtml,
+    );
+    const client = serviceClient();
+    let release: () => void = () => undefined;
+    const member = new MemberPanel(document, {
+      ...client,
+      evaluate: async (members) => {
+        await new Promise<void>((resolve) => (release = resolve));
+        return client.evaluate(members);
+      },
+    });
+    member.update("conversation");
+    // The route moves on while the header is still in the page.
+    member.leave();
+    release();
+    await new Promise((resolve) => setTimeout(resolve, 30));
+    expect(panel()).toBeNull();
+  });
+
   it("runs trust writes in click order, so undo removes the outcome just logged", async () => {
     await rules.saveGlobalRule(ACCOUNT, knownRule());
     await trust.logOutcome(ACCOUNT, KNOWN, "negative");

@@ -131,6 +131,10 @@ export class MemberPanel {
   /** Called when the page is no longer a conversation or profile. */
   leave(): void {
     this.#page = undefined;
+    // A load still pending for the page just left must not bring its panel
+    // back when it completes.
+    this.#generation += 1;
+    this.#inFlight = undefined;
     this.teardown();
   }
 

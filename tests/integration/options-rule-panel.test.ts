@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it } from "vitest";
 import { AccountService } from "../../src/accounts/account-service";
 import { RulePanel } from "../../src/options/rule-panel";
 import { RuleService } from "../../src/rules/rule-service";
+import { withAccountLock } from "../../src/storage/account-lock";
 import { repositories } from "../../src/storage/repositories";
 import { TRIAGE_REVISION_KEY } from "../../src/storage/triage-revision";
 import { MemorySettingsArea } from "../memory-settings";
@@ -266,6 +267,58 @@ describe("M4 rule builder panel", () => {
     await panel.refreshIfChanged();
     expect(input("joyfox-rule-enabled").checked).toBe(false);
     expect(status()?.textContent).toContain("changed in another tab");
+  });
+
+  it("refuses a queued save when another tab changes the rule before it runs", async () => {
+    const a = await accounts.createAccount({ joyClubAccountId: "a" });
+    await panel.render();
+    input("joyfox-rule-all-verified-on").checked = true;
+    // Hold the account lock, so the save waits in the queue.
+    let release: () => void = () => undefined;
+    const held = withAccountLock(
+      a.id,
+      () => new Promise<void>((resolve) => (release = resolve)),
+    );
+    submit();
+    // Meanwhile another tab saves, and this panel redraws from storage.
+    await rules.saveGlobalRule(a.id, {
+      schemaVersion: 1,
+      audience: "all",
+      enabled: false,
+      defaultPlacement: "needs-review",
+      root: { type: "group", match: "all", children: [] },
+    });
+    await panel.refreshIfChanged();
+    release();
+    await held;
+    await settle(
+      () => status()?.textContent?.includes("was not saved") ?? false,
+    );
+    expect(await rules.getGlobalRule(a.id)).toMatchObject({ enabled: false });
+  });
+
+  it("keeps the newest form when an older render fails late", async () => {
+    await accounts.createAccount({ joyClubAccountId: "a" });
+    let failFirst: () => void = () => undefined;
+    let calls = 0;
+    const flaky = {
+      getActiveAccount: () => {
+        calls += 1;
+        return calls === 1
+          ? new Promise<never>((_resolve, reject) => {
+              failFirst = () => reject(new Error("slow failure"));
+            })
+          : accounts.getActiveAccount();
+      },
+    } as unknown as AccountService;
+    panel = new RulePanel(root, rules, flaky);
+    const first = panel.render();
+    await panel.render();
+    expect(root.querySelector("form")).not.toBeNull();
+    failFirst();
+    await first;
+    expect(root.querySelector("form")).not.toBeNull();
+    expect(root.textContent).not.toContain("could not read");
   });
 
   it("does not offer to edit a rule shape it cannot show", async () => {
