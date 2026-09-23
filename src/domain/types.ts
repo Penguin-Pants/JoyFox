@@ -111,9 +111,15 @@ export interface ExtensionPreference extends AccountScopedEntity {
   key: string;
   value: unknown;
 }
+/**
+ * A reusable draft the user wrote (M10). `folder` organizes the list, for
+ * example "Event confirmation"; a template without one is shown under
+ * "General". The body is stored exactly as inserted.
+ */
 export interface MessageTemplate extends AccountScopedEntity {
   name: string;
   body: string;
+  folder?: string;
 }
 export interface SpamPhrase extends AccountScopedEntity {
   phrase: string;

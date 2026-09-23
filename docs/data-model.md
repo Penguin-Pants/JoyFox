@@ -131,3 +131,35 @@ compared by day). Rule, placement, trust and snapshot writes set
 `joyfox.triageRevision` in `storage.local` to a random token, so open pages
 re-evaluate. Saving a note, placement, outcome or snapshot also registers the
 JoyClubMember record.
+
+## Data control (Milestone D, M8)
+
+The options page's "Your data" panel reads counts, records and exports through
+the repository layer (`src/storage/repositories.ts`) and `DataService`
+(`src/data/data-service.ts`); nothing else reads a store directly.
+
+- **Account export** (`scope: "account"`): `schemaVersion`, `exportedAt`,
+  `accountId` and one array per entity in `ENTITY_NAMES`, empty when the account
+  has none.
+- **Full export** (`scope: "all"`): `schemaVersion`, `exportedAt` and every
+  record in every store, whatever its scope. This includes records whose scope
+  is not a registered account, such as the diagnostic wake counter.
+- Both are indented JSON. `storageKey`, an internal key, is never exported. No
+  passphrase exists to export (SyncConfig refuses one).
+- **Delete record** and **delete entity** act in one account. **Delete account
+  data** removes every record of the account except its ExtensionAccount record.
+  The account record is removed only with the whole account (Accounts panel).
+  **Delete all** clears every store and every `storage.local` key. See ADR 0007.
+- Account-wide deletes run in one transaction, so a failure leaves all records
+  in place rather than some. Every delete holds the account lock and sets the
+  triage revision, so open pages re-evaluate at once.
+
+## MessageTemplate (Milestone D, M10)
+
+`name` (at most 80 characters, whitespace collapsed), `body` (at most 4000
+characters) and an optional `folder` (at most 40 characters). A template without
+a folder shows under "General". The body is stored exactly, with line breaks as
+`\n`, the form a textarea reports, so the inserted text equals the stored text.
+IDs are `template:<random>`. The limits are storage guards chosen by this
+implementation. `folder` is an optional field on the existing store, so no
+database version change was needed.

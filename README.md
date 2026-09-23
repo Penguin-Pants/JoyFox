@@ -28,3 +28,9 @@ login a tab uses, so the active account is the one selected there, and every
 stored note, tag and rule belongs to it. Notes and tags are refused until a
 stable member identifier is available, which waits on live selector
 verification.
+
+The options page also holds message templates and "Your data", where every
+stored record can be inspected, exported as JSON and deleted, per account or for
+the whole extension. The template picker on JoyClub's composer is an opt-in
+trial until the composer's events are verified; see `docs/manual-acceptance.md`,
+items 27 to 35.

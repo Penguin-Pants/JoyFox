@@ -7,6 +7,14 @@ import type {
 } from "../triage/triage-service";
 import type { TrustOutcomeKind } from "../trust/trust-service";
 
+/** What the composer picker needs of one template, and nothing else. */
+export interface TemplateSummary {
+  id: string;
+  name: string;
+  folder: string;
+  body: string;
+}
+
 export interface ExtensionMessage<T = unknown> {
   type: string;
   requestId: string;
@@ -64,6 +72,14 @@ export interface MessageContract {
       observed: Partial<ProfileFacts>;
     };
     response: { stored: boolean };
+  };
+  /**
+   * The active account's message templates, for the composer picker (M10).
+   * `accountId` is absent when no account is active.
+   */
+  "template.list": {
+    request: Record<string, never>;
+    response: { accountId?: string; templates: TemplateSummary[] };
   };
   /** Content scripts cannot open the options page themselves. */
   "options.open": {

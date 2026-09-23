@@ -31,9 +31,10 @@ type StorageChanges = Record<string, { newValue?: unknown }>;
 type ChangeListener = (changes: StorageChanges, areaName: string) => void;
 
 /**
- * Tracks the diagnostics flag for the lifetime of a tab. It reads the flag
- * once and then follows `storage.onChanged`, so turning diagnostics off (or
- * on) takes effect without a reload. Any storage failure leaves it off.
+ * Tracks a `storage.local` flag for the lifetime of a tab: the diagnostics
+ * flag by default, or another opt-in key. It reads the flag once and then
+ * follows `storage.onChanged`, so turning it off (or on) takes effect without
+ * a reload. Any storage failure leaves it off.
  */
 export class DiagnosticsFlag {
   #enabled = false;
@@ -43,15 +44,16 @@ export class DiagnosticsFlag {
   constructor(
     read: () => Promise<Record<string, unknown>>,
     onChanged?: { addListener(listener: ChangeListener): void },
+    key: string = DIAGNOSTICS_KEY,
   ) {
     onChanged?.addListener((changes, areaName) => {
-      if (areaName !== "local" || !(DIAGNOSTICS_KEY in changes)) return;
+      if (areaName !== "local" || !(key in changes)) return;
       this.#changed = true;
-      this.#enabled = changes[DIAGNOSTICS_KEY]?.newValue === true;
+      this.#enabled = changes[key]?.newValue === true;
     });
     this.ready = read()
       .then((settings) => {
-        if (!this.#changed) this.#enabled = settings[DIAGNOSTICS_KEY] === true;
+        if (!this.#changed) this.#enabled = settings[key] === true;
       })
       .catch(() => {
         if (!this.#changed) this.#enabled = false;

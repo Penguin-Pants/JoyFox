@@ -252,6 +252,7 @@ export function validateEntity(
     case "messageTemplates":
       requireString(record, "name");
       requireString(record, "body");
+      optionalString(record, "folder");
       break;
     case "spamPhrases":
       requireString(record, "phrase");

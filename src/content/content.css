@@ -6,7 +6,8 @@
 /* Design tokens, scoped to JoyFox elements rather than the page root. */
 .joyfox-triage,
 .joyfox-panel,
-.joyfox-badge {
+.joyfox-badge,
+.joyfox-template-picker {
   --joyfox-ink: #1f2328;
   --joyfox-muted: #57606a;
   --joyfox-surface: #ffffff;
@@ -127,4 +128,58 @@
 .joyfox-explain__conditions summary,
 .joyfox-trust__details summary {
   cursor: pointer;
+}
+
+/* M10 composer template picker, placed after JoyClub's composer form. */
+.joyfox-template-picker {
+  box-sizing: border-box;
+  margin: var(--joyfox-space) 0;
+  color: var(--joyfox-ink);
+  font: inherit;
+}
+
+.joyfox-template-picker button {
+  font: inherit;
+  cursor: pointer;
+  border: 1px solid var(--joyfox-line);
+  border-radius: var(--joyfox-radius);
+  background: var(--joyfox-surface);
+  color: var(--joyfox-ink);
+  padding: 0.2em 0.6em;
+}
+
+.joyfox-template-picker button:focus-visible {
+  outline: 2px solid var(--joyfox-focus);
+  outline-offset: 2px;
+}
+
+.joyfox-template-picker__list {
+  border: 1px solid var(--joyfox-line);
+  border-radius: var(--joyfox-radius);
+  background: var(--joyfox-surface);
+  padding: var(--joyfox-space);
+  margin-top: var(--joyfox-space);
+}
+
+.joyfox-template-picker__group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--joyfox-space);
+  align-items: center;
+  margin-bottom: var(--joyfox-space);
+}
+
+.joyfox-template-picker__folder {
+  flex-basis: 100%;
+  margin: 0;
+  font-weight: 600;
+}
+
+.joyfox-template-picker__status:empty {
+  display: none;
+}
+
+.joyfox-template-picker__status {
+  margin: var(--joyfox-space) 0 0;
+  color: var(--joyfox-muted);
 }

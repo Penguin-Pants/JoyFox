@@ -10,6 +10,8 @@ export interface SettingsArea {
   get(keys: string[]): Promise<Record<string, unknown>>;
   set(items: Record<string, unknown>): Promise<void>;
   remove(keys: string[]): Promise<void>;
+  /** Removes every key in the area. Used only by "delete all JoyFox data". */
+  clear(): Promise<void>;
 }
 
 function runtimeArea(): browser.storage.StorageArea {
@@ -32,5 +34,8 @@ export const runtimeSettingsArea: SettingsArea = {
   },
   async remove(keys) {
     await runtimeArea().remove(keys);
+  },
+  async clear() {
+    await runtimeArea().clear();
   },
 };

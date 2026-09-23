@@ -124,6 +124,40 @@ unchanged).
   from a second account and replied beside the list; the tab bar and badges
   stayed on the list.
 
+## Milestone D live acceptance (data control, templates)
+
+Use your own account. Never click Send during the template trial unless you mean
+to send the text.
+
+27. Build and load the extension (item 14). In the options page, add a template
+    under "Message templates" with two lines, an umlaut and an emoji, in the
+    folder "Event confirmation". Edit it once and confirm the change shows.
+28. In "Your data", confirm the counts match what you created and that "Show"
+    lists the template as text. Choose the other account (if any) in "Account to
+    inspect" and confirm the active account in "Accounts" did not change.
+29. Click "Export this account (JSON)" and "Export all JoyFox data (JSON)". Open
+    both files in a text editor. Confirm `schemaVersion` is 2, every data type
+    is listed, and the template text is exact.
+30. Click one "Delete" and confirm nothing is deleted until "Confirm". Delete
+    one record, then one data type, and confirm the counts drop.
+31. Turn the template trial on in the options page console:
+    `browser.storage.local.set({ "joyfox.templateInsertionTrial": true })`.
+32. Open a conversation. Confirm a "JoyFox templates" button appears below
+    JoyClub's message box, not inside it. Type a few words, place the cursor
+    between them, open the list and pick the template. Confirm the text appears
+    exactly at the cursor and the message was not sent.
+33. **Item 6 check.** Without typing anything else, confirm whether JoyClub
+    noticed the text: for example the Send button becomes active, or a character
+    counter changes. Then delete the text with the keyboard and confirm JoyClub
+    notices that too. Record the result; do not click Send unless you mean it.
+34. Turn the trial off with
+    `browser.storage.local.remove("joyfox.templateInsertionTrial")` and confirm
+    the button disappears at once.
+35. Last, in "Your data", click "Delete all JoyFox data" and "Confirm". Confirm
+    that no account, rule or template remains, that the JoyClub inbox shows no
+    JoyFox UI, and that `await browser.storage.local.get()` in the options page
+    console returns `{}`.
+
 Live selector and action acceptance must wait for the evidence checklist in
 `manual-verification-needed.md`. Never perform destructive action testing
 automatically.

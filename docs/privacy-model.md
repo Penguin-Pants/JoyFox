@@ -41,3 +41,16 @@ other members or sent anywhere. Triage changes only what the user's own inbox
 shows: it never deletes, archives, sends or changes anything on JoyClub. The
 sender name appears in the "Why" panel as JoyClub shows it and is never stored
 or logged.
+
+Milestone D adds user control. The options page shows every stored record as
+text, per account and per data type, and deletes one record, one data type, one
+account's data or everything. "Delete all JoyFox data" empties every store and
+every `storage.local` setting. Exports are files the user saves through the
+browser; nothing is uploaded, and no `downloads` permission is used. An export
+holds sensitive data (notes, tags, cached normalized messages). The user chooses
+where the file goes, and its name never holds an account identifier.
+
+Message templates are the user's own text and are stored per account. The
+composer picker is off unless the user turns on the trial flag. It reads the
+template list from the background, inserts at the cursor and never reads what
+the user typed, never sends and never clicks JoyClub's Send button.

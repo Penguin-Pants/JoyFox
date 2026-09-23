@@ -96,3 +96,18 @@
 - Cached profile facts do not expire (ADR 0005). A fact that changed on JoyClub
   since the member's profile was last seen stays in use until the profile is
   seen again.
+- The M10 composer picker is an opt-in trial (`joyfox.templateInsertionTrial`),
+  off by default, because the events JoyClub's composer needs after a
+  programmatic change are not verified (ADR 0007). It runs only on the standard
+  conversation composer. The event ClubMail composer has no evidence and is not
+  supported, so M10's "every compose context" acceptance is still open.
+- A template that does not fit the composer's `maxlength` is refused, never
+  shortened. The template limits (name 80, folder 40, text 4000 characters) are
+  storage guards chosen by this implementation.
+- Template variables (for example the recipient's first name) are not built.
+  Build plan Section 17 defers them until plain insertion is stable.
+- Deleting one member record in the data inspector does not delete the notes,
+  tags or other records that refer to that member. Each data type is deleted on
+  its own.
+- The data inspector shows records as raw JSON, 50 at a time. It is complete but
+  not polished; PRD Section 20 puts inspector polish in V1.

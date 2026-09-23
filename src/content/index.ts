@@ -12,6 +12,11 @@ import { InboxTriage, inboxListShown, inboxListState } from "./inbox-triage";
 import { MemberPanel } from "./member-panel";
 import { NavigationCoordinator } from "./navigation-coordinator";
 import { detectPage } from "./page-detector";
+import {
+  runtimeTemplateClient,
+  TEMPLATE_TRIAL_KEY,
+  TemplatePicker,
+} from "./template-picker";
 import { runtimeTriageClient } from "./triage-client";
 
 /**
@@ -27,9 +32,20 @@ if (hasVerifiedSelectors() && VERIFIED_HOSTS.includes(location.hostname)) {
     () => runtimeSettingsArea.get([DIAGNOSTICS_KEY]),
     storageEvents,
   );
+  const templateTrial = new DiagnosticsFlag(
+    () => runtimeSettingsArea.get([TEMPLATE_TRIAL_KEY]),
+    storageEvents,
+    TEMPLATE_TRIAL_KEY,
+  );
   const client = runtimeTriageClient();
   const inbox = new InboxTriage(document, client);
   const panel = new MemberPanel(document, client);
+  const picker = new TemplatePicker(document, runtimeTemplateClient());
+  let lastType: string | undefined;
+  const updatePicker = () => {
+    if (lastType === "conversation" && templateTrial.enabled) picker.update();
+    else picker.leave();
+  };
   let lastSummary = "";
   coordinator.subscribe(({ page }) => {
     const type = page.status === "found" ? page.value : undefined;
@@ -39,6 +55,8 @@ if (hasVerifiedSelectors() && VERIFIED_HOSTS.includes(location.hostname)) {
     else inbox.leave();
     if (type === "conversation" || type === "profile") panel.update(type);
     else panel.leave();
+    lastType = type;
+    updatePicker();
   });
   let lastPageLine = "";
   coordinator.subscribe(({ page }) => {
@@ -66,14 +84,19 @@ if (hasVerifiedSelectors() && VERIFIED_HOSTS.includes(location.hostname)) {
   // any tab or the options page: re-evaluate what this page shows.
   storageEvents?.addListener((changes, area) => {
     if (area !== "local") return;
+    // The flag listener registered first, so it already holds the new value.
+    if (TEMPLATE_TRIAL_KEY in changes) updatePicker();
     if (ACTIVE_ACCOUNT_SETTING_KEY in changes) {
       inbox.accountChanged();
       panel.accountChanged();
+      picker.accountChanged();
     } else if (TRIAGE_REVISION_KEY in changes) {
       inbox.invalidate();
       panel.invalidate();
     }
   });
   // Start after the initial flag is known, so the first event is not missed.
-  void diagnostics.ready.then(() => coordinator.start());
+  void Promise.all([diagnostics.ready, templateTrial.ready]).then(() =>
+    coordinator.start(),
+  );
 }
