@@ -100,6 +100,17 @@
   test and by the manual forced event-page restart (passed 2026-09-23).
 - Encryption is an isolated proof of concept. There is no sync transport.
 - Firefox signing and AMO distribution have not been implemented or claimed.
+- Quick Ignore and Delete (M9) has no live driver. Its state machine, ActionLog,
+  identity checks and notice are built and tested with test drivers, but where
+  Ignore lives in JoyClub's UI is unverified (F7), so the button never appears,
+  even with `joyfox.quickIgnoreDelete` set to `true` (ADR 0008).
+- M9 does not resume after a page navigation. If F7 shows that Ignore needs the
+  sender's profile (Path B), a pending-action marker in `storage.session` and
+  resume on the next page are still to be built.
+- The M9 step timeout (15 seconds) and the interrupted threshold (2 minutes) are
+  provisional; no document sets them.
+- The PRD's guided alternative for M9 (navigate and stage, the user clicks) is
+  not built. It needs the same F7 evidence.
 - Database version 1 supplies a migration boundary. No historical schema yet
   exists to migrate.
 - Cached profile facts do not expire (ADR 0005). A fact that changed on JoyClub

@@ -150,6 +150,8 @@ export interface SenderSpamOverride extends AccountScopedEntity {
 }
 export interface ActionLog extends AccountScopedEntity {
   memberId?: string;
+  /** The conversation acted on, kept opaque (`personal-<n>-<n>`). */
+  conversationId?: string;
   action: string;
   steps: Array<{ name: string; ok: boolean; at: string; errorCode?: string }>;
 }

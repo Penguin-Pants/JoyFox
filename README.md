@@ -35,3 +35,8 @@ stored record can be inspected, exported as JSON and deleted, per account or for
 the whole extension. A "JoyFox templates" button below JoyClub's message box
 inserts a template at the cursor; it never sends. See
 `docs/manual-acceptance.md`, items 27 to 35.
+
+Quick Ignore and Delete (M9) has its state machine, ActionLog and on-screen
+notice, tested with test drivers. It stays off: where Ignore lives in JoyClub's
+UI is not verified yet (F7), so no live click path exists and the button never
+appears. See ADR 0008.

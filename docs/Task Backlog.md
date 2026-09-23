@@ -42,7 +42,7 @@ Matches the PRD's Section 19.1 scope exactly. Nothing here is not in that list, 
 | F3 | Done | Automated wake-counter test passes, and the forced event-page restart in devtools passed on 2026-09-23 (`wakeCount` rose by one). |
 | F1 | Partial | Inbox, conversation and profile verified from `docs/live-evidence/`. Search, events and the ClubMail composer remain. |
 | F9 | Partial | Matrix in `08-attribute-matrix.md`. Verification appears on all three pages, photo count only on the profile, profile text on the conversation and the profile. Account age comes from the profile's "Angemeldet seit" badge. Profile type comes from the gender codes (`1` man, `2` woman, `3` couple). Still Unclear: photo count on the inbox row, and account age on the inbox and conversation. |
-| F7, F8 | Blocked | Human-assisted verification. See `manual-verification-needed.md`. |
+| F7, F8 | Blocked | Human-assisted verification. See `manual-verification-needed.md`. F7 is now the only blocker for M9; item 7 there lists what the M9 driver needs. |
 | M1 | Partial | Engine, fact merge and extraction are complete. Milestone C added the page badge, the explanation panel and profile snapshot capture. The 95 percent manual trial over 50 messages remains. |
 | M2 | Partial | Tab bar, per-row badges, in-place filtering, per-sender manual placement and dynamic rows are complete and tested (`milestone-c-audit.md`). Live acceptance passed on 2026-09-23, including the split-view re-check. The existing-conversation exception is blocked on reply detection. |
 | M4 | Partial | One global rule in the V1-compatible schema, a pure evaluator with explicit unknown handling, and the two-box options builder are complete and tested. Presets are deferred. Live acceptance passed on 2026-09-23. |
@@ -52,7 +52,7 @@ Matches the PRD's Section 19.1 scope exactly. Nothing here is not in that list, 
 | M7 | Partial | Explicit active account, account-scoped repositories, options switcher, and the Section 14 isolation test. Automatic account detection waits on F1 and F9. |
 | M8 | Done | Account selector, counts, per-entity inspection, delete record, data type, account data and everything, account and full JSON export with the schema version. Export completeness is tested item by item against every entity (`milestone-d-audit.md`). Live acceptance passed on 2026-09-23 (`manual-acceptance.md`, items 27 to 30 and 35). |
 | M10 | Partial | Create, edit, delete, folders and exact insertion at the cursor are complete, tested and accepted live on the standard composer (items 31 to 34, 2026-09-23). The picker is on by default (ADR 0007). The event ClubMail composer is unverified, so "every compose context" stays open. |
-| M9 | Not started | |
+| M9 | Partial | The F7-free core is complete and tested (ADR 0008, `milestone-e-audit.md`): the state machine, immediate ActionLog writes, identity checks before every click, the partial-failure notice, the off-by-default flag and the Section 24 matrix as synthetic tests. Blocked on F7: the live driver, resume after navigation (Path B only) and the guided mode. The manual matrix (`manual-acceptance.md`, items 43 to 54) waits on the live driver. |
 
 ### Follow-up work recorded during Milestone B
 
@@ -109,6 +109,17 @@ Matches the PRD's Section 19.1 scope exactly. Nothing here is not in that list, 
 - Decide whether to isolate the note editor from JoyClub's scripts, for example
   in a closed shadow root. It would not stop a page script that records
   keystrokes, so it needs a design decision first.
+
+### Follow-up work recorded during the M9 core
+
+- Build the live `QuickActionDriver` once F7 evidence exists, with fixture tests
+  for its selectors, then run the manual matrix (items 43 to 54).
+- If F7 shows Path B (Ignore needs the profile): add the `storage.session`
+  pending-action marker and resume after navigation (build plan Section 16).
+- The PRD's settings toggle for the guided alternative (navigate and stage, the
+  user clicks).
+- Confirm or tune the step timeout (15 seconds) and the interrupted threshold
+  (2 minutes) against the live site.
 
 M9 is the largest and riskiest MVP task, both in size and in its dependency on F7's still-unverified in-page-versus-navigation question. If F1 through F7 push MVP's timeline out meaningfully, M9 is the one task worth reconsidering for a fast-follow release rather than the rest of MVP slipping with it. That is a scope call, not a technical one, and stays with the person running this project.
 

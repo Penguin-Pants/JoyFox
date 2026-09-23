@@ -1,3 +1,9 @@
+import type { BeginAnswer, RecordAnswer } from "../actions/executor";
+import type {
+  ActionFailure,
+  ActionState,
+  OperationReport,
+} from "../actions/ignore-delete";
 import type { TriagePlacement } from "../domain/types";
 import type { ProfileFacts } from "../qualification/facts";
 import type {
@@ -123,6 +129,32 @@ export interface MessageContract {
   "tag.remove": {
     request: { accountId: string; memberId: string; label: string };
     response: { done: boolean };
+  };
+  /**
+   * M9: start a Quick Ignore and Delete operation. The content script runs
+   * the steps; the background stores each transition in ActionLog.
+   */
+  "action.ignoreDelete.start": {
+    request: { accountId: string; memberId: string; conversationId: string };
+    response: BeginAnswer;
+  };
+  /** Store one transition; answered only once it is stored. */
+  "action.ignoreDelete.record": {
+    request: {
+      accountId: string;
+      operationId: string;
+      state: ActionState;
+      failure?: ActionFailure;
+    };
+    response: { status: RecordAnswer };
+  };
+  /** The newest operation for one member under the active account. */
+  "action.ignoreDelete.latest": {
+    request: { memberId: string };
+    response:
+      | { status: "no-account" }
+      | { status: "none"; accountId: string }
+      | { status: "ok"; accountId: string; report: OperationReport };
   };
   /** Content scripts cannot open the options page themselves. */
   "options.open": {

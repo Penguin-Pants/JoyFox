@@ -290,6 +290,7 @@ export function validateEntity(
     case "actionLogs":
       requireString(record, "action");
       optionalString(record, "memberId");
+      optionalString(record, "conversationId");
       validateActionSteps(record);
       break;
   }

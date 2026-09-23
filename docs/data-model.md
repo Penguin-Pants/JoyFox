@@ -174,3 +174,21 @@ a folder shows under "General". The body is stored exactly, with line breaks as
 IDs are `template:<random>`. The limits are storage guards chosen by this
 implementation. `folder` is an optional field on the existing store, so no
 database version change was needed.
+
+## ActionLog (Milestone E, M9)
+
+One record per Quick Ignore and Delete run: `action` is `quick-ignore-delete`,
+`memberId` and an optional `conversationId` (the opaque `personal-<n>-<n>` from
+the conversation URL) name the target, and `steps` holds one entry per state
+reached, in order, each with `name`, `ok`, `at` and, for `Failed`, the reason in
+`errorCode`. IDs are `action:<time>:<sequence>:<random>`.
+
+The service appends a step only when the state machine allows it (ADR 0008), so
+a log never shows an impossible sequence. `…Requested` is stored before JoyFox
+clicks, so a crash leaves "not confirmed", never "not done". A run whose last
+step is not terminal and is older than 2 minutes reads as interrupted. The log
+holds IDs, state names and times only, never message text. Starting a run also
+registers the JoyClubMember record. Every stored transition sets
+`joyfox.actionRevision` in `storage.local`, so another open tab follows the run.
+`conversationId` is an optional field on the existing store, so no database
+version change was needed.

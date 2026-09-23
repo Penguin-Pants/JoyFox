@@ -58,3 +58,9 @@ Message templates are the user's own text and are stored per account. The
 composer picker is off unless the user turns on the trial flag. It reads the
 template list from the background, inserts at the cursor and never reads what
 the user typed, never sends and never clicks JoyClub's Send button.
+
+Quick Ignore and Delete (M9) is the only feature that would perform a JoyClub
+write. It is off by default and has no live driver until F7 verifies its path,
+so today it never clicks anything. Its ActionLog holds member and conversation
+IDs, step names, times and failure codes, never message text. It never sends a
+message.
