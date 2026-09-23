@@ -39,11 +39,11 @@ Matches the PRD's Section 19.1 scope exactly. Nothing here is not in that list, 
 | ID | Status | Notes |
 | --- | --- | --- |
 | F0, F2, F4 to F6 | Done | See `foundation-audit.md`. F2's live acceptance passed on 2026-09-23 (10 of 10 inbox loads). |
-| F3 | Partial | Automated wake-counter test passes. The forced event-page restart in devtools (`manual-acceptance.md`, item 5) is not yet done. |
+| F3 | Done | Automated wake-counter test passes, and the forced event-page restart in devtools passed on 2026-09-23 (`wakeCount` rose by one). |
 | F1 | Partial | Inbox, conversation and profile verified from `docs/live-evidence/`. Search, events and the ClubMail composer remain. |
-| F9 | Partial | Matrix in `08-attribute-matrix.md`. Verification appears on all three pages, photo count only on the profile, profile text on the conversation and the profile. Account age comes from the profile's "Angemeldet seit" badge. Profile type is Unclear. |
+| F9 | Partial | Matrix in `08-attribute-matrix.md`. Verification appears on all three pages, photo count only on the profile, profile text on the conversation and the profile. Account age comes from the profile's "Angemeldet seit" badge. Profile type comes from the gender codes (`1` man, `2` woman, `3` couple). Still Unclear: photo count on the inbox row, and account age on the inbox and conversation. |
 | F7, F8 | Blocked | Human-assisted verification. See `manual-verification-needed.md`. |
-| M1 | Partial | The qualification engine and profile-fact merge are complete, pure and tested, including F9's unknown-is-not-failure rule. Resolving the member, collecting observed facts and rendering the badge wait on F1, and the availability matrix on F9. |
+| M1 | Partial | Engine, fact merge and extraction from the verified inbox, conversation and profile pages are complete and tested: verification, personally known, photo count, word count and account age (join window). The badge UI and the criteria settings (M4) remain. |
 | M3 | Partial | Normalization, the pluggable similarity engine, duplicate and known-phrase matching, explanations, and the persisted per-sender override are complete. Nothing reads a message from a page yet, which waits on F1. |
 | M5 | Partial | Notes and tags persist, keyed to account plus a resolved member identity. Writes are refused while no member selector is verified, and the profile UI waits on F1. See `milestone-b-audit.md`. |
 | M7 | Partial | Explicit active account, account-scoped repositories, options switcher, and the Section 14 isolation test. Automatic account detection waits on F1 and F9. |

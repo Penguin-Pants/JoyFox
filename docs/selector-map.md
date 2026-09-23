@@ -49,7 +49,7 @@ app (`09-navigation.md`) and the inbox list can stay in the DOM.
 | Inbox        | Sender name       | `[data-e2e="conversation-list-item-name"]`                                         | Display only                                         |
 | Inbox        | Member ID         | `.cm-conversation-list-item__avatar[href]`                                         | Digits in `/profile/<n>.<nickname>.html`             |
 | Inbox        | Verification code | `j-veri-icon[verification-status]`                                                 | `1` verified; `3` personally known (own criterion)   |
-| Inbox        | Gender code       | `j-gender-icon[universal-gender]`                                                  | Numeric code, `1` = man                              |
+| Inbox        | Gender code       | `j-gender-icon[universal-gender]`                                                  | `1` man, `2` woman, `3` couple                       |
 | Inbox        | Read state        | `.cm-conversation-list-item__read-status`                                          | BEM modifier; on some rows only; meaning unconfirmed |
 | Conversation | Conversation ID   | URL path                                                                           | `personal-<n>-<n>`, kept opaque                      |
 | Conversation | Member ID         | `a.cm-conversation-header[href]`                                                   | Digits in the profile link                           |
@@ -73,7 +73,10 @@ app (`09-navigation.md`) and the inbox list can stay in the DOM.
   Only `1` counts as verified. `3` is a separate "personally known" signal and
   hides JoyClub's verification, which then reads as unknown. Code `2`, any other
   code and a missing shield read as unknown, never as "not verified".
-- **Gender codes `2` and `3`** are unconfirmed. No feature uses gender yet.
+- **Gender codes.** Confirmed by the project owner on 2026-09-23: `1` man, `2`
+  woman, `3` couple (a male and a female icon side by side). Other codes read as
+  unknown. No feature filters by profile type yet; per-audience rules are V1
+  scope.
 - **Conversation header.** Switching conversations is client-side, so the URL
   can change before the header re-renders. Header data is used only when the
   header's member ID is one of the numbers in the conversation ID. This assumes

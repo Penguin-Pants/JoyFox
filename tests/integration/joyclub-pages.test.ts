@@ -14,6 +14,7 @@ import {
   joinWindowFromDuration,
   parseMemberSince,
   personallyKnownFromCode,
+  profileTypeFromCode,
   verificationFromCode,
 } from "../../src/extraction/joyclub";
 import { resolveMemberIdentity } from "../../src/identity/member-identity";
@@ -363,6 +364,18 @@ describe("M1 on verified profile data", () => {
     for (const value of [0, 2, 3, 4])
       expect(code(value), String(value)).toBe("unknown");
     expect(verificationFromCode({ status: "missing", source: "t" })).toBe(
+      "unknown",
+    );
+  });
+
+  it("maps the confirmed profile type codes", () => {
+    const code = (value: number) =>
+      profileTypeFromCode({ status: "found", value, source: "t" });
+    expect(code(1)).toBe("man");
+    expect(code(2)).toBe("woman");
+    expect(code(3)).toBe("couple");
+    for (const value of [0, 4]) expect(code(value)).toBe("unknown");
+    expect(profileTypeFromCode({ status: "missing", source: "t" })).toBe(
       "unknown",
     );
   });

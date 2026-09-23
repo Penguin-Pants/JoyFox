@@ -127,6 +127,25 @@ export function personallyKnownFromCode(
   return "unknown";
 }
 
+/** The member's profile type, as JoyClub shows it with its gender icon. */
+export type ProfileType = "man" | "woman" | "couple";
+
+/**
+ * `universal-gender` codes, confirmed by the project owner on 2026-09-23 by
+ * inspecting profiles: `1` man, `2` woman, `3` couple (drawn as a male and a
+ * female icon side by side). Other codes, for example other couple
+ * compositions if JoyClub has them, read as unknown.
+ */
+export const PROFILE_TYPE_CODE_MEANING: Readonly<Record<number, ProfileType>> =
+  Object.freeze({ 1: "man", 2: "woman", 3: "couple" });
+
+export function profileTypeFromCode(
+  code: ExtractionResult<number>,
+): ProfileType | "unknown" {
+  if (code.status !== "found") return "unknown";
+  return PROFILE_TYPE_CODE_MEANING[code.value] ?? "unknown";
+}
+
 const countWords = (text: string) =>
   text.trim() === "" ? 0 : text.trim().split(/\s+/u).length;
 

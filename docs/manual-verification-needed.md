@@ -10,8 +10,9 @@ verified from it. Still open:
 - **Item 2:** whether a message has a stable identifier.
 - **Item 6:** which input or change events the standard composer needs after its
   value is set programmatically.
-- **Item 8:** what `universal-gender` codes `2` and `3` mean. Account age is
-  resolved: the profile shows "Angemeldet seit <n> <unit>".
+- **Item 8:** done. Gender codes are `1` man, `2` woman, `3` couple, and account
+  age comes from the profile's "Angemeldet seit" badge. Whether other couple
+  compositions use other codes is not known.
 - **Verification codes:** `1` (grey, "geprüft", verified by JoyClub) and `3`
   (green, "persönlich bekannt", you met them) are confirmed. Green replaces grey
   for a member who is both, and a member can be personally known without being
