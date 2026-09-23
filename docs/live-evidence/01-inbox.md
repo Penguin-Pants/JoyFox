@@ -130,3 +130,10 @@ recorded, per instruction.
   while scrolling to locate a `2`-value row; it showed real usernames/message
   previews. That content was not read into or used for this file and was
   discarded — noted here for transparency only.
+
+## Confirmation (2026-09-23)
+
+The project owner confirmed the shield labels from the site: the grey shield
+(`verification-status="1"`) is "geprüft" and the green shield
+(`verification-status="3"`) is "persönlich bekannt". Both are verification
+levels.

@@ -80,13 +80,15 @@ function codeAttribute(
 
 /**
  * JoyClub's `verification-status` codes. The evidence (01-inbox.md) saw `1`
- * as a grey shield and `3` as a green shield, and inferred the meaning from
- * colour only. No label confirms it, so no code maps to verified or
- * unverified yet: every code reads as unknown until the owner confirms the
- * meaning, and the raw code is kept for that check.
+ * as a grey shield and `3` as a green shield. The project owner confirmed the
+ * labels on 2026-09-23: grey is "geprüft" (checked) and green is "persönlich
+ * bekannt" (personally known). Both are verification levels, so both count
+ * as verified. Every other code, including `2`, is unconfirmed and reads as
+ * unknown. A row with no shield is missing, never "not verified", because
+ * the meaning of an absent shield is also unconfirmed.
  */
 export const VERIFICATION_CODE_MEANING: Readonly<Record<number, boolean>> =
-  Object.freeze({});
+  Object.freeze({ 1: true, 3: true });
 
 export function verificationFromCode(
   code: ExtractionResult<number>,

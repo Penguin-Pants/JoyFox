@@ -51,8 +51,9 @@ Matches the PRD's Section 19.1 scope exactly. Nothing here is not in that list, 
 
 ### Follow-up work recorded during Milestone B
 
-- Confirm the meaning of the `verification-status` codes, then map them in
-  `src/extraction/joyclub.ts`.
+- Confirm what an unverified member shows (no shield, code `2`, or another
+  code), so verification can fail as well as pass. Codes `1` and `3` are
+  mapped as verified.
 - Establish whether JoyClub shows a join date anywhere. Until it does, the
   account-age criterion stays unknown.
 - Build the page UI: the qualification badge on inbox rows and in the

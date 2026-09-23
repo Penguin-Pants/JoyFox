@@ -276,14 +276,20 @@ describe("F1/F9 extraction from the verified profile", () => {
 });
 
 describe("M1 on verified profile data", () => {
-  it("never treats an unconfirmed verification code as verified", () => {
-    for (const value of [0, 1, 2, 3])
-      expect(
-        verificationFromCode({ status: "found", value, source: "t" }),
-      ).toBe("unknown");
+  it("maps only the confirmed verification codes", () => {
+    const code = (value: number) =>
+      verificationFromCode({ status: "found", value, source: "t" });
+    // 1 = grey "geprüft", 3 = green "persönlich bekannt": both verified.
+    expect(code(1)).toBe(true);
+    expect(code(3)).toBe(true);
+    for (const value of [0, 2, 4])
+      expect(code(value), String(value)).toBe("unknown");
+    expect(verificationFromCode({ status: "missing", source: "t" })).toBe(
+      "unknown",
+    );
   });
 
-  it("scores known facts and leaves unconfirmed ones unknown", () => {
+  it("scores extracted facts and leaves the missing join date unknown", () => {
     const extracted = extractProfile(load("profile"), PROFILE_URL);
     const value = <T>(result: { status: string; value?: T }) =>
       result.status === "found" ? (result.value as T) : ("unknown" as const);
@@ -304,7 +310,7 @@ describe("M1 on verified profile data", () => {
       },
     });
     expect(result.criteria.map(({ name, state }) => [name, state])).toEqual([
-      ["verification", "unknown"],
+      ["verification", "pass"],
       ["photoCount", "pass"],
       ["profileWordCount", "pass"],
       ["accountAge", "unknown"],

@@ -180,8 +180,8 @@ profile-type codes are not fully mapped.
 
 ## Blocked or remaining
 
-- The meaning of the `verification-status` codes. It was inferred from colour
-  only, so verification stays unknown until it is confirmed.
+- What an unverified member shows. Codes `1` and `3` are confirmed as verified;
+  a missing shield and code `2` stay unknown.
 - Reading message text, so nothing calls the spam detector yet. It needs the
   sent and received bubble meaning confirmed and the message-caching toggle from
   ADR 0004.
