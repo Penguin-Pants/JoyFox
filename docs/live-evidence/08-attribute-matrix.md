@@ -7,7 +7,7 @@ Filled in from 01-inbox.md, 02-conversation.md, and 03-profile.md.
 | Verification badge                | Present   | Present           | Present      | Stored          |
 | Photo count                       | Unclear   | Absent            | Present      | Stored          |
 | Account age or join date          | Unclear   | Unclear           | Present      | Stored          |
-| Profile type (man, woman, couple) | Unclear   | Unclear           | Unclear      | Not stored      |
+| Profile type (man, woman, couple) | Present   | Present           | Present      | Not stored      |
 | Profile text or word count        | Absent    | Present           | Present      | Stored          |
 
 ## Notes
@@ -59,3 +59,6 @@ inbox or conversation only for a member whose profile was opened before.
   <n> <unit>" (see `03-profile.md`). It is a rounded duration, stored in a
   snapshot as a join window (`joinedEarliest`, `joinedLatest`). The inbox and
   conversation cells stay Unclear.
+- **Profile type:** Present on all three pages. The project owner confirmed the
+  `universal-gender` codes by inspecting profiles: `1` man, `2` woman, `3`
+  couple, drawn as a male and a female icon side by side.

@@ -43,6 +43,10 @@
 16. Confirm no message is cached anywhere while selectors are unverified, since
     nothing reads a page yet.
 
+**Item 5 result (2026-09-23): passed.** After **Terminate background script**,
+`wakeCount` was one higher than before, so the counter survives a forced
+event-page restart (F3).
+
 ## F2 live acceptance (inbox)
 
 14. Build the extension, load `dist/firefox/manifest.json` temporarily from

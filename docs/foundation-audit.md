@@ -14,14 +14,13 @@
 
 ## Current phase status
 
-Milestone A is complete except for one manual check. F2's live acceptance passed
-on 2026-09-23: across ten real inbox loads, the content script detected the
-inbox and extracted the sender name and member ID from all 25 rendered rows (see
-`manual-acceptance.md`). F3's acceptance still needs the manual forced
-event-page restart in devtools (`manual-acceptance.md`, item 5); the automated
-test resets modules and does not prove Firefox's own restart behavior. F1, F7
-and F9 remain partly open, as the build plan allows them to run alongside the
-software foundation.
+Milestone A is complete. On 2026-09-23 F2's live acceptance passed (across ten
+real inbox loads, the content script detected the inbox and extracted the sender
+name and member ID from all 25 rendered rows), and F3's forced event-page
+restart passed in devtools: the persisted wake counter rose by one after
+**Terminate background script** (see `manual-acceptance.md`). F1, F7 and F9
+remain partly open, as the build plan allows them to run alongside the software
+foundation.
 
 Milestone B has started with M5 and M7, which depend on F6 rather than F1. See
 `milestone-b-audit.md` for what those cover and what they still leave blocked.

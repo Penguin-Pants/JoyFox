@@ -1,6 +1,6 @@
 # Manual verification needed
 
-## Status (2026-09-22)
+## Status (2026-09-23)
 
 Item 3 is done, and items 1, 2, 6, 8 and 9 are partly done. The evidence is in
 `docs/live-evidence/`, and the inbox, conversation and profile selectors are
@@ -10,8 +10,10 @@ verified from it. Still open:
 - **Item 2:** whether a message has a stable identifier.
 - **Item 6:** which input or change events the standard composer needs after its
   value is set programmatically.
-- **Item 8:** what `universal-gender` codes `2` and `3` mean. Account age is
-  resolved: the profile shows "Angemeldet seit <n> <unit>".
+- **Item 8:** gender codes are confirmed (`1` man, `2` woman, `3` couple), and
+  account age comes from the profile's "Angemeldet seit" badge. Still Unclear:
+  photo count on the inbox row, and account age on the inbox and conversation.
+  Whether other couple compositions use other codes is not known.
 - **Verification codes:** `1` (grey, "geprüft", verified by JoyClub) and `3`
   (green, "persönlich bekannt", you met them) are confirmed. Green replaces grey
   for a member who is both, and a member can be personally known without being

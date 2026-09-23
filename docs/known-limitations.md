@@ -74,8 +74,7 @@
   memory. There is no member or timestamp index yet, so both the retention purge
   and each classification cost grows with the stored record count.
 - Background persistence is proven by an automated database-backed wake-counter
-  test and reachable from the packaged bundle through the `diagnostic.wake`
-  message; a manual forced event-page restart remains an acceptance check.
+  test and by the manual forced event-page restart (passed 2026-09-23).
 - Encryption is an isolated proof of concept. There is no sync transport.
 - Firefox signing and AMO distribution have not been implemented or claimed.
 - Database version 1 supplies a migration boundary. No historical schema yet

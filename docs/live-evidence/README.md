@@ -26,8 +26,9 @@ What each partial item still lacks:
   neither present nor recorded as absent.
 - **6:** the input and change events the standard composer needs after its value
   is set. They were not exercised, so template insertion stays blocked.
-- **8:** join date and profile type are Unclear (see the corrections in
-  `08-attribute-matrix.md`).
+- **8:** photo count on the inbox row, and account age on the inbox and
+  conversation, are Unclear. Profile type (codes confirmed 2026-09-23) and the
+  profile's account age are resolved; see `08-attribute-matrix.md`.
 
 Not yet captured: search (4), events (5), event ClubMail composer (6), the
 content of the conversation options menu (7), the remaining navigation moves (9)
