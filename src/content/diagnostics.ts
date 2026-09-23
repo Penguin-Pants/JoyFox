@@ -3,7 +3,7 @@ import type { InboxRowExtraction } from "../extraction/joyclub";
 
 /**
  * The `storage.local` key that turns on development diagnostics. Off unless
- * set to `true`, for example from the extension's devtools console with
+ * set to `true`, for example from the options page console with
  * `browser.storage.local.set({ "joyfox.diagnostics": true })`.
  */
 export const DIAGNOSTICS_KEY = "joyfox.diagnostics";
