@@ -1,6 +1,7 @@
 import type { ExtensionAccount } from "../domain/types";
 import { AccountService } from "../accounts/account-service";
 import { isExtensionError } from "../errors";
+import { confirmAllowed, confirmTiming } from "./confirm";
 
 export const PANEL_CLASS = "joyfox-account-panel";
 const MOUNTED = "data-joyfox-account-panel";
@@ -34,6 +35,8 @@ function accountName(account: ExtensionAccount): string {
  */
 export class AccountPanel {
   #pendingRemoval: string | undefined;
+  /** When the pending removal was armed, for the confirm grace period. */
+  #armedAt = 0;
   /**
    * Created once and re-attached on every render. Replacing a live region on
    * each render can leave its announcement unread, so the node itself stays
@@ -187,7 +190,9 @@ export class AccountPanel {
 
   /**
    * Removing an account deletes every record stored under it, so the button
-   * asks for a second, explicit click instead of acting on the first.
+   * asks for a second, explicit click instead of acting on the first. A node
+   * drawn unarmed can only arm, and a confirm must be a single click after the
+   * grace period, so a double-click can never arm and confirm in one gesture.
    */
   #removeButton(
     document: Document,
@@ -207,17 +212,23 @@ export class AccountPanel {
         ? `Confirm removal of account ${accountName(account)} and all of its data`
         : `Remove account ${accountName(account)}`,
     );
-    button.addEventListener("click", () => {
-      void this.#run(async () => {
-        if (this.#pendingRemoval !== account.id) {
+    button.addEventListener("click", (event) => {
+      if (!confirming) {
+        if (event.detail > 1) return;
+        void this.#run(async () => {
           this.#pendingRemoval = account.id;
+          this.#armedAt = confirmTiming.now();
           this.#setStatus(
             `Removing ${accountName(account)} also deletes its notes, tags and rules. Click again to confirm.`,
             "info",
           );
-          return;
-        }
-        this.#pendingRemoval = undefined;
+        });
+        return;
+      }
+      if (this.#pendingRemoval !== account.id) return;
+      if (!confirmAllowed(event, this.#armedAt)) return;
+      this.#pendingRemoval = undefined;
+      void this.#run(async () => {
         await this.service.deleteAccount(account.id);
         this.#setStatus(
           `Removed ${accountName(account)} and its stored data.`,
