@@ -44,7 +44,7 @@ Matches the PRD's Section 19.1 scope exactly. Nothing here is not in that list, 
 | F9 | Partial | Matrix in `08-attribute-matrix.md`. Verification appears on all three pages, photo count only on the profile, profile text on the conversation and the profile. Account age comes from the profile's "Angemeldet seit" badge. Profile type comes from the gender codes (`1` man, `2` woman, `3` couple). Still Unclear: photo count on the inbox row, and account age on the inbox and conversation. |
 | F7, F8 | Blocked | Human-assisted verification. See `manual-verification-needed.md`. |
 | M1 | Partial | Engine, fact merge and extraction are complete. Milestone C added the page badge, the explanation panel and profile snapshot capture. The 95 percent manual trial over 50 messages remains. |
-| M2 | Partial | Tab bar, per-row badges, in-place filtering, per-sender manual placement and dynamic rows are complete and tested (`milestone-c-audit.md`). Live acceptance passed on 2026-09-23; the split-view fix needs a re-check. The existing-conversation exception is blocked on reply detection. |
+| M2 | Partial | Tab bar, per-row badges, in-place filtering, per-sender manual placement and dynamic rows are complete and tested (`milestone-c-audit.md`). Live acceptance passed on 2026-09-23, including the split-view re-check. The existing-conversation exception is blocked on reply detection. |
 | M4 | Partial | One global rule in the V1-compatible schema, a pure evaluator with explicit unknown handling, and the two-box options builder are complete and tested. Presets are deferred. Live acceptance passed on 2026-09-23. |
 | M6 | Partial | Point-count trust score with a full explanation, outcome logging and undo on conversation and profile pages are complete and tested. Live acceptance passed on 2026-09-23. |
 | M3 | Partial | Normalization, the pluggable similarity engine, duplicate and known-phrase matching, explanations, and the persisted per-sender override are complete. Nothing reads a message from a page yet, which waits on F1. |
@@ -79,8 +79,6 @@ Matches the PRD's Section 19.1 scope exactly. Nothing here is not in that list, 
 
 ### Follow-up work recorded during Milestone C
 
-- Re-check the split-view fix live: open and answer a conversation from the
-  inbox, and confirm the tab bar stays on the list.
 - Add the existing-conversation exception (PRD Section 7.4) once the
   read-status icon's meaning is confirmed.
 - Add rule presets (PRD Section 11.3) once thresholds for "Complete profiles

@@ -120,10 +120,9 @@ unchanged).
   showed the bar still vanished after sending a reply. Triage now follows the
   list itself, on any page where it is visible, and also notices the list being
   hidden and shown in place.
-- Re-check: open a conversation from the inbox, send a reply, and confirm the
-  tab bar and badges stay on the list. If the bar still vanishes, turn on
-  diagnostics (item 15), repeat, and send the `JoyFox page=... inboxList=...`
-  lines from the page console. They hold page types only, never a URL or ID.
+- Re-check (2026-09-23): passed. With build 8fa0a2c the owner sent a message
+  from a second account and replied beside the list; the tab bar and badges
+  stayed on the list.
 
 Live selector and action acceptance must wait for the evidence checklist in
 `manual-verification-needed.md`. Never perform destructive action testing

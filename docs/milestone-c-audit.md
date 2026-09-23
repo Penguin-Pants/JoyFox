@@ -197,7 +197,7 @@ Triage now follows the list itself (`inboxListShown`): it runs on any page where
 the list is visible, and the observer also watches `class`, `style` and
 `hidden`, so in-place hiding and showing is noticed. A new diagnostics line
 (`page=... inboxList=...`) reports page detection and list state without any URL
-or ID. Needs a live re-check.
+or ID. The owner's live re-check passed on 2026-09-23.
 
 ### Possible risks
 
@@ -211,11 +211,10 @@ or ID. Needs a live re-check.
   (M3 blocker). Only the user's own "not spam" correction counts.
 - The automatic existing-conversation exception (PRD Section 7.4) waits on the
   read-status meaning.
-- A live re-check of the split-view fix (see `manual-acceptance.md`, the result
-  under item 26).
 - M1's 95 percent acceptance over 50 messages needs a manual trial.
 
 ## Phase status
 
-Milestone C is implemented, tested against synthetic fixtures and accepted live
-on JoyClub (items 19 to 26), with one split-view fix awaiting a live re-check.
+Milestone C is complete: implemented, tested against synthetic fixtures and
+accepted live on JoyClub (items 19 to 26 and the split-view re-check). The
+remaining items above are blocked on other milestones or deferred.
