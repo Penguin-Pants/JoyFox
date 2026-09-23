@@ -342,3 +342,44 @@ export async function clearAllData(): Promise<void> {
   for (const name of ENTITY_NAMES) transaction.objectStore(name).clear();
   await transactionDone(transaction);
 }
+
+/**
+ * Every scope that holds at least one record, registered account or not, so
+ * "delete all" can lock each of them.
+ */
+export async function listStoredScopes(): Promise<string[]> {
+  const db = await openDatabase();
+  const transaction = db.transaction([...ENTITY_NAMES]);
+  const scopes = await Promise.all(
+    ENTITY_NAMES.map(
+      (name) =>
+        new Promise<string[]>((resolve, reject) => {
+          const found: string[] = [];
+          const request = transaction
+            .objectStore(name)
+            .index("accountId")
+            .openKeyCursor(null, "nextunique");
+          request.onsuccess = () => {
+            const cursor = request.result;
+            if (!cursor) return resolve(found);
+            found.push(String(cursor.key));
+            cursor.continue();
+          };
+          request.onerror = () => reject(request.error);
+        }),
+    ),
+  );
+  return [...new Set(scopes.flat())];
+}
+
+/** The total record count over every store and scope. */
+export async function countAllRecords(): Promise<number> {
+  const db = await openDatabase();
+  const transaction = db.transaction([...ENTITY_NAMES]);
+  const counts = await Promise.all(
+    ENTITY_NAMES.map((name) =>
+      requestResult(transaction.objectStore(name).count()),
+    ),
+  );
+  return counts.reduce((sum, count) => sum + count, 0);
+}

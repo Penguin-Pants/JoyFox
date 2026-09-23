@@ -13,9 +13,11 @@ import {
 import {
   clearAllData,
   countAccountRecords,
+  countAllRecords,
   deleteAccountEntities,
   exportAccount,
   exportAllData,
+  listStoredScopes,
   repositories,
   type DataExport,
   type EntityCounts,
@@ -132,19 +134,26 @@ export class DataService {
    * Deletes everything JoyFox stores in this browser profile: every record
    * in every store, whatever its scope, and every `storage.local` setting.
    * The active pointer goes first, so a page or write that runs meanwhile
-   * sees no active account instead of a half-deleted one. All account locks
-   * are held while the stores are emptied, so no accepted write lands after.
+   * sees no active account instead of a half-deleted one. The lock of every
+   * account and every stored scope is held while the stores and settings are
+   * emptied, and the stores are checked empty before success is reported.
    */
   async deleteEverything(): Promise<void> {
-    const accountIds = (await this.accounts.listAccounts()).map((a) => a.id);
+    // Every scope that holds data, registered account or not (the wake
+    // counter writes under its own scope, and takes that scope's lock).
+    const scopes = [
+      ...(await this.accounts.listAccounts()).map((a) => a.id),
+      ...(await listStoredScopes()),
+    ];
     await this.settings.remove([ACTIVE_ACCOUNT_SETTING_KEY]);
-    await withAccountLocks(accountIds, async () => {
+    await withAccountLocks(scopes, async () => {
       await clearAllData();
       await this.settings.clear();
-      // An account added in another tab after the list above was read is
-      // not locked and may have survived. Say so rather than report success.
-      if ((await this.accounts.listAccounts()).length > 0)
-        throw new Error("An account was added while deleting");
+      // A writer to a scope that held no data when the list above was read
+      // is not locked, and may have written meanwhile. Say so rather than
+      // report success.
+      if ((await countAllRecords()) > 0)
+        throw new Error("Data was written while deleting");
     });
   }
 

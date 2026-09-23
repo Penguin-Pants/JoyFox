@@ -15,6 +15,9 @@ import { factsKey, observedFromInboxRow } from "./observed-facts";
 import type { TriageClient } from "./triage-client";
 import { button, element, explanation, UI_ATTRIBUTE } from "./triage-ui";
 
+/** `data-joyfox-ui` values of UI that inbox teardown must leave in place. */
+const OTHER_FEATURE_UI: readonly string[] = ["member-panel", "template-picker"];
+
 /** The triage views (owner's decision, 2026-09-23). */
 export type TriageView =
   | "default"
@@ -201,12 +204,17 @@ export class InboxTriage {
     this.invalidate();
   }
 
-  /** Remove every trace of JoyFox from the inbox. */
+  /**
+   * Remove every trace of JoyFox from the inbox. UI that other features own
+   * (the member panel, the composer template picker) stays: removing it here
+   * would make its owner remount it on the next mutation, in a loop.
+   */
   teardown(): void {
     for (const node of Array.from(
       this.document.querySelectorAll(`[${UI_ATTRIBUTE}]`),
     ))
-      if (node.getAttribute(UI_ATTRIBUTE) !== "member-panel") node.remove();
+      if (!OTHER_FEATURE_UI.includes(node.getAttribute(UI_ATTRIBUTE) ?? ""))
+        node.remove();
     for (const node of Array.from(
       this.document.querySelectorAll(`[${ROW_ATTRIBUTE}]`),
     )) {

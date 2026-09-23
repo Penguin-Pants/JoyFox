@@ -69,6 +69,23 @@ were confirmed by reading the code.
 - The `template.list` handler and the picker's close on an account switch had no
   tests. Both do now.
 
+A Codex review of PR #15 found three more, all confirmed and fixed:
+
+- Inbox teardown removed every JoyFox node except the member panel, so it
+  removed the template picker on each navigation event of a conversation page
+  without a visible list. The picker then remounted, which caused another event,
+  in a loop, and an open template list closed at once. Teardown now leaves the
+  picker in place.
+- "Delete all" locked only registered accounts. A write to another scope (the
+  diagnostic wake counter) could land after the clear and was not detected. It
+  now locks every scope that holds data, the wake counter takes its scope's
+  lock, and success needs every store to be empty.
+- The template panel kept its status text after an account switch, so a message
+  naming the previous account's template stayed on screen. A switch now clears
+  it.
+
+Each fix has a regression test confirmed to fail without it.
+
 ### Confirmed issues deferred
 
 - The Accounts panel's "Remove" (Milestone B) has the same double-click
@@ -102,7 +119,7 @@ were confirmed by reading the code.
 
 ## Validation
 
-`npm test` (337 tests), `npm run lint` (including the permission allowlist),
+`npm test` (340 tests), `npm run lint` (including the permission allowlist),
 `npm run typecheck`, `npm run format:check` and `npm run build:firefox` pass. No
 permission was added.
 

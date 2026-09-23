@@ -1,5 +1,7 @@
 // @vitest-environment jsdom
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { InboxTriage } from "../../src/content/inbox-triage";
+import type { TriageClient } from "../../src/content/triage-client";
 import {
   TemplatePicker,
   type TemplateClient,
@@ -247,6 +249,15 @@ describe("M10 composer template picker", () => {
     toggle().click();
     await settle(() => status().includes("could not read"));
     expect(composer().value).toBe("Draft");
+  });
+
+  it("survives inbox teardown, so it is not remounted in a loop", () => {
+    const view = new TemplatePicker(document, client());
+    view.update();
+    const mounted = picker();
+    new InboxTriage(document, {} as TriageClient).teardown();
+    expect(picker()).toBe(mounted);
+    expect(mounted!.isConnected).toBe(true);
   });
 
   it("follows a replaced composer and leaves when it goes", () => {

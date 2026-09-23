@@ -295,25 +295,37 @@ describe("M8 inspection and delete", () => {
     );
   });
 
-  it("reports an account added while everything was being deleted", async () => {
-    const racing = new DataService(
-      {
-        listAccounts: (() => {
-          let calls = 0;
-          return async () => {
-            calls += 1;
-            // The second read, inside the locks, sees a newcomer.
-            if (calls === 2)
-              await repositories.extensionAccounts.put("late", {
-                ...record("extensionAccounts", "late", "late"),
-              });
-            return accounts.listAccounts();
-          };
-        })(),
-      } as unknown as AccountService,
-      settings,
+  it("reports data written while everything was being deleted", async () => {
+    // A writer to a scope that held no data runs after the stores are
+    // cleared, while delete-all still holds its locks.
+    const racingSettings = new MemorySettingsArea();
+    racingSettings.clear = async () => {
+      await repositories.extensionPreferences.put(
+        "new-scope",
+        record("extensionPreferences", "new-scope", "late"),
+      );
+    };
+    const racing = new DataService(accounts, racingSettings);
+    await expect(racing.deleteEverything()).rejects.toThrow("written");
+  });
+
+  it("locks scopes that hold data but are not accounts", async () => {
+    await repositories.extensionPreferences.put(
+      "acceptance",
+      record("extensionPreferences", "acceptance", "background-wake-count"),
     );
-    await expect(racing.deleteEverything()).rejects.toThrow("added");
+    let release!: () => void;
+    const held = withAccountLock(
+      "acceptance",
+      () => new Promise<void>((resolve) => (release = resolve)),
+    );
+    let done = false;
+    const deleting = data.deleteEverything().then(() => (done = true));
+    await new Promise((resolve) => setTimeout(resolve, 10));
+    expect(done).toBe(false);
+    release();
+    await Promise.all([held, deleting]);
+    expect(done).toBe(true);
   });
 
   it("deletes everything, in every scope, with every setting", async () => {

@@ -85,9 +85,11 @@ export class TemplatePanel {
     }
     if (generation !== this.#generation) return;
     if (accountId !== this.#accountId) {
-      // Another account's draft or edit must never carry over.
+      // Another account's draft, edit or status text (which can name one of
+      // its templates) must never carry over.
       this.#editing = undefined;
       this.#pendingDelete = undefined;
+      this.#setStatus("", "info");
     }
     if (this.#editing && !templates.some((t) => t.id === this.#editing?.id))
       this.#editing = undefined;
@@ -400,11 +402,12 @@ export class TemplatePanel {
     try {
       if ((await this.accounts.getActiveAccount())?.id !== accountId) {
         this.#pendingDelete = undefined;
+        // Redraw first: the redraw for the new account clears the status.
+        await this.render();
         this.#setStatus(
           "The active account changed. Nothing was changed.",
           "error",
         );
-        await this.render();
         return;
       }
       await action();

@@ -364,6 +364,15 @@ describe("M10 template panel", () => {
     expect(await templates.list(b)).toEqual([]);
   });
 
+  it("clears the status when the active account changes", async () => {
+    await submit("Secret name", "Text");
+    await settle(() => byLabel("Edit template Secret name") !== null);
+    expect(status()?.textContent).toContain("Secret name");
+    await accounts.setActiveAccount(b);
+    await panel.render();
+    expect(text()).not.toContain("Secret name");
+  });
+
   it("asks for an account when none is active", async () => {
     await accounts.clearActiveAccount();
     await panel.render();
