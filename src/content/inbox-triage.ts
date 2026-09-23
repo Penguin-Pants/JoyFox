@@ -70,6 +70,7 @@ export class InboxTriage {
   #view: TriageView = "default";
   #selected?: string;
   #detailsKey = "";
+  #writeQueue: Promise<void> = Promise.resolve();
 
   constructor(
     private readonly document: Document,
@@ -406,10 +407,13 @@ export class InboxTriage {
       heading,
       explanation(this.document, result, {
         onOverride: (placement) => {
-          void this.client
-            .setOverride(memberId, placement)
-            .then(() => this.invalidate())
-            .catch(() => this.#showError(details));
+          // In click order, so a quick second choice never lands first.
+          this.#writeQueue = this.#writeQueue.then(() =>
+            this.client
+              .setOverride(memberId, placement)
+              .then(() => this.invalidate())
+              .catch(() => this.#showError(details)),
+          );
         },
       }),
       close,

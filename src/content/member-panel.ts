@@ -67,6 +67,7 @@ export class MemberPanel {
    * leave an older, partial reading as the newest snapshot.
    */
   #captureQueue: Promise<void> = Promise.resolve();
+  #writeQueue: Promise<void> = Promise.resolve();
   #error?: string;
   #page?: MemberPage;
 
@@ -83,6 +84,14 @@ export class MemberPanel {
       return;
     }
     if (page === "profile") this.#capture(target);
+    // A client-side route can switch to another member while JoyClub keeps
+    // the header element. The old panel's buttons act on the old member, so
+    // they go at once rather than when the new answer arrives.
+    const shown = this.document.querySelector(
+      `[${UI_ATTRIBUTE}="member-panel"]`,
+    );
+    if (shown && shown.getAttribute("data-member") !== target.memberId)
+      this.teardown();
     const data = this.#data.get(target.key);
     if (!data) {
       this.#load(target);
@@ -219,6 +228,7 @@ export class MemberPanel {
     this.#rendered = key;
     const panel = element(this.document, "section", "joyfox-panel");
     panel.setAttribute(UI_ATTRIBUTE, "member-panel");
+    panel.setAttribute("data-member", target.memberId);
     panel.setAttribute("aria-label", "JoyFox");
     panel.append(
       element(this.document, "h2", "joyfox-panel__heading", "JoyFox"),
@@ -264,14 +274,22 @@ export class MemberPanel {
    * Run a write, then reload at once. The background also bumps the triage
    * revision, which other tabs hear through `storage.onChanged`.
    */
+  /**
+   * Writes run one after another, in click order. Otherwise "Log" then a
+   * quick "Undo" could reach the background in the other order, and undo
+   * would remove the earlier outcome instead of the one just logged.
+   */
   #write(action: () => Promise<void>): void {
     this.#error = undefined;
-    void action()
-      .then(() => this.invalidate())
-      .catch(() => {
-        this.#error = "JoyFox could not save that change. Nothing was changed.";
-        this.#rendered = "";
-        if (this.#page) this.update(this.#page);
-      });
+    this.#writeQueue = this.#writeQueue.then(() =>
+      action()
+        .then(() => this.invalidate())
+        .catch(() => {
+          this.#error =
+            "JoyFox could not save that change. Nothing was changed.";
+          this.#rendered = "";
+          if (this.#page) this.update(this.#page);
+        }),
+    );
   }
 }

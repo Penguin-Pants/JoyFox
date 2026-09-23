@@ -243,6 +243,32 @@ describe("snapshot capture", () => {
     expect(await repositories.joyClubMembers.get(A, MEMBER)).toBeDefined();
   });
 
+  it("keeps capture order for two snapshots in the same millisecond", async () => {
+    // Random IDs that sort against capture order, at one fixed instant.
+    const randomIds = ["zzzz", "aaaa"];
+    const sameTime = new TriageService(
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      settings,
+      () => NOW,
+      () => randomIds.shift() ?? "x",
+    );
+    await sameTime.captureSnapshot(A, MEMBER, { profileWordCount: 5 });
+    await sameTime.captureSnapshot(A, MEMBER, {
+      profileWordCount: 5,
+      photoCount: 4,
+    });
+    await rules.saveGlobalRule(A, photoRule());
+    const [result] = ok(
+      await sameTime.evaluate(A, [{ memberId: MEMBER, observed: {} }]),
+    );
+    expect(result?.placement).toBe("qualified");
+  });
+
   it("drops a value of the wrong shape instead of storing it", async () => {
     await triage.captureSnapshot(A, MEMBER, {
       photoCount: -3 as never,
@@ -254,6 +280,32 @@ describe("snapshot capture", () => {
 });
 
 describe("revision marker", () => {
+  it("never reports a committed write as failed when the marker fails", async () => {
+    const broken = new MemorySettingsArea();
+    broken.set = () => Promise.reject(new Error("storage.local unavailable"));
+    const brokenTrust = new TrustService(undefined, undefined, broken);
+    const brokenRules = new RuleService(undefined, broken);
+    const brokenTriage = new TriageService(
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      broken,
+    );
+    await expect(
+      brokenTrust.logOutcome(A, MEMBER, "positive"),
+    ).resolves.toBeDefined();
+    await expect(
+      brokenRules.saveGlobalRule(A, photoRule()),
+    ).resolves.toBeDefined();
+    await expect(
+      brokenTriage.setOverride(A, MEMBER, "qualified"),
+    ).resolves.toBeUndefined();
+    expect(await repositories.trustSignals.list(A)).toHaveLength(1);
+  });
+
   it("changes on every write that can move a placement", async () => {
     const revisions = new Set<unknown>();
     const record = () => revisions.add(settings.items.get(TRIAGE_REVISION_KEY));

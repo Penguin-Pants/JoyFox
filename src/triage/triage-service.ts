@@ -102,6 +102,8 @@ const SNAPSHOT_FIELDS = [
  * everything to the pure rule and trust functions. It never touches the DOM.
  */
 export class TriageService {
+  #sequence = 0;
+
   constructor(
     private readonly rules = new ContactRuleRepository(),
     private readonly snapshots = new ProfileSnapshotRepository(),
@@ -298,7 +300,10 @@ export class TriageService {
       return false;
     const timestamp = this.now().toISOString();
     const snapshot: ProfileSnapshot = {
-      id: `snapshot:${this.newId()}`,
+      // Zero-padded sequence first, so two snapshots captured in the same
+      // millisecond still sort in capture order (`newestCaptureFirst` breaks
+      // ties on ID).
+      id: `snapshot:${String((this.#sequence += 1)).padStart(12, "0")}:${this.newId()}`,
       accountId,
       memberId,
       capturedAt: timestamp,

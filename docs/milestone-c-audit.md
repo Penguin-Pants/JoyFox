@@ -99,6 +99,19 @@ A second Codex review found two more, both confirmed and fixed:
   after another account became active. It now checks the account first, like
   saving does.
 
+A third Codex review found four more, all confirmed and fixed:
+
+- A client-side route to another member could keep the old member's panel, with
+  live buttons, until the new answer arrived. The panel now goes at once when
+  the member changes.
+- Two snapshots captured in the same millisecond sorted by random ID. Snapshot
+  IDs now carry a capture sequence.
+- A quick "Log" then "Undo" could reach storage in the other order. Panel and
+  inbox writes now run in click order.
+- If the change marker in `storage.local` failed after a committed write, the
+  write was reported as failed, and a retry stored it twice. The marker is now
+  best effort.
+
 Each fix has a regression test confirmed to fail without it.
 
 ### Confirmed issues deferred

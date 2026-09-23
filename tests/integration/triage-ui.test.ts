@@ -404,6 +404,67 @@ describe("conversation and profile panel", () => {
     );
   });
 
+  it("removes the panel at once when the route switches to another member", async () => {
+    await rules.saveGlobalRule(ACCOUNT, knownRule());
+    setPage(
+      "/clubmail/conversation/conversation-wrapper-personal-1234567-7654321",
+      conversationHtml,
+    );
+    const client = serviceClient();
+    const member = new MemberPanel(document, {
+      ...client,
+      // The second member's answer never arrives in this test.
+      evaluate: (members) =>
+        client.evaluations === 0
+          ? client.evaluate(members)
+          : new Promise(() => undefined),
+    });
+    member.update("conversation");
+    await vi.waitFor(() => expect(panel()).not.toBeNull());
+    // Same header element, new member and URL: a client-side route.
+    window.history.replaceState(
+      null,
+      "",
+      "/clubmail/conversation/conversation-wrapper-personal-5550001-7654321",
+    );
+    document
+      .querySelector(".cm-conversation-header")!
+      .setAttribute("href", "/profile/5550001.synthetic_four.html");
+    member.update("conversation");
+    expect(panel()).toBeNull();
+  });
+
+  it("runs trust writes in click order, so undo removes the outcome just logged", async () => {
+    await rules.saveGlobalRule(ACCOUNT, knownRule());
+    await trust.logOutcome(ACCOUNT, KNOWN, "negative");
+    setPage(
+      "/clubmail/conversation/conversation-wrapper-personal-1234567-7654321",
+      conversationHtml,
+    );
+    const client = serviceClient();
+    let releaseLog: () => void = () => undefined;
+    const member = new MemberPanel(document, {
+      ...client,
+      // The new log is slow to reach storage.
+      logTrust: async (memberId, kind) => {
+        await new Promise<void>((resolve) => (releaseLog = resolve));
+        await client.logTrust(memberId, kind as "positive");
+      },
+    });
+    member.update("conversation");
+    await vi.waitFor(() => expect(panel()).not.toBeNull());
+    buttonNamed(panel()!, "Log positive").click();
+    buttonNamed(panel()!, "Undo last outcome").click();
+    await new Promise((resolve) => setTimeout(resolve, 10));
+    releaseLog();
+    // Let both queued writes finish before looking.
+    await new Promise((resolve) => setTimeout(resolve, 100));
+    const kinds = (await repositories.trustSignals.list(ACCOUNT)).map(
+      (signal) => signal.kind,
+    );
+    expect(kinds).toEqual(["negative"]);
+  });
+
   it("shows trust without a rule, and says the rule is not set", async () => {
     setPage(
       "/clubmail/conversation/conversation-wrapper-personal-1234567-7654321",

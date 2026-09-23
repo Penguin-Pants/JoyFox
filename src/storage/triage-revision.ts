@@ -9,8 +9,19 @@ import { runtimeSettingsArea, type SettingsArea } from "./local-settings";
  */
 export const TRIAGE_REVISION_KEY = "joyfox.triageRevision";
 
+/**
+ * Best effort, and called only after the data write committed. A failure
+ * here must not report the committed write as failed: the caller would
+ * then show "nothing was changed" and a retry would store it twice. The page
+ * that made the write reloads on its own; other open pages catch up on
+ * their next change or reload.
+ */
 export async function bumpTriageRevision(
   settings: SettingsArea = runtimeSettingsArea,
 ): Promise<void> {
-  await settings.set({ [TRIAGE_REVISION_KEY]: crypto.randomUUID() });
+  try {
+    await settings.set({ [TRIAGE_REVISION_KEY]: crypto.randomUUID() });
+  } catch {
+    // Intentionally ignored; see above.
+  }
 }
