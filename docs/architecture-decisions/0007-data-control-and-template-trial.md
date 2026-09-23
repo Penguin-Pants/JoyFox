@@ -50,18 +50,23 @@ Milestone D (M8, M10) needed decisions that no planning document made:
    `maxlength`, nothing is inserted and the user is told. A disabled or
    read-only field is refused too. If the page changes the text right after
    insertion, the user is told to check it before sending.
-7. **An opt-in trial, off by default.** The picker appears on a conversation
-   page only while `joyfox.templateInsertionTrial` is `true` in `storage.local`.
-   It sends `input` and `change` events after the insertion, fills the text
-   field only, and never clicks, submits or reads Send. The trial is how item 6
-   gets verified (`manual-acceptance.md`, items 27 to 34). The event ClubMail
-   composer stays unsupported: no evidence exists for it.
+7. **An opt-in trial first, then default-on.** The picker first appeared on a
+   conversation page only while `joyfox.templateInsertionTrial` was `true` in
+   `storage.local`. It sends `input` and `change` events after the insertion,
+   fills the text field only, and never clicks, submits or reads Send. The trial
+   is how item 6 gets verified (`manual-acceptance.md`, items 27 to 34). The
+   event ClubMail composer stays unsupported: no evidence exists for it.
+
+**Update (2026-09-23).** The owner ran the trial (`manual-acceptance.md`, items
+31 to 34). JoyClub registered an inserted template and its deletion by keyboard,
+so item 6 is settled for the standard composer. On the owner's decision the
+picker is now on by default. The trial key is replaced by
+`joyfox.templatePicker`; setting it to `false` turns the picker off.
 
 ## Consequences
 
-- M8's functions are complete and tested. M10's storage, options UI and
-  insertion are complete and tested against the synthetic composer. M10's PRD
-  acceptance ("every compose context, including event ClubMail") stays open
-  until the trial passes and the event composer is verified.
+- M8 is complete and accepted live. M10 is complete and accepted live on the
+  standard composer. Its PRD acceptance ("every compose context, including event
+  ClubMail") stays open until the event composer is verified.
 - Deleting a single member record does not delete notes or other records that
   refer to it. The inspector says what it deletes, one entity at a time.

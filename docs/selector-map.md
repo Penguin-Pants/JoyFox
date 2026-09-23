@@ -24,7 +24,7 @@ Rules:
 | Search                  | Unverified | None                 | Disabled               |
 | Event                   | Unverified | None                 | Disabled               |
 | Event calendar          | Unverified | None                 | Disabled               |
-| Standard composer       | Observed   | `02-conversation.md` | Opt-in template trial  |
+| Standard composer       | Verified   | `02-conversation.md` | Template picker (M10)  |
 | Event ClubMail composer | Unverified | None                 | Disabled               |
 
 ## Page signals
@@ -57,7 +57,7 @@ app (`09-navigation.md`) and the inbox list can stay in the DOM.
 | Conversation | Gender code       | `.cm-conversation-header j-gender-icon[universal-gender]`                          | Numeric code                                         |
 | Conversation | Short description | `.cm-conversation-header__description`                                             | Word count only                                      |
 | Conversation | Message item      | `li.cm-message-list-item`                                                          | Recorded, not read (see below)                       |
-| Conversation | Composer          | `textarea.joy-input-wonder__input`                                                 | Template trial only (M10), off by default            |
+| Conversation | Composer          | `textarea.joy-input-wonder__input`                                                 | Template insertion target (M10)                      |
 | Conversation | Send              | `button.joy-input-wonder__button[data-e2e="button-submit"]`                        | Recorded only, never clicked                         |
 | Profile      | Member ID         | URL path                                                                           | Digits before the first `.`                          |
 | Profile      | Verification code | `[data-e2e="profile-header-base-info"] j-veri-icon[…]`                             | Numeric code                                         |
@@ -86,12 +86,11 @@ app (`09-navigation.md`) and the inbox list can stay in the DOM.
   extractor reads only the rows rendered at the time; later rows are read on the
   next mutation event only if the site appends them to the same list.
 - **Message identifiers** were not looked for, so no per-message ID exists yet.
-- **Composer events.** The events the composer needs after a programmatic value
-  change are unknown. The M10 picker therefore runs only as an opt-in trial
-  (`joyfox.templateInsertionTrial`, ADR 0007). It sends `input` and `change`,
-  places itself after the composer's form (`textarea.form`, no extra selector)
-  and never touches Send. `manual-acceptance.md` item 33 is the check that
-  settles this.
+- **Composer events.** Confirmed live on 2026-09-23 (`manual-acceptance.md` item
+  33): after JoyFox sets the value and sends `input` and `change`, JoyClub
+  registers the text, and also its deletion by keyboard. The M10 picker is
+  therefore on by default (ADR 0007). It places itself after the composer's form
+  (`textarea.form`, no extra selector) and never touches Send.
 - **Message text.** `cm-message-bubble--left` and `--right` probably mean
   received and sent, inferred from layout. Nothing reads message text until that
   is confirmed and the message-caching toggle from ADR 0004 exists.

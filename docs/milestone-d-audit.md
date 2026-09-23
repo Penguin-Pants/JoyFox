@@ -40,7 +40,9 @@ design decisions are in
   proves both.
 - The composer picker sits after JoyClub's form, groups templates by folder and
   reads them fresh from the background (`template.list`, read-only) on each
-  opening. It runs only while `joyfox.templateInsertionTrial` is on (ADR 0007).
+  opening. It first ran only as an opt-in trial. After the live check it is on
+  by default, and `joyfox.templatePicker` set to `false` turns it off (ADR
+  0007).
 
 ## Review findings
 
@@ -129,24 +131,29 @@ Each fix has a regression test confirmed to fail without it.
 - The picker does not check which JoyClub login the page belongs to. Triage does
   not either (known limitation).
 
+## Live acceptance (2026-09-23)
+
+The project owner ran `manual-acceptance.md` items 27 to 35 on the build from
+`main` at 9583284, and all passed. In item 33, JoyClub registered an inserted
+template before any key was typed, and its deletion by keyboard, so
+`manual-verification-needed.md` item 6 is settled for the standard composer. The
+owner then chose to make the picker default-on. One finding: the trial flag was
+first set from a JoyClub tab's console, which has no `browser`. The steps now
+name the options page console.
+
 ## Blocked or remaining
 
-- M10 live acceptance: the composer's events (`manual-verification-needed.md`,
-  item 6) are unverified. `manual-acceptance.md` items 31 to 34 are the check.
 - The event ClubMail composer has no evidence, so M10's "every compose context"
   criterion stays open.
-- M8 live check: items 27 to 30 passed on 2026-09-23. Item 35 (delete all)
-  remains.
 
 ## Validation
 
-`npm test` (345 tests), `npm run lint` (including the permission allowlist),
+`npm test` (346 tests), `npm run lint` (including the permission allowlist),
 `npm run typecheck`, `npm run format:check` and `npm run build:firefox` pass. No
 permission was added.
 
 ## Phase status
 
-M8 is implemented and tested; its live check is pending. M10 is implemented and
-tested against the synthetic composer, and blocked on live verification of the
-composer events and on evidence for the event ClubMail composer. Milestone D is
-therefore partly complete.
+M8 is complete and accepted live. M10 is complete and accepted live on the
+standard composer; only the event ClubMail composer remains, blocked on
+evidence. Milestone D is complete except for that one compose context.

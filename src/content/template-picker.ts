@@ -9,12 +9,12 @@ import { insertAtCursor, type InsertionResult } from "../templates/insertion";
 import { button, element, UI_ATTRIBUTE } from "./triage-ui";
 
 /**
- * The `storage.local` key that turns on the composer template picker. Off
- * unless set to `true`. It stays opt-in until the composer's input events
- * are verified live (`docs/manual-verification-needed.md`, item 6); the
- * picker is the tool for that check (`docs/manual-acceptance.md`).
+ * The `storage.local` key that turns the composer template picker off. The
+ * picker is on unless this is set to `false`. It became default-on after the
+ * owner's live check showed JoyClub registers an insertion
+ * (`docs/manual-acceptance.md`, item 33; ADR 0007).
  */
-export const TEMPLATE_TRIAL_KEY = "joyfox.templateInsertionTrial";
+export const TEMPLATE_PICKER_KEY = "joyfox.templatePicker";
 
 export interface TemplateClient {
   listTemplates(): Promise<{

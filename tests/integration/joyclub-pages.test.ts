@@ -485,4 +485,38 @@ describe("F2 diagnostics flag", () => {
     await flag.ready;
     expect(flag.enabled).toBe(false);
   });
+
+  it("M10: a default-on flag (the template picker) is off only when false", async () => {
+    const key = "joyfox.templatePicker";
+    let listener:
+      | ((
+          changes: Record<string, { newValue?: unknown }>,
+          area: string,
+        ) => void)
+      | undefined;
+    const flag = new DiagnosticsFlag(
+      async () => ({}),
+      { addListener: (added) => (listener = added) },
+      key,
+      true,
+    );
+    expect(flag.enabled).toBe(true);
+    await flag.ready;
+    expect(flag.enabled).toBe(true);
+    listener?.({ [key]: { newValue: false } }, "local");
+    expect(flag.enabled).toBe(false);
+    // Removing the key restores the default.
+    listener?.({ [key]: {} }, "local");
+    expect(flag.enabled).toBe(true);
+    const failing = new DiagnosticsFlag(
+      async () => {
+        throw new Error("synthetic storage failure");
+      },
+      undefined,
+      key,
+      true,
+    );
+    await failing.ready;
+    expect(failing.enabled).toBe(true);
+  });
 });

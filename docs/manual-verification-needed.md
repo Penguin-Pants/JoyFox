@@ -8,8 +8,10 @@ verified from it. Still open:
 
 - **Item 1:** whether scrolling the inbox loads more conversations, and how.
 - **Item 2:** whether a message has a stable identifier.
-- **Item 6:** which input or change events the standard composer needs after its
-  value is set programmatically.
+- **Item 6:** done for the standard composer on 2026-09-23. With JoyFox's
+  `input` and `change` events, JoyClub registered an inserted template and its
+  deletion by keyboard (`manual-acceptance.md`, item 33). The event ClubMail
+  composer is still not inspected.
 - **Item 8:** gender codes are confirmed (`1` man, `2` woman, `3` couple), and
   account age comes from the profile's "Angemeldet seit" badge. Still Unclear:
   photo count on the inbox row, and account age on the inbox and conversation.
@@ -28,7 +30,7 @@ verified from it. Still open:
 - **Item 7:** whether the conversation "Optionen" menu contains Ignore or Block.
   The menu was not opened.
 - **Item 9:** profile → Back, inbox → search and inbox → events.
-- **Items 4, 5, 6 (ClubMail composer) and 10:** not started.
+- **Items 4, 5, 6 (event ClubMail composer) and 10:** not started.
 
 Do not include another member's real name, profile text, preferences, messages,
 or images. Replace personal values with invented placeholders. For DOM fields,

@@ -140,11 +140,14 @@ to send the text.
     is listed, and the template text is exact.
 30. Click one "Delete" and confirm nothing is deleted until "Confirm". Delete
     one record, then one data type, and confirm the counts drop.
-31. Turn the template trial on from the **JoyFox options page** console, never
-    from a JoyClub tab: a web page's console cannot use `browser` and reports
+31. The picker is on by default (it was an opt-in trial when this item was run).
+    To turn it off or on, use the **JoyFox options page** console, never a
+    JoyClub tab: a web page's console cannot use `browser` and reports
     `ReferenceError: browser is not defined`. Open `about:addons` → JoyFox →
     Preferences, press Ctrl+Shift+K in that tab, and run
-    `browser.storage.local.set({ "joyfox.templateInsertionTrial": true })`.
+    `browser.storage.local.set({ "joyfox.templatePicker": false })` to turn it
+    off, or `browser.storage.local.remove("joyfox.templatePicker")` to turn it
+    on again.
 32. Open a conversation. Confirm a "JoyFox templates" button appears below
     JoyClub's message box, not inside it. Type a few words, place the cursor
     between them, open the list and pick the template. Confirm the text appears
@@ -153,17 +156,29 @@ to send the text.
     noticed the text: for example the Send button becomes active, or a character
     counter changes. Then delete the text with the keyboard and confirm JoyClub
     notices that too. Record the result; do not click Send unless you mean it.
-34. Turn the trial off, again in the options page console, with
-    `browser.storage.local.remove("joyfox.templateInsertionTrial")` and confirm
-    the button disappears at once.
+34. Turn the picker off (item 31) and confirm the button disappears at once.
+    Turn it on again.
 35. Last, in "Your data", click "Delete all JoyFox data" and "Confirm". Confirm
     that no account, rule or template remains, that the JoyClub inbox shows no
     JoyFox UI, and that `await browser.storage.local.get()` in the options page
     console returns `{}`.
 
-**Items 27 to 30 result (2026-09-23): passed.** The project owner confirmed
-templates, the data panel, both exports and the record and data-type deletes on
-the build from `main` at 9583284. Items 31 to 35 are in progress.
+**Result (2026-09-23): passed.** The project owner ran items 27 to 35 on the
+build from `main` at 9583284 and confirmed every item.
+
+- Items 27 to 30: templates, the data panel, both exports and the record and
+  data-type deletes worked.
+- Items 31 to 34 (run as the opt-in trial, `joyfox.templateInsertionTrial`): the
+  picker appeared below the message box, inserted exactly at the cursor and sent
+  nothing. Item 33: JoyClub registered the inserted text before any key was
+  typed, and also its deletion by keyboard. This settles
+  `manual-verification-needed.md` item 6 for the standard composer. The owner
+  then chose to make the picker default-on (ADR 0007).
+- Item 35: "Delete all JoyFox data" left no account, rule, template or setting,
+  and the inbox showed no JoyFox UI.
+- A finding while running item 31: the trial flag was first set in a JoyClub
+  tab's console, which has no `browser`. The steps now name the options page
+  console.
 
 Live selector and action acceptance must wait for the evidence checklist in
 `manual-verification-needed.md`. Never perform destructive action testing

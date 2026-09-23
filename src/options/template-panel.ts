@@ -127,7 +127,7 @@ export class TemplatePanel {
         document,
         "p",
         "joyfox-panel__hint",
-        "Templates are stored here. Inserting one into JoyClub's message field is an opt-in trial for now, turned on by a setting described in the JoyFox documentation. A template then fills the field at the cursor; you can still edit the text, and you always click JoyClub's Send button yourself. JoyFox never sends a message.",
+        'On a JoyClub conversation, the "JoyFox templates" button below the message field inserts a template at the cursor. You can still edit the text, and you always click JoyClub\'s Send button yourself. JoyFox never sends a message.',
       ),
     );
     if (!accountId) {
