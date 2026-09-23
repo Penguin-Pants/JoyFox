@@ -83,9 +83,15 @@ describe("TriageService.evaluate", () => {
     expect(await triage.evaluate(undefined, [])).toEqual({
       status: "no-account",
     });
-    expect(await triage.evaluate(A, [])).toEqual({ status: "no-rule" });
+    expect(await triage.evaluate(A, [])).toEqual({
+      status: "no-rule",
+      accountId: A,
+    });
     await rules.saveGlobalRule(A, photoRule({ enabled: false }));
-    expect(await triage.evaluate(A, [])).toEqual({ status: "rule-disabled" });
+    expect(await triage.evaluate(A, [])).toEqual({
+      status: "rule-disabled",
+      accountId: A,
+    });
   });
 
   it("places a sender from a cached snapshot the inbox cannot show", async () => {
@@ -181,7 +187,7 @@ describe("TriageService.evaluate", () => {
     await trust.logOutcome(A, MEMBER, "negative");
     expect(
       await triage.evaluate(B, [{ memberId: MEMBER, observed: {} }]),
-    ).toEqual({ status: "no-rule" });
+    ).toEqual({ status: "no-rule", accountId: B });
     await rules.saveGlobalRule(B, photoRule());
     const [result] = ok(
       await triage.evaluate(B, [{ memberId: MEMBER, observed: {} }]),
@@ -327,6 +333,17 @@ describe("revision marker", () => {
 });
 
 describe("TrustService", () => {
+  it("runs a log and an undo from two tabs one after another", async () => {
+    await trust.logOutcome(A, MEMBER, "negative");
+    // Two tabs, one background service: neither call waits for the other.
+    const logging = trust.logOutcome(A, MEMBER, "positive");
+    const undoing = trust.undoLastOutcome(A, MEMBER);
+    await Promise.all([logging, undoing]);
+    expect(
+      (await trust.listSignals(A, MEMBER)).map((signal) => signal.kind),
+    ).toEqual(["negative"]);
+  });
+
   it("undo removes the outcome logged last, even in the same millisecond", async () => {
     // Random IDs that sort against logging order, at one fixed instant.
     const ids = ["zzzz", "aaaa"];
@@ -427,27 +444,61 @@ describe("background triage handlers", () => {
       ["triage.evaluate", { members: "all" }],
       ["triage.evaluate", { members: [{ memberId: "Name" }] }],
       ["triage.evaluate", { members: [{ memberId: MEMBER, observed: [] }] }],
-      ["triage.setOverride", { memberId: MEMBER, placement: "deleted" }],
-      ["trust.log", { memberId: MEMBER, kind: "great" }],
-      ["snapshot.capture", { memberId: "x" }],
+      [
+        "triage.setOverride",
+        { accountId: A, memberId: MEMBER, placement: "deleted" },
+      ],
+      ["trust.log", { accountId: A, memberId: MEMBER, kind: "great" }],
+      ["trust.log", { memberId: MEMBER, kind: "positive" }],
+      ["snapshot.capture", { accountId: A, memberId: "x" }],
     ] as const)
       expect(await send(type, payload)).toMatchObject({ ok: false });
     expect(await repositories.trustSignals.list(A)).toEqual([]);
+  });
+
+  it("drops a write made for an account that is no longer active", async () => {
+    // The page's data came from account B; A is active by the time it lands.
+    for (const [type, payload] of [
+      [
+        "triage.setOverride",
+        { accountId: B, memberId: MEMBER, placement: "qualified" },
+      ],
+      ["trust.log", { accountId: B, memberId: MEMBER, kind: "positive" }],
+      ["trust.undo", { accountId: B, memberId: MEMBER }],
+      [
+        "snapshot.capture",
+        { accountId: B, memberId: MEMBER, observed: { photoCount: 3 } },
+      ],
+    ] as const)
+      expect(await send(type, payload)).toMatchObject({ ok: true });
+    for (const account of [A, B]) {
+      expect(await repositories.trustSignals.list(account)).toEqual([]);
+      expect(await repositories.profileSnapshots.list(account)).toEqual([]);
+      expect(
+        await repositories.conversationClassifications.list(account),
+      ).toEqual([]);
+    }
   });
 
   it("writes nothing when no account is active", async () => {
     active = undefined;
     expect(
       await send("triage.setOverride", {
+        accountId: A,
         memberId: MEMBER,
         placement: "qualified",
       }),
     ).toMatchObject({ ok: true, payload: { done: false } });
     expect(
-      await send("trust.log", { memberId: MEMBER, kind: "positive" }),
+      await send("trust.log", {
+        accountId: A,
+        memberId: MEMBER,
+        kind: "positive",
+      }),
     ).toMatchObject({ ok: true, payload: { done: false } });
     expect(
       await send("snapshot.capture", {
+        accountId: A,
         memberId: MEMBER,
         observed: { photoCount: 3 },
       }),
@@ -461,7 +512,11 @@ describe("background triage handlers", () => {
   it("round-trips an evaluation, a trust log and the options request", async () => {
     await rules.saveGlobalRule(A, photoRule());
     expect(
-      await send("trust.log", { memberId: MEMBER, kind: "positive" }),
+      await send("trust.log", {
+        accountId: A,
+        memberId: MEMBER,
+        kind: "positive",
+      }),
     ).toMatchObject({ ok: true, payload: { done: true } });
     const response = await send("triage.evaluate", {
       members: [{ memberId: MEMBER, observed: { photoCount: 5 } }],

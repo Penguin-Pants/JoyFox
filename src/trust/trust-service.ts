@@ -37,6 +37,18 @@ const newestFirst = (a: TrustSignal, b: TrustSignal) =>
  */
 export class TrustService {
   #sequence = 0;
+  /**
+   * Logs and undos run one after another across all tabs: the background
+   * holds one TrustService, so an undo from one tab can never read the list
+   * while another tab's log is half written.
+   */
+  #queue: Promise<unknown> = Promise.resolve();
+
+  #serial<T>(action: () => Promise<T>): Promise<T> {
+    const run = this.#queue.then(action);
+    this.#queue = run.catch(() => undefined);
+    return run;
+  }
 
   constructor(
     private readonly signals = new TrustSignalRepository(),
@@ -62,30 +74,34 @@ export class TrustService {
     memberId: string,
     kind: TrustOutcomeKind,
   ): Promise<TrustSignal> {
-    requireAccountId(accountId);
-    const timestamp = this.now();
-    const signal: TrustSignal = {
-      // Zero-padded so the text order of IDs is the logging order.
-      id: `trust:${String((this.#sequence += 1)).padStart(12, "0")}:${this.newId()}`,
-      accountId,
-      memberId,
-      kind,
-      occurredAt: timestamp,
-      createdAt: timestamp,
-      updatedAt: timestamp,
-    };
-    await registerMember(this.members, accountId, memberId, timestamp);
-    await this.signals.put(accountId, signal);
-    await bumpTriageRevision(this.settings);
-    return signal;
+    return this.#serial(async () => {
+      requireAccountId(accountId);
+      const timestamp = this.now();
+      const signal: TrustSignal = {
+        // Zero-padded so the text order of IDs is the logging order.
+        id: `trust:${String((this.#sequence += 1)).padStart(12, "0")}:${this.newId()}`,
+        accountId,
+        memberId,
+        kind,
+        occurredAt: timestamp,
+        createdAt: timestamp,
+        updatedAt: timestamp,
+      };
+      await registerMember(this.members, accountId, memberId, timestamp);
+      await this.signals.put(accountId, signal);
+      await bumpTriageRevision(this.settings);
+      return signal;
+    });
   }
 
   /** Removes the newest outcome for the member. Returns whether one existed. */
   async undoLastOutcome(accountId: string, memberId: string): Promise<boolean> {
-    const [latest] = await this.listSignals(accountId, memberId);
-    if (!latest) return false;
-    await this.signals.delete(accountId, latest.id);
-    await bumpTriageRevision(this.settings);
-    return true;
+    return this.#serial(async () => {
+      const [latest] = await this.listSignals(accountId, memberId);
+      if (!latest) return false;
+      await this.signals.delete(accountId, latest.id);
+      await bumpTriageRevision(this.settings);
+      return true;
+    });
   }
 }

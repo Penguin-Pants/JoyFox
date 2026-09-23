@@ -23,10 +23,15 @@ import {
 
 export type MemberPage = "conversation" | "profile";
 
+/**
+ * `accountId` is the account the answer was computed for; captures and
+ * writes name it, so none of them can land in another account.
+ */
 type PanelData =
-  | { kind: "triage"; result: MemberTriage }
+  | { kind: "triage"; accountId: string; result: MemberTriage }
   | {
       kind: "trust-only";
+      accountId?: string;
       trust: TrustResponse;
       rule: TriageResponse["status"];
     };
@@ -83,7 +88,6 @@ export class MemberPanel {
       this.teardown();
       return;
     }
-    if (page === "profile") this.#capture(target);
     // A client-side route can switch to another member while JoyClub keeps
     // the header element. The old panel's buttons act on the old member, so
     // they go at once rather than when the new answer arrives.
@@ -97,6 +101,10 @@ export class MemberPanel {
       this.#load(target);
       return;
     }
+    // Captured only once the account is known from an answer, so a capture
+    // is always tied to the account it was read for.
+    if (page === "profile" && data.accountId)
+      this.#capture(target, data.accountId);
     this.#render(target, data);
   }
 
@@ -166,12 +174,13 @@ export class MemberPanel {
   }
 
   /** Once per distinct set of facts, so a re-render does not re-store. */
-  #capture(target: Target): void {
-    if (this.#captured === target.key) return;
-    this.#captured = target.key;
-    const { key, memberId, observed } = target;
+  #capture(target: Target, accountId: string): void {
+    const key = `${accountId}|${target.key}`;
+    if (this.#captured === key) return;
+    this.#captured = key;
+    const { memberId, observed } = target;
     this.#captureQueue = this.#captureQueue.then(() =>
-      this.client.captureSnapshot(memberId, observed).catch(() => {
+      this.client.captureSnapshot(accountId, memberId, observed).catch(() => {
         // A failed cache write loses nothing the page still shows. Retry
         // only if no newer reading has been queued since.
         if (this.#captured === key) this.#captured = "";
@@ -194,11 +203,21 @@ export class MemberPanel {
       .then(async (response) => {
         const result =
           response.status === "ok" ? response.results[0] : undefined;
-        if (result) return done({ kind: "triage", result });
+        if (response.status === "ok" && result)
+          return done({
+            kind: "triage",
+            accountId: response.accountId,
+            result,
+          });
+        const trust = await this.client.getTrust(
+          target.memberId,
+          target.observed,
+        );
         done({
           kind: "trust-only",
+          ...(trust.status === "ok" ? { accountId: trust.accountId } : {}),
           rule: response.status,
-          trust: await this.client.getTrust(target.memberId, target.observed),
+          trust,
         });
       })
       .catch(() => {
@@ -234,16 +253,22 @@ export class MemberPanel {
       element(this.document, "h2", "joyfox-panel__heading", "JoyFox"),
     );
     const memberId = target.memberId;
-    const trustActions = {
-      onTrust: (kind: "positive" | "negative" | "neutral") =>
-        this.#write(() => this.client.logTrust(memberId, kind)),
-      onUndoTrust: () => this.#write(() => this.client.undoTrust(memberId)),
-    };
+    const accountId = data.accountId;
+    const trustActions = accountId
+      ? {
+          onTrust: (kind: "positive" | "negative" | "neutral") =>
+            this.#write(() => this.client.logTrust(accountId, memberId, kind)),
+          onUndoTrust: () =>
+            this.#write(() => this.client.undoTrust(accountId, memberId)),
+        }
+      : {};
     if (data.kind === "triage")
       panel.append(
         explanation(this.document, data.result, {
           onOverride: (placement) =>
-            this.#write(() => this.client.setOverride(memberId, placement)),
+            this.#write(() =>
+              this.client.setOverride(data.accountId, memberId, placement),
+            ),
           ...trustActions,
         }),
       );

@@ -34,7 +34,7 @@ if (hasVerifiedSelectors() && VERIFIED_HOSTS.includes(location.hostname)) {
   coordinator.subscribe(({ page }) => {
     const type = page.status === "found" ? page.value : undefined;
     if (type === "inbox") inbox.update();
-    else inbox.teardown();
+    else inbox.leave();
     if (type === "conversation" || type === "profile") panel.update(type);
     else panel.leave();
   });

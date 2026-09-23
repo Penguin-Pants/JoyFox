@@ -71,6 +71,9 @@ export class InboxTriage {
   #selected?: string;
   #detailsKey = "";
   #writeQueue: Promise<void> = Promise.resolve();
+  #active = false;
+  /** The account the current answers were computed for; writes name it. */
+  #accountId?: string;
 
   constructor(
     private readonly document: Document,
@@ -81,8 +84,27 @@ export class InboxTriage {
     return this.#view;
   }
 
-  /** Re-read the page and apply placements. Safe to call on every mutation. */
+  /**
+   * The page is the inbox: re-read it and apply placements. Safe to call on
+   * every mutation.
+   */
   update(): void {
+    this.#active = true;
+    this.#refresh();
+  }
+
+  /**
+   * The page is no longer the inbox. JoyClub may keep the inbox list in the
+   * page on other routes, so nothing may re-apply triage until `update` is
+   * called again, not even a late answer or a change in another tab.
+   */
+  leave(): void {
+    this.#active = false;
+    this.teardown();
+  }
+
+  #refresh(): void {
+    if (!this.#active) return;
     const list = this.#list();
     if (!list || this.#status === "off") {
       this.teardown();
@@ -118,7 +140,7 @@ export class InboxTriage {
     this.#status = "pending";
     this.#inFlight = false;
     this.#detailsKey = "";
-    this.update();
+    this.#refresh();
   }
 
   /**
@@ -153,7 +175,7 @@ export class InboxTriage {
 
   setView(view: TriageView): void {
     this.#view = view;
-    this.update();
+    this.#refresh();
   }
 
   #list(): Element | null {
@@ -237,12 +259,13 @@ export class InboxTriage {
           this.teardown();
           return;
         }
+        this.#accountId = response.accountId;
         response.results.forEach((result, index) => {
           const key = keys[index];
           if (key) this.#results.set(key, result);
         });
         this.#status = "ok";
-        this.update();
+        this.#refresh();
       })
       .catch(() => {
         if (generation !== this.#generation) return;
@@ -326,7 +349,7 @@ export class InboxTriage {
           // Read at click time: JoyClub may reuse a row for another sender.
           this.#selected = created.dataset.member ?? "";
           this.#detailsKey = "";
-          this.update();
+          this.#refresh();
           const details = this.document.querySelector<HTMLElement>(
             `[${UI_ATTRIBUTE}="triage-bar"] .joyfox-triage__details`,
           );
@@ -403,14 +426,16 @@ export class InboxTriage {
       return;
     }
     const memberId = state.memberId;
+    const accountId = this.#accountId;
     details.replaceChildren(
       heading,
       explanation(this.document, result, {
         onOverride: (placement) => {
           // In click order, so a quick second choice never lands first.
+          if (!accountId) return;
           this.#writeQueue = this.#writeQueue.then(() =>
             this.client
-              .setOverride(memberId, placement)
+              .setOverride(accountId, memberId, placement)
               .then(() => this.invalidate())
               .catch(() => this.#showError(details)),
           );

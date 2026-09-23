@@ -64,15 +64,21 @@ export interface MemberTriage {
   trust: TrustScore | "unknown";
 }
 
+/**
+ * Every answer names the account it was computed for. The page sends that
+ * account back with each write, and the background drops a write whose
+ * account is no longer active, so a request made for one account can never
+ * land in another.
+ */
 export type TriageResponse =
   | { status: "no-account" }
-  | { status: "no-rule" }
-  | { status: "rule-disabled" }
-  | { status: "ok"; results: MemberTriage[] };
+  | { status: "no-rule"; accountId: string }
+  | { status: "rule-disabled"; accountId: string }
+  | { status: "ok"; accountId: string; results: MemberTriage[] };
 
 export type TrustResponse =
   | { status: "no-account" }
-  | { status: "ok"; trust: TrustScore | "unknown" };
+  | { status: "ok"; accountId: string; trust: TrustScore | "unknown" };
 
 function requireAccountId(accountId: string): void {
   if (accountId.trim().length === 0)
@@ -126,8 +132,8 @@ export class TriageService {
       throw new ExtensionError("RuleEvaluationError", "Too many members");
     for (const member of requested) requireMemberId(member.memberId);
     const rule = await this.rules.get(accountId, GLOBAL_RULE_ID);
-    if (!rule) return { status: "no-rule" };
-    if (!rule.enabled) return { status: "rule-disabled" };
+    if (!rule) return { status: "no-rule", accountId };
+    if (!rule.enabled) return { status: "rule-disabled", accountId };
 
     // One read per store for the whole batch, grouped by member.
     const [snapshots, overrides, spamOverrides, signals] = await Promise.all([
@@ -187,7 +193,7 @@ export class TriageService {
             trust,
           };
     });
-    return { status: "ok", results };
+    return { status: "ok", accountId, results };
   }
 
   /**
@@ -209,6 +215,7 @@ export class TriageService {
     const { facts } = mergeProfileFacts(observed);
     return {
       status: "ok",
+      accountId,
       trust: computeTrustScore({
         signals: signals.filter((signal) => signal.memberId === memberId),
         spam: spamOverrides.some((item) => item.memberId === memberId)

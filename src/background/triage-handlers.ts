@@ -58,9 +58,25 @@ function members(value: unknown): TriageRequestMember[] {
 }
 
 /**
+ * The account a write may use: the active one, and only if it is the account
+ * the page's data came from. A write sent or queued before an account switch
+ * is dropped instead of landing in the newly active account.
+ */
+async function writeAccount(
+  deps: TriageHandlerDeps,
+  expected: unknown,
+): Promise<string | undefined> {
+  if (typeof expected !== "string" || expected.length === 0)
+    throw invalid("account");
+  const active = await deps.activeAccountId();
+  return active === expected ? active : undefined;
+}
+
+/**
  * Register the triage, trust and snapshot handlers. Every payload comes from a
  * content script, so each field is checked here before a service sees it.
- * Writes without an active account do nothing rather than guess a scope.
+ * A write carries the account its data came from and does nothing unless
+ * that account is still active, rather than guess a scope.
  */
 export function registerTriageHandlers(
   router: MessageRouter,
@@ -77,7 +93,7 @@ export function registerTriageHandlers(
     const placement = payload?.placement;
     if (placement !== null && !PLACEMENTS.includes(placement))
       throw invalid("placement");
-    const accountId = await deps.activeAccountId();
+    const accountId = await writeAccount(deps, payload?.accountId);
     if (!accountId) return { done: false };
     await deps.triage.setOverride(accountId, id, placement);
     return { done: true };
@@ -85,7 +101,7 @@ export function registerTriageHandlers(
   router.register("trust.log", async (payload) => {
     const id = memberId(payload?.memberId);
     if (!OUTCOMES.includes(payload?.kind)) throw invalid("outcome");
-    const accountId = await deps.activeAccountId();
+    const accountId = await writeAccount(deps, payload?.accountId);
     if (!accountId) return { done: false };
     await deps.trust.logOutcome(accountId, id, payload.kind);
     return { done: true };
@@ -99,14 +115,14 @@ export function registerTriageHandlers(
   );
   router.register("trust.undo", async (payload) => {
     const id = memberId(payload?.memberId);
-    const accountId = await deps.activeAccountId();
+    const accountId = await writeAccount(deps, payload?.accountId);
     if (!accountId) return { removed: false };
     return { removed: await deps.trust.undoLastOutcome(accountId, id) };
   });
   router.register("snapshot.capture", async (payload) => {
     const id = memberId(payload?.memberId);
     const facts = observed(payload?.observed);
-    const accountId = await deps.activeAccountId();
+    const accountId = await writeAccount(deps, payload?.accountId);
     if (!accountId) return { stored: false };
     return { stored: await deps.triage.captureSnapshot(accountId, id, facts) };
   });

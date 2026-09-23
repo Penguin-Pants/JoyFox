@@ -36,11 +36,15 @@ export interface MessageContract {
   };
   /** Store (or clear, with `null`) the user's placement for one sender. */
   "triage.setOverride": {
-    request: { memberId: string; placement: TriagePlacement | null };
+    request: {
+      accountId: string;
+      memberId: string;
+      placement: TriagePlacement | null;
+    };
     response: { done: boolean };
   };
   "trust.log": {
-    request: { memberId: string; kind: TrustOutcomeKind };
+    request: { accountId: string; memberId: string; kind: TrustOutcomeKind };
     response: { done: boolean };
   };
   /** The trust score alone, for a page shown while no rule is on. */
@@ -49,12 +53,16 @@ export interface MessageContract {
     response: TrustResponse;
   };
   "trust.undo": {
-    request: { memberId: string };
+    request: { accountId: string; memberId: string };
     response: { removed: boolean };
   };
   /** Cache the facts a profile page showed. Counts, codes and dates only. */
   "snapshot.capture": {
-    request: { memberId: string; observed: Partial<ProfileFacts> };
+    request: {
+      accountId: string;
+      memberId: string;
+      observed: Partial<ProfileFacts>;
+    };
     response: { stored: boolean };
   };
   /** Content scripts cannot open the options page themselves. */

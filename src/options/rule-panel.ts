@@ -66,6 +66,11 @@ export class RulePanel {
   #controls = new Map<string, ConditionControls>();
   #enabled?: HTMLInputElement;
   #placement?: HTMLSelectElement;
+  /**
+   * Save and remove run one after another, in click order, so a quick
+   * "Save" then "Remove" can never end with the rule saved again.
+   */
+  #mutations: Promise<void> = Promise.resolve();
   /** Bumped per render, so a slower, older render never replaces a newer one. */
   #generation = 0;
 
@@ -212,7 +217,9 @@ export class RulePanel {
     if (saved) node.append(this.#removeButton(document, accountId));
     node.addEventListener("submit", (event) => {
       event.preventDefault();
-      void this.#save(accountId);
+      // Read the form now, at click time, then queue the write.
+      const form = this.#readForm();
+      void this.#serial(() => this.#save(accountId, form));
     });
     return node;
   }
@@ -312,8 +319,7 @@ export class RulePanel {
     return form;
   }
 
-  async #save(accountId: string): Promise<void> {
-    const form = this.#readForm();
+  async #save(accountId: string, form: BuilderForm | string): Promise<void> {
     if (typeof form === "string") {
       this.#setStatus(`${form} The rule was not saved.`, "error");
       return;
@@ -349,22 +355,22 @@ export class RulePanel {
     );
     button.type = "button";
     button.addEventListener("click", () => {
-      void this.#confirmAccount(accountId, "removed")
-        .then(async (current) => {
-          if (!current) return;
+      void this.#serial(async () => {
+        try {
+          if (!(await this.#confirmAccount(accountId, "removed"))) return;
           await this.rules.deleteGlobalRule(accountId);
           await this.render();
           this.#setStatus(
             "Rule removed. JoyFox no longer sorts the inbox for this account.",
             "info",
           );
-        })
-        .catch(() =>
+        } catch {
           this.#setStatus(
             "JoyFox could not remove the rule. Nothing was changed.",
             "error",
-          ),
-        );
+          );
+        }
+      });
     });
     return button;
   }
@@ -385,6 +391,12 @@ export class RulePanel {
       "error",
     );
     return false;
+  }
+
+  #serial(action: () => Promise<void>): Promise<void> {
+    const run = this.#mutations.then(action);
+    this.#mutations = run.catch(() => undefined);
+    return run;
   }
 
   #setStatus(text: string, kind: "info" | "error"): void {

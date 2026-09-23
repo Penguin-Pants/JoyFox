@@ -112,6 +112,20 @@ A third Codex review found four more, all confirmed and fixed:
   write was reported as failed, and a retry stored it twice. The marker is now
   best effort.
 
+A fourth Codex review found four more, all confirmed and fixed:
+
+- A write sent or queued just before an account switch landed in the newly
+  active account. Every answer now names its account, every write sends it back,
+  and the background drops a write whose account is no longer active. Profile
+  captures wait until an answer names the account.
+- JoyClub can keep the inbox list on other routes, so a late answer or a change
+  in another tab could re-apply triage there. The inbox feature is now inactive
+  until the page is the inbox again.
+- A log and an undo from two tabs could interleave in the one background
+  service. Trust writes are now serialized in the background.
+- A quick "Save rule" then "Remove rule" could end with the rule saved. The
+  options panel now runs them in click order.
+
 Each fix has a regression test confirmed to fail without it.
 
 ### Confirmed issues deferred

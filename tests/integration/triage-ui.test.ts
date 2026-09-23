@@ -60,28 +60,43 @@ const knownRule = (
 });
 
 /** A client backed by the real background services on a fake database. */
-function serviceClient(): TriageClient & { evaluations: number } {
+function serviceClient(): TriageClient & {
+  evaluations: number;
+  writes: string[];
+} {
   const client = {
     evaluations: 0,
     evaluate(members: Parameters<TriageClient["evaluate"]>[0]) {
       client.evaluations += 1;
       return triage.evaluate(activeAccount, members);
     },
-    async setOverride(memberId: string, placement: never) {
-      if (activeAccount)
-        await triage.setOverride(activeAccount, memberId, placement);
+    // Writes behave like the background handlers: dropped unless the
+    // account they name is still the active one.
+    writes: [] as string[],
+    async setOverride(accountId: string, memberId: string, placement: never) {
+      if (accountId !== activeAccount) return;
+      client.writes.push(`override:${accountId}`);
+      await triage.setOverride(accountId, memberId, placement);
     },
     getTrust: (memberId: string, observed: object) =>
       triage.trustFor(activeAccount, memberId, observed),
-    async logTrust(memberId: string, kind: "positive") {
-      if (activeAccount) await trust.logOutcome(activeAccount, memberId, kind);
+    async logTrust(accountId: string, memberId: string, kind: "positive") {
+      if (accountId !== activeAccount) return;
+      client.writes.push(`log:${accountId}`);
+      await trust.logOutcome(accountId, memberId, kind);
     },
-    async undoTrust(memberId: string) {
-      if (activeAccount) await trust.undoLastOutcome(activeAccount, memberId);
+    async undoTrust(accountId: string, memberId: string) {
+      if (accountId !== activeAccount) return;
+      await trust.undoLastOutcome(accountId, memberId);
     },
-    async captureSnapshot(memberId: string, observed: object) {
-      if (activeAccount)
-        await triage.captureSnapshot(activeAccount, memberId, observed);
+    async captureSnapshot(
+      accountId: string,
+      memberId: string,
+      observed: object,
+    ) {
+      if (accountId !== activeAccount) return;
+      client.writes.push(`capture:${accountId}`);
+      await triage.captureSnapshot(accountId, memberId, observed);
     },
     openOptions: () => Promise.resolve(),
   };
@@ -446,9 +461,9 @@ describe("conversation and profile panel", () => {
     const member = new MemberPanel(document, {
       ...client,
       // The new log is slow to reach storage.
-      logTrust: async (memberId, kind) => {
+      logTrust: async (accountId, memberId, kind) => {
         await new Promise<void>((resolve) => (releaseLog = resolve));
-        await client.logTrust(memberId, kind as "positive");
+        await client.logTrust(accountId, memberId, kind as "positive");
       },
     });
     member.update("conversation");
@@ -551,24 +566,56 @@ describe("conversation and profile panel", () => {
     const member = new MemberPanel(document, {
       ...client,
       // The first capture is slow; the second, fuller one is fast.
-      captureSnapshot: async (_memberId, observed) => {
+      captureSnapshot: async (_accountId, _memberId, observed) => {
         calls += 1;
         if (calls === 1)
           await new Promise<void>((resolve) => (releaseFirst = resolve));
         stored.push(observed);
       },
     });
+    // First the page shows no photo count yet.
     document.querySelector(".amount-badge")!.remove();
     member.update("profile");
+    await vi.waitFor(() => expect(calls).toBe(1));
+    // Then the photo count renders, while the first capture is still slow.
     setPage("/profile/1234567.synthetic_one.html", profileHtml);
     member.update("profile");
-    await new Promise((resolve) => setTimeout(resolve, 10));
+    await new Promise((resolve) => setTimeout(resolve, 20));
     // The second waits for the first, however slow it is.
     expect(stored).toHaveLength(0);
     releaseFirst();
     await vi.waitFor(() => expect(stored).toHaveLength(2));
     expect(stored[0]).not.toHaveProperty("photoCount");
     expect(stored[1]).toHaveProperty("photoCount", 12);
+  });
+
+  it("never applies inbox triage after leaving the inbox, even on a late change", async () => {
+    await rules.saveGlobalRule(ACCOUNT, knownRule());
+    setPage("/clubmail/", inboxHtml);
+    const original = document.body.innerHTML;
+    const inbox = new InboxTriage(document, serviceClient());
+    inbox.update();
+    await vi.waitFor(() => expect(bar()).not.toBeNull());
+    // A conversation route that keeps the inbox list in the page.
+    inbox.leave();
+    expect(document.body.innerHTML).toBe(original);
+    inbox.invalidate();
+    await new Promise((resolve) => setTimeout(resolve, 30));
+    expect(document.body.innerHTML).toBe(original);
+  });
+
+  it("ties a capture to the account its answer came from", async () => {
+    await rules.saveGlobalRule(ACCOUNT, knownRule());
+    setPage("/profile/1234567.synthetic_one.html", profileHtml);
+    const client = serviceClient();
+    const member = new MemberPanel(document, client);
+    member.update("profile");
+    await vi.waitFor(() =>
+      expect(client.writes).toContain("capture:account-a"),
+    );
+    expect(client.writes.every((write) => write.endsWith(":account-a"))).toBe(
+      true,
+    );
   });
 
   it("leave removes the panel", async () => {
