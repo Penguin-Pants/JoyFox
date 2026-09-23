@@ -43,11 +43,14 @@ Matches the PRD's Section 19.1 scope exactly. Nothing here is not in that list, 
 | F1 | Partial | Inbox, conversation and profile verified from `docs/live-evidence/`. Search, events and the ClubMail composer remain. |
 | F9 | Partial | Matrix in `08-attribute-matrix.md`. Verification appears on all three pages, photo count only on the profile, profile text on the conversation and the profile. Account age comes from the profile's "Angemeldet seit" badge. Profile type comes from the gender codes (`1` man, `2` woman, `3` couple). Still Unclear: photo count on the inbox row, and account age on the inbox and conversation. |
 | F7, F8 | Blocked | Human-assisted verification. See `manual-verification-needed.md`. |
-| M1 | Partial | Engine, fact merge and extraction from the verified inbox, conversation and profile pages are complete and tested: verification, personally known, photo count, word count and account age (join window). The badge UI and the criteria settings (M4) remain. |
+| M1 | Partial | Engine, fact merge and extraction are complete. Milestone C added the page badge, the explanation panel and profile snapshot capture. The 95 percent manual trial over 50 messages remains. |
+| M2 | Partial | Tab bar, per-row badges, in-place filtering, per-sender manual placement and dynamic rows are complete and tested (`milestone-c-audit.md`). Live acceptance passed on 2026-09-23, including the split-view re-check. The existing-conversation exception is blocked on reply detection. |
+| M4 | Partial | One global rule in the V1-compatible schema, a pure evaluator with explicit unknown handling, and the two-box options builder are complete and tested. Presets are deferred. Live acceptance passed on 2026-09-23. |
+| M6 | Partial | Point-count trust score with a full explanation, outcome logging and undo on conversation and profile pages are complete and tested. Live acceptance passed on 2026-09-23. |
 | M3 | Partial | Normalization, the pluggable similarity engine, duplicate and known-phrase matching, explanations, and the persisted per-sender override are complete. Nothing reads a message from a page yet, which waits on F1. |
 | M5 | Partial | Notes and tags persist, keyed to account plus a resolved member identity. Writes are refused while no member selector is verified, and the profile UI waits on F1. See `milestone-b-audit.md`. |
 | M7 | Partial | Explicit active account, account-scoped repositories, options switcher, and the Section 14 isolation test. Automatic account detection waits on F1 and F9. |
-| M2, M4, M6, M8, M9, M10 | Not started | |
+| M8, M9, M10 | Not started | |
 
 ### Follow-up work recorded during Milestone B
 
@@ -59,9 +62,8 @@ Matches the PRD's Section 19.1 scope exactly. Nothing here is not in that list, 
   PRD 7.4 triage exception for previously met senders.
 - Observe more "Angemeldet seit" forms (days, weeks, years, singular) to
   confirm the parser, and whether JoyClub rounds the duration down.
-- Build the page UI: the qualification badge on inbox rows and in the
-  conversation header, and snapshot capture on the profile page. Content
-  scripts must reach storage through background messaging.
+- Done in Milestone C: the qualification badge on inbox rows and in the
+  conversation header, and snapshot capture on the profile page.
 
 - Add a member index for user tags and message observations, so per-member
   reads and the retention purge do not scan the account. This changes the
@@ -74,6 +76,16 @@ Matches the PRD's Section 19.1 scope exactly. Nothing here is not in that list, 
   duplicate identifier check.
 - Replace the user-declared account identifier with a verified one once F1 and
   F9 establish where the JoyClub account identity appears.
+
+### Follow-up work recorded during Milestone C
+
+- Add the existing-conversation exception (PRD Section 7.4) once the
+  read-status icon's meaning is confirmed.
+- Add rule presets (PRD Section 11.3) once thresholds for "Complete profiles
+  only" and "High-trust members" are decided.
+- Decide whether the inbox retries on its own after a failed background answer.
+- Wire the spam detector to pages, so the "not template spam" condition and the
+  trust score's spam point can become known.
 
 M9 is the largest and riskiest MVP task, both in size and in its dependency on F7's still-unverified in-page-versus-navigation question. If F1 through F7 push MVP's timeline out meaningfully, M9 is the one task worth reconsidering for a fast-follow release rather than the rest of MVP slipping with it. That is a scope call, not a technical one, and stays with the person running this project.
 

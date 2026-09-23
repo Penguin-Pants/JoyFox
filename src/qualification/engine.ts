@@ -195,6 +195,87 @@ function accountAgeCriterion(
   };
 }
 
+/** One criterion with its parameter, as a contact rule condition names it. */
+export type SingleCriterion =
+  | { name: "verification" }
+  | { name: "personallyKnown" }
+  | { name: "photoCount"; minimum: number }
+  | { name: "profileWordCount"; minimum: number }
+  | { name: "accountAge"; minimumDays: number };
+
+/**
+ * Evaluate one criterion against merged facts. Pure, like the whole engine:
+ * the contact rule (M4) calls it once per condition so a criterion reads the
+ * same way on a badge and in a rule explanation.
+ */
+export function evaluateCriterion(
+  criterion: SingleCriterion,
+  facts: ProfileFacts,
+  sources: Partial<Record<keyof ProfileFacts, FactSource>> = {},
+  now: Date = new Date(),
+): EvaluatedCriterion {
+  const sourceOf = (field: keyof ProfileFacts): FactSource =>
+    sources[field] ?? "none";
+  switch (criterion.name) {
+    case "verification": {
+      const source = sourceOf("verification");
+      if (facts.verification === "unknown")
+        return {
+          name: "verification",
+          state: "unknown",
+          reason:
+            "Verification status is unknown, so it was not counted for or against.",
+          source,
+        };
+      return {
+        name: "verification",
+        state: facts.verification ? "pass" : "fail",
+        reason: facts.verification
+          ? "The profile is verified, as the rule requires."
+          : "The profile is not verified, which the rule requires.",
+        source,
+      };
+    }
+    case "personallyKnown": {
+      const source = sourceOf("personallyKnown");
+      return facts.personallyKnown === "unknown"
+        ? {
+            name: "personallyKnown",
+            state: "unknown",
+            reason:
+              "Whether you know this member personally is unknown, so it was not counted for or against.",
+            source,
+          }
+        : {
+            name: "personallyKnown",
+            state: facts.personallyKnown ? "pass" : "fail",
+            reason: facts.personallyKnown
+              ? "You marked this member as personally known, as the rule requires."
+              : "You have not marked this member as personally known, which the rule requires.",
+            source,
+          };
+    }
+    case "photoCount":
+      return numericCriterion(
+        "photoCount",
+        "Photo count",
+        facts.photoCount,
+        criterion.minimum,
+        sourceOf("photoCount"),
+      );
+    case "profileWordCount":
+      return numericCriterion(
+        "profileWordCount",
+        "Profile word count",
+        facts.profileWordCount,
+        criterion.minimum,
+        sourceOf("profileWordCount"),
+      );
+    case "accountAge":
+      return accountAgeCriterion(facts, criterion.minimumDays, now, sourceOf);
+  }
+}
+
 /**
  * Evaluate the configured criteria against merged profile facts.
  *
@@ -214,79 +295,25 @@ export function evaluateQualification(input: {
 }): QualificationResult {
   const { facts, criteria } = input;
   const now = input.now ?? new Date();
-  const sourceOf = (field: keyof ProfileFacts): FactSource =>
-    input.sources?.[field] ?? "none";
-  const criteriaResults: EvaluatedCriterion[] = [];
-
-  if (criteria.requireVerification) {
-    const source = sourceOf("verification");
-    if (facts.verification === "unknown")
-      criteriaResults.push({
-        name: "verification",
-        state: "unknown",
-        reason:
-          "Verification status is unknown, so it was not counted for or against.",
-        source,
-      });
-    else
-      criteriaResults.push({
-        name: "verification",
-        state: facts.verification ? "pass" : "fail",
-        reason: facts.verification
-          ? "The profile is verified, as the rule requires."
-          : "The profile is not verified, which the rule requires.",
-        source,
-      });
-  }
-
-  if (criteria.requirePersonallyKnown) {
-    const source = sourceOf("personallyKnown");
-    criteriaResults.push(
-      facts.personallyKnown === "unknown"
-        ? {
-            name: "personallyKnown",
-            state: "unknown",
-            reason:
-              "Whether you know this member personally is unknown, so it was not counted for or against.",
-            source,
-          }
-        : {
-            name: "personallyKnown",
-            state: facts.personallyKnown ? "pass" : "fail",
-            reason: facts.personallyKnown
-              ? "You marked this member as personally known, as the rule requires."
-              : "You have not marked this member as personally known, which the rule requires.",
-            source,
-          },
-    );
-  }
-
+  const selected: SingleCriterion[] = [];
+  if (criteria.requireVerification) selected.push({ name: "verification" });
+  if (criteria.requirePersonallyKnown)
+    selected.push({ name: "personallyKnown" });
   if (criteria.minimumPhotoCount !== undefined)
-    criteriaResults.push(
-      numericCriterion(
-        "photoCount",
-        "Photo count",
-        facts.photoCount,
-        criteria.minimumPhotoCount,
-        sourceOf("photoCount"),
-      ),
-    );
-
+    selected.push({ name: "photoCount", minimum: criteria.minimumPhotoCount });
   if (criteria.minimumProfileWordCount !== undefined)
-    criteriaResults.push(
-      numericCriterion(
-        "profileWordCount",
-        "Profile word count",
-        facts.profileWordCount,
-        criteria.minimumProfileWordCount,
-        sourceOf("profileWordCount"),
-      ),
-    );
-
+    selected.push({
+      name: "profileWordCount",
+      minimum: criteria.minimumProfileWordCount,
+    });
   if (criteria.minimumAccountAgeDays !== undefined)
-    criteriaResults.push(
-      accountAgeCriterion(facts, criteria.minimumAccountAgeDays, now, sourceOf),
-    );
+    selected.push({
+      name: "accountAge",
+      minimumDays: criteria.minimumAccountAgeDays,
+    });
+  const criteriaResults = selected.map((criterion) =>
+    evaluateCriterion(criterion, facts, input.sources, now),
+  );
 
   const outcome: QualificationOutcome = criteriaResults.some(
     (criterion) => criterion.state === "fail",

@@ -2,6 +2,8 @@ export type CriterionState = "pass" | "fail" | "unknown";
 
 export type TriagePlacement = "qualified" | "needs-review" | "quarantined";
 
+import type { ContactRuleDefinition } from "../rules/contact-rule";
+
 export type ExtractionResult<T> =
   | { status: "found"; value: T; source: string }
   | { status: "missing"; source?: string }
@@ -52,15 +54,29 @@ export interface TrustSignal extends AccountScopedEntity {
   kind: "positive" | "negative" | "neutral";
   occurredAt: string;
 }
-export interface ContactRule extends AccountScopedEntity {
+/**
+ * A contact rule (M4) in the V1-compatible schema: audience, enabled state,
+ * the placement for a sender who does not meet it, and a condition tree. See
+ * `src/rules/contact-rule.ts`.
+ */
+export interface ContactRule
+  extends AccountScopedEntity,
+    ContactRuleDefinition {
   name: string;
-  conditions: unknown[];
-  defaultPlacement: TriagePlacement;
 }
+/**
+ * The user's manual triage placement for one sender (PRD Section 7.5). Only
+ * a manual decision is stored: an automatic placement is recomputed from the
+ * rule every time, so it can never go stale. The inbox shows no conversation
+ * ID (01-inbox.md), so the record is keyed per sender, and `conversationId`
+ * stays optional.
+ */
 export interface ConversationClassification extends AccountScopedEntity {
   memberId: string;
-  conversationId: string;
+  conversationId?: string;
   placement: TriagePlacement;
+  source: "user";
+  decidedAt: string;
   ruleId?: string;
   reasons: string[];
 }

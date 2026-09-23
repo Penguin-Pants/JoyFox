@@ -5,16 +5,25 @@
   "description": "Local-first enhancements for pages you open on JoyClub and JOYCE.",
   "permissions": ["storage"],
   "host_permissions": ["*://*.joyclub.de/*", "*://*.joyce.app/*"],
-  "background": { "scripts": ["background.js"] },
+  "background": {
+    "scripts": ["background.js"]
+  },
   "content_scripts": [
     {
       "matches": ["*://*.joyclub.de/*", "*://*.joyce.app/*"],
       "js": ["content.js"],
-      "run_at": "document_idle"
+      "run_at": "document_idle",
+      "css": ["content.css"]
     }
   ],
-  "options_ui": { "page": "options.html", "open_in_tab": true },
+  "options_ui": {
+    "page": "options.html",
+    "open_in_tab": true
+  },
   "browser_specific_settings": {
-    "gecko": { "id": "joyfox@example.invalid", "strict_min_version": "121.0" }
+    "gecko": {
+      "id": "joyfox@example.invalid",
+      "strict_min_version": "121.0"
+    }
   }
 }

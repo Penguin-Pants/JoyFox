@@ -84,6 +84,46 @@ JoyFox inbox.extracted rows=25 senderName=25 memberId=25 verificationCode=24 rea
   `known-limitations.md`).
 - The lines held counts only; no name or number appeared.
 
+## Milestone C live acceptance (triage, rule, trust)
+
+Use your own account. Never click Ignore, Block or Delete on JoyClub.
+
+19. Build and load the extension (item 14). In the options page, add an account
+    if none exists.
+20. In "Contact rule", tick "Personally known" in the ALL box, keep
+    "Quarantined", and save. Confirm the message "Rule saved".
+21. Open the inbox. Confirm the tab bar appears above the list, every row has a
+    badge with a word (Qualified, Needs Review or Quarantined), and green-shield
+    senders show Qualified.
+22. Click "Quarantined". Confirm only quarantined rows show. Click "Inbox" and
+    confirm they are hidden. Click "Show all" and confirm every row shows.
+23. Click one badge. Confirm the "Why" panel names the reason and that the
+    conversation did not open. Click "Move to Qualified" and confirm the badge
+    changes at once. Click "Use my rule again".
+24. Scroll the inbox. If more rows load, confirm they get badges. Record whether
+    JoyClub's scrolling or row clicks behave differently.
+25. Open a conversation and a profile. Confirm the JoyFox panel appears under
+    the header. Click "Log positive" and confirm the trust score rises by one at
+    once. Click "Undo last outcome".
+26. In the options page, untick "Sort my JoyClub inbox with this rule" and save.
+    Confirm the inbox tab bar, badges and hidden rows disappear.
+
+**Result (2026-09-23): passed, with one finding.** The project owner ran items
+19 to 26 on the PR #14 build. Every item was confirmed, including item 23 (a
+badge click did not open the conversation) and item 24 (scrolling and row clicks
+unchanged).
+
+- Finding: JoyClub keeps the conversation list on screen beside an open
+  conversation. After opening and answering a message, the tab bar was gone from
+  that list until a reload or a click on "Postfach". A first fix (triage on for
+  conversation pages with a visible list) did not help: the owner's re-check
+  showed the bar still vanished after sending a reply. Triage now follows the
+  list itself, on any page where it is visible, and also notices the list being
+  hidden and shown in place.
+- Re-check (2026-09-23): passed. With build 8fa0a2c the owner sent a message
+  from a second account and replied beside the list; the tab bar and badges
+  stayed on the list.
+
 Live selector and action acceptance must wait for the evidence checklist in
 `manual-verification-needed.md`. Never perform destructive action testing
 automatically.

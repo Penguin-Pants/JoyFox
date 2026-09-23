@@ -33,13 +33,18 @@ const entityData: {
   trustSignals: { memberId: "member-1", kind: "neutral", occurredAt: now },
   contactRules: {
     name: "Synthetic rule",
-    conditions: [],
+    schemaVersion: 1,
+    audience: "all",
+    enabled: true,
     defaultPlacement: "needs-review",
+    root: { type: "group", match: "all", children: [] },
   },
   conversationClassifications: {
     memberId: "member-1",
     conversationId: "conversation-1",
     placement: "needs-review",
+    source: "user",
+    decidedAt: now,
     reasons: ["Unknown synthetic input"],
   },
   savedSearches: {

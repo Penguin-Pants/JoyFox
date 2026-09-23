@@ -25,4 +25,5 @@ await writeFile(
 );
 await cp("src/options/options.html", `${output}/options.html`);
 await cp("src/options/options.css", `${output}/options.css`);
+await cp("src/content/content.css", `${output}/content.css`);
 await cp("README.md", `${output}/README.md`);
