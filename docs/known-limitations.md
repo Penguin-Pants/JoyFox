@@ -19,12 +19,16 @@
 - Conversation header data is used only when its member ID matches a number in
   the conversation URL. If those URL numbers turn out not to be member IDs,
   header data will always read as missing.
-- The inbox read-status icon was found on only 9 of 25 rows in the live check.
-  It may show the delivery state of the user's own last message rather than
-  whether a conversation is unread. No feature uses it until that is confirmed.
+- In the live check, a read state was extracted from only 9 of 25 rows. That
+  count does not show how many rows carry the read-status icon: a row with the
+  icon but no recognized `--<state>` modifier also counts as missing. The DOM
+  has not been inspected for this, and the read state's meaning is unconfirmed.
+  No feature uses it.
 - The inbox is detected as soon as its list container renders, which can be
-  before the rows arrive. A feature must treat zero rows as "not loaded yet" and
-  wait for the next mutation event, not as an empty inbox.
+  before the rows arrive, so zero rows is ambiguous: still loading, or a truly
+  empty inbox. No loading-complete or empty-state signal is verified yet. An
+  inbox feature must not wait indefinitely on zero rows; it needs such a signal,
+  or a bounded wait, before it treats the inbox as empty.
 - The profile word count adds the motto and the main text. The conversation
   header's short description is counted separately and is not used for M1.
 - The extension cannot detect which JoyClub login a tab uses. The active account
