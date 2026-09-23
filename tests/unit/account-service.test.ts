@@ -5,6 +5,7 @@ import {
   ACTIVE_ACCOUNT_SETTING_KEY,
 } from "../../src/accounts/account-service";
 import { ExtensionError } from "../../src/errors";
+import { withAccountLock } from "../../src/storage/account-lock";
 import { repositories } from "../../src/storage/repositories";
 import { freshDatabase } from "../setup-indexeddb";
 import { MemorySettingsArea } from "../memory-settings";
@@ -30,6 +31,22 @@ describe("M7 explicit active account", () => {
     expect((await service.getActiveAccount())?.id).toBe(first.id);
     expect(settings.items.get(ACTIVE_ACCOUNT_SETTING_KEY)).toBe(first.id);
     await service.setActiveAccount(second.id);
+    expect((await service.getActiveAccount())?.id).toBe(second.id);
+  });
+
+  it("switches only after a write to the account being left ends", async () => {
+    const first = await service.createAccount({ joyClubAccountId: "a" });
+    const second = await service.createAccount({ joyClubAccountId: "b" });
+    let release!: () => void;
+    const writing = withAccountLock(
+      first.id,
+      () => new Promise<void>((resolve) => (release = resolve)),
+    );
+    const switching = service.setActiveAccount(second.id);
+    await new Promise((resolve) => setTimeout(resolve, 10));
+    expect((await service.getActiveAccount())?.id).toBe(first.id);
+    release();
+    await Promise.all([writing, switching]);
     expect((await service.getActiveAccount())?.id).toBe(second.id);
   });
 

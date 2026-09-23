@@ -146,6 +146,20 @@ describe("M8 data panel", () => {
     expect(await templates.list(a)).toHaveLength(1);
   });
 
+  it("an export disarms a pending delete", async () => {
+    byLabel("Delete all JoyFox data in this browser").click();
+    await settle(
+      () => byLabel("Confirm: Delete all JoyFox data in this browser") !== null,
+    );
+    root.querySelector<HTMLButtonElement>(".joyfox-data__export-all")!.click();
+    await settle(
+      () =>
+        saved.length === 1 &&
+        byLabel("Delete all JoyFox data in this browser") !== null,
+    );
+    expect(await accounts.listAccounts()).toHaveLength(2);
+  });
+
   it("offers no delete for the account record", async () => {
     byLabel("Show Account record").click();
     await settle(() => text().includes("removed only with the whole account"));
@@ -362,6 +376,14 @@ describe("M10 template panel", () => {
     await settle(() => text().includes("The active account changed"));
     expect(await templates.list(a)).toEqual([]);
     expect(await templates.list(b)).toEqual([]);
+  });
+
+  it("adds one template on a double submit", async () => {
+    await submit("Once", "Text");
+    root.querySelector<HTMLFormElement>("form")!.requestSubmit();
+    await settle(() => byLabel("Edit template Once") !== null);
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    expect(await templates.list(a)).toHaveLength(1);
   });
 
   it("clears the status when the active account changes", async () => {

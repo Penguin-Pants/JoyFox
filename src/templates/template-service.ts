@@ -32,6 +32,16 @@ export interface TemplateInput {
   folder?: string;
 }
 
+/**
+ * For a write made from a form drawn for the active account: the write goes
+ * ahead only if that account is still active, checked inside the account
+ * lock. An account switch holds the same lock, so the check and the write
+ * cannot straddle a switch.
+ */
+export interface WriteGuard {
+  activeAccountId: () => Promise<string | undefined>;
+}
+
 const collapse = (value: string) => value.trim().replace(/\s+/gu, " ");
 
 /**
@@ -85,6 +95,7 @@ export class TemplateService {
   async save(
     accountId: string,
     input: TemplateInput,
+    guard?: WriteGuard,
   ): Promise<MessageTemplate> {
     const name = collapse(input.name);
     const folder = collapse(input.folder ?? "");
@@ -104,7 +115,7 @@ export class TemplateService {
         `A template can have at most ${MAX_TEMPLATE_BODY_LENGTH} characters`,
       );
     return withAccountLock(accountId, async () => {
-      await this.#requireAccount(accountId);
+      await this.#requireAccount(accountId, guard);
       const existing = input.id
         ? await this.templates.get(accountId, input.id)
         : undefined;
@@ -129,18 +140,27 @@ export class TemplateService {
     });
   }
 
-  async delete(accountId: string, id: string): Promise<void> {
+  async delete(
+    accountId: string,
+    id: string,
+    guard?: WriteGuard,
+  ): Promise<void> {
     await withAccountLock(accountId, async () => {
-      await this.#requireAccount(accountId);
+      await this.#requireAccount(accountId, guard);
       await this.templates.delete(accountId, id);
     });
   }
 
-  async #requireAccount(accountId: string): Promise<void> {
+  async #requireAccount(accountId: string, guard?: WriteGuard): Promise<void> {
     if (!(await this.accounts.get(accountId, accountId)))
       throw new ExtensionError(
         "IdentityMismatch",
         "That account no longer exists",
+      );
+    if (guard && (await guard.activeAccountId()) !== accountId)
+      throw new ExtensionError(
+        "IdentityMismatch",
+        "The active account changed",
       );
   }
 }

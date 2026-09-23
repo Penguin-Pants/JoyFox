@@ -95,7 +95,6 @@ Matches the PRD's Section 19.1 scope exactly. Nothing here is not in that list, 
   item 6, then decide whether the picker becomes default-on (ADR 0007).
 - Capture evidence for the event ClubMail composer (`manual-verification-needed.md`
   item 6), then add it as a second picker context.
-- Confirm ADR 0007's reading of "delete account data" (keeps the account).
 - The member index for user tags and message observations (recorded during
   Milestone B for M8) is deferred: no M8 acceptance criterion needs it, and it
   needs a database version change best made with its first real caller.

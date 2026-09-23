@@ -2,7 +2,7 @@
 
 ## Status
 
-Proposed (Milestone D). Awaiting the project owner's confirmation.
+Accepted (project owner, 2026-09-23).
 
 ## Context
 
@@ -65,5 +65,3 @@ Milestone D (M8, M10) needed decisions that no planning document made:
   until the trial passes and the event composer is verified.
 - Deleting a single member record does not delete notes or other records that
   refer to it. The inspector says what it deletes, one entity at a time.
-- If the owner reads "delete account data" as "remove the account", only the
-  button text and one call change.
