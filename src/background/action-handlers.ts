@@ -11,6 +11,7 @@ import {
   type ActionStep,
 } from "../actions/ignore-delete";
 import type { ActionLog } from "../domain/types";
+import type { MessageContract } from "../messaging/protocol";
 import type { MessageRouter, RouteContext } from "../messaging/router";
 import { withAccountLock } from "../storage/account-lock";
 import { bumpActionRevision } from "../storage/action-revision";
@@ -216,8 +217,18 @@ export function registerActionHandlers(
     if (!session) return { status: "none" };
     const stored = (await session.get([key]))[key];
     if (stored === undefined) return { status: "none" };
+    // Decide first. If a read below fails (the background or the database is
+    // restarting), the marker stays, so the page's retry can still use it.
+    const answer = await readHandOff(stored, context);
     // One-shot: a reload or a later page never continues the run again.
     await session.remove([key]);
+    if (answer.status === "stopped") await bumpActionRevision(deps.settings);
+    return answer;
+  });
+  const readHandOff = async (
+    stored: unknown,
+    context: RouteContext,
+  ): Promise<MessageContract["action.ignoreDelete.pending"]["response"]> => {
     if (!isMarker(stored) || now() - stored.at > STALE_AFTER_MS)
       return { status: "none" };
     // Only the profile the run went to, as the browser reports the sender.
@@ -243,7 +254,6 @@ export function registerActionHandlers(
         return deps.actions.find(stored.accountId, stored.operationId);
       });
       if (!closed) return { status: "none" };
-      await bumpActionRevision(deps.settings);
       return {
         status: "stopped",
         lines: reportOperation(closed, now()).lines,
@@ -264,7 +274,7 @@ export function registerActionHandlers(
       next: stored.next,
       steps: log.steps,
     };
-  });
+  };
   router.register("action.ignoreDelete.latest", async (payload) => {
     const id = memberId(payload?.memberId);
     const accountId = await deps.activeAccountId();

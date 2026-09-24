@@ -25,8 +25,9 @@ import { button, element, UI_ATTRIBUTE } from "./triage-ui";
 
 /**
  * The `storage.local` key for the experimental M9 button. Off unless set to
- * `true` (build plan Section 27: keep M9 behind an experimental flag). Even
- * when on, the button appears only with a live driver, and none exists yet.
+ * `true` (build plan Section 27: keep M9 behind an experimental flag). When
+ * on, the button appears on conversation pages, and a click runs the live
+ * driver, which clicks JoyClub's Delete and Ignore (ADR 0011).
  */
 export const QUICK_ACTION_KEY = "joyfox.quickIgnoreDelete";
 

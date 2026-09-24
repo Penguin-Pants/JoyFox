@@ -703,6 +703,37 @@ describe("M9 hand-off messages (ADR 0011)", () => {
     });
   });
 
+  it("keeps the marker when a read fails, so a retry still finds it", async () => {
+    const id = await afterDelete();
+    await client.handOff("account-a", id, "ignore", PROFILE_PATH);
+    // A background whose database read fails once, as during a restart.
+    let fail = true;
+    const actions = new ActionLogService(undefined, undefined, () =>
+      new Date(clock).toISOString(),
+    );
+    const find = actions.find.bind(actions);
+    actions.find = (accountId, operationId) => {
+      if (fail) {
+        fail = false;
+        return Promise.reject(new Error("database closing"));
+      }
+      return find(accountId, operationId);
+    };
+    const flaky = new MessageRouter();
+    registerActionHandlers(flaky, {
+      actions,
+      activeAccountId: () => Promise.resolve(active),
+      now: () => clock,
+      session,
+    });
+    const page = tabClient(TAB, () => flaky);
+    await expect(page.pending()).rejects.toThrow();
+    expect(await page.pending()).toMatchObject({
+      status: "ok",
+      operationId: id,
+    });
+  });
+
   it("refuses a hand-off before Delete is confirmed, or for an old run", async () => {
     const recorder = client.recorder("account-a");
     const begun = await recorder.begin(TARGET);
