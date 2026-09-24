@@ -313,6 +313,21 @@ describe("M9 live driver on synthetic JoyClub pages (ADR 0011)", () => {
     expect(rowsOf(MEMBER)).toHaveLength(1);
   });
 
+  it("clicks nothing when the list loses the row while the menu opens", async () => {
+    openConversation();
+    const menu = document.querySelector("j-context-menu")!;
+    // The list re-renders without this member's row as the menu opens.
+    menu
+      .querySelector('[slot="activator"]')!
+      .shadowRoot!.querySelector("button")!
+      .addEventListener("click", () =>
+        rowsOf(MEMBER)[0]?.closest("j-list-item")?.remove(),
+      );
+    const driver = new JoyClubQuickActionDriver(document, TIMING);
+    await expect(driver.request("delete")).rejects.toThrow(/no longer/);
+    expect(pressed).toEqual(["Optionen"]);
+  });
+
   it("never uses a menu outside the conversation's own header", () => {
     openConversation();
     // The same menu, but not in the header that holds the conversation.

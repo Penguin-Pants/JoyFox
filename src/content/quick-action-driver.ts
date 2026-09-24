@@ -111,8 +111,12 @@ export class JoyClubQuickActionDriver implements QuickActionDriver {
       if (!item) throw new Error("Delete item not found");
       if (!same() || this.#conversationMenu() !== menu)
         throw new Error("The page changed before the click");
+      // Counted again after the wait: the list must still show the row, so
+      // the result can be checked, and the count after compares with now.
+      const baseline = this.#rows(memberId);
+      if (!baseline) throw new Error("The list no longer shows the row");
       // Fixed now: the page's header may change after the click.
-      this.#deleted = { memberId, rows };
+      this.#deleted = { memberId, rows: baseline };
       press(item);
       return;
     }
