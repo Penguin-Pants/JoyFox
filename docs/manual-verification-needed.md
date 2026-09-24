@@ -31,11 +31,11 @@ verified from it. Still open:
   not contain Ignore. The profile page's menu has
   `j-context-menu-item[title="Profil ignorieren"]` inside
   `j-context-menu[data-e2e="profile-context-menu"]`, with open shadow roots. It
-  opens a confirmation dialog whose confirm button is
-  `j-button[aria-label="Ignorieren"]` (`live-evidence/10-ignore.md`). So M9 is
+  opens a confirmation dialog with `j-button[aria-label="Ignorieren"]` and
+  `j-button[aria-label="Abbrechen"]` (`live-evidence/10-ignore.md`). So M9 is
   Path B: ignore on the profile. Still open for the live driver: the dialog's
-  root and cancel button, what happens after confirming (result, route), and
-  Delete's confirmation and result.
+  root element, what happens after confirming (result, route), and Delete's
+  confirmation and result.
 - **Item 9:** profile → Back, inbox → search and inbox → events.
 - **Items 4, 5, 6 (event ClubMail composer) and 10:** not started.
 

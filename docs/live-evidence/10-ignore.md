@@ -135,6 +135,24 @@ shadow root holds the native `<button>`:
 </j-button>
 ```
 
+The cancel button (reported 2026-09-24) is the same component with the tertiary
+style:
+
+```html
+<j-button aria-label="Abbrechen" type="button" full-size="true">
+  #shadow-root (open)
+  <button
+    class="j-button tertiary full-size"
+    type="button"
+    aria-label="Abbrechen"
+  >
+    <slot class="j-button__content"></slot>
+  </button>
+  Abbrechen
+</j-button>
+```
+
+- Cancel: `j-button[aria-label="Abbrechen"]`. No `data-e2e` hook was reported.
 - Confirm: `j-button[aria-label="Ignorieren"]`, near
   `.profile-ignore-modal__content`. No `data-e2e` hook was reported.
 - The dialog names the member by display name only. It shows no member ID, so
