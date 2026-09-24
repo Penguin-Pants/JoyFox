@@ -274,6 +274,12 @@ expected ActionLog. Each item has a synthetic test with the same case number in
 62. Choose a file that is not a JoyFox export. Confirm the error says nothing
     was imported.
 
+**Result (2026-09-24): items 59 and 60 passed; 61 and 62 pending.** The project
+owner reported that import works, which covers exporting and restoring (items 59
+and 60). Re-importing the same file (61) and refusing a non-JoyFox file (62)
+were not reported separately and stay pending until confirmed. Both are covered
+by automated tests.
+
 Live selector and action acceptance must wait for the evidence checklist in
 `manual-verification-needed.md`. Never perform destructive action testing
 automatically.
