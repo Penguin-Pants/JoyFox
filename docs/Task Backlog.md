@@ -136,7 +136,8 @@ F7.
 - Done: the options page shows one section per tab, and the data table's
   Actions column, the rule condition columns and dark mode are fixed
   (`manual-acceptance.md` items 70 to 72). Triggered by the owner's report of
-  a misaligned table and too much scrolling.
+  a misaligned table and too much scrolling. Live acceptance passed on
+  2026-09-24.
 
 ### Follow-up work recorded during Milestone D
 

@@ -323,6 +323,8 @@ the gaps are closed.
     JoyFox cannot see this" choices in straight columns. With Firefox in dark
     mode, confirm the page is dark and the red delete buttons are readable.
 
+**Result (2026-09-24): passed.** The project owner confirmed items 70 to 72.
+
 Live selector and action acceptance must wait for the evidence checklist in
 `manual-verification-needed.md`. Never perform destructive action testing
 automatically.
