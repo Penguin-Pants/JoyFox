@@ -55,6 +55,12 @@ describe("options tabs", () => {
       expect(panel(name).querySelector(`#${section}`)).not.toBeNull();
       expect(panel(name).getAttribute("aria-labelledby")).toBe(tab(name).id);
     }
+    // Import sits on the Accounts tab, under the account list.
+    const accountsPanel = panel("accounts");
+    expect(
+      accountsPanel.querySelector("#joyfox-accounts + #joyfox-import"),
+    ).not.toBeNull();
+    expect(panel("data").querySelector("#joyfox-import")).toBeNull();
   });
 
   it("shows only Get started at first", () => {

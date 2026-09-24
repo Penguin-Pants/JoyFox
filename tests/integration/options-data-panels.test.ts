@@ -337,6 +337,41 @@ describe("M8 data panel", () => {
     expect(root.querySelector(".joyfox-data__import-confirm")).toBeNull();
   });
 
+  it("draws Import in its own place, with its own status line, when given one", async () => {
+    // The options page puts it on the Accounts tab (owner request).
+    const importRoot = document.createElement("section");
+    document.body.append(importRoot);
+    const placed = new DataPanel(
+      root,
+      new DataService(accounts, settings),
+      accounts,
+      (name, content) => saved.push({ name, text: content }),
+      () => undefined,
+      importRoot,
+    );
+    await placed.render();
+    expect(root.querySelector("#joyfox-data-import")).toBeNull();
+    const input = importRoot.querySelector<HTMLInputElement>(
+      "#joyfox-data-import",
+    )!;
+    expect(importRoot.textContent).toContain("Import a JoyFox export file");
+    Object.defineProperty(input, "files", {
+      value: [new File(["not json"], "x.json")],
+    });
+    input.dispatchEvent(new Event("change"));
+    for (
+      let attempt = 0;
+      attempt < 500 &&
+      !importRoot.textContent?.includes("Nothing was imported");
+      attempt += 1
+    )
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(
+      importRoot.querySelector(".joyfox-panel__status")?.textContent,
+    ).toContain("Nothing was imported");
+    expect(text()).not.toContain("Nothing was imported");
+  });
+
   it("deletes all JoyFox data after confirmation", async () => {
     await settings.set({ "joyfox.diagnostics": true });
     byLabel("Delete all JoyFox data in this browser").click();

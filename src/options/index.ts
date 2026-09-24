@@ -21,8 +21,17 @@ const start = startRoot ? new GetStartedPanel(startRoot) : undefined;
 const renderStart = quietly(async () => start?.render());
 
 const dataRoot = find("joyfox-data");
+// Import sits on the Accounts tab, under the account list; the data panel
+// still runs it, so export, import and delete share one set of checks.
 const data = dataRoot
-  ? new DataPanel(dataRoot, undefined, undefined, undefined, () => refreshAll())
+  ? new DataPanel(
+      dataRoot,
+      undefined,
+      undefined,
+      undefined,
+      () => refreshAll(),
+      find("joyfox-import") ?? undefined,
+    )
   : undefined;
 const renderData = quietly(async () => data?.render());
 
