@@ -274,6 +274,8 @@ expected ActionLog. Each item has a synthetic test with the same case number in
 62. Choose a file that is not a JoyFox export. Confirm the error says nothing
     was imported.
 
+**Result (2026-09-24): passed.** The project owner confirmed that import works.
+
 Live selector and action acceptance must wait for the evidence checklist in
 `manual-verification-needed.md`. Never perform destructive action testing
 automatically.

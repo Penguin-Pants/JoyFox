@@ -121,7 +121,7 @@ F7.
 - Done: import of JSON exports (full and single-account), merged into what is
   stored by the owner-approved rules (ADR 0009), with a preview and a confirm
   step (`manual-acceptance.md`, items 59 to 62). PRD Section 13.3 names export
-  only; this extends M8.
+  only; this extends M8. Live acceptance passed on 2026-09-24.
 
 ### Follow-up work recorded during Milestone D
 

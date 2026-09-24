@@ -34,9 +34,10 @@ verified from it. Still open:
   opens a confirmation dialog with `j-button[aria-label="Ignorieren"]` and
   `j-button[aria-label="Abbrechen"]` (`live-evidence/10-ignore.md`). So M9 is
   Path B: ignore on the profile. The dialog is a `j-modal` whose slotted content
-  and buttons can be scoped from `.profile-ignore-modal__content`. Still open
-  for the live driver: what happens after confirming (result, route), and
-  Delete's confirmation and result.
+  and buttons can be scoped from `.profile-ignore-modal__content`. After
+  confirming, a short notice "Du ignorierst NAME" appears. Still open for the
+  live driver: a lasting success signal (does the menu item change?), whether
+  the address changes, and Delete's confirmation and result.
 - **Item 9:** profile → Back, inbox → search and inbox → events.
 - **Items 4, 5, 6 (event ClubMail composer) and 10:** not started.
 

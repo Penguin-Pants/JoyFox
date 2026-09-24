@@ -210,6 +210,19 @@ Consequences for the driver:
   outline above assumes the BEM double underscore used by every other JoyClub
   class seen so far. The driver does not depend on these classes.
 
+## After confirming Ignore (2026-09-24, fifth report)
+
+After "Ignorieren" is confirmed, a small notice appears at the bottom of the
+screen for a few seconds and then disappears. Its text, as reported, reads "Du
+ignorirst NAME" (member name replaced; probably "Du ignorierst NAME", "You are
+ignoring NAME", with the spelling as typed in the report).
+
+- This is a success signal, but a short-lived one: its element and selector were
+  not captured, and a driver would have to catch it within seconds.
+- Not yet reported: whether the profile menu item changes afterwards (for
+  example to a "no longer ignore" entry), which would be a lasting signal, and
+  whether the page address changes.
+
 ## Consequence
 
 F7's answer is **Path B**: Quick Ignore and Delete must go from the conversation
@@ -218,8 +231,9 @@ build plan Section 16 and ADR 0008.
 
 ## Still missing for the M9 driver
 
-- What happens after "Ignorieren" is confirmed: the success signal (a message, a
-  changed menu item such as "Ignorieren aufheben"), how long it takes, and
-  whether the page stays on the profile or routes elsewhere.
+- A lasting success signal after "Ignorieren": whether the profile menu item
+  changes afterwards, and its new `title`. The notice "Du ignorierst NAME" is
+  seen but short-lived and not captured.
+- Whether the page address changes after confirming.
 - For Delete (`button-delete-conversation`): its confirmation and success
   signal.
