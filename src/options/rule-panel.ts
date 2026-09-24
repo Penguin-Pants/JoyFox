@@ -297,6 +297,11 @@ export class RulePanel {
         value.setAttribute("aria-label", `${CONDITION_TEXT[kind]} value`);
         controls.value = value;
         row.append(value);
+      } else {
+        // Keeps the columns in line with the rows that have a number.
+        const gap = document.createElement("span");
+        gap.className = "joyfox-rule__no-value";
+        row.append(gap);
       }
       const unknownLabel = element(
         document,

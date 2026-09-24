@@ -88,6 +88,21 @@ describe("M8 data panel", () => {
     );
     expect(count("messageTemplates")).toBe("1");
     expect(count("extensionAccounts")).toBe("1");
+    // Every row has the same three table cells; the buttons sit in a box
+    // inside the last one, so the cell stays a table cell and lines up.
+    for (const row of Array.from(root.querySelectorAll("tr[data-entity]"))) {
+      expect(Array.from(row.children, (cell) => cell.tagName)).toEqual([
+        "TH",
+        "TD",
+        "TD",
+      ]);
+      expect(row.lastElementChild?.className).toBe("");
+    }
+    expect(
+      root.querySelector(
+        'tr[data-entity="messageTemplates"] td > .joyfox-data__actions button',
+      ),
+    ).not.toBeNull();
     const select = root.querySelector<HTMLSelectElement>(
       "#joyfox-data-account",
     )!;

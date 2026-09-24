@@ -4,9 +4,13 @@ import { mountAccountPanel, type AccountPanel } from "./account-panel";
 import { DataPanel } from "./data-panel";
 import { GetStartedPanel } from "./get-started";
 import { RulePanel } from "./rule-panel";
+import { OptionsTabs } from "./tabs";
 import { TemplatePanel } from "./template-panel";
 
 const find = (id: string) => document.querySelector<HTMLElement>(`#${id}`);
+
+const tablist = document.querySelector<HTMLElement>('[role="tablist"]');
+if (tablist) new OptionsTabs(document, tablist);
 
 // Each panel reports its own read failures, and only for its newest render.
 const quietly = (render: () => Promise<void>) => () =>

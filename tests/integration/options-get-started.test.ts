@@ -58,6 +58,16 @@ describe("Get started checklist (build plan Section 28)", () => {
       { state: "" },
     ]);
     expect(root.textContent).not.toContain("JoyFox is set up");
+    // The steps link to the tabs they name.
+    expect(
+      Array.from(root.querySelectorAll("a"), (a) => [
+        a.textContent,
+        a.getAttribute("href"),
+      ]),
+    ).toEqual([
+      ["Accounts", "#accounts"],
+      ["Contact rule", "#rule"],
+    ]);
   });
 
   it("follows the account and the rule, in words", async () => {

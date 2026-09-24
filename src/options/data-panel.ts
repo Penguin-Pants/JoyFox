@@ -237,7 +237,11 @@ export class DataPanel {
         "joyfox-data__count",
         String(counts[name]),
       );
-      const actions = element(document, "td", "joyfox-data__actions");
+      // The buttons sit in a flex box inside the cell: a flex cell is no
+      // longer a table cell and falls out of line with its row.
+      const cell = document.createElement("td");
+      const actions = element(document, "div", "joyfox-data__actions");
+      cell.append(actions);
       const label = ENTITY_LABELS[name];
       if (counts[name] > 0) {
         const showing = this.#shown === name;
@@ -268,7 +272,7 @@ export class DataPanel {
             ),
           );
       }
-      row.append(title, count, actions);
+      row.append(title, count, cell);
       body.append(row);
     }
     table.append(caption, head, body);
