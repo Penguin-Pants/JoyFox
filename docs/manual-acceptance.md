@@ -90,8 +90,9 @@ Use your own account. Never click Ignore, Block or Delete on JoyClub.
 
 19. Build and load the extension (item 14). In the options page, add an account
     if none exists.
-20. In "Contact rule", tick "Personally known" in the ALL box, keep
-    "Quarantined", and save. Confirm the message "Rule saved".
+20. In "Contact rule", tick "Personally known" in the ALL box and keep
+    "Quarantined". The rule saves on its own (there is no Save button since
+    2026-09-24). Confirm the message "Rule saved".
 21. Open the inbox. Confirm the tab bar appears above the list, every row has a
     badge with a word (Qualified, Needs Review or Quarantined), and green-shield
     senders show Qualified.
@@ -105,8 +106,8 @@ Use your own account. Never click Ignore, Block or Delete on JoyClub.
 25. Open a conversation and a profile. Confirm the JoyFox panel appears under
     the header. Click "Log positive" and confirm the trust score rises by one at
     once. Click "Undo last outcome".
-26. In the options page, untick "Sort my JoyClub inbox with this rule" and save.
-    Confirm the inbox tab bar, badges and hidden rows disappear.
+26. In the options page, untick "Sort my JoyClub inbox with this rule" (it saves
+    on its own). Confirm the inbox tab bar, badges and hidden rows disappear.
 
 **Result (2026-09-23): passed, with one finding.** The project owner ran items
 19 to 26 on the PR #14 build. Every item was confirmed, including item 23 (a
@@ -250,6 +251,16 @@ expected ActionLog. Each item has a synthetic test with the same case number in
 | 52   | 10. Markup changes between steps       | JoyClub re-renders the header during the run                              | … `Failed:identity-unavailable` or `Failed:control-missing`                                        | Names the step and says JoyFox stopped before it.                        |
 | 53   | 11. Background restarted mid-run       | Click **Terminate background script** in `about:debugging` during the run | The full sequence, or the last stored step then `Failed`                                           | Matches the ActionLog. No step is repeated.                              |
 | 54   | 12. Another account activated mid-run  | Switch the JoyFox account in the options page during the run              | Account A's log ends at its last stored step; account B has no record                              | "The active JoyFox account changed, so JoyFox stopped at …".             |
+
+## Rule autosave (2026-09-24)
+
+56. In "Contact rule", tick one condition. Confirm "Rule saved" appears at once,
+    without a Save button, and that "Remove rule" appears.
+57. Tick "Minimum photos", type a number, then press Tab. Confirm "Rule saved"
+    appears after leaving the field, and that focus stays on the next control.
+58. Type a number outside the allowed range and press Tab. Confirm an error
+    appears and the saved rule is unchanged. Reload the options page and confirm
+    the form shows the last valid rule.
 
 Live selector and action acceptance must wait for the evidence checklist in
 `manual-verification-needed.md`. Never perform destructive action testing

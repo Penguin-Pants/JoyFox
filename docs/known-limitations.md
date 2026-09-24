@@ -134,3 +134,6 @@
   its own.
 - The data inspector shows records as raw JSON, 50 at a time. It is complete but
   not polished; PRD Section 20 puts inspector polish in V1.
+- The contact rule saves on every change: at once for a box or choice, and when
+  a number field loses focus or on Enter. An invalid number is not saved; the
+  error names the field, and the last valid rule stays in force.

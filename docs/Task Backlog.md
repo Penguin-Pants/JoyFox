@@ -113,6 +113,15 @@ F7.
 - Wire the spam detector to pages, so the "not template spam" condition and the
   trust score's spam point can become known.
 
+### Owner requests (2026-09-24)
+
+- Done: the contact rule autosaves on each change, with no Save button
+  (`manual-acceptance.md`, items 56 to 58). Triggered by a lost rule: the
+  owner expected a ticked box to be kept.
+- Next: import of JSON exports (full and single-account), merging into what is
+  stored. The conflict rules are to be agreed with the owner before building.
+  PRD Section 13.3 names export only; this extends M8.
+
 ### Follow-up work recorded during Milestone D
 
 - Capture evidence for the event ClubMail composer (`manual-verification-needed.md`
