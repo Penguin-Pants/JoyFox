@@ -69,6 +69,14 @@ app (`09-navigation.md`) and the inbox list can stay in the DOM.
 | Profile      | Profile text      | `.profile-description-motto__text`, `.profile-description-maintext__text`          | Word count of both blocks together                   |
 | Profile      | Account age       | `.profile-sidebar-container__badge-list j-list-item` with text "Angemeldet seit …" | Join window from a rounded duration                  |
 
+## Layout dependency (ADR 0010)
+
+The member strip goes after the header's parent when that parent is a horizontal
+flex container, found with `getComputedStyle`, not with a class. This relies on
+JoyClub laying the conversation header and its menu buttons out as one row, as
+seen in the owner's screenshot of 2026-09-24. If that changes, the strip falls
+back to following the header element.
+
 ## Open points
 
 - **Verification codes.** Confirmed by the project owner on 2026-09-23: `1` is

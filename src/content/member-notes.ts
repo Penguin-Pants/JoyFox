@@ -6,7 +6,8 @@ import type {
 } from "../messaging/protocol";
 import { request, type MessageSender } from "../messaging/request";
 import { MAX_NOTE_LENGTH, MAX_TAG_LENGTH } from "../notes/limits";
-import { MEMBER_PANEL, pageMember, type MemberPage } from "./member-panel";
+import { pageMember, type MemberPage } from "./member-panel";
+import { isPlaced, placeInStrip, removeEmptyStrip } from "./member-strip";
 import { button, element, UI_ATTRIBUTE } from "./triage-ui";
 
 /** Marks the note and tag editor. */
@@ -205,6 +206,7 @@ export class MemberNotes {
       this.document.querySelectorAll(`[${UI_ATTRIBUTE}="${MEMBER_NOTES}"]`),
     ))
       node.remove();
+    removeEmptyStrip(this.document);
     this.#rendered = "";
   }
 
@@ -264,16 +266,6 @@ export class MemberNotes {
       });
   }
 
-  /** In place after the member panel, or after JoyClub's element. */
-  #placed(node: Element, anchor: Element): boolean {
-    const previous = node.previousElementSibling;
-    return (
-      previous === anchor ||
-      (previous?.getAttribute(UI_ATTRIBUTE) === MEMBER_PANEL &&
-        previous.previousElementSibling === anchor)
-    );
-  }
-
   #render(target: Target, data: MemberNotesResponse): void {
     if (data.status !== "ok") {
       this.teardown();
@@ -281,20 +273,12 @@ export class MemberNotes {
     }
     const existing = this.#element();
     const key = JSON.stringify([target.key, data]);
-    if (
-      existing &&
-      key === this.#rendered &&
-      this.#placed(existing, target.anchor)
-    )
+    if (existing && key === this.#rendered && isPlaced(existing, target.anchor))
       return;
     const focus = this.#focusState(existing);
     existing?.remove();
     const section = this.#build(target, data);
-    const panel = target.anchor.nextElementSibling;
-    (panel?.getAttribute(UI_ATTRIBUTE) === MEMBER_PANEL
-      ? panel
-      : target.anchor
-    ).after(section);
+    placeInStrip(this.document, target.anchor, section);
     this.#rendered = key;
     this.#restoreFocus(section, focus);
   }
@@ -306,7 +290,9 @@ export class MemberNotes {
     section.setAttribute("data-member", target.memberId);
     section.setAttribute("aria-label", "JoyFox notes and tags");
     const details = element(document, "details", "joyfox-notes__details");
-    details.open = this.#open ?? (data.note !== null || data.tags.length > 0);
+    // Closed until opened (owner decision, 2026-09-24: details on demand).
+    // The summary still says whether a note or tags exist.
+    details.open = this.#open ?? false;
     details.addEventListener("toggle", () => {
       if (details.isConnected) this.#open = details.open;
     });

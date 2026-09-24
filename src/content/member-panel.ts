@@ -13,13 +13,8 @@ import {
   observedFromProfile,
 } from "./observed-facts";
 import type { TriageClient } from "./triage-client";
-import {
-  button,
-  element,
-  explanation,
-  trustSection,
-  UI_ATTRIBUTE,
-} from "./triage-ui";
+import { isPlaced, placeInStrip, removeEmptyStrip } from "./member-strip";
+import { element, memberBar, UI_ATTRIBUTE } from "./triage-ui";
 
 export type MemberPage = "conversation" | "profile";
 
@@ -110,6 +105,8 @@ export class MemberPanel {
   #writeQueue: Promise<void> = Promise.resolve();
   #error?: string;
   #page?: MemberPage;
+  /** Whether "Why and move" is open; kept across redraws of the bar. */
+  #drawerOpen = false;
 
   constructor(
     private readonly document: Document,
@@ -129,8 +126,10 @@ export class MemberPanel {
     const shown = this.document.querySelector(
       `[${UI_ATTRIBUTE}="${MEMBER_PANEL}"]`,
     );
-    if (shown && shown.getAttribute("data-member") !== target.memberId)
+    if (shown && shown.getAttribute("data-member") !== target.memberId) {
       this.teardown();
+      this.#drawerOpen = false;
+    }
     const data = this.#data.get(target.key);
     if (!data) {
       this.#load(target);
@@ -178,6 +177,7 @@ export class MemberPanel {
       this.document.querySelectorAll(`[${UI_ATTRIBUTE}="${MEMBER_PANEL}"]`),
     ))
       node.remove();
+    removeEmptyStrip(this.document);
     this.#rendered = "";
   }
 
@@ -262,11 +262,7 @@ export class MemberPanel {
     const existing = this.document.querySelector(
       `[${UI_ATTRIBUTE}="${MEMBER_PANEL}"]`,
     );
-    if (
-      existing &&
-      key === this.#rendered &&
-      existing.previousElementSibling === target.anchor
-    )
+    if (existing && key === this.#rendered && isPlaced(existing, target.anchor))
       return;
     if (data.kind === "trust-only" && data.trust.status === "no-account") {
       this.teardown();
@@ -274,13 +270,14 @@ export class MemberPanel {
     }
     existing?.remove();
     this.#rendered = key;
-    const panel = element(this.document, "section", "joyfox-panel");
+    const panel = element(
+      this.document,
+      "section",
+      "joyfox-panel joyfox-member",
+    );
     panel.setAttribute(UI_ATTRIBUTE, MEMBER_PANEL);
     panel.setAttribute("data-member", target.memberId);
     panel.setAttribute("aria-label", "JoyFox");
-    panel.append(
-      element(this.document, "h2", "joyfox-panel__heading", "JoyFox"),
-    );
     const memberId = target.memberId;
     const accountId = data.accountId;
     const trustActions = accountId
@@ -291,37 +288,44 @@ export class MemberPanel {
             this.#write(() => this.client.undoTrust(accountId, memberId)),
         }
       : {};
+    const onToggle = (open: boolean) => {
+      this.#drawerOpen = open;
+    };
     if (data.kind === "triage")
       panel.append(
-        explanation(this.document, data.result, {
-          onOverride: (placement) =>
-            this.#write(() =>
-              this.client.setOverride(data.accountId, memberId, placement),
-            ),
-          ...trustActions,
+        ...memberBar(this.document, {
+          result: data.result,
+          trust: data.result.trust,
+          actions: {
+            onOverride: (placement) =>
+              this.#write(() =>
+                this.client.setOverride(data.accountId, memberId, placement),
+              ),
+            ...trustActions,
+          },
+          drawerOpen: this.#drawerOpen,
+          onToggle,
         }),
       );
-    else {
-      const off = element(
-        this.document,
-        "p",
-        "",
-        RULE_OFF_TEXT[data.rule] ?? "JoyFox does not place this sender.",
-      );
+    else
       panel.append(
-        off,
-        button(this.document, "joyfox-button", "Open JoyFox options", () => {
-          void this.client.openOptions().catch(() => undefined);
+        ...memberBar(this.document, {
+          ruleOff:
+            RULE_OFF_TEXT[data.rule] ?? "JoyFox does not place this sender.",
+          ...(data.trust.status === "ok" ? { trust: data.trust.trust } : {}),
+          actions: {
+            ...trustActions,
+            onOpenOptions: () => {
+              void this.client.openOptions().catch(() => undefined);
+            },
+          },
+          drawerOpen: this.#drawerOpen,
+          onToggle,
         }),
       );
-      if (data.trust.status === "ok")
-        panel.append(
-          trustSection(this.document, data.trust.trust, trustActions),
-        );
-    }
     if (this.#error)
       panel.append(element(this.document, "p", "joyfox-error", this.#error));
-    target.anchor.after(panel);
+    placeInStrip(this.document, target.anchor, panel);
   }
 
   /**

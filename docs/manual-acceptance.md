@@ -274,11 +274,27 @@ expected ActionLog. Each item has a synthetic test with the same case number in
 62. Choose a file that is not a JoyFox export. Confirm the error says nothing
     was imported.
 
-**Result (2026-09-24): items 59 and 60 passed; 61 and 62 pending.** The project
-owner reported that import works, which covers exporting and restoring (items 59
-and 60). Re-importing the same file (61) and refusing a non-JoyFox file (62)
-were not reported separately and stay pending until confirmed. Both are covered
-by automated tests.
+**Result (2026-09-24): passed.** The project owner confirmed export and restore
+(items 59 and 60), and later that re-importing the same file (61) and refusing a
+non-JoyFox file (62) also work.
+
+## Member strip and page colors (ADR 0010)
+
+63. Open a ClubMail conversation. Confirm one JoyFox strip appears under the
+    header row, across the full width of the conversation panel, not inside the
+    row beside the name. It shows JoyFox, the placement pill, the trust score,
+    "Log: Positive, Neutral, Negative", "Why and move" and "Your notes and
+    tags".
+64. Confirm the strip follows JoyClub's dark theme: no white boxes, and text as
+    readable as JoyClub's own.
+65. Click "Why and move". Confirm the reasons and "Move to …" buttons appear
+    under the bar. Click "Positive" and confirm the drawer stays open and "Undo"
+    appears.
+66. Click "Your notes and tags". Confirm the editor opens under the bar and the
+    note can be saved. Reload and confirm it is closed again.
+67. Open a member's profile page and confirm the same strip under the profile
+    header. Open the inbox and confirm the triage bar is dark, one row, with a
+    "?" that opens the explanation.
 
 Live selector and action acceptance must wait for the evidence checklist in
 `manual-verification-needed.md`. Never perform destructive action testing

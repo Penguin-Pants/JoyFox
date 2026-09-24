@@ -217,3 +217,116 @@ export function explanation(
   root.append(trustSection(document, result.trust, actions));
   return root;
 }
+
+let drawerIds = 0;
+
+export interface MemberBarInput {
+  /** The placement, when a contact rule placed this member. */
+  result?: MemberTriage;
+  /** Why no placement is shown, when there is none. */
+  ruleOff?: string;
+  trust?: TrustScore | "unknown";
+  actions: Partial<ExplanationActions> & { onOpenOptions?(): void };
+  drawerOpen: boolean;
+  onToggle(open: boolean): void;
+}
+
+/**
+ * The compact member bar (owner decision, 2026-09-24, "Option A"): one row
+ * with the placement, the local trust score and the outcome buttons, and a
+ * drawer, closed by default, with the explanation and the move controls.
+ * The row wraps on a narrow screen instead of turning into a column.
+ */
+export function memberBar(
+  document: Document,
+  input: MemberBarInput,
+): HTMLElement[] {
+  const { result, trust, actions } = input;
+  const bar = element(document, "div", "joyfox-bar");
+  bar.append(element(document, "strong", "joyfox-bar__brand", "JoyFox"));
+  if (result) {
+    const pill = element(document, "span", "joyfox-pill");
+    pill.dataset.placement = result.placement;
+    pill.append(
+      element(document, "span", "joyfox-visually-hidden", "Placement: "),
+      document.createTextNode(PLACEMENT_TEXT[result.placement]),
+    );
+    bar.append(pill);
+    if (result.source === "override")
+      bar.append(element(document, "span", "joyfox-note", "(your choice)"));
+  } else if (input.ruleOff) {
+    bar.append(element(document, "span", "joyfox-note", input.ruleOff));
+    if (actions.onOpenOptions)
+      bar.append(
+        button(
+          document,
+          "joyfox-button",
+          "Open JoyFox options",
+          actions.onOpenOptions,
+        ),
+      );
+  }
+  if (trust !== undefined)
+    bar.append(
+      element(
+        document,
+        "span",
+        "joyfox-bar__trust",
+        trust === "unknown"
+          ? "Local trust score: no history yet."
+          : `Local trust score: ${trust.score}.`,
+      ),
+    );
+  if (actions.onTrust) {
+    const onTrust = actions.onTrust;
+    // Short visible labels keep the bar on one line; each button's
+    // accessible name stays complete.
+    const labelled = (text: string, name: string, onClick: () => void) => {
+      const node = button(document, "joyfox-button", text, onClick);
+      node.setAttribute("aria-label", name);
+      return node;
+    };
+    const row = element(document, "span", "joyfox-bar__group");
+    row.setAttribute("role", "group");
+    row.setAttribute("aria-label", "Log an outcome with this member");
+    row.append(
+      element(document, "span", "joyfox-note", "Log:"),
+      labelled("Positive", "Log positive", () => onTrust("positive")),
+      labelled("Neutral", "Log neutral", () => onTrust("neutral")),
+      labelled("Negative", "Log negative", () => onTrust("negative")),
+    );
+    if (actions.onUndoTrust && trust && trust !== "unknown" && trust.logged > 0)
+      row.append(labelled("Undo", "Undo last outcome", actions.onUndoTrust));
+    bar.append(row);
+  }
+
+  const drawer = element(document, "div", "joyfox-drawer");
+  drawer.id = `joyfox-drawer-${(drawerIds += 1)}`;
+  drawer.hidden = !input.drawerOpen;
+  const toggle = button(
+    document,
+    "joyfox-button joyfox-bar__toggle",
+    result ? "Why and move" : "Score details",
+    () => {
+      const open = drawer.hidden;
+      drawer.hidden = !open;
+      toggle.setAttribute("aria-expanded", String(open));
+      input.onToggle(open);
+    },
+  );
+  toggle.setAttribute("aria-expanded", String(input.drawerOpen));
+  toggle.setAttribute("aria-controls", drawer.id);
+  bar.append(toggle);
+
+  if (result && actions.onOverride) {
+    // Without `onTrust` the explanation leaves out the outcome buttons,
+    // which live in the bar. The drawer keeps the reasons, the conditions,
+    // the move controls and the score breakdown.
+    drawer.append(
+      explanation(document, result, { onOverride: actions.onOverride }),
+    );
+  } else if (trust !== undefined) {
+    drawer.append(trustSection(document, trust, {}));
+  }
+  return [bar, drawer];
+}

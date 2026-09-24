@@ -121,7 +121,13 @@ F7.
 - Done: import of JSON exports (full and single-account), merged into what is
   stored by the owner-approved rules (ADR 0009), with a preview and a confirm
   step (`manual-acceptance.md`, items 59 to 62). PRD Section 13.3 names export
-  only; this extends M8. Live: export and restore (items 59 and 60) passed on 2026-09-24; items 61 and 62 are pending.
+  only; this extends M8. Live acceptance passed on 2026-09-24 (items 59 to 62).
+
+- Done: the JoyFox panel, note editor and Ignore and Delete panel share one
+  full-width strip under the header row, with details on demand, and all
+  injected UI takes its colors from the page (ADR 0010,
+  `manual-acceptance.md` items 63 to 67). Triggered by the owner's screenshot
+  of narrow white columns in the dark ClubMail header.
 
 ### Follow-up work recorded during Milestone D
 
