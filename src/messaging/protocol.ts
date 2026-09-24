@@ -172,7 +172,13 @@ export interface MessageContract {
    * and its last stored step is the one before `next`.
    */
   "action.ignoreDelete.handOff": {
-    request: { accountId: string; operationId: string; next: ActionStep };
+    request: {
+      accountId: string;
+      operationId: string;
+      next: ActionStep;
+      /** The profile page the tab is about to open; only it may resume. */
+      profilePath: string;
+    };
     response: { status: "stored" | "refused" };
   };
   /**

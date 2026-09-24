@@ -42,7 +42,7 @@ beforeEach(async () => {
     session: new MemorySettingsArea(),
   });
   client = messageQuickActionClient((message) =>
-    router.route(message, { tabId: 3 }),
+    router.route(message, { tabId: 3, url: window.location.href }),
   );
   pressed = [];
 });
@@ -170,7 +170,7 @@ describe("M9 live driver on synthetic JoyClub pages (ADR 0011)", () => {
     openConversation();
     const first = await run({
       handOff: (operationId, next) =>
-        client.handOff("account-a", operationId, next),
+        client.handOff("account-a", operationId, next, PROFILE_PATH),
     });
     expect(first.status).toBe("handed-off");
     expect(pressed).toEqual(["conversation delete"]);
@@ -267,6 +267,46 @@ describe("M9 live driver on synthetic JoyClub pages (ADR 0011)", () => {
       delete: "unknown",
       ignore: "not-done",
     });
+  });
+
+  it("never reads a vanished header or an emptied list as a done Delete", async () => {
+    openConversation();
+    const own = document.querySelector(
+      '#row > [data-e2e="button-delete-conversation"]',
+    )!;
+    own.replaceWith(own.cloneNode());
+    // JoyClub re-renders: the header goes, and the list empties for a moment,
+    // but the member's row comes back. Nothing was deleted.
+    control(
+      document.querySelector('#row > [data-e2e="button-delete-conversation"]')!,
+      "conversation delete",
+      () => {
+        document.querySelector(".cm-conversation-header")?.remove();
+        const list = document.querySelector("div.cm-conversation-list")!;
+        const rows = Array.from(list.children);
+        list.replaceChildren();
+        setTimeout(() => list.append(...rows), 30);
+      },
+    );
+    const driver = new JoyClubQuickActionDriver(document, TIMING);
+    expect(driver.hasControl("delete")).toBe(true);
+    expect(driver.canVerify("delete")).toBe(true);
+    await driver.request("delete");
+    expect(await driver.verify("delete")).toBe(false);
+  });
+
+  it("refuses a hand-off to another member's profile", async () => {
+    openConversation();
+    const first = await run({
+      handOff: (operationId, next) =>
+        client.handOff(
+          "account-a",
+          operationId,
+          next,
+          "/profile/5550001.x.html",
+        ),
+    });
+    expect(first.report.failure).toBe("handoff-failed");
   });
 
   it("finds no Ignore to click for a member who is already ignored", () => {

@@ -40,7 +40,8 @@ function press(control: Element): void {
  *   nicht mehr ignorieren" afterwards.
  */
 export class JoyClubQuickActionDriver implements QuickActionDriver {
-  #rowsBefore?: number;
+  /** The member and row count when Delete was clicked; counted after. */
+  #deleted?: { memberId: string; rows: number };
 
   constructor(
     private readonly document: Document,
@@ -72,14 +73,18 @@ export class JoyClubQuickActionDriver implements QuickActionDriver {
 
   canVerify(step: ActionStep): boolean {
     if (step === "ignore") return true;
-    return inboxListState(this.document) === "shown" && this.#rows() > 0;
+    const member = this.currentTarget().memberId;
+    return member !== undefined && (this.#rows(member) ?? 0) > 0;
   }
 
   async request(step: ActionStep): Promise<void> {
     if (step === "delete") {
       const control = this.#deleteControl();
-      if (!control) throw new Error("Delete control gone");
-      this.#rowsBefore = this.#rows();
+      const memberId = this.currentTarget().memberId;
+      const rows = memberId ? this.#rows(memberId) : undefined;
+      if (!control || !memberId || !rows) throw new Error("Delete not ready");
+      // Fixed now: the page's header may change after the click.
+      this.#deleted = { memberId, rows };
       press(control);
       return;
     }
@@ -112,19 +117,29 @@ export class JoyClubQuickActionDriver implements QuickActionDriver {
 
   async verify(step: ActionStep): Promise<boolean> {
     if (step === "delete") {
-      const before = this.#rowsBefore;
-      if (before === undefined) return false;
-      return (
-        (await this.#waitFor(() => this.#rows() < before || null)) === true
-      );
+      const deleted = this.#deleted;
+      if (!deleted) return false;
+      // The row must be gone from a list that is on screen and still shows
+      // rows, on two reads in a row: a list that is re-rendering or empty
+      // for a moment never counts as success.
+      let seen = 0;
+      const gone = () => {
+        const rows = this.#rows(deleted.memberId);
+        seen = rows !== undefined && rows < deleted.rows ? seen + 1 : 0;
+        return seen >= 2 || null;
+      };
+      return (await this.#waitFor(gone)) === true;
     }
     const menu = this.#menu();
     if (!menu) return false;
     const found = () => menu.querySelector(S.ignoredItem);
+    // One deadline for both waits, well inside the executor's step timeout.
     // JoyClub saves first, then updates the menu: wait a little for it.
-    if (await this.#waitFor(found, this.timing.waitMs / 2)) return true;
+    const first = Math.round(this.timing.waitMs * 0.3);
+    if (await this.#waitFor(found, first)) return true;
     // The item may render only while the menu is open.
-    return (await this.#openMenu(menu, found, true)) !== null;
+    const rest = this.timing.waitMs - first;
+    return (await this.#openMenu(menu, found, true, rest)) !== null;
   }
 
   #deleteControl(): Element | undefined {
@@ -141,11 +156,16 @@ export class JoyClubQuickActionDriver implements QuickActionDriver {
       : undefined;
   }
 
-  /** How many rows in the conversation list are the target member's. */
-  #rows(): number {
-    const member = this.currentTarget().memberId;
-    if (!member) return 0;
-    return extractInboxRows(this.document, this.document.URL).filter((row) => {
+  /**
+   * How many rows in the conversation list are `member`'s, or `undefined`
+   * when the list is not on screen or shows no rows at all: then nothing can
+   * be concluded from it.
+   */
+  #rows(member: string): number | undefined {
+    if (inboxListState(this.document) !== "shown") return undefined;
+    const rows = extractInboxRows(this.document, this.document.URL);
+    if (rows.length === 0) return undefined;
+    return rows.filter((row) => {
       const identity = resolveMemberIdentity({
         page: "inbox",
         field: "memberId",
@@ -168,12 +188,13 @@ export class JoyClubQuickActionDriver implements QuickActionDriver {
     menu: Element,
     find: () => T | null,
     closeAfter = false,
+    waitMs = this.timing.waitMs,
   ): Promise<T | null> {
     const activator = menu.querySelector(`:scope > ${S.menuActivator}`);
     if (!activator) return null;
     const wasOpen = menu.getAttribute("open") === "true";
     if (!wasOpen) press(activator);
-    const result = await this.#waitFor(find);
+    const result = await this.#waitFor(find, waitMs);
     if (
       !wasOpen &&
       (result === null || closeAfter) &&

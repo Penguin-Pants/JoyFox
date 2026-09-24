@@ -10,6 +10,8 @@ import type {
  */
 export interface RouteContext {
   tabId?: number;
+  /** The sending page's address, for a message from a content script. */
+  url?: string;
 }
 
 type Handler<K extends keyof MessageContract> = (

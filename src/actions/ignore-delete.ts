@@ -85,6 +85,8 @@ export type ActionFailure =
   | "superseded"
   /** The action log could not be written, so the run stopped. */
   | "log-unavailable"
+  /** The run could not be handed to the next page (ADR 0011). */
+  | "handoff-failed"
   | "timeout"
   | "step-error";
 
@@ -100,6 +102,7 @@ export const ACTION_FAILURES: readonly ActionFailure[] = [
   "turned-off",
   "superseded",
   "log-unavailable",
+  "handoff-failed",
   "timeout",
   "step-error",
 ];
@@ -229,6 +232,8 @@ function failureText(
       return `A newer Ignore and Delete for this member started, so JoyFox stopped ${where}.`;
     case "log-unavailable":
       return `JoyFox could not write to its action log, so it stopped ${where}.`;
+    case "handoff-failed":
+      return `JoyFox could not move on to the member's profile, so it stopped ${where}.`;
     case "timeout":
       return `JoyClub did not respond in time during ${name}.`;
     case "step-error":

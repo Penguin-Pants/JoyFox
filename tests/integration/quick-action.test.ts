@@ -60,7 +60,13 @@ function backgroundRouter(): MessageRouter {
 
 /** A content script's client in one tab; the browser names the tab. */
 const tabClient = (tabId = TAB, via = () => router) =>
-  messageQuickActionClient((message) => via().route(message, { tabId }));
+  messageQuickActionClient((message) =>
+    via().route(message, { tabId, url: window.location.href }),
+  );
+
+/** The run's member's profile, where a hand-off goes. */
+const PROFILE_PATH = "/profile/1234567.synthetic_one.html";
+const onProfilePage = () => window.history.replaceState(null, "", PROFILE_PATH);
 
 beforeEach(async () => {
   await freshDatabase();
@@ -573,18 +579,49 @@ describe("M9 hand-off to the profile page (ADR 0011)", () => {
     });
     expect(result.status).toBe("finished");
     expect(result.report).toMatchObject({
-      failure: "log-unavailable",
+      failure: "handoff-failed",
       delete: "done",
       ignore: "not-done",
     });
+    expect(result.report.lines).toContain(
+      "JoyFox could not move on to the member's profile, so it stopped before Ignore.",
+    );
     expect(await logged()).toEqual([
       [
         "Started",
         "DeleteRequested",
         "DeleteConfirmed",
-        "Failed:log-unavailable",
+        "Failed:handoff-failed",
       ],
     ]);
+  });
+
+  it("does not hand off once the flag is off or the account changed", async () => {
+    let stop: "turned-off" | undefined;
+    const driver = new FakeDriver();
+    driver.current = () => HERE;
+    driver.afterClick = (click) => {
+      if (click === "confirm:delete") stop = "turned-off";
+    };
+    let handed = false;
+    const result = await run(driver, undefined, {
+      stopReason: () => stop,
+      handOff: async () => {
+        handed = true;
+      },
+    });
+    expect(handed).toBe(false);
+    expect(result.report.failure).toBe("turned-off");
+  });
+
+  it("reports a hand-off that never answers as a timeout", async () => {
+    const driver = new FakeDriver();
+    driver.current = () => HERE;
+    const result = await run(driver, undefined, {
+      handOff: () => new Promise(() => undefined),
+    });
+    expect(result.status).toBe("finished");
+    expect(result.report.failure).toBe("timeout");
   });
 
   it("does not hand off when the next step's page is already shown", async () => {
@@ -619,6 +656,9 @@ describe("M9 hand-off to the profile page (ADR 0011)", () => {
 });
 
 describe("M9 hand-off messages (ADR 0011)", () => {
+  // The tab reads its marker from the profile the run went to.
+  beforeEach(onProfilePage);
+
   /** A run stopped right after Delete, as the conversation page leaves it. */
   async function afterDelete(): Promise<string> {
     const recorder = client.recorder("account-a");
@@ -631,7 +671,7 @@ describe("M9 hand-off messages (ADR 0011)", () => {
 
   it("gives the marker to the same tab once, with the stored steps", async () => {
     const id = await afterDelete();
-    await client.handOff("account-a", id, "ignore");
+    await client.handOff("account-a", id, "ignore", PROFILE_PATH);
     // Another tab gets nothing.
     expect(await tabClient(8).pending()).toEqual({ status: "none" });
     const answer = await client.pending();
@@ -655,7 +695,7 @@ describe("M9 hand-off messages (ADR 0011)", () => {
 
   it("survives a background restart, since the marker is in storage.session", async () => {
     const id = await afterDelete();
-    await client.handOff("account-a", id, "ignore");
+    await client.handOff("account-a", id, "ignore", PROFILE_PATH);
     const restarted = backgroundRouter();
     expect(await tabClient(TAB, () => restarted).pending()).toMatchObject({
       status: "ok",
@@ -669,34 +709,34 @@ describe("M9 hand-off messages (ADR 0011)", () => {
     if (begun.status !== "started") throw new Error("not started");
     await recorder.record(begun.operationId, "DeleteRequested");
     await expect(
-      client.handOff("account-a", begun.operationId, "ignore"),
+      client.handOff("account-a", begun.operationId, "ignore", PROFILE_PATH),
     ).rejects.toThrow();
     await recorder.record(begun.operationId, "DeleteConfirmed");
     // A newer run for the member replaces this one.
     clock += STALE_AFTER_MS + 60_000;
     await recorder.begin(TARGET);
     await expect(
-      client.handOff("account-a", begun.operationId, "ignore"),
+      client.handOff("account-a", begun.operationId, "ignore", PROFILE_PATH),
     ).rejects.toThrow();
     expect(session.items.size).toBe(0);
   });
 
   it("drops a marker that is stale, moved, or from another account", async () => {
     const id = await afterDelete();
-    await client.handOff("account-a", id, "ignore");
+    await client.handOff("account-a", id, "ignore", PROFILE_PATH);
     clock += STALE_AFTER_MS + 1;
     expect(await client.pending()).toEqual({ status: "none" });
 
     clock = Date.now();
     await freshDatabase();
     const moved = await afterDelete();
-    await client.handOff("account-a", moved, "ignore");
+    await client.handOff("account-a", moved, "ignore", PROFILE_PATH);
     await client.recorder("account-a").record(moved, "IgnoreRequested");
     expect(await client.pending()).toEqual({ status: "none" });
 
     await freshDatabase();
     const switched = await afterDelete();
-    await client.handOff("account-a", switched, "ignore");
+    await client.handOff("account-a", switched, "ignore", PROFILE_PATH);
     active = "account-b";
     expect(await client.pending()).toEqual({ status: "none" });
   });
@@ -704,9 +744,13 @@ describe("M9 hand-off messages (ADR 0011)", () => {
   it("refuses a message without a tab, and a first step as the next", async () => {
     const id = await afterDelete();
     const noTab = messageQuickActionClient((message) => router.route(message));
-    await expect(noTab.handOff("account-a", id, "ignore")).rejects.toThrow();
+    await expect(
+      noTab.handOff("account-a", id, "ignore", PROFILE_PATH),
+    ).rejects.toThrow();
     await expect(noTab.pending()).rejects.toThrow();
-    await expect(client.handOff("account-a", id, "delete")).rejects.toThrow();
+    await expect(
+      client.handOff("account-a", id, "delete", PROFILE_PATH),
+    ).rejects.toThrow();
   });
 });
 
@@ -910,13 +954,50 @@ describe("M9 button and notice", () => {
     expect(again.clicks).toEqual([]);
   });
 
+  it("starts nothing when the member's profile address is unknown", async () => {
+    const driver = new FakeDriver();
+    openConversation(driver);
+    await vi.waitFor(() => expect(runButton()).toBeDefined());
+    // The header's link no longer names the member's profile.
+    document
+      .querySelector(".cm-conversation-header")!
+      .setAttribute("href", "https://example.invalid/profile/1234567.x.html");
+    runButton()!.click();
+    await vi.waitFor(() =>
+      expect(notice()).toContain(QUICK_ACTION_TEXT.noProfile),
+    );
+    expect(driver.clicks).toEqual([]);
+    expect(await logged()).toEqual([]);
+  });
+
+  it("reads the hand-off only on the profile it named", async () => {
+    const recorder = client.recorder("account-a");
+    const begun = await recorder.begin(TARGET);
+    if (begun.status !== "started") throw new Error("not started");
+    await recorder.record(begun.operationId, "DeleteRequested");
+    await recorder.record(begun.operationId, "DeleteConfirmed");
+    await client.handOff(
+      "account-a",
+      begun.operationId,
+      "ignore",
+      PROFILE_PATH,
+    );
+    window.history.replaceState(null, "", "/clubmail/");
+    expect(await client.pending()).toEqual({ status: "none" });
+  });
+
   it("does not continue a hand-off on another member's profile", async () => {
     const recorder = client.recorder("account-a");
     const begun = await recorder.begin(TARGET);
     if (begun.status !== "started") throw new Error("not started");
     await recorder.record(begun.operationId, "DeleteRequested");
     await recorder.record(begun.operationId, "DeleteConfirmed");
-    await client.handOff("account-a", begun.operationId, "ignore");
+    await client.handOff(
+      "account-a",
+      begun.operationId,
+      "ignore",
+      PROFILE_PATH,
+    );
     window.history.replaceState(null, "", "/profile/5550001.synthetic.html");
     document.body.innerHTML = profileHtml;
     const other = new FakeDriver();

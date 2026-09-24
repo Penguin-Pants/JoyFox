@@ -88,9 +88,10 @@ export interface ExecutionOptions {
   now?: () => string;
   /**
    * Path B (ADR 0011): called when the next step's control is on another
-   * page, after the previous step is confirmed and stored. It stores the
-   * hand-off marker; the caller then navigates. If it fails, the run stops
-   * there, so no other page ever continues a run it was not handed.
+   * page, after the previous step is confirmed and stored. It only stores
+   * the hand-off marker. The caller navigates once the run returns
+   * `handed-off`, never from here, so a late answer after a timeout never
+   * moves the page. If it fails, the run stops there.
    */
   handOff?: (operationId: string, next: ActionStep) => Promise<void>;
   /**
@@ -301,8 +302,13 @@ export async function runQuickIgnoreDelete(
         return stop("step-error");
       }
       if (page !== STEP_PAGE[step]) {
+        // A stop reason (the flag turned off, an account switch) ends the
+        // run here: no marker is stored and the page does not move.
+        const stopped = options.stopReason?.();
+        if (stopped) return stop(stopped);
         const handed = await attempt(() => options.handOff!(operationId, step));
-        if (handed) return stop("log-unavailable");
+        if (handed)
+          return stop(handed === "timeout" ? "timeout" : "handoff-failed");
         return { status: "handed-off", operationId, report: report() };
       }
     }

@@ -165,6 +165,10 @@ ready to run by hand (ADR 0011).
 - Done (ADR 0011): the live `QuickActionDriver`, the `storage.session`
   hand-off and the resume on the profile page. Next: run the manual matrix
   (items 43 to 54).
+- M9 review follow-ups (ADR 0011, "Deferred from the review"): report an
+  already ignored member as such; match the deleted conversation's own row, if
+  inbox rows carry its link; drop the marker when the navigation is cancelled;
+  check the sender page in `action.ignoreDelete.handOff` too.
 - The PRD's settings toggle for the guided alternative (navigate and stage, the
   user clicks).
 - Confirm or tune the step timeout (15 seconds) and the interrupted threshold

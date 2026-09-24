@@ -47,5 +47,6 @@ browser.runtime.onMessage.addListener(
   (message: unknown, sender: browser.runtime.MessageSender) =>
     router.route(message as never, {
       ...(typeof sender?.tab?.id === "number" ? { tabId: sender.tab.id } : {}),
+      ...(typeof sender?.url === "string" ? { url: sender.url } : {}),
     }),
 );

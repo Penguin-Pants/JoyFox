@@ -38,24 +38,32 @@ flows: conversation first, profile first, or two separate buttons.
 3. **Hand-off through the background, bound to the tab.** After
    `DeleteConfirmed` is stored, the conversation page asks the background to
    store a marker in `storage.session` under its own tab ID, which only the
-   browser can name (`RouteContext.tabId`). Only then does it navigate to the
-   profile address from the conversation header's own link, and only when that
-   link names the run's member on the same site. If the marker cannot be stored,
-   the run stops with `log-unavailable`. Content scripts cannot read
-   `storage.session`, so the marker is not visible to the page.
+   browser can name (`RouteContext.tabId`), with the profile path it will open.
+   The page navigates only after the run returns `handed-off`, so a late answer
+   after a timeout never moves it. The profile address comes from the
+   conversation header's own link, and only when that link names the run's
+   member on the same site; without it, nothing is started, not even Delete. A
+   stop reason (the flag turned off, an account switch) ends the run before the
+   hand-off. If the marker cannot be stored, the run stops with `handoff-failed`
+   (or `timeout`). Content scripts cannot read `storage.session`, so the marker
+   is not visible to the page.
 4. **Resume once, and only the same run.** The profile page reads its tab's
    marker once; reading removes it, so a reload never runs Ignore again. The
    background answers only while the account is still active, the run is still
-   the member's newest, its last stored step is still `DeleteConfirmed`, and it
-   moved within `STALE_AFTER_MS`. The profile page resumes only for the run's
-   member. It starts when the profile menu is there, or after 10 seconds, when a
-   missing control stops the run with a clear reason.
-5. **Verification.** Delete is verified by the member's row leaving the
-   conversation list. When that list is not on screen, or shows no row for the
+   the member's newest, its last stored step is still `DeleteConfirmed`, it
+   moved within `STALE_AFTER_MS`, and the sending page, as the browser reports
+   it, is the profile path stored in the marker. The profile page resumes only
+   for the run's member, and keeps what it read while the page settles. It
+   starts when the profile menu is there, or after 10 seconds, when a missing
+   control stops the run with a clear reason.
+5. **Verification.** Delete is verified by the clicked member's row leaving the
+   conversation list, on two reads in a row, while the list is on screen and
+   shows rows; a header that re-renders or a list that empties for a moment
+   never counts. When that list is not on screen, or shows no row for the
    member, Delete is not started (`unverifiable`), because its result could not
-   be checked. Ignore is verified by "Profil nicht mehr ignorieren" in the menu.
-   The driver opens the menu to look only if the item does not appear on its
-   own, and closes it again.
+   be checked. Ignore is verified by "Profil nicht mehr ignorieren" in the menu,
+   within one 10-second deadline. The driver opens the menu to look only if the
+   item does not appear on its own, and closes it again.
 6. **The live driver exists.** `liveQuickActionDriver()` returns
    `JoyClubQuickActionDriver`. The button still needs `joyfox.quickIgnoreDelete`
    set to `true`, so M9 stays off by default.
@@ -79,3 +87,9 @@ flows: conversation first, profile first, or two separate buttons.
   threshold are provisional and to be tuned against the live site.
 - The PRD's guided mode (navigate and stage, the user clicks) is still not
   built.
+- Deferred from the review (2026-09-24): a member who is already ignored ends
+  with "Ignore: not done" after a 10-second wait, although JoyClub already
+  ignores them; Delete counts the member's rows, not the conversation's own row,
+  so a member with two conversations in the list can mislead it; if the
+  navigation to the profile is cancelled, the marker stays for up to 2 minutes
+  and a visit to that member's profile in the tab would continue the run.

@@ -40,8 +40,28 @@ interface HandOffMarker {
   accountId: string;
   operationId: string;
   next: ActionStep;
+  /** The only page address that may resume the run. */
+  profilePath: string;
   /** When it was stored, in milliseconds. */
   at: number;
+}
+
+/** The profile path of `memberId`, as `03-profile.md` records it. */
+const PROFILE_PATH = /^\/profile\/(\d{1,20})\.[^/]+\.html$/;
+
+function profilePath(value: unknown): string {
+  if (typeof value !== "string" || !PROFILE_PATH.test(value))
+    throw invalid("profile path");
+  return value;
+}
+
+/** The sending page's path, as the browser reports it. */
+function senderPath(context: RouteContext): string | undefined {
+  try {
+    return context.url ? new URL(context.url).pathname : undefined;
+  } catch {
+    return undefined;
+  }
 }
 
 function tabId(context: RouteContext): number {
@@ -68,6 +88,7 @@ function isMarker(value: unknown): value is HandOffMarker {
     typeof marker?.accountId === "string" &&
     typeof marker.operationId === "string" &&
     typeof marker.at === "number" &&
+    typeof marker.profilePath === "string" &&
     STEP_ORDER.indexOf(marker.next as ActionStep) > 0
   );
 }
@@ -164,6 +185,7 @@ export function registerActionHandlers(
     const tab = tabId(context);
     const id = operationId(payload?.operationId);
     const next = nextStep(payload?.next);
+    const path = profilePath(payload?.profilePath);
     const session = deps.session;
     if (!session) return { status: "refused" };
     return lockedWrite<{ status: "stored" | "refused" }>(
@@ -171,12 +193,15 @@ export function registerActionHandlers(
       payload?.accountId,
       { status: "refused" },
       async (accountId) => {
-        if (!(await handOffReady(accountId, id, next)))
+        const log = await handOffReady(accountId, id, next);
+        // The path must be the run's own member's profile.
+        if (!log || PROFILE_PATH.exec(path)?.[1] !== log.memberId)
           return { status: "refused" };
         const marker: HandOffMarker = {
           accountId,
           operationId: id,
           next,
+          profilePath: path,
           at: now(),
         };
         await session.set({ [`${HANDOFF_PREFIX}${tab}`]: marker });
@@ -194,6 +219,8 @@ export function registerActionHandlers(
     await session.remove([key]);
     if (!isMarker(stored) || now() - stored.at > STALE_AFTER_MS)
       return { status: "none" };
+    // Only the profile the run went to, as the browser reports the sender.
+    if (senderPath(context) !== stored.profilePath) return { status: "none" };
     if ((await deps.activeAccountId()) !== stored.accountId)
       return { status: "none" };
     const log = await handOffReady(
