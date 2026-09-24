@@ -286,6 +286,32 @@ describe("M8 data panel", () => {
     expect((await templates.list(b)).map((t) => t.body)).toEqual(["Beta text"]);
   });
 
+  it("shows only the newest file's preview when reads finish out of order", async () => {
+    root.querySelector<HTMLButtonElement>(".joyfox-data__export-all")!.click();
+    await settle(() => saved.length === 1);
+    let finishFirst!: (text: string) => void;
+    const slow = {
+      size: 10,
+      text: () => new Promise<string>((resolve) => (finishFirst = resolve)),
+    } as unknown as File;
+    const fast = {
+      size: 10,
+      text: () => Promise.resolve("not json"),
+    } as unknown as File;
+    const input = root.querySelector<HTMLInputElement>("#joyfox-data-import")!;
+    let files: File[] = [slow];
+    Object.defineProperty(input, "files", { get: () => files });
+    input.dispatchEvent(new Event("change"));
+    files = [fast];
+    input.dispatchEvent(new Event("change"));
+    await settle(() => text().includes("Nothing was imported"));
+    // The first, older choice finishes last with a valid export.
+    finishFirst(saved[0]!.text);
+    await new Promise((resolve) => setTimeout(resolve, 30));
+    expect(root.querySelector(".joyfox-data__import-confirm")).toBeNull();
+    expect(text()).toContain("Nothing was imported");
+  });
+
   it("reports a file that is not an export, and imports nothing", async () => {
     const input = root.querySelector<HTMLInputElement>("#joyfox-data-import")!;
     Object.defineProperty(input, "files", {

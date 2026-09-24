@@ -171,6 +171,35 @@ function hasForbiddenKey(value: unknown, depth = 0): boolean {
 /** A record dated more than a day ahead would win every later merge. */
 const FUTURE_TOLERANCE_MS = 24 * 60 * 60 * 1000;
 
+/**
+ * Every field that holds a date. Besides `updatedAt`, which decides merges,
+ * these order snapshots, messages, outcomes and action steps at run time,
+ * so a future date in any of them would stay "newest" for good.
+ */
+const DATE_FIELDS: readonly string[] = [
+  "createdAt",
+  "updatedAt",
+  "capturedAt",
+  "occurredAt",
+  "decidedAt",
+  "observedAt",
+  "lastSyncedAt",
+  "joinedAt",
+  "joinedEarliest",
+  "joinedLatest",
+];
+
+function datedInFuture(record: Record<string, unknown>, now: number): boolean {
+  const late = (value: unknown) =>
+    typeof value === "string" && Date.parse(value) > now + FUTURE_TOLERANCE_MS;
+  if (DATE_FIELDS.some((field) => late(record[field]))) return true;
+  // Action-log steps carry their own time.
+  return (
+    Array.isArray(record.steps) &&
+    record.steps.some((step: unknown) => isObject(step) && late(step.at))
+  );
+}
+
 function refuse(message: string): ExtensionError {
   return new ExtensionError("ExtractionInvalid", message);
 }
@@ -237,12 +266,8 @@ export function parseImportFile(
         throw refuse(
           `Record ${index + 1} of ${name} holds an unknown field (${extra})`,
         );
-      for (const field of ["createdAt", "updatedAt"] as const)
-        if (
-          typeof record[field] === "string" &&
-          Date.parse(record[field]) > now + FUTURE_TOLERANCE_MS
-        )
-          throw refuse(`Record ${index + 1} of ${name} is dated in the future`);
+      if (datedInFuture(record, now))
+        throw refuse(`Record ${index + 1} of ${name} is dated in the future`);
       try {
         validateEntity(
           name as EntityName,

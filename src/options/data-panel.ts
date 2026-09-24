@@ -95,6 +95,8 @@ export class DataPanel {
   /** A checked file waiting for "Confirm import", with its preview. */
   #import: { text: string; plan: ImportPlan } | undefined;
   #importing = false;
+  /** Bumped per file choice; only the newest choice may set the preview. */
+  #importChoice = 0;
 
   constructor(
     private readonly root: HTMLElement,
@@ -554,6 +556,9 @@ export class DataPanel {
   }
 
   async #previewImport(file: File): Promise<void> {
+    // Each choice supersedes the one before: a slower read of an earlier
+    // file must never become the preview the user confirms.
+    const choice = (this.#importChoice += 1);
     this.#pending = undefined;
     this.#import = undefined;
     try {
@@ -564,6 +569,7 @@ export class DataPanel {
         );
       const text = await readText(file);
       const plan = await this.data.previewImport(text);
+      if (choice !== this.#importChoice) return;
       this.#import = { text, plan };
       this.#setStatus(
         plan.writes.length === 0 && plan.settingsAdded.length === 0
@@ -572,6 +578,7 @@ export class DataPanel {
         "info",
       );
     } catch (error) {
+      if (choice !== this.#importChoice) return;
       this.#setStatus(
         isExtensionError(error)
           ? `${error.message}. Nothing was imported.`

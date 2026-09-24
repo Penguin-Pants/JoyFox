@@ -459,6 +459,42 @@ describe("M8 import: restoring and merging", () => {
     expect(() => parseImportFile(text)).toThrow("dated in the future");
   });
 
+  it("refuses a future date in any date field, including action steps", () => {
+    const future = "9999-01-01T00:00:00.000Z";
+    const snapshot = fullFile({
+      extensionAccounts: [account("a", "me")],
+      profileSnapshots: [
+        {
+          id: "snap",
+          accountId: "a",
+          memberId: "1234567",
+          capturedAt: future,
+          verification: "unknown",
+          photoCount: "unknown",
+          profileWordCount: "unknown",
+          joinedAt: "unknown",
+          createdAt: t0,
+          updatedAt: t0,
+        },
+      ],
+    });
+    expect(() => parseImportFile(snapshot)).toThrow("dated in the future");
+    const step = fullFile({
+      extensionAccounts: [account("a", "me")],
+      actionLogs: [
+        {
+          id: "log",
+          accountId: "a",
+          action: "x",
+          steps: [{ name: "started", ok: true, at: future }],
+          createdAt: t0,
+          updatedAt: t0,
+        },
+      ],
+    });
+    expect(() => parseImportFile(step)).toThrow("dated in the future");
+  });
+
   it("imports only allowlisted settings, never a feature switch", async () => {
     const plan = await importText(
       fullFile(
