@@ -132,6 +132,11 @@ F7.
 - Done: inbox views hide each row's wrappers too, so the rows of a view sit
   together at the top with no gaps (`manual-acceptance.md` items 68 and 69).
   Triggered by the owner's screenshot of gaps in the "Needs Review" view.
+  Live acceptance passed on 2026-09-24.
+- Done: the options page shows one section per tab, and the data table's
+  Actions column, the rule condition columns and dark mode are fixed
+  (`manual-acceptance.md` items 70 to 72). Triggered by the owner's report of
+  a misaligned table and too much scrolling.
 
 ### Follow-up work recorded during Milestone D
 

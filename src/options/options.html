@@ -3,20 +3,83 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="light dark" />
     <title>JoyFox options</title>
     <link rel="stylesheet" href="options.css" />
   </head>
   <body class="joyfox-options">
-    <h1>JoyFox</h1>
-    <p class="joyfox-options__intro">
-      JoyFox stores everything locally in this browser profile. Inbox triage
-      stays off until you save a contact rule below.
-    </p>
-    <section id="joyfox-get-started"></section>
-    <section id="joyfox-accounts"></section>
-    <section id="joyfox-rule"></section>
-    <section id="joyfox-templates"></section>
-    <section id="joyfox-data"></section>
+    <header class="joyfox-options__header">
+      <h1>JoyFox</h1>
+      <p class="joyfox-options__intro">
+        JoyFox stores everything locally in this browser profile. Inbox triage
+        stays off until you save a contact rule.
+      </p>
+    </header>
+    <nav class="joyfox-tabs" role="tablist" aria-label="JoyFox options">
+      <a role="tab" id="tab-start" href="#start" aria-controls="panel-start"
+        >Get started</a
+      >
+      <a
+        role="tab"
+        id="tab-accounts"
+        href="#accounts"
+        aria-controls="panel-accounts"
+        >Accounts</a
+      >
+      <a role="tab" id="tab-rule" href="#rule" aria-controls="panel-rule"
+        >Contact rule</a
+      >
+      <a
+        role="tab"
+        id="tab-templates"
+        href="#templates"
+        aria-controls="panel-templates"
+        >Templates</a
+      >
+      <a role="tab" id="tab-data" href="#data" aria-controls="panel-data"
+        >Your data</a
+      >
+    </nav>
+    <div
+      role="tabpanel"
+      id="panel-start"
+      aria-labelledby="tab-start"
+      class="joyfox-tabpanel"
+    >
+      <section id="joyfox-get-started"></section>
+    </div>
+    <div
+      role="tabpanel"
+      id="panel-accounts"
+      aria-labelledby="tab-accounts"
+      class="joyfox-tabpanel"
+    >
+      <section id="joyfox-accounts"></section>
+    </div>
+    <div
+      role="tabpanel"
+      id="panel-rule"
+      aria-labelledby="tab-rule"
+      class="joyfox-tabpanel"
+    >
+      <section id="joyfox-rule"></section>
+    </div>
+    <div
+      role="tabpanel"
+      id="panel-templates"
+      aria-labelledby="tab-templates"
+      class="joyfox-tabpanel"
+    >
+      <section id="joyfox-templates"></section>
+    </div>
+    <div
+      role="tabpanel"
+      id="panel-data"
+      aria-labelledby="tab-data"
+      class="joyfox-tabpanel"
+    >
+      <section id="joyfox-data"></section>
+    </div>
     <script src="options.js"></script>
   </body>
 </html>

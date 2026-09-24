@@ -307,6 +307,22 @@ non-JoyFox file (62) also work.
     follow the same view with no gaps. Click "Inbox" and confirm every
     non-Quarantined row is back in its original order.
 
+**Result (2026-09-24): passed.** The project owner confirmed items 68 and 69:
+the gaps are closed.
+
+## Options page tabs
+
+70. Open the JoyFox options. Confirm five tabs: Get started, Accounts, Contact
+    rule, Templates and Your data. Only one section shows at a time.
+71. Click each tab, then reload. Confirm the same tab stays open. In Get
+    started, click the "Accounts" and "Contact rule" links and confirm they open
+    those tabs. With the keyboard, focus a tab and use the arrow keys, Home and
+    End.
+72. In Your data, confirm the Actions column lines up with its row. In Contact
+    rule, confirm each condition is one row, with the number fields and the "If
+    JoyFox cannot see this" choices in straight columns. With Firefox in dark
+    mode, confirm the page is dark and the red delete buttons are readable.
+
 Live selector and action acceptance must wait for the evidence checklist in
 `manual-verification-needed.md`. Never perform destructive action testing
 automatically.

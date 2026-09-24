@@ -71,10 +71,26 @@ export class GetStartedPanel {
     );
     const list = document.createElement("ol");
     list.className = "joyfox-get-started__steps";
+    /** `[Name](#tab)` in a label becomes a link to that options tab. */
+    const withLinks = (label: string) => {
+      const span = document.createElement("span");
+      for (const part of label.split(/(\[[^\]]+\]\(#[a-z]+\))/)) {
+        const link = /^\[([^\]]+)\]\((#[a-z]+)\)$/.exec(part);
+        if (!link) {
+          if (part) span.append(part);
+          continue;
+        }
+        const anchor = document.createElement("a");
+        anchor.textContent = link[1] ?? "";
+        anchor.href = link[2] ?? "";
+        span.append(anchor);
+      }
+      return span;
+    };
     const step = (label: string, state?: StepState) => {
       const item = document.createElement("li");
       if (state) item.dataset.state = state;
-      item.append(text("span", label));
+      item.append(withLinks(label));
       if (state) {
         const status = text("strong", ` ${STATE_TEXT[state]}.`);
         status.className = "joyfox-get-started__state";
@@ -84,11 +100,11 @@ export class GetStartedPanel {
     };
     list.append(
       step(
-        "Add your JoyClub account under Accounts. JoyFox makes the first one active.",
+        "Add your JoyClub account under [Accounts](#accounts). JoyFox makes the first one active.",
         progress.account,
       ),
       step(
-        "Save a contact rule under Contact rule. Inbox triage stays off until a rule is saved and turned on.",
+        "Save a contact rule under [Contact rule](#rule). Inbox triage stays off until a rule is saved and turned on.",
         progress.rule,
       ),
       step(
