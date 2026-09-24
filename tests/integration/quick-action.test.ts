@@ -16,10 +16,12 @@ import { registerActionHandlers } from "../../src/background/action-handlers";
 import {
   liveQuickActionDriver,
   messageQuickActionClient,
+  profileUrl,
   QUICK_ACTION_TEXT,
   QuickIgnoreDelete,
   type QuickActionClient,
 } from "../../src/content/quick-action";
+import { JoyClubQuickActionDriver } from "../../src/content/quick-action-driver";
 import type { MessageContract } from "../../src/messaging/protocol";
 import { MessageRouter } from "../../src/messaging/router";
 import { ACTION_REVISION_KEY } from "../../src/storage/action-revision";
@@ -27,6 +29,7 @@ import { repositories } from "../../src/storage/repositories";
 import { MemorySettingsArea } from "../memory-settings";
 import { freshDatabase } from "../setup-indexeddb";
 import conversationHtml from "../fixtures/joyclub/conversation.html?raw";
+import profileHtml from "../fixtures/joyclub/profile.html?raw";
 
 const MEMBER = "1234567";
 const CONVERSATION = "personal-1234567-7654321";
@@ -36,6 +39,10 @@ let active: string | undefined;
 let clock: number;
 let router: MessageRouter;
 let client: QuickActionClient;
+/** `storage.session`, shared by every background a test starts. */
+let session: MemorySettingsArea;
+/** The tab the test's content script runs in. */
+const TAB = 7;
 
 function backgroundRouter(): MessageRouter {
   const next = new MessageRouter();
@@ -46,26 +53,47 @@ function backgroundRouter(): MessageRouter {
     ),
     activeAccountId: () => Promise.resolve(active),
     now: () => clock,
+    session,
   });
   return next;
 }
+
+/** A content script's client in one tab; the browser names the tab. */
+const tabClient = (tabId = TAB, via = () => router) =>
+  messageQuickActionClient((message) =>
+    via().route(message, { tabId, url: window.location.href }),
+  );
+
+/** The run's member's profile, where a hand-off goes. */
+const PROFILE_PATH = "/profile/1234567.synthetic_one.html";
+const onProfilePage = () => window.history.replaceState(null, "", PROFILE_PATH);
 
 beforeEach(async () => {
   await freshDatabase();
   active = "account-a";
   clock = Date.now();
+  session = new MemorySettingsArea();
   router = backgroundRouter();
-  client = messageQuickActionClient((message) => router.route(message));
+  client = tabClient();
 });
 
 afterEach(() => {
   document.body.innerHTML = "";
 });
 
-/** A scripted stand-in for JoyClub. It records every click it receives. */
+/** The sender's profile page, where Ignore is (F7, Path B). */
+const PROFILE: CurrentTarget = { page: "profile", memberId: MEMBER };
+
+/**
+ * A scripted stand-in for JoyClub. It records every click it receives. It
+ * starts on the conversation page and, once Delete is verified, shows the
+ * sender's profile, as the live run does after its hand-off.
+ */
 class FakeDriver implements QuickActionDriver {
   clicks: string[] = [];
-  current: () => CurrentTarget = () => HERE;
+  page: "conversation" | "profile" = "conversation";
+  current: () => CurrentTarget = () =>
+    this.page === "conversation" ? HERE : PROFILE;
   controls: Partial<Record<ActionStep, boolean>> = {};
   confirmation: Partial<Record<ActionStep, "shown" | "missing" | "none">> = {};
   verified: Partial<Record<ActionStep, boolean>> = {};
@@ -88,7 +116,9 @@ class FakeDriver implements QuickActionDriver {
     await this.afterClick?.(`confirm:${step}`);
   }
   async verify(step: ActionStep): Promise<boolean> {
-    return this.verified[step] ?? true;
+    const ok = this.verified[step] ?? true;
+    if (step === "delete" && ok) this.page = "profile";
+    return ok;
   }
 }
 
@@ -117,29 +147,36 @@ async function logged(account = "account-a"): Promise<string[][]> {
 
 const FULL = [
   "Started",
-  "IgnoreRequested",
-  "IgnoreConfirmed",
   "DeleteRequested",
   "DeleteConfirmed",
+  "IgnoreRequested",
+  "IgnoreConfirmed",
   "Completed",
 ];
 
+const ALL_CLICKS = [
+  "request:delete",
+  "confirm:delete",
+  "request:ignore",
+  "confirm:ignore",
+];
+
 describe("M9 manual test matrix, synthetic (build plan Section 24)", () => {
-  it("case 1: Ignore and Delete both succeed", async () => {
+  it("case 1: Delete and Ignore both succeed", async () => {
     const driver = new FakeDriver();
     const result = await run(driver);
-    expect(driver.clicks).toEqual([
-      "request:ignore",
-      "confirm:ignore",
-      "request:delete",
-      "confirm:delete",
-    ]);
+    expect(driver.clicks).toEqual(ALL_CLICKS);
     expect(await logged()).toEqual([FULL]);
     expect(result.report).toMatchObject({
       status: "completed",
       ignore: "done",
       delete: "done",
     });
+    expect(result.report.lines).toEqual([
+      "Ignore and Delete finished.",
+      "Delete: done. JoyClub moved the conversation to the trash.",
+      "Ignore: done. JoyClub ignores this member.",
+    ]);
     const [log] = await repositories.actionLogs.list("account-a");
     expect(log).toMatchObject({
       memberId: MEMBER,
@@ -152,83 +189,83 @@ describe("M9 manual test matrix, synthetic (build plan Section 24)", () => {
     ).toEqual([MEMBER]);
   });
 
-  it("case 2: Ignore control missing, nothing is clicked", async () => {
+  it("case 2: Delete control missing, nothing is clicked", async () => {
     const driver = new FakeDriver();
-    driver.controls.ignore = false;
+    driver.controls.delete = false;
     const result = await run(driver);
     expect(driver.clicks).toEqual([]);
     expect(await logged()).toEqual([["Started", "Failed:control-missing"]]);
     expect(result.report.lines).toContain("Nothing was changed on JoyClub.");
   });
 
-  it("case 3: Ignore confirmation missing stops before any Delete", async () => {
+  it("case 3: Delete confirmation missing stops before any Ignore", async () => {
     const driver = new FakeDriver();
-    driver.confirmation.ignore = "missing";
+    driver.confirmation.delete = "missing";
     const result = await run(driver);
-    expect(driver.clicks).toEqual(["request:ignore"]);
+    expect(driver.clicks).toEqual(["request:delete"]);
     expect(await logged()).toEqual([
-      ["Started", "IgnoreRequested", "Failed:confirmation-missing"],
+      ["Started", "DeleteRequested", "Failed:confirmation-missing"],
     ]);
     expect(result.report).toMatchObject({
-      ignore: "unknown",
-      delete: "not-done",
+      delete: "unknown",
+      ignore: "not-done",
     });
     expect(result.report.lines).toContain(
-      "JoyClub's confirmation for Ignore did not appear.",
+      "JoyClub's confirmation for Delete did not appear.",
     );
   });
 
-  it("case 4: Ignore succeeds, Delete control missing: Ignore is kept and reported", async () => {
+  it("case 4: Delete succeeds, Ignore control missing: Delete is kept and reported", async () => {
     const driver = new FakeDriver();
-    driver.controls.delete = false;
+    driver.controls.ignore = false;
     const result = await run(driver);
-    expect(driver.clicks).toEqual(["request:ignore", "confirm:ignore"]);
+    expect(driver.clicks).toEqual(["request:delete", "confirm:delete"]);
     expect(await logged()).toEqual([
       [
         "Started",
-        "IgnoreRequested",
-        "IgnoreConfirmed",
+        "DeleteRequested",
+        "DeleteConfirmed",
         "Failed:control-missing",
       ],
     ]);
-    expect(result.report).toMatchObject({ ignore: "done", delete: "not-done" });
+    expect(result.report).toMatchObject({ delete: "done", ignore: "not-done" });
     expect(result.report.lines).toEqual(
       expect.arrayContaining([
-        "Ignore: done. JoyClub ignores this member.",
-        "Delete: not done.",
-        "JoyFox could not find JoyClub's Delete control.",
+        "Delete: done. JoyClub moved the conversation to the trash.",
+        "Ignore: not done.",
+        "JoyFox could not find JoyClub's Ignore control.",
         "JoyFox did not undo anything.",
       ]),
     );
   });
 
-  it("case 5: Delete confirmation fails, or JoyClub does not show success", async () => {
+  it("case 5: Ignore confirmation fails, or JoyClub does not show success", async () => {
     const missing = new FakeDriver();
-    missing.confirmation.delete = "missing";
+    missing.confirmation.ignore = "missing";
     expect((await run(missing)).report.lines).toContain(
-      "JoyClub's confirmation for Delete did not appear.",
+      "JoyClub's confirmation for Ignore did not appear.",
     );
     const unverified = new FakeDriver();
-    unverified.verified.delete = false;
+    unverified.verified.ignore = false;
     const report = (await run(unverified)).report;
-    expect(report).toMatchObject({ ignore: "done", delete: "unknown" });
+    expect(report).toMatchObject({ delete: "done", ignore: "unknown" });
     expect(report.lines).toContain(
-      "JoyClub did not show that Delete succeeded.",
+      "JoyClub did not show that Ignore succeeded.",
     );
     expect(await logged()).toEqual(
       expect.arrayContaining([
         [
           "Started",
-          "IgnoreRequested",
-          "IgnoreConfirmed",
           "DeleteRequested",
+          "DeleteConfirmed",
+          "IgnoreRequested",
           "Failed:confirmation-missing",
         ],
         [
           "Started",
-          "IgnoreRequested",
-          "IgnoreConfirmed",
           "DeleteRequested",
+          "DeleteConfirmed",
+          "IgnoreRequested",
           "Failed:not-verified",
         ],
       ]),
@@ -238,30 +275,30 @@ describe("M9 manual test matrix, synthetic (build plan Section 24)", () => {
   it("case 6: a step that never answers times out, and a page that goes away stops the run", async () => {
     const hanging = new FakeDriver();
     hanging.afterClick = (click) =>
-      click === "request:ignore" ? new Promise(() => undefined) : undefined;
+      click === "request:delete" ? new Promise(() => undefined) : undefined;
     const result = await run(hanging);
     expect(result.report.failure).toBe("timeout");
-    expect(result.report.ignore).toBe("unknown");
+    expect(result.report.delete).toBe("unknown");
     const gone = new FakeDriver();
     gone.afterClick = (click) => {
-      if (click === "confirm:ignore") gone.current = () => ({ page: "other" });
+      if (click === "request:delete") gone.current = () => ({ page: "other" });
     };
     const stopped = await run(gone);
     expect(stopped.report.failure).toBe("identity-unavailable");
-    expect(gone.clicks).toEqual(["request:ignore", "confirm:ignore"]);
+    expect(gone.clicks).toEqual(["request:delete"]);
   });
 
   it("case 7: a closed tab leaves an interrupted log with the exact step reached", async () => {
     const recorder = client.recorder("account-a");
     const begun = await recorder.begin(TARGET);
     if (begun.status !== "started") throw new Error("not started");
-    await recorder.record(begun.operationId, "IgnoreRequested");
+    await recorder.record(begun.operationId, "DeleteRequested");
     // The tab closes here. Later, the page asks for the member's last run.
     clock += STALE_AFTER_MS + 60_000;
     const answer = await client.latest(MEMBER);
     expect(answer).toMatchObject({
       status: "ok",
-      report: { status: "interrupted", ignore: "unknown", delete: "not-done" },
+      report: { status: "interrupted", delete: "unknown", ignore: "not-done" },
     });
     // An interrupted run does not block a new one.
     const again = await client.recorder("account-a").begin(TARGET);
@@ -273,40 +310,44 @@ describe("M9 manual test matrix, synthetic (build plan Section 24)", () => {
     driver.current = () => ({ ...HERE, memberId: "5550001" });
     expect((await run(driver)).report.failure).toBe("member-mismatch");
     expect(driver.clicks).toEqual([]);
-    // Also between Ignore and its confirmation.
+    // Also on the profile, before Ignore's confirmation.
     const mid = new FakeDriver();
     mid.afterClick = (click) => {
       if (click === "request:ignore")
-        mid.current = () => ({ ...HERE, memberId: "5550001" });
+        mid.current = () => ({ ...PROFILE, memberId: "5550001" });
     };
     expect((await run(mid)).report.failure).toBe("member-mismatch");
-    expect(mid.clicks).toEqual(["request:ignore"]);
+    expect(mid.clicks).toEqual([
+      "request:delete",
+      "confirm:delete",
+      "request:ignore",
+    ]);
   });
 
   it("case 9: conversation identity mismatch stops before Delete", async () => {
     const driver = new FakeDriver();
-    driver.afterClick = (click) => {
-      if (click === "confirm:ignore")
-        driver.current = () => ({
-          ...HERE,
-          conversationId: "personal-1234567-1111111",
-        });
-    };
+    driver.current = () => ({
+      ...HERE,
+      conversationId: "personal-1234567-1111111",
+    });
     const result = await run(driver);
     expect(result.report.failure).toBe("conversation-mismatch");
-    expect(result.report).toMatchObject({ ignore: "done", delete: "not-done" });
-    expect(driver.clicks).not.toContain("request:delete");
+    expect(result.report).toMatchObject({
+      delete: "not-done",
+      ignore: "not-done",
+    });
+    expect(driver.clicks).toEqual([]);
   });
 
   it("case 10: markup that changes between steps stops the run", async () => {
     const driver = new FakeDriver();
     driver.afterClick = (click) => {
-      if (click === "confirm:ignore")
-        driver.current = () => ({ page: "conversation", memberId: MEMBER });
+      if (click === "confirm:delete")
+        driver.current = () => ({ page: "profile" });
     };
     const result = await run(driver);
     expect(result.report.failure).toBe("identity-unavailable");
-    expect(driver.clicks).not.toContain("request:delete");
+    expect(driver.clicks).not.toContain("request:ignore");
   });
 
   it("case 11: the run continues after the background restarts", async () => {
@@ -314,7 +355,7 @@ describe("M9 manual test matrix, synthetic (build plan Section 24)", () => {
     let recorder: ActionRecorder = first;
     const driver = new FakeDriver();
     driver.afterClick = (click) => {
-      if (click !== "confirm:ignore") return;
+      if (click !== "confirm:delete") return;
       // A new background: new services, no memory, the same database.
       const restarted = backgroundRouter();
       recorder = messageQuickActionClient((message) =>
@@ -332,17 +373,17 @@ describe("M9 manual test matrix, synthetic (build plan Section 24)", () => {
   it("case 12: another account activated mid-sequence stops before the next click", async () => {
     const driver = new FakeDriver();
     driver.afterClick = (click) => {
-      if (click === "confirm:ignore") active = "account-b";
+      if (click === "confirm:delete") active = "account-b";
     };
     const result = await run(driver);
-    expect(driver.clicks).toEqual(["request:ignore", "confirm:ignore"]);
+    expect(driver.clicks).toEqual(["request:delete", "confirm:delete"]);
     expect(result.report).toMatchObject({
       failure: "account-changed",
-      ignore: "done",
-      delete: "not-done",
+      delete: "done",
+      ignore: "not-done",
     });
     // Account A's log stops where it could still write; B has nothing.
-    expect(await logged("account-a")).toEqual([["Started", "IgnoreRequested"]]);
+    expect(await logged("account-a")).toEqual([["Started", "DeleteRequested"]]);
     expect(await logged("account-b")).toEqual([]);
   });
 
@@ -360,12 +401,12 @@ describe("M9 manual test matrix, synthetic (build plan Section 24)", () => {
   it("checks identity again after storing, right before the click", async () => {
     const driver = new FakeDriver();
     const recorder = client.recorder("account-a");
-    // The page switches member while IgnoreRequested is being stored.
+    // The page switches member while DeleteRequested is being stored.
     const result = await run(driver, {
       begin: (target) => recorder.begin(target),
       record: async (id, state, failure) => {
         const answer = await recorder.record(id, state, failure);
-        if (state === "IgnoreRequested")
+        if (state === "DeleteRequested")
           driver.current = () => ({ ...HERE, memberId: "5550001" });
         return answer;
       },
@@ -374,7 +415,7 @@ describe("M9 manual test matrix, synthetic (build plan Section 24)", () => {
     expect(result.report.failure).toBe("member-mismatch");
     // The log says the step was started, never less than happened.
     expect(await logged()).toEqual([
-      ["Started", "IgnoreRequested", "Failed:member-mismatch"],
+      ["Started", "DeleteRequested", "Failed:member-mismatch"],
     ]);
   });
 
@@ -388,20 +429,20 @@ describe("M9 manual test matrix, synthetic (build plan Section 24)", () => {
         begin: (target) => recorder.begin(target),
         record: async (id, state, failure) => {
           const answer = await recorder.record(id, state, failure);
-          if (state === "DeleteRequested") stop = "account-changed";
+          if (state === "IgnoreRequested") stop = "account-changed";
           return answer;
         },
       },
       { stopReason: () => stop },
     );
-    expect(driver.clicks).toEqual(["request:ignore", "confirm:ignore"]);
+    expect(driver.clicks).toEqual(["request:delete", "confirm:delete"]);
     expect(result.report.failure).toBe("account-changed");
   });
 
   it("contains a driver that throws, and closes the log", async () => {
     const driver = new FakeDriver();
     driver.afterClick = (click) => {
-      if (click === "confirm:ignore")
+      if (click === "confirm:delete")
         driver.current = () => {
           throw new Error("markup changed");
         };
@@ -409,11 +450,11 @@ describe("M9 manual test matrix, synthetic (build plan Section 24)", () => {
     const result = await run(driver);
     expect(result.report).toMatchObject({
       failure: "step-error",
-      ignore: "done",
-      delete: "not-done",
+      delete: "done",
+      ignore: "not-done",
     });
     expect(await logged()).toEqual([
-      ["Started", "IgnoreRequested", "IgnoreConfirmed", "Failed:step-error"],
+      ["Started", "DeleteRequested", "DeleteConfirmed", "Failed:step-error"],
     ]);
     const states: string[] = [];
     const noisy = await run(new FakeDriver(), undefined, {
@@ -426,47 +467,49 @@ describe("M9 manual test matrix, synthetic (build plan Section 24)", () => {
     expect(states).toContain("Completed");
   });
 
-  it("keeps Ignore as done on screen when its result cannot be stored", async () => {
+  it("keeps Delete as done on screen when its result cannot be stored", async () => {
     const recorder = client.recorder("account-a");
     let lost = true;
     const result = await run(new FakeDriver(), {
       begin: (target) => recorder.begin(target),
       record: (id, state, failure) => {
-        if (state === "IgnoreConfirmed" && lost) {
+        if (state === "DeleteConfirmed" && lost) {
           lost = false;
           return Promise.reject(new Error("port closed"));
         }
         return recorder.record(id, state, failure);
       },
     });
-    expect(result.report).toMatchObject({ ignore: "done", delete: "not-done" });
+    expect(result.report).toMatchObject({ delete: "done", ignore: "not-done" });
     expect(result.report.lines).toContain(
-      "JoyFox could not write to its action log, so it stopped before Delete.",
+      "JoyFox could not write to its action log, so it stopped before Ignore.",
     );
     // The stored log reads "not confirmed", never "not done".
     const stored = await client.latest(MEMBER);
-    expect(stored).toMatchObject({ report: { ignore: "unknown" } });
+    expect(stored).toMatchObject({ report: { delete: "unknown" } });
     if (stored.status !== "ok") throw new Error("no report");
     expect(stored.report.lines).toContain(
-      "JoyFox could not write to its action log, so it stopped during Ignore.",
+      "JoyFox could not write to its action log, so it stopped during Delete.",
     );
   });
 
-  it("does not click Delete once the page is the profile", async () => {
-    const driver = new FakeDriver();
-    driver.afterClick = (click) => {
-      if (click === "confirm:ignore")
-        driver.current = () => ({ page: "profile", memberId: MEMBER });
-    };
-    const result = await run(driver);
+  it("never clicks Ignore on the conversation page, nor Delete on the profile", async () => {
+    const stays = new FakeDriver();
+    // The page does not move to the profile after Delete.
+    stays.current = () => HERE;
+    const result = await run(stays);
     expect(result.report.failure).toBe("identity-unavailable");
-    expect(driver.clicks).not.toContain("request:delete");
+    expect(stays.clicks).not.toContain("request:ignore");
+    const onProfile = new FakeDriver();
+    onProfile.current = () => PROFILE;
+    expect((await run(onProfile)).report.failure).toBe("identity-unavailable");
+    expect(onProfile.clicks).toEqual([]);
   });
 
   it("refuses every step of a run that a newer run replaced", async () => {
     const driver = new FakeDriver();
     driver.afterClick = async (click) => {
-      if (click !== "request:ignore") return;
+      if (click !== "request:delete") return;
       // This tab stalls past the interrupted threshold; another tab starts
       // a new run for the same member, which is allowed.
       clock += STALE_AFTER_MS + 60_000;
@@ -475,14 +518,14 @@ describe("M9 manual test matrix, synthetic (build plan Section 24)", () => {
     };
     const result = await run(driver);
     // The stalled run finishes the click it was in, then may not go on.
-    expect(driver.clicks).toEqual(["request:ignore", "confirm:ignore"]);
+    expect(driver.clicks).toEqual(["request:delete", "confirm:delete"]);
     expect(result.report.failure).toBe("superseded");
     expect(result.report.lines).toContain(
-      "A newer Ignore and Delete for this member started, so JoyFox stopped before Delete.",
+      "A newer Ignore and Delete for this member started, so JoyFox stopped before Ignore.",
     );
     const logs = await repositories.actionLogs.list("account-a");
     expect(logs.map((log) => log.steps.at(-1)?.name).sort()).toEqual([
-      "IgnoreRequested",
+      "DeleteRequested",
       "Started",
     ]);
   });
@@ -496,6 +539,279 @@ describe("M9 manual test matrix, synthetic (build plan Section 24)", () => {
   });
 });
 
+describe("M9 hand-off to the profile page (ADR 0011)", () => {
+  it("hands off after Delete, and the profile page finishes the run", async () => {
+    const driver = new FakeDriver();
+    driver.current = () => HERE;
+    const handed: string[] = [];
+    const first = await run(driver, undefined, {
+      handOff: async (operationId, next) => {
+        handed.push(`${operationId}:${next}`);
+      },
+    });
+    expect(first.status).toBe("handed-off");
+    expect(driver.clicks).toEqual(["request:delete", "confirm:delete"]);
+    expect(handed).toEqual([`${first.operationId}:ignore`]);
+    expect(await logged()).toEqual([
+      ["Started", "DeleteRequested", "DeleteConfirmed"],
+    ]);
+    // The new page: the profile, resuming from Ignore.
+    const [log] = await repositories.actionLogs.list("account-a");
+    const profile = new FakeDriver();
+    profile.current = () => PROFILE;
+    const second = await run(profile, undefined, {
+      resume: {
+        operationId: first.operationId!,
+        from: "ignore",
+        steps: log!.steps,
+      },
+    });
+    expect(profile.clicks).toEqual(["request:ignore", "confirm:ignore"]);
+    expect(second.report.status).toBe("completed");
+    expect(await logged()).toEqual([FULL]);
+  });
+
+  it("stops when the hand-off cannot be stored, so no page continues it", async () => {
+    const driver = new FakeDriver();
+    driver.current = () => HERE;
+    const result = await run(driver, undefined, {
+      handOff: () => Promise.reject(new Error("session storage failed")),
+    });
+    expect(result.status).toBe("finished");
+    expect(result.report).toMatchObject({
+      failure: "handoff-failed",
+      delete: "done",
+      ignore: "not-done",
+    });
+    expect(result.report.lines).toContain(
+      "JoyFox could not move on to the member's profile, so it stopped before Ignore.",
+    );
+    expect(await logged()).toEqual([
+      [
+        "Started",
+        "DeleteRequested",
+        "DeleteConfirmed",
+        "Failed:handoff-failed",
+      ],
+    ]);
+  });
+
+  it("does not hand off once the flag is off or the account changed", async () => {
+    let stop: "turned-off" | undefined;
+    const driver = new FakeDriver();
+    driver.current = () => HERE;
+    driver.afterClick = (click) => {
+      if (click === "confirm:delete") stop = "turned-off";
+    };
+    let handed = false;
+    const result = await run(driver, undefined, {
+      stopReason: () => stop,
+      handOff: async () => {
+        handed = true;
+      },
+    });
+    expect(handed).toBe(false);
+    expect(result.report.failure).toBe("turned-off");
+  });
+
+  it("does not move on when the flag is turned off while the hand-off is stored", async () => {
+    let stop: "turned-off" | undefined;
+    const driver = new FakeDriver();
+    driver.current = () => HERE;
+    const result = await run(driver, undefined, {
+      stopReason: () => stop,
+      handOff: async () => {
+        stop = "turned-off";
+      },
+    });
+    expect(result.status).toBe("finished");
+    expect(result.report.failure).toBe("turned-off");
+  });
+
+  it("reports a hand-off that never answers as a timeout", async () => {
+    const driver = new FakeDriver();
+    driver.current = () => HERE;
+    const result = await run(driver, undefined, {
+      handOff: () => new Promise(() => undefined),
+    });
+    expect(result.status).toBe("finished");
+    expect(result.report.failure).toBe("timeout");
+  });
+
+  it("does not hand off when the next step's page is already shown", async () => {
+    const driver = new FakeDriver();
+    let handed = false;
+    const result = await run(driver, undefined, {
+      handOff: async () => {
+        handed = true;
+      },
+    });
+    expect(handed).toBe(false);
+    expect(result.report.status).toBe("completed");
+  });
+
+  it("refuses to resume on another member's profile", async () => {
+    const driver = new FakeDriver();
+    driver.current = () => HERE;
+    const first = await run(driver, undefined, { handOff: async () => {} });
+    const [log] = await repositories.actionLogs.list("account-a");
+    const other = new FakeDriver();
+    other.current = () => ({ page: "profile", memberId: "5550001" });
+    const result = await run(other, undefined, {
+      resume: {
+        operationId: first.operationId!,
+        from: "ignore",
+        steps: log!.steps,
+      },
+    });
+    expect(result.report.failure).toBe("member-mismatch");
+    expect(other.clicks).toEqual([]);
+  });
+});
+
+describe("M9 hand-off messages (ADR 0011)", () => {
+  // The tab reads its marker from the profile the run went to.
+  beforeEach(onProfilePage);
+
+  /** A run stopped right after Delete, as the conversation page leaves it. */
+  async function afterDelete(): Promise<string> {
+    const recorder = client.recorder("account-a");
+    const begun = await recorder.begin(TARGET);
+    if (begun.status !== "started") throw new Error("not started");
+    await recorder.record(begun.operationId, "DeleteRequested");
+    await recorder.record(begun.operationId, "DeleteConfirmed");
+    return begun.operationId;
+  }
+
+  it("gives the marker to the same tab once, with the stored steps", async () => {
+    const id = await afterDelete();
+    await client.handOff("account-a", id, "ignore", PROFILE_PATH);
+    // Another tab gets nothing.
+    expect(await tabClient(8).pending()).toEqual({ status: "none" });
+    const answer = await client.pending();
+    expect(answer).toMatchObject({
+      status: "ok",
+      accountId: "account-a",
+      operationId: id,
+      memberId: MEMBER,
+      conversationId: CONVERSATION,
+      next: "ignore",
+    });
+    if (answer.status !== "ok") throw new Error("no marker");
+    expect(answer.steps.map((step) => step.name)).toEqual([
+      "Started",
+      "DeleteRequested",
+      "DeleteConfirmed",
+    ]);
+    // One-shot: a reload does not continue the run again.
+    expect(await client.pending()).toEqual({ status: "none" });
+  });
+
+  it("survives a background restart, since the marker is in storage.session", async () => {
+    const id = await afterDelete();
+    await client.handOff("account-a", id, "ignore", PROFILE_PATH);
+    const restarted = backgroundRouter();
+    expect(await tabClient(TAB, () => restarted).pending()).toMatchObject({
+      status: "ok",
+      operationId: id,
+    });
+  });
+
+  it("keeps the marker when a read fails, so a retry still finds it", async () => {
+    const id = await afterDelete();
+    await client.handOff("account-a", id, "ignore", PROFILE_PATH);
+    // A background whose database read fails once, as during a restart.
+    let fail = true;
+    const actions = new ActionLogService(undefined, undefined, () =>
+      new Date(clock).toISOString(),
+    );
+    const find = actions.find.bind(actions);
+    actions.find = (accountId, operationId) => {
+      if (fail) {
+        fail = false;
+        return Promise.reject(new Error("database closing"));
+      }
+      return find(accountId, operationId);
+    };
+    const flaky = new MessageRouter();
+    registerActionHandlers(flaky, {
+      actions,
+      activeAccountId: () => Promise.resolve(active),
+      now: () => clock,
+      session,
+    });
+    const page = tabClient(TAB, () => flaky);
+    await expect(page.pending()).rejects.toThrow();
+    expect(await page.pending()).toMatchObject({
+      status: "ok",
+      operationId: id,
+    });
+  });
+
+  it("refuses a hand-off before Delete is confirmed, or for an old run", async () => {
+    const recorder = client.recorder("account-a");
+    const begun = await recorder.begin(TARGET);
+    if (begun.status !== "started") throw new Error("not started");
+    await recorder.record(begun.operationId, "DeleteRequested");
+    await expect(
+      client.handOff("account-a", begun.operationId, "ignore", PROFILE_PATH),
+    ).rejects.toThrow();
+    await recorder.record(begun.operationId, "DeleteConfirmed");
+    // A newer run for the member replaces this one.
+    clock += STALE_AFTER_MS + 60_000;
+    await recorder.begin(TARGET);
+    await expect(
+      client.handOff("account-a", begun.operationId, "ignore", PROFILE_PATH),
+    ).rejects.toThrow();
+    expect(session.items.size).toBe(0);
+  });
+
+  it("drops a marker that is stale, moved, or from another account", async () => {
+    const id = await afterDelete();
+    await client.handOff("account-a", id, "ignore", PROFILE_PATH);
+    clock += STALE_AFTER_MS + 1;
+    expect(await client.pending()).toEqual({ status: "none" });
+
+    clock = Date.now();
+    await freshDatabase();
+    const moved = await afterDelete();
+    await client.handOff("account-a", moved, "ignore", PROFILE_PATH);
+    await client.recorder("account-a").record(moved, "IgnoreRequested");
+    expect(await client.pending()).toEqual({ status: "none" });
+
+    await freshDatabase();
+    const switched = await afterDelete();
+    await client.handOff("account-a", switched, "ignore", PROFILE_PATH);
+    active = "account-b";
+    // Closed under account A, and said, never left as still going.
+    const stopped = await client.pending();
+    expect(stopped).toMatchObject({ status: "stopped" });
+    if (stopped.status !== "stopped") throw new Error("not stopped");
+    expect(stopped.lines).toContain(
+      "The active JoyFox account changed, so JoyFox stopped before Ignore.",
+    );
+    expect(stopped.lines).toContain(
+      "Delete: done. JoyClub moved the conversation to the trash.",
+    );
+    expect((await logged("account-a")).at(-1)?.at(-1)).toBe(
+      "Failed:account-changed",
+    );
+    expect(await logged("account-b")).toEqual([]);
+  });
+
+  it("refuses a message without a tab, and a first step as the next", async () => {
+    const id = await afterDelete();
+    const noTab = messageQuickActionClient((message) => router.route(message));
+    await expect(
+      noTab.handOff("account-a", id, "ignore", PROFILE_PATH),
+    ).rejects.toThrow();
+    await expect(noTab.pending()).rejects.toThrow();
+    await expect(
+      client.handOff("account-a", id, "delete", PROFILE_PATH),
+    ).rejects.toThrow();
+  });
+});
+
 describe("M9 ActionLog messages", () => {
   const send = <K extends keyof MessageContract>(
     type: K,
@@ -506,12 +822,12 @@ describe("M9 ActionLog messages", () => {
     const begun = await client.recorder("account-a").begin(TARGET);
     if (begun.status !== "started") throw new Error("not started");
     const record = client.recorder("account-a").record;
-    expect(await record(begun.operationId, "DeleteRequested")).toBe("invalid");
+    expect(await record(begun.operationId, "IgnoreRequested")).toBe("invalid");
     expect(await record(begun.operationId, "Failed")).toBe("invalid");
-    expect(await record(begun.operationId, "IgnoreRequested", "timeout")).toBe(
+    expect(await record(begun.operationId, "DeleteRequested", "timeout")).toBe(
       "invalid",
     );
-    expect(await record("action:unknown", "IgnoreRequested")).toBe(
+    expect(await record("action:unknown", "DeleteRequested")).toBe(
       "unknown-operation",
     );
     expect(await logged()).toEqual([["Started"]]);
@@ -588,9 +904,9 @@ describe("M9 ActionLog messages", () => {
     if (begun.status !== "started") throw new Error("not started");
     const afterStart = revision();
     expect(afterStart).toEqual(expect.any(String));
-    await recorder.record(begun.operationId, "DeleteRequested");
-    expect(revision()).toBe(afterStart);
     await recorder.record(begun.operationId, "IgnoreRequested");
+    expect(revision()).toBe(afterStart);
+    await recorder.record(begun.operationId, "DeleteRequested");
     expect(revision()).not.toBe(afterStart);
   });
 
@@ -635,11 +951,255 @@ describe("M9 button and notice", () => {
     return quick;
   }
 
-  it("never appears without a live driver, which waits on F7", async () => {
-    expect(liveQuickActionDriver()).toBeUndefined();
-    openConversation(liveQuickActionDriver());
+  it("has a live driver now, and never appears without one", async () => {
+    expect(liveQuickActionDriver()).toBeInstanceOf(JoyClubQuickActionDriver);
+    openConversation(undefined);
     await new Promise((resolve) => setTimeout(resolve, 20));
     expect(section()).toBeNull();
+  });
+
+  it("hands off to the sender's profile after Delete, and the profile finishes", async () => {
+    const driver = new FakeDriver();
+    // The live page stays on the conversation until JoyFox navigates.
+    driver.current = () => HERE;
+    const visited: string[] = [];
+    window.history.replaceState(
+      null,
+      "",
+      `/clubmail/conversation/conversation-wrapper-${CONVERSATION}`,
+    );
+    document.body.innerHTML = conversationHtml;
+    const quick = new QuickIgnoreDelete(
+      document,
+      client,
+      () => driver,
+      (url) => visited.push(url),
+    );
+    quick.update();
+    await vi.waitFor(() => expect(runButton()).toBeDefined());
+    runButton()!.click();
+    // The page moves only once the run returns "handed-off".
+    await vi.waitFor(() => expect(visited).toHaveLength(1));
+    await vi.waitFor(() =>
+      expect(notice()).toContain(QUICK_ACTION_TEXT.handedOff),
+    );
+    expect(visited).toEqual([
+      `${window.location.origin}/profile/1234567.synthetic_one.html`,
+    ]);
+    expect(driver.clicks).toEqual(["request:delete", "confirm:delete"]);
+
+    // The tab loads the profile; a new content script starts there.
+    window.history.replaceState(
+      null,
+      "",
+      "/profile/1234567.synthetic_one.html",
+    );
+    document.body.innerHTML = profileHtml;
+    const onProfile = new FakeDriver();
+    onProfile.current = () => PROFILE;
+    const resumed = new QuickIgnoreDelete(document, client, () => onProfile);
+    resumed.updateProfile();
+    await vi.waitFor(() =>
+      expect(notice()).toContain("Ignore and Delete finished."),
+    );
+    expect(notice()).toContain(QUICK_ACTION_TEXT.resumed);
+    expect(onProfile.clicks).toEqual(["request:ignore", "confirm:ignore"]);
+    expect(await logged()).toEqual([FULL]);
+    // No button on the profile, and a reload does not run it again.
+    expect(runButton()).toBeUndefined();
+    const again = new FakeDriver();
+    again.current = () => PROFILE;
+    new QuickIgnoreDelete(document, client, () => again).updateProfile();
+    await new Promise((resolve) => setTimeout(resolve, 30));
+    expect(again.clicks).toEqual([]);
+  });
+
+  it("starts nothing when the member's profile address is unknown", async () => {
+    const driver = new FakeDriver();
+    openConversation(driver);
+    await vi.waitFor(() => expect(runButton()).toBeDefined());
+    // The header's link no longer names the member's profile.
+    document
+      .querySelector(".cm-conversation-header")!
+      .setAttribute("href", "https://example.invalid/profile/1234567.x.html");
+    runButton()!.click();
+    await vi.waitFor(() =>
+      expect(notice()).toContain(QUICK_ACTION_TEXT.noProfile),
+    );
+    expect(driver.clicks).toEqual([]);
+    expect(await logged()).toEqual([]);
+  });
+
+  it("drops a waiting hand-off when the flag is off, so it never runs later", async () => {
+    const recorder = client.recorder("account-a");
+    const begun = await recorder.begin(TARGET);
+    if (begun.status !== "started") throw new Error("not started");
+    await recorder.record(begun.operationId, "DeleteRequested");
+    await recorder.record(begun.operationId, "DeleteConfirmed");
+    await client.handOff(
+      "account-a",
+      begun.operationId,
+      "ignore",
+      PROFILE_PATH,
+    );
+    onProfilePage();
+    document.body.innerHTML = profileHtml;
+    const driver = new FakeDriver();
+    driver.current = () => PROFILE;
+    // The profile loads with the flag off.
+    const off = new QuickIgnoreDelete(document, client, () => driver);
+    off.turnOff();
+    await vi.waitFor(async () =>
+      expect((await logged())[0]?.at(-1)).toBe("Failed:turned-off"),
+    );
+    // Turned on again: nothing is left to continue.
+    const on = new QuickIgnoreDelete(document, client, () => driver);
+    on.updateProfile();
+    await new Promise((resolve) => setTimeout(resolve, 30));
+    expect(driver.clicks).toEqual([]);
+  });
+
+  it("closes a hand-off already read when the flag is turned off", async () => {
+    const recorder = client.recorder("account-a");
+    const begun = await recorder.begin(TARGET);
+    if (begun.status !== "started") throw new Error("not started");
+    await recorder.record(begun.operationId, "DeleteRequested");
+    await recorder.record(begun.operationId, "DeleteConfirmed");
+    await client.handOff(
+      "account-a",
+      begun.operationId,
+      "ignore",
+      PROFILE_PATH,
+    );
+    onProfilePage();
+    document.body.innerHTML = profileHtml;
+    // The profile menu is not there yet, so the run waits after reading.
+    const driver = new FakeDriver();
+    driver.current = () => PROFILE;
+    driver.controls.ignore = false;
+    const quick = new QuickIgnoreDelete(document, client, () => driver);
+    quick.updateProfile();
+    // Let the page read (and so remove) its marker.
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    expect(await client.pending()).toEqual({ status: "none" });
+    quick.turnOff();
+    await vi.waitFor(async () =>
+      expect((await logged())[0]?.at(-1)).toBe("Failed:turned-off"),
+    );
+    expect(driver.clicks).toEqual([]);
+  });
+
+  it("asks again when reading the hand-off fails once", async () => {
+    const recorder = client.recorder("account-a");
+    const begun = await recorder.begin(TARGET);
+    if (begun.status !== "started") throw new Error("not started");
+    await recorder.record(begun.operationId, "DeleteRequested");
+    await recorder.record(begun.operationId, "DeleteConfirmed");
+    await client.handOff(
+      "account-a",
+      begun.operationId,
+      "ignore",
+      PROFILE_PATH,
+    );
+    onProfilePage();
+    document.body.innerHTML = profileHtml;
+    let failures = 1;
+    const flaky: QuickActionClient = {
+      ...client,
+      pending: () =>
+        failures-- > 0
+          ? Promise.reject(new Error("background restarting"))
+          : client.pending(),
+    };
+    const driver = new FakeDriver();
+    driver.current = () => PROFILE;
+    new QuickIgnoreDelete(document, flaky, () => driver).updateProfile();
+    await vi.waitFor(
+      () => expect(driver.clicks).toEqual(["request:ignore", "confirm:ignore"]),
+      { timeout: 3000 },
+    );
+    // Let the run store its last steps before the next test starts.
+    await vi.waitFor(async () =>
+      expect((await logged())[0]?.at(-1)).toBe("Completed"),
+    );
+  });
+
+  it("shows a hand-off stopped by an account switch on the profile", async () => {
+    const recorder = client.recorder("account-a");
+    const begun = await recorder.begin(TARGET);
+    if (begun.status !== "started") throw new Error("not started");
+    await recorder.record(begun.operationId, "DeleteRequested");
+    await recorder.record(begun.operationId, "DeleteConfirmed");
+    await client.handOff(
+      "account-a",
+      begun.operationId,
+      "ignore",
+      PROFILE_PATH,
+    );
+    active = "account-b";
+    onProfilePage();
+    document.body.innerHTML = profileHtml;
+    const driver = new FakeDriver();
+    driver.current = () => PROFILE;
+    new QuickIgnoreDelete(document, client, () => driver).updateProfile();
+    await vi.waitFor(() =>
+      expect(notice()).toContain("The active JoyFox account changed"),
+    );
+    expect(driver.clicks).toEqual([]);
+  });
+
+  it("reads the hand-off only on the profile it named", async () => {
+    const recorder = client.recorder("account-a");
+    const begun = await recorder.begin(TARGET);
+    if (begun.status !== "started") throw new Error("not started");
+    await recorder.record(begun.operationId, "DeleteRequested");
+    await recorder.record(begun.operationId, "DeleteConfirmed");
+    await client.handOff(
+      "account-a",
+      begun.operationId,
+      "ignore",
+      PROFILE_PATH,
+    );
+    window.history.replaceState(null, "", "/clubmail/");
+    expect(await client.pending()).toEqual({ status: "none" });
+  });
+
+  it("does not continue a hand-off on another member's profile", async () => {
+    const recorder = client.recorder("account-a");
+    const begun = await recorder.begin(TARGET);
+    if (begun.status !== "started") throw new Error("not started");
+    await recorder.record(begun.operationId, "DeleteRequested");
+    await recorder.record(begun.operationId, "DeleteConfirmed");
+    await client.handOff(
+      "account-a",
+      begun.operationId,
+      "ignore",
+      PROFILE_PATH,
+    );
+    window.history.replaceState(null, "", "/profile/5550001.synthetic.html");
+    document.body.innerHTML = profileHtml;
+    const other = new FakeDriver();
+    other.current = () => ({ page: "profile", memberId: "5550001" });
+    new QuickIgnoreDelete(document, client, () => other).updateProfile();
+    await new Promise((resolve) => setTimeout(resolve, 30));
+    expect(other.clicks).toEqual([]);
+    expect(section()).toBeNull();
+  });
+
+  it("goes only to the run's member on this site", () => {
+    const header = document.createElement("a");
+    const at = (href: string) => {
+      header.setAttribute("href", href);
+      return profileUrl(header, MEMBER);
+    };
+    expect(at("/profile/1234567.synthetic_one.html")).toBe(
+      `${window.location.origin}/profile/1234567.synthetic_one.html`,
+    );
+    expect(at("/profile/5550001.synthetic.html")).toBeUndefined();
+    expect(
+      at("https://example.invalid/profile/1234567.x.html"),
+    ).toBeUndefined();
+    expect(at("/clubmail/")).toBeUndefined();
   });
 
   it("runs on one click and shows what was done", async () => {
@@ -662,17 +1222,17 @@ describe("M9 button and notice", () => {
 
   it("names the failed step and the next manual action", async () => {
     const driver = new FakeDriver();
-    driver.controls.delete = false;
+    driver.controls.ignore = false;
     openConversation(driver);
     await vi.waitFor(() => expect(runButton()).toBeDefined());
     runButton()!.click();
     await vi.waitFor(() =>
       expect(notice()).toContain(
-        "JoyFox could not find JoyClub's Delete control.",
+        "JoyFox could not find JoyClub's Ignore control.",
       ),
     );
-    expect(notice()).toContain("Ignore: done.");
-    expect(notice()).toContain("move it there yourself");
+    expect(notice()).toContain("Delete: done.");
+    expect(notice()).toContain("ignore them there yourself");
     const status = section()?.querySelector('[role="status"]');
     expect(status?.getAttribute("aria-live")).toBe("polite");
   });
@@ -682,21 +1242,21 @@ describe("M9 button and notice", () => {
     if (begun.status !== "started") throw new Error("not started");
     await client
       .recorder("account-a")
-      .record(begun.operationId, "IgnoreRequested");
+      .record(begun.operationId, "DeleteRequested");
     clock += STALE_AFTER_MS + 60_000;
     openConversation(new FakeDriver());
     await vi.waitFor(() =>
       expect(notice()).toContain(QUICK_ACTION_TEXT.previous),
     );
     expect(notice()).toContain("was interrupted");
-    expect(notice()).toContain("Ignore: not confirmed.");
+    expect(notice()).toContain("Delete: not confirmed.");
   });
 
   it("ignores a second click while running", async () => {
     const driver = new FakeDriver();
     let release: () => void = () => undefined;
     driver.afterClick = (click) =>
-      click === "request:ignore"
+      click === "request:delete"
         ? new Promise<void>((resolve) => {
             release = resolve;
           })
@@ -704,7 +1264,7 @@ describe("M9 button and notice", () => {
     openConversation(driver);
     await vi.waitFor(() => expect(runButton()).toBeDefined());
     runButton()!.click();
-    await vi.waitFor(() => expect(driver.clicks).toEqual(["request:ignore"]));
+    await vi.waitFor(() => expect(driver.clicks).toEqual(["request:delete"]));
     expect(runButton()?.getAttribute("aria-disabled")).toBe("true");
     runButton()!.click();
     release();
@@ -718,7 +1278,7 @@ describe("M9 button and notice", () => {
     const driver = new FakeDriver();
     let release: () => void = () => undefined;
     driver.afterClick = (click) =>
-      click === "confirm:ignore"
+      click === "confirm:delete"
         ? new Promise<void>((resolve) => {
             release = resolve;
           })
@@ -726,14 +1286,14 @@ describe("M9 button and notice", () => {
     const quick = openConversation(driver);
     await vi.waitFor(() => expect(runButton()).toBeDefined());
     runButton()!.click();
-    await vi.waitFor(() => expect(driver.clicks).toContain("confirm:ignore"));
+    await vi.waitFor(() => expect(driver.clicks).toContain("confirm:delete"));
     active = "account-b";
     quick.accountChanged();
     release();
     await vi.waitFor(() =>
       expect(notice()).toContain("The active JoyFox account changed"),
     );
-    expect(driver.clicks).not.toContain("request:delete");
+    expect(driver.clicks).not.toContain("request:ignore");
   });
 
   it("keeps one live region while the run moves", async () => {
@@ -752,7 +1312,7 @@ describe("M9 button and notice", () => {
     const driver = new FakeDriver();
     let release: () => void = () => undefined;
     driver.afterClick = (click) =>
-      click === "request:ignore"
+      click === "request:delete"
         ? new Promise<void>((resolve) => {
             release = resolve;
           })
@@ -760,7 +1320,7 @@ describe("M9 button and notice", () => {
     const quick = openConversation(driver);
     await vi.waitFor(() => expect(runButton()).toBeDefined());
     runButton()!.click();
-    await vi.waitFor(() => expect(driver.clicks).toEqual(["request:ignore"]));
+    await vi.waitFor(() => expect(driver.clicks).toEqual(["request:delete"]));
     // JoyClub routes to another member's conversation in place.
     window.history.replaceState(
       null,
@@ -785,8 +1345,8 @@ describe("M9 button and notice", () => {
       expect(notice()).toContain(QUICK_ACTION_TEXT.otherResult),
     );
     expect(notice()).toContain("The page showed another member");
-    expect(notice()).toContain("Ignore: not confirmed.");
-    expect(driver.clicks).toEqual(["request:ignore"]);
+    expect(notice()).toContain("Delete: not confirmed.");
+    expect(driver.clicks).toEqual(["request:delete"]);
     expect(runButton()?.getAttribute("aria-disabled")).toBe("false");
   });
 
@@ -794,7 +1354,7 @@ describe("M9 button and notice", () => {
     const driver = new FakeDriver();
     let release: () => void = () => undefined;
     driver.afterClick = (click) =>
-      click === "request:ignore"
+      click === "request:delete"
         ? new Promise<void>((resolve) => {
             release = resolve;
           })
@@ -802,7 +1362,7 @@ describe("M9 button and notice", () => {
     const quick = openConversation(driver);
     await vi.waitFor(() => expect(runButton()).toBeDefined());
     runButton()!.click();
-    await vi.waitFor(() => expect(driver.clicks).toEqual(["request:ignore"]));
+    await vi.waitFor(() => expect(driver.clicks).toEqual(["request:delete"]));
     quick.turnOff();
     expect(section()).toBeNull();
     release();
@@ -811,7 +1371,7 @@ describe("M9 button and notice", () => {
     );
     await new Promise((resolve) => setTimeout(resolve, 20));
     expect(section()).toBeNull();
-    expect(driver.clicks).toEqual(["request:ignore"]);
+    expect(driver.clicks).toEqual(["request:delete"]);
   });
 
   it("follows another tab's run, and says a busy click did nothing", async () => {

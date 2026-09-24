@@ -47,8 +47,7 @@ if (hasVerifiedSelectors() && VERIFIED_HOSTS.includes(location.hostname)) {
     TEMPLATE_PICKER_KEY,
     true,
   );
-  // M9 is experimental and off unless set to `true`. It also needs a live
-  // driver, which waits on F7, so today it never appears.
+  // M9 is experimental and off unless set to `true` (ADR 0008, ADR 0011).
   const quickAction = new DiagnosticsFlag(
     () => runtimeSettingsArea.get([QUICK_ACTION_KEY]),
     storageEvents,
@@ -73,6 +72,8 @@ if (hasVerifiedSelectors() && VERIFIED_HOSTS.includes(location.hostname)) {
     // Turning the flag off also stops a run before its next click.
     if (!quickAction.enabled) quick.turnOff();
     else if (lastType === "conversation") quick.update();
+    // A run handed off from a conversation continues here (ADR 0011).
+    else if (lastType === "profile") quick.updateProfile();
     else quick.leave();
   };
   let lastSummary = "";

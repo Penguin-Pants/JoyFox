@@ -2,6 +2,7 @@ import type { ActionLog } from "../domain/types";
 import {
   checkTarget,
   reportOperation,
+  STEP_ORDER,
   STEP_STATES,
   STEP_TIMEOUT_MS,
   type ActionFailure,
@@ -15,14 +16,20 @@ import {
 /**
  * The JoyClub side of M9, one method per kind of page action. The executor
  * decides when each is called; a driver only reads and clicks. No live
- * driver exists yet: where Ignore lives in JoyClub's UI is unverified (F7),
- * so only test drivers implement this.
+ * driver exists yet: F7 shows Ignore is only on the profile page (Path B), so
+ * the live driver waits on resume after navigation and on the conversation
+ * page's Delete result. Only test drivers implement this.
  */
 export interface QuickActionDriver {
   /** What the page shows now. Read fresh before every click. */
   currentTarget(): CurrentTarget;
   /** Whether the step's JoyClub control is on the page. Never clicks. */
   hasControl(step: ActionStep): boolean;
+  /**
+   * Whether the page can show the step's result afterwards. Never clicks.
+   * A step that could not be checked is not started. Absent: always.
+   */
+  canVerify?(step: ActionStep): boolean;
   /** Click the step's JoyClub control. */
   request(step: ActionStep): Promise<void>;
   /**
@@ -60,8 +67,12 @@ export interface ActionRecorder {
 }
 
 export interface ExecutionResult {
-  /** `busy`: another run for this member is still going; nothing was done. */
-  status: "finished" | "busy";
+  /**
+   * `busy`: another run for this member is still going; nothing was done.
+   * `handed-off`: the next step needs another page. The hand-off marker is
+   * stored and the run continues there through `resume`.
+   */
+  status: "finished" | "busy" | "handed-off";
   operationId?: string;
   report: OperationReport;
 }
@@ -75,7 +86,30 @@ export interface ExecutionOptions {
   onState?: (state: ActionState) => void;
   timeoutMs?: number;
   now?: () => string;
+  /**
+   * Path B (ADR 0011): called when the next step's control is on another
+   * page, after the previous step is confirmed and stored. It only stores
+   * the hand-off marker. The caller navigates once the run returns
+   * `handed-off`, never from here, so a late answer after a timeout never
+   * moves the page. If it fails, the run stops there.
+   */
+  handOff?: (operationId: string, next: ActionStep) => Promise<void>;
+  /**
+   * Continue a handed-off run on the new page, from `from`, with the steps
+   * already stored. No new operation is started.
+   */
+  resume?: {
+    operationId: string;
+    from: ActionStep;
+    steps: ActionLog["steps"];
+  };
 }
+
+/** The page each step's JoyClub control is on (F7, ADR 0011). */
+const STEP_PAGE: Record<ActionStep, "conversation" | "profile"> = {
+  delete: "conversation",
+  ignore: "profile",
+};
 
 class StepTimeout extends Error {}
 
@@ -114,7 +148,10 @@ export async function runQuickIgnoreDelete(
   const { target, driver, recorder } = options;
   const timeout = options.timeoutMs ?? STEP_TIMEOUT_MS;
   const now = options.now ?? (() => new Date().toISOString());
-  const steps: ActionLog["steps"] = [{ name: "Started", ok: true, at: now() }];
+  const resume = options.resume;
+  const steps: ActionLog["steps"] = resume
+    ? [...resume.steps]
+    : [{ name: "Started", ok: true, at: now() }];
   const note = (state: ActionState, failure?: ActionFailure) => {
     steps.push({
       name: state,
@@ -131,19 +168,24 @@ export async function runQuickIgnoreDelete(
   const report = () =>
     reportOperation({ steps, updatedAt: now() }, Date.parse(now()));
 
-  let begun: BeginAnswer;
-  try {
-    begun = await withTimeout(recorder.begin(target), timeout);
-  } catch {
-    note("Failed", "log-unavailable");
-    return { status: "finished", report: report() };
+  let operationId: string;
+  if (resume) operationId = resume.operationId;
+  else {
+    let begun: BeginAnswer;
+    try {
+      begun = await withTimeout(recorder.begin(target), timeout);
+    } catch {
+      note("Failed", "log-unavailable");
+      return { status: "finished", report: report() };
+    }
+    if (begun.status === "busy")
+      return { status: "busy", report: begun.report };
+    if (begun.status === "refused") {
+      note("Failed", "account-changed");
+      return { status: "finished", report: report() };
+    }
+    operationId = begun.operationId;
   }
-  if (begun.status === "busy") return { status: "busy", report: begun.report };
-  if (begun.status === "refused") {
-    note("Failed", "account-changed");
-    return { status: "finished", report: report() };
-  }
-  const operationId = begun.operationId;
 
   const store = async (
     state: ActionState,
@@ -189,7 +231,9 @@ export async function runQuickIgnoreDelete(
     const failure = guard(step);
     if (failure) return failure;
     try {
-      return driver.hasControl(step) ? undefined : "control-missing";
+      if (!driver.hasControl(step)) return "control-missing";
+      if (driver.canVerify && !driver.canVerify(step)) return "unverifiable";
+      return undefined;
     } catch {
       return "step-error";
     }
@@ -244,7 +288,34 @@ export async function runQuickIgnoreDelete(
     return store(confirmed);
   };
 
-  for (const step of ["ignore", "delete"] as const) {
+  const order = resume
+    ? STEP_ORDER.slice(STEP_ORDER.indexOf(resume.from))
+    : STEP_ORDER;
+  for (const [index, step] of order.entries()) {
+    // A later step whose control is on another page is handed off: the
+    // caller stores the marker and navigates, and the new page resumes.
+    if (index > 0 && options.handOff) {
+      let page: string | undefined;
+      try {
+        page = driver.currentTarget().page;
+      } catch {
+        return stop("step-error");
+      }
+      if (page !== STEP_PAGE[step]) {
+        // A stop reason (the flag turned off, an account switch) ends the
+        // run here: no marker is stored and the page does not move.
+        const stopped = options.stopReason?.();
+        if (stopped) return stop(stopped);
+        const handed = await attempt(() => options.handOff!(operationId, step));
+        if (handed)
+          return stop(handed === "timeout" ? "timeout" : "handoff-failed");
+        // Stopped while the marker was stored: the page must not move. The
+        // stored Failed step makes the marker unusable for any page.
+        const late = options.stopReason?.();
+        if (late) return stop(late);
+        return { status: "handed-off", operationId, report: report() };
+      }
+    }
     let failure: ActionFailure | undefined;
     try {
       failure = await runStep(step);

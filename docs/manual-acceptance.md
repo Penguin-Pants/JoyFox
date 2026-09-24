@@ -225,11 +225,18 @@ text; never record the member's real data in this repository.
 
 ## M9 destructive-action matrix (build plan Section 24)
 
-**Blocked.** These items cannot run yet: no live driver exists until F7 verifies
-the Ignore and Delete path (`manual-verification-needed.md`, item 7; ADR 0008).
-When it exists, run them by hand only, on test conversations you mean to lose,
-with `joyfox.quickIgnoreDelete` set to `true` from the options page console.
-Never run them automatically.
+**Ready to run, by hand only (ADR 0011).** The live driver now exists. Run these
+only on test conversations you mean to trash, with members you are willing to
+ignore and then un-ignore ("Profil nicht mehr ignorieren" in the profile menu).
+Never run them automatically. Turn the button on first: in `about:debugging`,
+click **Inspect** next to JoyFox, and in that console run
+`browser.storage.local.set({"joyfox.quickIgnoreDelete": true})`. Use the split
+view (conversation list on the left), because Delete is checked by the row
+leaving the list.
+
+The run: on the conversation page, JoyFox moves the conversation to the trash,
+opens the member's profile in the same tab, and ignores them there. The result
+shows in the JoyFox strip on the profile page.
 
 For each item, check three things: JoyClub's final state, the ActionLog record
 in "Your data" (steps, in order, with the `errorCode` of `Failed`), and the
@@ -237,20 +244,20 @@ on-screen notice. Success means every item ends in the expected state with the
 expected ActionLog. Each item has a synthetic test with the same case number in
 `tests/integration/quick-action.test.ts`.
 
-| Item | Case                                   | How to cause it                                                           | Expected ActionLog steps                                                                           | Expected notice                                                          |
-| ---- | -------------------------------------- | ------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------ |
-| 43   | 1. Both succeed                        | Normal run                                                                | `Started`, `IgnoreRequested`, `IgnoreConfirmed`, `DeleteRequested`, `DeleteConfirmed`, `Completed` | "Ignore and Delete finished." Member ignored, conversation in the trash. |
-| 44   | 2. Ignore control missing              | Run where JoyClub shows no Ignore control                                 | `Started`, `Failed:control-missing`                                                                | "Nothing was changed on JoyClub." Both next actions.                     |
-| 45   | 3. Ignore confirmation missing         | Close JoyClub's Ignore confirmation before JoyFox reaches it              | `Started`, `IgnoreRequested`, `Failed:confirmation-missing`                                        | "Ignore: not confirmed." Both next actions. No Delete click.             |
-| 46   | 4. Ignore done, Delete control missing | Hide or remove the Delete control after Ignore                            | … `IgnoreConfirmed`, `Failed:control-missing`                                                      | "Ignore: done." "Delete: not done." "JoyFox did not undo anything."      |
-| 47   | 5. Delete confirmation fails           | Close JoyClub's Delete confirmation                                       | … `DeleteRequested`, `Failed:confirmation-missing` (or `not-verified`)                             | "Delete: not confirmed." The Delete next action.                         |
-| 48   | 6. Navigation interrupted              | Navigate away or go offline during a step                                 | Last step before the stop, then `Failed:timeout` or `Failed:identity-unavailable`                  | Names the step that did not complete.                                    |
-| 49   | 7. Tab closed during the action        | Close the tab after the first click                                       | Ends at the last stored step, with no `Failed`                                                     | On reopening the conversation after 2 minutes: "was interrupted".        |
-| 50   | 8. Member identity mismatch            | Switch to another member's conversation mid-run                           | … `Failed:member-mismatch`                                                                         | "The page showed another member, so JoyFox stopped before …".            |
-| 51   | 9. Conversation identity mismatch      | Switch to another conversation with the same member                       | … `Failed:conversation-mismatch`                                                                   | "The page showed another conversation …". No Delete click.               |
-| 52   | 10. Markup changes between steps       | JoyClub re-renders the header during the run                              | … `Failed:identity-unavailable` or `Failed:control-missing`                                        | Names the step and says JoyFox stopped before it.                        |
-| 53   | 11. Background restarted mid-run       | Click **Terminate background script** in `about:debugging` during the run | The full sequence, or the last stored step then `Failed`                                           | Matches the ActionLog. No step is repeated.                              |
-| 54   | 12. Another account activated mid-run  | Switch the JoyFox account in the options page during the run              | Account A's log ends at its last stored step; account B has no record                              | "The active JoyFox account changed, so JoyFox stopped at …".             |
+| Item | Case                                   | How to cause it                                                                           | Expected ActionLog steps                                                                           | Expected notice                                                                          |
+| ---- | -------------------------------------- | ----------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
+| 43   | 1. Both succeed                        | Normal run                                                                                | `Started`, `DeleteRequested`, `DeleteConfirmed`, `IgnoreRequested`, `IgnoreConfirmed`, `Completed` | On the profile: "Ignore and Delete finished." Conversation in the trash, member ignored. |
+| 44   | 2. Delete control missing              | Run where the conversation shows no Delete control                                        | `Started`, `Failed:control-missing`                                                                | "Nothing was changed on JoyClub." Both next actions.                                     |
+| 45   | 3. Delete not seen                     | Hide the conversation list (narrow window), or use a conversation whose row is not loaded | `Started`, `Failed:unverifiable`                                                                   | "JoyFox cannot see JoyClub's result for Delete …". Nothing changed.                      |
+| 46   | 4. Delete done, Ignore control missing | Use a member you already ignore                                                           | … `DeleteConfirmed`, `Failed:control-missing`                                                      | "Delete: done." "Ignore: not done." "JoyFox did not undo anything."                      |
+| 47   | 5. Ignore confirmation fails           | Close JoyClub's Ignore dialog with "Abbrechen" before JoyFox reaches it                   | … `IgnoreRequested`, `Failed:confirmation-missing` (or `not-verified`)                             | "Ignore: not confirmed." The Ignore next action.                                         |
+| 48   | 6. Navigation interrupted              | Navigate away or go offline during a step                                                 | Last step before the stop, then `Failed:timeout` or `Failed:identity-unavailable`                  | Names the step that did not complete.                                                    |
+| 49   | 7. Tab closed during the action        | Close the tab right after the conversation leaves the list                                | Ends at the last stored step, with no `Failed`                                                     | On reopening the conversation after 2 minutes: "was interrupted".                        |
+| 50   | 8. Member identity mismatch            | While the profile loads, open another member's profile in the same tab                    | … `DeleteConfirmed`, then nothing more on that page                                                | Later, on the conversation: "was interrupted". No Ignore click.                          |
+| 51   | 9. Conversation identity mismatch      | Switch to another conversation right after clicking                                       | `Started`, `Failed:conversation-mismatch` (or `member-mismatch`)                                   | "The page showed another conversation …". No Delete click.                               |
+| 52   | 10. Markup changes between steps       | Reload the profile page while JoyFox waits for its menu                                   | … `DeleteConfirmed`, `Failed:control-missing`, or the run stays at `DeleteConfirmed`               | Names the step and says JoyFox stopped before it, or later "was interrupted".            |
+| 53   | 11. Background restarted mid-run       | Click **Terminate background script** in `about:debugging` during the run                 | The full sequence, or the last stored step then `Failed`                                           | Matches the ActionLog. No step is repeated.                                              |
+| 54   | 12. Another account activated mid-run  | Switch the JoyFox account in the options page during the run                              | Account A's log ends at its last stored step; account B has no record                              | "The active JoyFox account changed, so JoyFox stopped at …".                             |
 
 ## Rule autosave (2026-09-24)
 
@@ -322,6 +329,8 @@ the gaps are closed.
     rule, confirm each condition is one row, with the number fields and the "If
     JoyFox cannot see this" choices in straight columns. With Firefox in dark
     mode, confirm the page is dark and the red delete buttons are readable.
+
+**Result (2026-09-24): passed.** The project owner confirmed items 70 to 72.
 
 Live selector and action acceptance must wait for the evidence checklist in
 `manual-verification-needed.md`. Never perform destructive action testing

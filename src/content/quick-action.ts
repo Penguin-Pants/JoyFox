@@ -7,6 +7,7 @@ import {
   STALE_AFTER_MS,
   type ActionFailure,
   type ActionState,
+  type ActionStep,
   type ActionTarget,
   type OperationReport,
 } from "../actions/ignore-delete";
@@ -16,14 +17,17 @@ import type {
   MessageContract,
 } from "../messaging/protocol";
 import { request, type MessageSender } from "../messaging/request";
+import { selectorRegistry } from "../selectors/registry";
 import { pageMember } from "./member-panel";
+import { JoyClubQuickActionDriver } from "./quick-action-driver";
 import { isPlaced, placeInStrip, removeEmptyStrip } from "./member-strip";
 import { button, element, UI_ATTRIBUTE } from "./triage-ui";
 
 /**
  * The `storage.local` key for the experimental M9 button. Off unless set to
- * `true` (build plan Section 27: keep M9 behind an experimental flag). Even
- * when on, the button appears only with a live driver, and none exists yet.
+ * `true` (build plan Section 27: keep M9 behind an experimental flag). When
+ * on, the button appears on conversation pages, and a click runs the live
+ * driver, which clicks JoyClub's Delete and Ignore (ADR 0011).
  */
 export const QUICK_ACTION_KEY = "joyfox.quickIgnoreDelete";
 
@@ -33,10 +37,22 @@ export const QUICK_ACTION = "quick-action";
 export type LatestAnswer =
   MessageContract["action.ignoreDelete.latest"]["response"];
 
+export type PendingAnswer =
+  MessageContract["action.ignoreDelete.pending"]["response"];
+
 export interface QuickActionClient {
   latest(memberId: string): Promise<LatestAnswer>;
   /** Stores transitions under the account the page's data came from. */
   recorder(accountId: string): ActionRecorder;
+  /** Store this tab's hand-off marker; resolves only once it is stored. */
+  handOff(
+    accountId: string,
+    operationId: string,
+    next: ActionStep,
+    profilePath: string,
+  ): Promise<void>;
+  /** This tab's hand-off marker, read once. */
+  pending(): Promise<PendingAnswer>;
 }
 
 export function messageQuickActionClient(
@@ -45,6 +61,17 @@ export function messageQuickActionClient(
   return {
     latest: (memberId) =>
       request(sender, "action.ignoreDelete.latest", { memberId }),
+    handOff: async (accountId, operationId, next, profilePath) => {
+      const answer = await request(sender, "action.ignoreDelete.handOff", {
+        accountId,
+        operationId,
+        next,
+        profilePath,
+      });
+      if (answer.status !== "stored")
+        throw new Error("The hand-off was refused");
+    },
+    pending: () => request(sender, "action.ignoreDelete.pending", {}),
     recorder: (accountId) => ({
       begin: (target) =>
         request(sender, "action.ignoreDelete.start", {
@@ -72,27 +99,32 @@ export function runtimeQuickActionClient(): QuickActionClient {
 }
 
 /**
- * The live JoyClub driver. None exists: F7 has not verified where Ignore is,
- * which confirmations JoyClub shows, or how success is visible
- * (`manual-verification-needed.md`, item 7), and the build plan forbids
- * guessing that path. Until the evidence exists this returns `undefined`, so
- * the button never appears, whatever the flag says.
+ * The live JoyClub driver (ADR 0011), built from the F7 evidence. The button
+ * still appears only while the experimental flag is on.
  */
 export function liveQuickActionDriver(): QuickActionDriver | undefined {
-  return undefined;
+  return new JoyClubQuickActionDriver(document);
 }
 
 const PROGRESS_TEXT: Partial<Record<ActionState, string>> = {
   Started: "Ignore and Delete is running. Checking the page.",
-  IgnoreRequested: "Ignoring the member on JoyClub.",
-  IgnoreConfirmed: "Ignore done. Moving the conversation to the trash.",
   DeleteRequested: "Moving the conversation to the trash.",
+  DeleteConfirmed:
+    "Delete done. Opening the member's profile to ignore them there.",
+  IgnoreRequested: "Ignoring the member on JoyClub.",
 };
+
+/** How long a resumed run waits for the profile menu before it tries. */
+export const RESUME_WAIT_MS = 10_000;
 
 export const QUICK_ACTION_TEXT = {
   button: "Ignore and Delete",
   scope:
-    "Experimental. One click ignores this member on JoyClub and moves this conversation to JoyClub's trash. JoyFox stops at the first problem and tells you what was done. It never sends a message.",
+    "Experimental. One click moves this conversation to JoyClub's trash, then opens the member's profile and ignores them there. JoyFox stops at the first problem and tells you what was done. It never sends a message.",
+  handedOff: "Delete done. Opening the member's profile to ignore them there.",
+  noProfile:
+    "JoyFox cannot find this member's profile address, where Ignore is, so it did nothing.",
+  resumed: "Ignore and Delete, continued from the conversation:",
   previous: "Your last Ignore and Delete for this member:",
   previousOther:
     "Your last Ignore and Delete for this member, in another conversation:",
@@ -103,6 +135,15 @@ export const QUICK_ACTION_TEXT = {
   unexpected:
     "Ignore and Delete stopped because of an unexpected error. JoyFox may have completed a step: check the member's profile and the conversation yourself.",
 } as const;
+
+/** The hand-off this profile page resumes, once read (one-shot). */
+interface ResumeState {
+  answer: PendingAnswer;
+  since: number;
+  started: boolean;
+  /** Set once: page mutations call `updateProfile` often. */
+  timer?: ReturnType<typeof setTimeout>;
+}
 
 interface Shown {
   key: string;
@@ -147,11 +188,186 @@ export class QuickIgnoreDelete {
   /** The answer the stale timer was set for; a redraw keeps that timer. */
   #staleFor?: LatestAnswer;
 
+  /** The hand-off this profile page resumes, once read (one-shot). */
+  #resume?: ResumeState;
+  #discarded = false;
+  /** Failed reads of the hand-off marker on this page; retried a few times. */
+  #pendingFailures = 0;
+  #profileDrawn?: { section: HTMLElement; status: HTMLElement; lines: string };
+
   constructor(
     private readonly document: Document,
     private readonly client: QuickActionClient,
     private readonly driver: () => QuickActionDriver | undefined,
+    private readonly navigate: (url: string) => void = (url) =>
+      document.defaultView?.location.assign(url),
+    private readonly clock: () => number = () => Date.now(),
   ) {}
+
+  /**
+   * On a profile page: continue a run this tab handed off from a
+   * conversation (Path B, ADR 0011). The marker is read once per page; the
+   * run starts once JoyClub's profile menu is there, or after
+   * `RESUME_WAIT_MS`, when it stops with a clear reason if it is not.
+   */
+  updateProfile(): void {
+    // Arriving from a conversation in place: its button goes, once.
+    if (this.#shown) this.leave();
+    const member = pageMember(this.document, "profile");
+    if (!member) {
+      // The profile may still be loading; the read answer is kept.
+      this.#removeProfileSection();
+      return;
+    }
+    if (!this.#resume) {
+      if (!this.driver()) return;
+      // Read once per page load: the hand-off always loads a new page.
+      const resume: ResumeState = {
+        answer: { status: "none" },
+        since: this.clock(),
+        started: false,
+      };
+      this.#resume = resume;
+      this.client
+        .pending()
+        .then((answer) => {
+          resume.answer = answer;
+          if (this.#resume === resume) this.updateProfile();
+        })
+        .catch(() => {
+          // The background may be restarting: ask again on a later page
+          // event, a few times, while the marker is still valid.
+          if (this.#resume !== resume || this.#pendingFailures >= 3) return;
+          this.#pendingFailures += 1;
+          this.#resume = undefined;
+          setTimeout(() => this.updateProfile(), 500);
+        });
+      return;
+    }
+    const resume = this.#resume;
+    const answer = resume.answer;
+    if (answer.status === "stopped" && !resume.started) {
+      // Shown once, from the stored steps: Delete done, Ignore not.
+      resume.started = true;
+      this.#result = { key: "stopped", lines: answer.lines };
+    }
+    if (answer.status !== "ok") {
+      this.#renderProfile(member.anchor);
+      return;
+    }
+    const driver = this.driver();
+    if (!resume.started && driver && !this.#running) {
+      const waited = this.clock() - resume.since;
+      if (answer.memberId !== member.memberId) {
+        // Another member's profile: this page never continues the run.
+        resume.started = true;
+      } else if (
+        safely(() => driver.hasControl("ignore")) ||
+        waited > RESUME_WAIT_MS
+      ) {
+        resume.started = true;
+        this.#resumeRun(answer, driver);
+      } else if (!resume.timer) {
+        // Nothing may change on the page; check again once the wait is over.
+        resume.timer = setTimeout(
+          () => this.updateProfile(),
+          RESUME_WAIT_MS - waited + 50,
+        );
+      }
+    }
+    this.#renderProfile(member.anchor);
+  }
+
+  #resumeRun(
+    answer: Extract<PendingAnswer, { status: "ok" }>,
+    driver: QuickActionDriver,
+  ): void {
+    const key = `${answer.memberId}|${answer.conversationId}`;
+    this.#running = { key, progress: QUICK_ACTION_TEXT.resumed };
+    this.#stop = undefined;
+    this.#result = undefined;
+    void runQuickIgnoreDelete({
+      target: {
+        memberId: answer.memberId,
+        conversationId: answer.conversationId,
+      },
+      driver,
+      recorder: this.client.recorder(answer.accountId),
+      stopReason: () => this.#stop,
+      resume: {
+        operationId: answer.operationId,
+        from: answer.next,
+        steps: answer.steps,
+      },
+      onState: (state) => {
+        const text = PROGRESS_TEXT[state];
+        if (!text || !this.#running) return;
+        this.#running = { key, progress: text };
+        this.updateProfile();
+      },
+    })
+      .then((result) => {
+        this.#result = { key, lines: result.report.lines };
+      })
+      .catch(() => {
+        this.#result = { key, lines: [QUICK_ACTION_TEXT.unexpected] };
+      })
+      .finally(() => {
+        this.#running = undefined;
+        if (this.#stop === "turned-off") this.#result = undefined;
+        // Only while no conversation is shown: never tear down its button.
+        if (!this.#shown) this.updateProfile();
+      });
+  }
+
+  /** The profile page shows only a resumed run's progress and result. */
+  #renderProfile(anchor: Element | undefined): void {
+    const lines = this.#running
+      ? [QUICK_ACTION_TEXT.resumed, this.#running.progress]
+      : this.#result
+        ? [QUICK_ACTION_TEXT.resumed, ...this.#result.lines]
+        : [];
+    if (!anchor || lines.length === 0) {
+      this.#removeProfileSection();
+      return;
+    }
+    let drawn = this.#profileDrawn;
+    if (
+      !drawn ||
+      !drawn.section.isConnected ||
+      !isPlaced(drawn.section, anchor)
+    ) {
+      this.#removeProfileSection();
+      const section = element(this.document, "section", "joyfox-panel");
+      section.setAttribute(UI_ATTRIBUTE, QUICK_ACTION);
+      section.setAttribute("aria-label", "JoyFox Ignore and Delete");
+      const status = element(
+        this.document,
+        "div",
+        "joyfox-quick-action__status",
+      );
+      status.setAttribute("role", "status");
+      status.setAttribute("aria-live", "polite");
+      section.append(status);
+      placeInStrip(this.document, anchor, section);
+      drawn = { section, status, lines: "" };
+      this.#profileDrawn = drawn;
+    }
+    const text = JSON.stringify(lines);
+    if (drawn.lines === text) return;
+    drawn.lines = text;
+    const list = element(this.document, "ul", "joyfox-explain__list");
+    for (const line of lines)
+      list.append(element(this.document, "li", "", line));
+    drawn.status.replaceChildren(list);
+  }
+
+  #removeProfileSection(): void {
+    if (!this.#profileDrawn) return;
+    this.#profileDrawn.section.remove();
+    removeEmptyStrip(this.document);
+    this.#profileDrawn = undefined;
+  }
 
   update(): void {
     const member = this.driver()
@@ -208,6 +424,9 @@ export class QuickIgnoreDelete {
     this.#inFlight = undefined;
     this.#latest = undefined;
     this.#shown = undefined;
+    // A hand-off read on this page stays: the profile may briefly read as
+    // another page type while it loads. Its section is drawn again later.
+    this.#profileDrawn = undefined;
     this.teardown();
   }
 
@@ -215,7 +434,43 @@ export class QuickIgnoreDelete {
   turnOff(): void {
     if (this.#running) this.#stop = "turned-off";
     this.#result = undefined;
+    this.#discardHandOff();
     this.leave();
+  }
+
+  /**
+   * With the flag off, a hand-off waiting for this tab must never run later,
+   * when the flag is turned on again: read it once (which removes it) and
+   * close its run as turned off. Once per page load, as `turnOff` runs on
+   * every page event while the flag is off.
+   */
+  #discardHandOff(): void {
+    // Only a profile page can hold this tab's hand-off (the background
+    // checks the page), so other pages never ask.
+    if (this.#discarded || !pageMember(this.document, "profile")) return;
+    this.#discarded = true;
+    // A marker this page already read (the background removed it) and has
+    // not run yet is closed from what was read.
+    const read = this.#resume;
+    if (read && !read.started) {
+      read.started = true;
+      clearTimeout(read.timer);
+      const answer = read.answer;
+      if (answer.status === "ok")
+        void this.client
+          .recorder(answer.accountId)
+          .record(answer.operationId, "Failed", "turned-off")
+          .catch(() => undefined);
+    }
+    this.client
+      .pending()
+      .then(async (answer) => {
+        if (answer.status !== "ok") return;
+        await this.client
+          .recorder(answer.accountId)
+          .record(answer.operationId, "Failed", "turned-off");
+      })
+      .catch(() => undefined);
   }
 
   teardown(): void {
@@ -376,8 +631,16 @@ export class QuickIgnoreDelete {
   #run(shown: Shown, accountId: string): void {
     const driver = this.driver();
     if (this.#running || !driver) return;
-    this.#running = { key: shown.key, progress: PROGRESS_TEXT.Started! };
     this.#stop = undefined;
+    // Ignore needs the member's profile. Without its address, Delete would
+    // be done and Ignore could not follow, so nothing is started.
+    const profile = profileUrl(shown.anchor, shown.target.memberId);
+    if (!profile) {
+      this.#result = { key: shown.key, lines: [QUICK_ACTION_TEXT.noProfile] };
+      this.update();
+      return;
+    }
+    this.#running = { key: shown.key, progress: PROGRESS_TEXT.Started! };
     this.#result = undefined;
     this.update();
     void runQuickIgnoreDelete({
@@ -385,6 +648,15 @@ export class QuickIgnoreDelete {
       driver,
       recorder: this.client.recorder(accountId),
       stopReason: () => this.#stop,
+      // Ignore is on the profile page: store the marker; the page moves
+      // only once the run returns "handed-off".
+      handOff: (operationId, next) =>
+        this.client.handOff(
+          accountId,
+          operationId,
+          next,
+          new URL(profile).pathname,
+        ),
       onState: (state) => {
         const text = PROGRESS_TEXT[state];
         if (!text || !this.#running) return;
@@ -393,12 +665,15 @@ export class QuickIgnoreDelete {
       },
     })
       .then((result) => {
+        if (result.status === "handed-off") this.navigate(profile);
         this.#result = {
           key: shown.key,
           lines:
             result.status === "busy"
               ? [QUICK_ACTION_TEXT.busy]
-              : result.report.lines,
+              : result.status === "handed-off"
+                ? [QUICK_ACTION_TEXT.handedOff]
+                : result.report.lines,
         };
       })
       .catch(() => {
@@ -415,4 +690,35 @@ export class QuickIgnoreDelete {
         if (this.#shown) this.invalidate();
       });
   }
+}
+
+function safely(check: () => boolean): boolean {
+  try {
+    return check();
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * The sender's profile address, from the conversation header's own link
+ * (`02-conversation.md`), and only when it names the run's member on this
+ * site. Anything else is refused, so the hand-off never goes elsewhere.
+ */
+export function profileUrl(
+  header: Element,
+  memberId: string,
+): string | undefined {
+  const href = header.getAttribute("href");
+  const pattern = selectorRegistry.profile.path;
+  if (!href || !pattern) return undefined;
+  let url: URL;
+  try {
+    url = new URL(href, header.ownerDocument.URL);
+  } catch {
+    return undefined;
+  }
+  if (url.origin !== new URL(header.ownerDocument.URL).origin) return undefined;
+  const match = new RegExp(pattern).exec(url.pathname);
+  return match?.[1] === memberId ? url.href : undefined;
 }

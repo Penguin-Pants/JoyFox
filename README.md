@@ -39,6 +39,7 @@ inserts a template at the cursor; it never sends. See
 `docs/manual-acceptance.md`, items 27 to 35.
 
 Quick Ignore and Delete (M9) has its state machine, ActionLog and on-screen
-notice, tested with test drivers. It stays off: where Ignore lives in JoyClub's
-UI is not verified yet (F7), so no live click path exists and the button never
-appears. See ADR 0008.
+notice. Its live driver follows F7's evidence: Delete on the conversation page,
+then Ignore on the member's profile in the same tab (ADR 0011). It stays off
+unless `joyfox.quickIgnoreDelete` is set to `true`, and the manual matrix
+(`docs/manual-acceptance.md`, items 43 to 54) has not run yet.

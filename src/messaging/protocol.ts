@@ -2,9 +2,10 @@ import type { BeginAnswer, RecordAnswer } from "../actions/executor";
 import type {
   ActionFailure,
   ActionState,
+  ActionStep,
   OperationReport,
 } from "../actions/ignore-delete";
-import type { TriagePlacement } from "../domain/types";
+import type { ActionLog, TriagePlacement } from "../domain/types";
 import type { ProfileFacts } from "../qualification/facts";
 import type {
   TriageRequestMember,
@@ -162,6 +163,43 @@ export interface MessageContract {
           /** When the run last moved: its last stored step. */
           updatedAt: string;
           report: OperationReport;
+        };
+  };
+  /**
+   * M9 Path B (ADR 0011): the next step needs another page. Stores a
+   * one-shot marker for the sending tab, so only that tab continues the
+   * run after it navigates. Refused unless the run is the member's newest
+   * and its last stored step is the one before `next`.
+   */
+  "action.ignoreDelete.handOff": {
+    request: {
+      accountId: string;
+      operationId: string;
+      next: ActionStep;
+      /** The profile page the tab is about to open; only it may resume. */
+      profilePath: string;
+    };
+    response: { status: "stored" | "refused" };
+  };
+  /**
+   * The hand-off marker for the sending tab, if one is waiting. It is
+   * removed as it is read, and answered only while the run is still the
+   * member's newest, has not moved and is not stale.
+   */
+  "action.ignoreDelete.pending": {
+    request: Record<string, never>;
+    response:
+      | { status: "none" }
+      /** The account changed after Delete; the run was closed as such. */
+      | { status: "stopped"; lines: string[] }
+      | {
+          status: "ok";
+          accountId: string;
+          operationId: string;
+          memberId: string;
+          conversationId: string;
+          next: ActionStep;
+          steps: ActionLog["steps"];
         };
   };
   /** Content scripts cannot open the options page themselves. */

@@ -83,6 +83,25 @@ each row in two plain `div`s that keep their height when only the row is hidden
 (`01-inbox.md`, "List structure"). The climb stops at the list root and at the
 first wrapper with more than one child, so it can never hide the list.
 
+## M9 controls (ADR 0011)
+
+`src/selectors/quick-action.ts`, from `02-conversation.md` and `10-ignore.md`:
+
+| Page         | Control                  | Selector                                                                |
+| ------------ | ------------------------ | ----------------------------------------------------------------------- |
+| Conversation | Delete                   | `j-control-button[data-e2e="button-delete-conversation"]`, outside rows |
+| Profile      | Menu                     | `j-context-menu[data-e2e="profile-context-menu"]`                       |
+| Profile      | Menu button              | its direct child `j-control-button[slot="activator"]`                   |
+| Profile      | Ignore item              | `j-context-menu-item[title="Profil ignorieren"]` in the menu            |
+| Profile      | Ignored (success signal) | `j-context-menu-item[title="Profil nicht mehr ignorieren"]` in the menu |
+| Profile      | Dialog content           | `.profile-ignore-modal__content`, inside its `j-modal` host             |
+| Profile      | Confirm                  | `j-button[aria-label="Ignorieren"]` in that `j-modal`                   |
+
+The Delete control also sits on every inbox row. The driver uses the one that is
+outside all rows and inside the conversation header's row, and clicks nothing
+unless there is exactly one. The native buttons sit in open shadow roots; the
+driver clicks them there.
+
 ## Open points
 
 - **Verification codes.** Confirmed by the project owner on 2026-09-23: `1` is

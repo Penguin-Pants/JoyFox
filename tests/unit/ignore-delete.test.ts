@@ -26,10 +26,10 @@ describe("M9 state machine", () => {
   it("allows only the next step, or Failed from a state that is not terminal", () => {
     const order: ActionState[] = [
       "Started",
-      "IgnoreRequested",
-      "IgnoreConfirmed",
       "DeleteRequested",
       "DeleteConfirmed",
+      "IgnoreRequested",
+      "IgnoreConfirmed",
       "Completed",
     ];
     for (const from of ACTION_STATES)
@@ -42,10 +42,10 @@ describe("M9 state machine", () => {
       }
   });
 
-  it("never lets a step be skipped: Delete needs a confirmed Ignore", () => {
-    expect(canTransition("Started", "DeleteRequested")).toBe(false);
-    expect(canTransition("IgnoreRequested", "DeleteRequested")).toBe(false);
-    expect(canTransition("IgnoreConfirmed", "Completed")).toBe(false);
+  it("never lets a step be skipped: Ignore needs a confirmed Delete", () => {
+    expect(canTransition("Started", "IgnoreRequested")).toBe(false);
+    expect(canTransition("DeleteRequested", "IgnoreRequested")).toBe(false);
+    expect(canTransition("DeleteConfirmed", "Completed")).toBe(false);
   });
 });
 
@@ -76,13 +76,15 @@ describe("M9 identity invariant", () => {
     ).toBe("conversation-mismatch");
   });
 
-  it("requires the conversation page before Delete", () => {
+  it("requires the conversation page for Delete and the profile for Ignore", () => {
     const profile = { page: "profile" as const, memberId: TARGET.memberId };
+    const conversation = { page: "conversation" as const, ...TARGET };
     expect(checkTarget(TARGET, profile, "ignore")).toBeUndefined();
     expect(checkTarget(TARGET, profile, "delete")).toBe("identity-unavailable");
-    expect(
-      checkTarget(TARGET, { page: "conversation", ...TARGET }, "delete"),
-    ).toBeUndefined();
+    expect(checkTarget(TARGET, conversation, "delete")).toBeUndefined();
+    expect(checkTarget(TARGET, conversation, "ignore")).toBe(
+      "identity-unavailable",
+    );
   });
 
   it("fails when identity cannot be proven, never passes by default", () => {
@@ -104,10 +106,10 @@ describe("M9 report", () => {
     const result = report(
       steps(
         "Started",
-        "IgnoreRequested",
-        "IgnoreConfirmed",
         "DeleteRequested",
         "DeleteConfirmed",
+        "IgnoreRequested",
+        "IgnoreConfirmed",
         "Completed",
       ),
     );
@@ -119,7 +121,7 @@ describe("M9 report", () => {
     expect(result.lines[0]).toBe("Ignore and Delete finished.");
   });
 
-  it("says nothing changed when Ignore's control was missing", () => {
+  it("says nothing changed when Delete's control was missing", () => {
     const result = report(steps("Started", ["Failed", "control-missing"]));
     expect(result).toMatchObject({
       status: "failed",
@@ -129,62 +131,62 @@ describe("M9 report", () => {
     });
     expect(result.lines).toEqual([
       "Ignore and Delete stopped.",
-      "JoyFox could not find JoyClub's Ignore control.",
-      "Ignore: not done.",
+      "JoyFox could not find JoyClub's Delete control.",
       "Delete: not done.",
+      "Ignore: not done.",
       "Nothing was changed on JoyClub.",
-      expect.stringMatching(/^Next: open the member's profile/),
       expect.stringMatching(/^Next: open the conversation/),
+      expect.stringMatching(/^Next: open the member's profile/),
     ]);
   });
 
-  it("keeps a done Ignore and names Delete as the failed step", () => {
+  it("keeps a done Delete and names Ignore as the failed step", () => {
     const result = report(
-      steps("Started", "IgnoreRequested", "IgnoreConfirmed", [
+      steps("Started", "DeleteRequested", "DeleteConfirmed", [
         "Failed",
         "control-missing",
       ]),
     );
-    expect(result).toMatchObject({ ignore: "done", delete: "not-done" });
+    expect(result).toMatchObject({ delete: "done", ignore: "not-done" });
     expect(result.lines).toContain(
-      "JoyFox could not find JoyClub's Delete control.",
+      "JoyFox could not find JoyClub's Ignore control.",
     );
     expect(result.lines).toContain("JoyFox did not undo anything.");
-    expect(result.lines.join(" ")).not.toMatch(/member's profile/);
-    expect(result.lines.join(" ")).toMatch(/move it there yourself/);
+    expect(result.lines.join(" ")).not.toMatch(/move it there yourself/);
+    expect(result.lines.join(" ")).toMatch(/member's profile/);
   });
 
   it("reports a requested but unconfirmed step as not confirmed, never as not done", () => {
     const result = report(
-      steps("Started", "IgnoreRequested", ["Failed", "confirmation-missing"]),
+      steps("Started", "DeleteRequested", ["Failed", "confirmation-missing"]),
     );
-    expect(result.ignore).toBe("unknown");
+    expect(result.delete).toBe("unknown");
     expect(result.lines).toContain(
-      "Ignore: not confirmed. JoyFox started it but did not see JoyClub confirm it.",
+      "Delete: not confirmed. JoyFox started it but did not see JoyClub confirm it.",
     );
     expect(result.lines).toContain("JoyFox did not undo anything.");
   });
 
   it("reads a stalled run as interrupted, and a recent one as running", () => {
-    const logged = steps("Started", "IgnoreRequested");
+    const logged = steps("Started", "DeleteRequested");
     expect(report(logged, T0 + 1000).status).toBe("running");
     const stale = report(logged, T0 + STALE_AFTER_MS + 1);
     expect(stale.status).toBe("interrupted");
-    expect(stale.ignore).toBe("unknown");
+    expect(stale.delete).toBe("unknown");
     expect(stale.lines[0]).toMatch(/interrupted/);
   });
 
   it("never says a started step was not attempted when the log fails", () => {
     const lost = report(
-      steps("Started", "IgnoreRequested", ["Failed", "log-unavailable"]),
+      steps("Started", "DeleteRequested", ["Failed", "log-unavailable"]),
     );
     expect(lost.lines).toContain(
-      "JoyFox could not write to its action log, so it stopped during Ignore.",
+      "JoyFox could not write to its action log, so it stopped during Delete.",
     );
     expect(lost.lines.join(" ")).not.toMatch(/did not attempt/);
     const before = report(steps("Started", ["Failed", "log-unavailable"]));
     expect(before.lines).toContain(
-      "JoyFox could not write to its action log, so it stopped before Ignore.",
+      "JoyFox could not write to its action log, so it stopped before Delete.",
     );
   });
 
@@ -196,13 +198,13 @@ describe("M9 report", () => {
       "member-mismatch",
     ])
       for (const lines of [
-        report(steps("Started", "IgnoreRequested", ["Failed", failure])).lines,
+        report(steps("Started", "DeleteRequested", ["Failed", failure])).lines,
         report(
           steps(
             "Started",
-            "IgnoreRequested",
-            "IgnoreConfirmed",
             "DeleteRequested",
+            "DeleteConfirmed",
+            "IgnoreRequested",
             ["Failed", failure],
           ),
         ).lines,

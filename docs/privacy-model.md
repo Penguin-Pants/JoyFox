@@ -64,10 +64,16 @@ An automated test checks that no source file uses a network API or names a
 remote address, and that running every page feature against the synthetic
 fixtures makes no request (build plan Section 23).
 
-Quick Ignore and Delete (M9) is the only feature that would perform a JoyClub
-write. It is off by default and has no live driver until F7 verifies its path,
-so today it never clicks anything. Its ActionLog holds member and conversation
-IDs, step names, times and failure codes, never message text. It never sends a
+Quick Ignore and Delete (M9) is the only feature that performs JoyClub writes.
+It is off by default: only with `joyfox.quickIgnoreDelete` set to `true`, and
+only after the user clicks its button on a conversation, does its live driver
+(ADR 0011) click JoyClub's own controls. It moves that conversation to JoyClub's
+trash, opens the member's profile in the same tab, and ignores the member there
+through JoyClub's menu and dialog. Each click is recorded in the ActionLog
+first. The ActionLog holds member and conversation IDs, step names, times and
+failure codes, never message text. A one-time hand-off marker for the tab (the
+run's ID, account, next step and profile path) is kept in `storage.session`, in
+memory only, and is removed when the profile page reads it. M9 never sends a
 message.
 
 Import reads a file the user chooses, in the options page only. Nothing is
