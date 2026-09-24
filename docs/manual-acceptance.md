@@ -296,6 +296,17 @@ non-JoyFox file (62) also work.
     header. Open the inbox and confirm the triage bar is dark, one row, with a
     "?" that opens the explanation.
 
+**Result (2026-09-24): passed.** The project owner confirmed items 63 to 67.
+
+## Inbox views without gaps
+
+68. Open the inbox and click "Needs Review". Confirm only Needs Review rows
+    show, together at the top of the list, with no empty space between them.
+    Repeat for "Qualified" and "Quarantined".
+69. Scroll down so more rows load, then switch views again. Confirm the new rows
+    follow the same view with no gaps. Click "Inbox" and confirm every
+    non-Quarantined row is back in its original order.
+
 Live selector and action acceptance must wait for the evidence checklist in
 `manual-verification-needed.md`. Never perform destructive action testing
 automatically.

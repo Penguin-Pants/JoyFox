@@ -65,6 +65,30 @@ export function inboxListShown(document: Document): boolean {
 export const VIEW_ATTRIBUTE = "data-joyfox-view";
 export const ROW_ATTRIBUTE = "data-joyfox-row";
 export const PLACEMENT_ATTRIBUTE = "data-joyfox-placement";
+/**
+ * Set on a row's slot (see `rowSlot`) with the row's placement, or "" while
+ * the row is checked. The stylesheet hides the slot, not only the row.
+ */
+export const SLOT_ATTRIBUTE = "data-joyfox-slot";
+
+/**
+ * The element that holds one row in the list: the row itself, or the
+ * highest wrapper around it that holds nothing else. JoyClub wraps each row
+ * in two plain `div`s that keep the row's height when the row is hidden
+ * (owner evidence, 2026-09-24, `01-inbox.md`). Hiding the slot closes the
+ * gap, so the rows of a view sit together at the top. Found by structure,
+ * not by class name, and never the list itself.
+ */
+export function rowSlot(row: Element, list: Element): Element {
+  let slot = row;
+  for (
+    let parent = slot.parentElement;
+    parent && parent !== list && parent.children.length === 1;
+    parent = slot.parentElement
+  )
+    slot = parent;
+  return slot;
+}
 
 const VIEW_TEXT: Record<TriageView, string> = {
   default: "Inbox",
@@ -180,6 +204,7 @@ export class InboxTriage {
       "needs-review": 0,
       quarantined: 0,
     };
+    const slots = new Set<Element>();
     for (const state of rows) {
       const placement = this.#placementFor(state);
       setAttribute(state.row, ROW_ATTRIBUTE, "");
@@ -187,8 +212,17 @@ export class InboxTriage {
         setAttribute(state.row, PLACEMENT_ATTRIBUTE, placement);
         counts[placement] += 1;
       } else state.row.removeAttribute(PLACEMENT_ATTRIBUTE);
+      const slot = rowSlot(state.row, list);
+      slots.add(slot);
+      setAttribute(slot, SLOT_ATTRIBUTE, placement ?? "");
       this.#ensureBadge(state, placement);
     }
+    // A wrapper that no longer holds exactly one row (more rows loaded, or
+    // JoyClub reused it) must not keep an old placement: it could hide rows.
+    for (const node of Array.from(
+      this.document.querySelectorAll(`[${SLOT_ATTRIBUTE}]`),
+    ))
+      if (!slots.has(node)) node.removeAttribute(SLOT_ATTRIBUTE);
     this.#renderCounts(counts);
     this.#renderDetails(rows);
   }
@@ -225,6 +259,10 @@ export class InboxTriage {
       node.removeAttribute(ROW_ATTRIBUTE);
       node.removeAttribute(PLACEMENT_ATTRIBUTE);
     }
+    for (const node of Array.from(
+      this.document.querySelectorAll(`[${SLOT_ATTRIBUTE}]`),
+    ))
+      node.removeAttribute(SLOT_ATTRIBUTE);
     for (const node of Array.from(
       this.document.querySelectorAll(`[${VIEW_ATTRIBUTE}]`),
     ))
