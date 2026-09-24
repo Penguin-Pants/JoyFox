@@ -87,15 +87,30 @@ export class JoyClubQuickActionDriver implements QuickActionDriver {
   }
 
   async request(step: ActionStep): Promise<void> {
+    // The executor checked identity just before this call. Opening a menu
+    // can wait, and JoyClub can switch pages in place meanwhile, so the page
+    // must still show the same member and conversation right before the
+    // click; otherwise nothing is clicked.
+    const before = this.currentTarget();
+    const same = () => {
+      const now = this.currentTarget();
+      return (
+        now.page === before.page &&
+        now.memberId === before.memberId &&
+        now.conversationId === before.conversationId
+      );
+    };
     if (step === "delete") {
       const menu = this.#conversationMenu();
-      const memberId = this.currentTarget().memberId;
+      const memberId = before.memberId;
       const rows = memberId ? this.#rows(memberId) : undefined;
       if (!menu || !memberId || !rows) throw new Error("Delete not ready");
       const item =
         this.#deleteItem(menu) ??
         (await this.#openMenu(menu, () => this.#deleteItem(menu) ?? null));
       if (!item) throw new Error("Delete item not found");
+      if (!same() || this.#conversationMenu() !== menu)
+        throw new Error("The page changed before the click");
       // Fixed now: the page's header may change after the click.
       this.#deleted = { memberId, rows };
       press(item);
@@ -107,6 +122,8 @@ export class JoyClubQuickActionDriver implements QuickActionDriver {
       menu.querySelector(S.ignoreItem) ??
       (await this.#openMenu(menu, () => menu.querySelector(S.ignoreItem)));
     if (!item) throw new Error("Ignore item not found");
+    if (!same() || this.#menu() !== menu)
+      throw new Error("The page changed before the click");
     press(item);
   }
 

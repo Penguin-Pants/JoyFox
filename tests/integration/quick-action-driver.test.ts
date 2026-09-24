@@ -293,6 +293,26 @@ describe("M9 live driver on synthetic JoyClub pages (ADR 0011)", () => {
     expect(pressed).toEqual([]);
   });
 
+  it("clicks nothing when the conversation changes while the menu opens", async () => {
+    openConversation();
+    const menu = document.querySelector("j-context-menu")!;
+    // JoyClub routes to another conversation in place as the menu opens.
+    menu
+      .querySelector('[slot="activator"]')!
+      .shadowRoot!.querySelector("button")!
+      .addEventListener("click", () =>
+        window.history.replaceState(
+          null,
+          "",
+          "/clubmail/conversation/conversation-wrapper-personal-1234567-1111111",
+        ),
+      );
+    const driver = new JoyClubQuickActionDriver(document, TIMING);
+    await expect(driver.request("delete")).rejects.toThrow(/changed/);
+    expect(pressed).toEqual(["Optionen"]);
+    expect(rowsOf(MEMBER)).toHaveLength(1);
+  });
+
   it("never uses a menu outside the conversation's own header", () => {
     openConversation();
     // The same menu, but not in the header that holds the conversation.
