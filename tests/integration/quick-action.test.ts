@@ -738,7 +738,20 @@ describe("M9 hand-off messages (ADR 0011)", () => {
     const switched = await afterDelete();
     await client.handOff("account-a", switched, "ignore", PROFILE_PATH);
     active = "account-b";
-    expect(await client.pending()).toEqual({ status: "none" });
+    // Closed under account A, and said, never left as still going.
+    const stopped = await client.pending();
+    expect(stopped).toMatchObject({ status: "stopped" });
+    if (stopped.status !== "stopped") throw new Error("not stopped");
+    expect(stopped.lines).toContain(
+      "The active JoyFox account changed, so JoyFox stopped before Ignore.",
+    );
+    expect(stopped.lines).toContain(
+      "Delete: done. JoyClub moved the conversation to the trash.",
+    );
+    expect((await logged("account-a")).at(-1)?.at(-1)).toBe(
+      "Failed:account-changed",
+    );
+    expect(await logged("account-b")).toEqual([]);
   });
 
   it("refuses a message without a tab, and a first step as the next", async () => {
@@ -1028,6 +1041,34 @@ describe("M9 button and notice", () => {
       () => expect(driver.clicks).toEqual(["request:ignore", "confirm:ignore"]),
       { timeout: 3000 },
     );
+    // Let the run store its last steps before the next test starts.
+    await vi.waitFor(async () =>
+      expect((await logged())[0]?.at(-1)).toBe("Completed"),
+    );
+  });
+
+  it("shows a hand-off stopped by an account switch on the profile", async () => {
+    const recorder = client.recorder("account-a");
+    const begun = await recorder.begin(TARGET);
+    if (begun.status !== "started") throw new Error("not started");
+    await recorder.record(begun.operationId, "DeleteRequested");
+    await recorder.record(begun.operationId, "DeleteConfirmed");
+    await client.handOff(
+      "account-a",
+      begun.operationId,
+      "ignore",
+      PROFILE_PATH,
+    );
+    active = "account-b";
+    onProfilePage();
+    document.body.innerHTML = profileHtml;
+    const driver = new FakeDriver();
+    driver.current = () => PROFILE;
+    new QuickIgnoreDelete(document, client, () => driver).updateProfile();
+    await vi.waitFor(() =>
+      expect(notice()).toContain("The active JoyFox account changed"),
+    );
+    expect(driver.clicks).toEqual([]);
   });
 
   it("reads the hand-off only on the profile it named", async () => {

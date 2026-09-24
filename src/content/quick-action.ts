@@ -245,6 +245,11 @@ export class QuickIgnoreDelete {
     }
     const resume = this.#resume;
     const answer = resume.answer;
+    if (answer.status === "stopped" && !resume.started) {
+      // Shown once, from the stored steps: Delete done, Ignore not.
+      resume.started = true;
+      this.#result = { key: "stopped", lines: answer.lines };
+    }
     if (answer.status !== "ok") {
       this.#renderProfile(member.anchor);
       return;

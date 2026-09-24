@@ -190,6 +190,8 @@ export interface MessageContract {
     request: Record<string, never>;
     response:
       | { status: "none" }
+      /** The account changed after Delete; the run was closed as such. */
+      | { status: "stopped"; lines: string[] }
       | {
           status: "ok";
           accountId: string;

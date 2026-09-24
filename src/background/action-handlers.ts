@@ -12,6 +12,7 @@ import {
 } from "../actions/ignore-delete";
 import type { ActionLog } from "../domain/types";
 import type { MessageRouter, RouteContext } from "../messaging/router";
+import { withAccountLock } from "../storage/account-lock";
 import { bumpActionRevision } from "../storage/action-revision";
 import type { SettingsArea } from "../storage/local-settings";
 import {
@@ -221,8 +222,33 @@ export function registerActionHandlers(
       return { status: "none" };
     // Only the profile the run went to, as the browser reports the sender.
     if (senderPath(context) !== stored.profilePath) return { status: "none" };
-    if ((await deps.activeAccountId()) !== stored.accountId)
-      return { status: "none" };
+    if ((await deps.activeAccountId()) !== stored.accountId) {
+      // The account changed after Delete: close the run where it stopped,
+      // under its own account, so it never reads as still going, and say so.
+      const closed = await withAccountLock(stored.accountId, async () => {
+        if (
+          !(await handOffReady(
+            stored.accountId,
+            stored.operationId,
+            stored.next,
+          ))
+        )
+          return undefined;
+        await deps.actions.record(
+          stored.accountId,
+          stored.operationId,
+          "Failed",
+          "account-changed",
+        );
+        return deps.actions.find(stored.accountId, stored.operationId);
+      });
+      if (!closed) return { status: "none" };
+      await bumpActionRevision(deps.settings);
+      return {
+        status: "stopped",
+        lines: reportOperation(closed, now()).lines,
+      };
+    }
     const log = await handOffReady(
       stored.accountId,
       stored.operationId,
