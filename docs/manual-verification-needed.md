@@ -28,12 +28,14 @@ verified from it. Still open:
 - **Empty inbox:** how the inbox renders with no conversations, for example an
   empty-state element. This decides how a feature tells "empty" from "loading".
 - **Item 7 (F7), partial (2026-09-24):** the conversation "Optionen" menu does
-  not contain Ignore. The profile page's three-dot menu has "Profil ignorieren",
-  a `j-context-menu-item` with no `data-e2e` hook
-  (`live-evidence/10-ignore.md`). So M9 is Path B: ignore on the profile. Still
-  open for the live driver: the profile menu trigger, whether the menu item's
-  shadow root is open, what "Profil ignorieren" does next (dialog, result,
-  route), and Delete's confirmation and result.
+  not contain Ignore. The profile page's menu has
+  `j-context-menu-item[title="Profil ignorieren"]` inside
+  `j-context-menu[data-e2e="profile-context-menu"]`, with open shadow roots. It
+  opens a confirmation dialog whose confirm button is
+  `j-button[aria-label="Ignorieren"]` (`live-evidence/10-ignore.md`). So M9 is
+  Path B: ignore on the profile. Still open for the live driver: the dialog's
+  root and cancel button, what happens after confirming (result, route), and
+  Delete's confirmation and result.
 - **Item 9:** profile → Back, inbox → search and inbox → events.
 - **Items 4, 5, 6 (event ClubMail composer) and 10:** not started.
 

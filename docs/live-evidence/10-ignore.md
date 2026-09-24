@@ -45,6 +45,102 @@ Observations:
   open, which a content script needs to reach the button, is not recorded.
 - The number in `lit$…$` is a Lit render marker, not an identifier.
 
+## Profile menu trigger and items (2026-09-24, second report)
+
+The menu is a `j-context-menu` with a stable test hook. Its items are
+`j-context-menu-item` elements in the light DOM, each named by a `title`
+attribute; the `<button>` shown above is inside each item's shadow root, which
+is **open**. Sanitized (layout-only inline styles and `data-v-*` build hashes
+removed):
+
+```html
+<div class="profile-container__context-menu-desktop">
+  <j-context-menu
+    data-e2e="profile-context-menu"
+    role="button"
+    aria-haspopup="true"
+    open="true"
+  >
+    <j-control-button
+      slot="activator"
+      aria-label="Profiloptionen"
+      icon-only="true"
+      a11y-expanded="true"
+    >
+      <j-icon type="glyphicons-option-vertical"></j-icon>
+    </j-control-button>
+    <j-context-menu-item title="Kontakt bearbeiten"></j-context-menu-item>
+    <j-context-menu-item title="Fotos freigeben"></j-context-menu-item>
+    <j-context-menu-item title="In Gruppe einladen"></j-context-menu-item>
+    <j-context-menu-item title="Zu Event einladen"></j-context-menu-item>
+    <j-context-menu-item
+      title="Zum Video-Chat einladen"
+      data-e2e="menu-video-chat-invite"
+    ></j-context-menu-item>
+    <j-spacer></j-spacer>
+    <j-context-menu-item title="Beschwerde über Profil"></j-context-menu-item>
+    <j-context-menu-item title="Profil ignorieren"></j-context-menu-item>
+  </j-context-menu>
+</div>
+```
+
+Candidate selectors (observed, not yet exercised by code):
+
+| Element     | Selector                                                                                                        |
+| ----------- | --------------------------------------------------------------------------------------------------------------- |
+| Menu        | `j-context-menu[data-e2e="profile-context-menu"]`                                                               |
+| Menu button | `j-context-menu[data-e2e="profile-context-menu"] > j-control-button[slot="activator"]` (label "Profiloptionen") |
+| Ignore item | `j-context-menu[data-e2e="profile-context-menu"] j-context-menu-item[title="Profil ignorieren"]`                |
+
+The Ignore item still has no `data-e2e` hook; it is found by the German `title`
+inside a menu that has one. The menu's `open` attribute reflects whether it is
+open.
+
+## Ignore confirmation dialog
+
+Choosing "Profil ignorieren" opens a confirmation dialog. Its body (member name
+replaced with `NAME`):
+
+```html
+<div class="profile-ignore-modal__content">
+  <p>NAME kann dann Folgendes nicht mehr:</p>
+  <ul>
+    <li>Kontakt per ClubMail mit dir aufnehmen</li>
+    <li>dein Profil ansehen</li>
+    <li>deine Pinnwandeinträge sehen</li>
+    <li>deinen Livestreams beitreten</li>
+  </ul>
+  <p>
+    Das Mitglied erfährt erst, dass du es ignoriert hast, wenn es aktiv auf dein
+    Profil zugreifen möchte.
+  </p>
+  <j-a>Weitere Infos</j-a>
+</div>
+```
+
+The dialog offers two buttons. The confirm button is a `j-button` whose open
+shadow root holds the native `<button>`:
+
+```html
+<j-button aria-label="Ignorieren" type="button" full-size="true">
+  #shadow-root (open)
+  <button
+    class="j-button primary full-size"
+    type="button"
+    aria-label="Ignorieren"
+  >
+    <slot class="j-button__content"></slot>
+  </button>
+  Ignorieren
+</j-button>
+```
+
+- Confirm: `j-button[aria-label="Ignorieren"]`, near
+  `.profile-ignore-modal__content`. No `data-e2e` hook was reported.
+- The dialog names the member by display name only. It shows no member ID, so
+  the identity check must rely on the profile URL, which stays the same while
+  the dialog is open (to be confirmed).
+
 ## Consequence
 
 F7's answer is **Path B**: Quick Ignore and Delete must go from the conversation

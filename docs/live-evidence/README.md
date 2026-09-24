@@ -33,5 +33,5 @@ What each partial item still lacks:
   profile's account age are resolved; see `08-attribute-matrix.md`.
 
 Not yet captured: search (4), events (5), event ClubMail composer (6), the rest
-of item 7 (the Ignore confirmation and result, Delete's confirmation and
+of item 7 (the result after confirming Ignore, Delete's confirmation and
 result), the remaining navigation moves (9) and the distribution channel (10).
