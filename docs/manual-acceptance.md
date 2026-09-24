@@ -259,6 +259,16 @@ expected ActionLog. Each item has a synthetic test with the same case number in
 | 53   | 11. Background restarted mid-run       | Click **Terminate background script** in `about:debugging` during the run                 | The full sequence, or the last stored step then `Failed`                                           | Matches the ActionLog. No step is repeated.                                              |
 | 54   | 12. Another account activated mid-run  | Switch the JoyFox account in the options page during the run                              | Account A's log ends at its last stored step; account B has no record                              | "The active JoyFox account changed, so JoyFox stopped at …".                             |
 
+**Result, item 43 (2026-09-24): passed.** The project owner ran Ignore and
+Delete on a test conversation in the split view. The exported ActionLog shows
+`Started`, `DeleteRequested`, `DeleteConfirmed` (0.24 s after the click, the row
+left the list), `IgnoreRequested` (1.7 s, after the move to the profile),
+`IgnoreConfirmed` (2.6 s) and `Completed`, one operation with the matching
+member and conversation. The first attempt had stopped before any click with
+"could not find JoyClub's Delete control"; Delete moved to the conversation's
+three-dot menu (`live-evidence/10-ignore.md`, eighth report). Items 44 to 54
+remain.
+
 ## Rule autosave (2026-09-24)
 
 56. In "Contact rule", tick one condition. Confirm "Rule saved" appears at once,
