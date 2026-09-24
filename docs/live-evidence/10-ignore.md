@@ -262,8 +262,8 @@ build plan Section 16 and ADR 0008.
 
 ## Delete on the conversation page (2026-09-24, seventh report)
 
-The owner clicked the conversation page's own Delete control
-(`j-control-button[data-e2e="button-delete-conversation"]` in the header row):
+The owner trashed a conversation from the conversation page (the eighth report
+shows the control is the three-dot menu's "In den Papierkorb schieben"):
 
 - **No confirmation dialog**, as on the inbox row.
 - **The page address stays the same.** The conversation stays open in the right
@@ -272,6 +272,45 @@ The owner clicked the conversation page's own Delete control
   move up with no gap.
 - The same "Unterhaltung mit NAME in den Papierkorb verschoben" notice with
   "Rückgängig" (Undo) appears. Its HTML was not captured.
+
+## The conversation's three-dot menu (2026-09-24, eighth report)
+
+The conversation page has no standalone Delete button. The first live run of M9
+looked for `button-delete-conversation` in the header row, found none, and
+stopped before any click. That button is on the inbox rows only (the small "x").
+Delete on the conversation page is an item of the conversation's three-dot menu,
+read with a console snippet that printed only tags, attributes and labels:
+
+```text
+menu button: <j-control-button slot="activator" data-e2e="button-conversation-kebap"
+              aria-label="Optionen" icon-only="true" aria-controls="menu" …>
+menu:        <j-context-menu offset-x="true" class="cm-conversation__context-menu" open="true">
+item:        <j-context-menu-item justify-content="start" visually-focused="false">
+items:       4, none with a title attribute
+in an inbox row: false
+shared parent with the conversation header: header.cm-clubmail-header
+```
+
+The item's open shadow root holds the same structure as the profile menu's:
+
+```html
+<button id="" class=" j-context-menu-item " tabindex="-1" role="menuitem">
+  <div class="j-context-menu-item__content">
+    <slot name="icon" data-component-tag="j-context-menu-item"></slot>
+    <span class="j-context-menu-item__text">In den Papierkorb schieben</span>
+    <slot
+      class="icon-append"
+      name="icon-append"
+      data-component-tag="j-context-menu-item"
+    ></slot>
+  </div>
+</button>
+```
+
+- The items have no `title` and no hook, so the Delete item can only be found by
+  its visible text, "In den Papierkorb schieben", inside this menu.
+- `02-conversation.md` listed `button-delete-conversation` as "directly visible"
+  on the conversation page; that was the inbox row's button in the split view.
 
 ## Used by the M9 driver (ADR 0011)
 
