@@ -141,3 +141,6 @@
   than combining them, and retention is not applied until the next ordinary
   write (ADR 0009). An import reads all stored data to plan, so a very large
   store makes the preview slower.
+- The member strip's place depends on JoyClub's layout: it follows the header's
+  parent when that parent is a horizontal flex row (ADR 0010). At narrow widths
+  the bar wraps onto a second line.

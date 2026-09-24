@@ -76,13 +76,27 @@ async function openProfile(): Promise<MemberNotes> {
   return notes;
 }
 
+/**
+ * Open the editor the way a user does: by its summary. It stays closed
+ * until then (owner decision, 2026-09-24).
+ */
+async function openEditor(): Promise<void> {
+  editor()!.querySelector<HTMLElement>("summary")!.click();
+  // The editor records the open state from the `toggle` event.
+  await new Promise((resolve) => setTimeout(resolve, 0));
+}
+
 describe("M5 note and tag editor", () => {
   it("appears after the profile header, labelled and closed while empty", async () => {
     await openProfile();
     const header = document.querySelector(
       '[data-e2e="profile-header-base-info"]',
     )!;
-    expect(header.nextElementSibling).toBe(editor());
+    // In the shared JoyFox strip right after the header, never inside it.
+    expect(header.nextElementSibling).toBe(editor()?.parentElement);
+    expect(editor()?.parentElement?.getAttribute("data-joyfox-ui")).toBe(
+      "member-strip",
+    );
     expect(header.contains(editor())).toBe(false);
     expect(editor()?.querySelector("details")?.open).toBe(false);
     expect(editor()?.textContent).toContain("Your notes and tags (none yet)");
@@ -123,7 +137,10 @@ describe("M5 note and tag editor", () => {
     const header = document.querySelector(
       '[data-e2e="profile-header-base-info"]',
     )!;
-    expect(header.nextElementSibling).toBe(panelNode());
+    // One strip after the header holds both, the panel first.
+    const strip = header.nextElementSibling;
+    expect(strip?.getAttribute("data-joyfox-ui")).toBe("member-strip");
+    expect(strip?.firstElementChild).toBe(panelNode());
     expect(panelNode()?.nextElementSibling).toBe(editor());
     // Updating again leaves both in place: nothing is drawn twice.
     const drawn = editor();
@@ -153,7 +170,8 @@ describe("M5 note and tag editor", () => {
     new MemberNotes(document, client).update("profile");
     await vi.waitFor(() => expect(editor()).not.toBeNull());
     expect(noteBox()?.value).toBe("Invented note text");
-    expect(editor()?.querySelector("details")?.open).toBe(true);
+    // Closed by default; the summary says a note exists.
+    expect(editor()?.querySelector("details")?.open).toBe(false);
     expect(editor()?.textContent).toContain("Your notes and tags (a note)");
   });
 
@@ -174,6 +192,7 @@ describe("M5 note and tag editor", () => {
 
   it("adds a tag with Enter and removes it", async () => {
     await openProfile();
+    await openEditor();
     tagInput()!.focus();
     type(tagInput()!, "  Met   twice ");
     tagInput()!.dispatchEvent(
@@ -216,6 +235,7 @@ describe("M5 note and tag editor", () => {
 
   it("keeps typed text and focus when the page reads the note again", async () => {
     const notes = await openProfile();
+    await openEditor();
     const box = noteBox()!;
     box.focus();
     type(box, "Unsaved invented text");
@@ -274,6 +294,7 @@ describe("M5 note and tag editor", () => {
 
   it("discards typed text and shows the stored note", async () => {
     await openProfile();
+    await openEditor();
     type(noteBox()!, "Stored invented note");
     buttonNamed("Save note").click();
     await vi.waitFor(() => expect(status()).toBe(NOTES_TEXT.saved));

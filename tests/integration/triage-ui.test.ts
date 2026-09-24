@@ -9,6 +9,7 @@ import {
   VIEW_ATTRIBUTE,
 } from "../../src/content/inbox-triage";
 import { MemberPanel } from "../../src/content/member-panel";
+import { memberBar } from "../../src/content/triage-ui";
 import type { TriageClient } from "../../src/content/triage-client";
 import type {
   ContactRuleDefinition,
@@ -116,9 +117,12 @@ const rows = () =>
 const placements = () =>
   rows().map((row) => row.getAttribute(PLACEMENT_ATTRIBUTE));
 const bar = () => document.querySelector('[data-joyfox-ui="triage-bar"]');
+/** A button by the start of its text or its full accessible name. */
 const buttonNamed = (root: ParentNode, text: string) => {
-  const match = Array.from(root.querySelectorAll("button")).find((node) =>
-    node.textContent?.startsWith(text),
+  const match = Array.from(root.querySelectorAll("button")).find(
+    (node) =>
+      node.textContent?.startsWith(text) ||
+      node.getAttribute("aria-label") === text,
   );
   if (!match) throw new Error(`No button ${text}`);
   return match;
@@ -438,6 +442,109 @@ describe("M2 inbox triage", () => {
 describe("conversation and profile panel", () => {
   const panel = () => document.querySelector('[data-joyfox-ui="member-panel"]');
 
+  const CONVERSATION =
+    "/clubmail/conversation/conversation-wrapper-personal-1234567-7654321";
+
+  it("goes under JoyClub's header row, not into it, when the header is a row item", async () => {
+    await rules.saveGlobalRule(ACCOUNT, knownRule());
+    // The live header sits in a horizontal flex row with the menu buttons.
+    setPage(
+      CONVERSATION,
+      `<div id="row" style="display: flex">${conversationHtml.split("<ul")[0]}</div><ul${conversationHtml.split("<ul")[1]}`,
+    );
+    new MemberPanel(document, serviceClient()).update("conversation");
+    await vi.waitFor(() => expect(panel()).not.toBeNull());
+    const row = document.querySelector("#row")!;
+    expect(row.nextElementSibling).toBe(panel()?.parentElement);
+    expect(row.contains(panel())).toBe(false);
+  });
+
+  it("stays after the header when the header's parent stacks vertically", async () => {
+    await rules.saveGlobalRule(ACCOUNT, knownRule());
+    setPage(
+      CONVERSATION,
+      `<div id="column" style="display: flex; flex-direction: column">${conversationHtml}</div>`,
+    );
+    new MemberPanel(document, serviceClient()).update("conversation");
+    await vi.waitFor(() => expect(panel()).not.toBeNull());
+    const header = document.querySelector(".cm-conversation-header")!;
+    expect(header.nextElementSibling).toBe(panel()?.parentElement);
+  });
+
+  it("shows one slim bar with the details closed until asked for", async () => {
+    await rules.saveGlobalRule(ACCOUNT, knownRule());
+    setPage(CONVERSATION, conversationHtml);
+    new MemberPanel(document, serviceClient()).update("conversation");
+    await vi.waitFor(() => expect(panel()).not.toBeNull());
+    const bar = panel()!.querySelector(".joyfox-bar")!;
+    expect(bar.textContent).toContain("Placement: Qualified");
+    expect(bar.textContent).toContain("Local trust score:");
+    expect(buttonNamed(bar, "Log positive")).toBeDefined();
+    const toggle = buttonNamed(bar, "Why and move")!;
+    const drawer = () => panel()!.querySelector<HTMLElement>(".joyfox-drawer")!;
+    expect(toggle.getAttribute("aria-expanded")).toBe("false");
+    expect(drawer().hidden).toBe(true);
+    expect(toggle.getAttribute("aria-controls")).toBe(drawer().id);
+    toggle.click();
+    expect(drawer().hidden).toBe(false);
+    expect(buttonNamed(drawer(), "Move to Quarantined")).toBeDefined();
+    // Logging an outcome redraws the bar; the open drawer stays open.
+    buttonNamed(bar, "Log positive")!.click();
+    await vi.waitFor(() =>
+      expect(
+        panel()?.querySelector('[aria-label="Undo last outcome"]'),
+      ).not.toBeNull(),
+    );
+    expect(drawer().hidden).toBe(false);
+    expect(
+      buttonNamed(
+        panel()!.querySelector(".joyfox-bar")!,
+        "Why and move",
+      )?.getAttribute("aria-expanded"),
+    ).toBe("true");
+  });
+
+  it("closes the details again after the page is left", async () => {
+    await rules.saveGlobalRule(ACCOUNT, knownRule());
+    setPage(CONVERSATION, conversationHtml);
+    const memberPanel = new MemberPanel(document, serviceClient());
+    memberPanel.update("conversation");
+    await vi.waitFor(() => expect(panel()).not.toBeNull());
+    buttonNamed(
+      panel()!.querySelector(".joyfox-bar")!,
+      "Why and move",
+    )!.click();
+    memberPanel.leave();
+    expect(panel()).toBeNull();
+    memberPanel.update("conversation");
+    await vi.waitFor(() => expect(panel()).not.toBeNull());
+    expect(panel()!.querySelector<HTMLElement>(".joyfox-drawer")!.hidden).toBe(
+      true,
+    );
+  });
+
+  it("offers no details toggle when there are no details to show", () => {
+    const [bar, ...rest] = memberBar(document, {
+      ruleOff: "No contact rule is set.",
+      actions: {},
+      drawerOpen: false,
+      onToggle: () => undefined,
+    });
+    expect(rest).toEqual([]);
+    expect(bar!.querySelector("[aria-expanded]")).toBeNull();
+  });
+
+  it("keeps the member strip when the inbox is torn down", async () => {
+    await rules.saveGlobalRule(ACCOUNT, knownRule());
+    setPage(CONVERSATION, conversationHtml);
+    new MemberPanel(document, serviceClient()).update("conversation");
+    await vi.waitFor(() => expect(panel()).not.toBeNull());
+    const shown = panel();
+    new InboxTriage(document, serviceClient()).teardown();
+    expect(panel()).toBe(shown);
+    expect(shown?.isConnected).toBe(true);
+  });
+
   it("shows the placement after the header link, never inside it", async () => {
     await rules.saveGlobalRule(ACCOUNT, knownRule());
     setPage(
@@ -447,7 +554,10 @@ describe("conversation and profile panel", () => {
     new MemberPanel(document, serviceClient()).update("conversation");
     await vi.waitFor(() => expect(panel()).not.toBeNull());
     const header = document.querySelector(".cm-conversation-header")!;
-    expect(header.nextElementSibling).toBe(panel());
+    expect(header.nextElementSibling).toBe(panel()?.parentElement);
+    expect(panel()?.parentElement?.getAttribute("data-joyfox-ui")).toBe(
+      "member-strip",
+    );
     expect(header.contains(panel())).toBe(false);
     expect(panel()?.textContent).toContain("Placement: Qualified");
   });
@@ -463,7 +573,9 @@ describe("conversation and profile panel", () => {
     // Personally known (+1) is already listed as a contribution.
     expect(panel()?.textContent).toContain("Local trust score: 1.");
     // Nothing is logged yet, so there is nothing to undo.
-    expect(panel()?.textContent).not.toContain("Undo last outcome");
+    expect(
+      panel()?.querySelector('[aria-label="Undo last outcome"]'),
+    ).toBeNull();
     buttonNamed(panel()!, "Log positive").click();
     await vi.waitFor(() =>
       expect(panel()?.textContent).toContain("Local trust score: 2."),

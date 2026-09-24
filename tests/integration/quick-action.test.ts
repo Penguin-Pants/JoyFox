@@ -647,7 +647,10 @@ describe("M9 button and notice", () => {
     openConversation(driver);
     await vi.waitFor(() => expect(runButton()).toBeDefined());
     const header = document.querySelector(".cm-conversation-header")!;
-    expect(header.nextElementSibling).toBe(section());
+    expect(header.nextElementSibling).toBe(section()?.parentElement);
+    expect(section()?.parentElement?.getAttribute("data-joyfox-ui")).toBe(
+      "member-strip",
+    );
     expect(notice()).toContain("It never sends a message.");
     runButton()!.click();
     await vi.waitFor(() =>

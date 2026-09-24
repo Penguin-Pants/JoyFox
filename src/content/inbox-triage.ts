@@ -15,8 +15,13 @@ import { factsKey, observedFromInboxRow } from "./observed-facts";
 import type { TriageClient } from "./triage-client";
 import { button, element, explanation, UI_ATTRIBUTE } from "./triage-ui";
 
-/** `data-joyfox-ui` values of UI that inbox teardown must leave in place. */
-const OTHER_FEATURE_UI: readonly string[] = ["member-panel", "template-picker"];
+/**
+ * The `data-joyfox-ui` values the inbox itself creates. Teardown removes only
+ * these: removing another feature's UI (the member strip, the note editor,
+ * the template picker) would make it mount again on the next mutation, in a
+ * loop.
+ */
+const INBOX_UI: readonly string[] = ["triage-bar", "badge"];
 
 /** The triage views (owner's decision, 2026-09-23). */
 export type TriageView =
@@ -205,15 +210,14 @@ export class InboxTriage {
   }
 
   /**
-   * Remove every trace of JoyFox from the inbox. UI that other features own
-   * (the member panel, the composer template picker) stays: removing it here
-   * would make its owner remount it on the next mutation, in a loop.
+   * Remove every trace of the inbox triage (`INBOX_UI`). UI that other
+   * features own stays in place.
    */
   teardown(): void {
     for (const node of Array.from(
       this.document.querySelectorAll(`[${UI_ATTRIBUTE}]`),
     ))
-      if (!OTHER_FEATURE_UI.includes(node.getAttribute(UI_ATTRIBUTE) ?? ""))
+      if (INBOX_UI.includes(node.getAttribute(UI_ATTRIBUTE) ?? ""))
         node.remove();
     for (const node of Array.from(
       this.document.querySelectorAll(`[${ROW_ATTRIBUTE}]`),
@@ -360,8 +364,13 @@ export class InboxTriage {
       tab.dataset.view = view;
       group.append(tab);
     }
-    bar.append(
-      group,
+    // The explanation sits behind a small "?" so the bar stays one line.
+    const about = element(this.document, "details", "joyfox-triage__about");
+    const summary = element(this.document, "summary", "joyfox-button", "?");
+    summary.setAttribute("aria-label", "About these views");
+    summary.title = "About these views";
+    about.append(
+      summary,
       element(
         this.document,
         "p",
@@ -369,6 +378,8 @@ export class InboxTriage {
         "Inbox hides Quarantined rows from this view only. Nothing is deleted, and JoyFox changes nothing on JoyClub.",
       ),
     );
+    group.append(about);
+    bar.append(group);
     const details = element(this.document, "div", "joyfox-triage__details");
     details.hidden = true;
     bar.append(details);

@@ -16,8 +16,8 @@ import type {
   MessageContract,
 } from "../messaging/protocol";
 import { request, type MessageSender } from "../messaging/request";
-import { MEMBER_NOTES } from "./member-notes";
-import { MEMBER_PANEL, pageMember } from "./member-panel";
+import { pageMember } from "./member-panel";
+import { isPlaced, placeInStrip, removeEmptyStrip } from "./member-strip";
 import { button, element, UI_ATTRIBUTE } from "./triage-ui";
 
 /**
@@ -103,8 +103,6 @@ export const QUICK_ACTION_TEXT = {
   unexpected:
     "Ignore and Delete stopped because of an unexpected error. JoyFox may have completed a step: check the member's profile and the conversation yourself.",
 } as const;
-
-const JOYFOX_SECTIONS: readonly string[] = [MEMBER_PANEL, MEMBER_NOTES];
 
 interface Shown {
   key: string;
@@ -226,6 +224,7 @@ export class QuickIgnoreDelete {
       this.document.querySelectorAll(`[${UI_ATTRIBUTE}="${QUICK_ACTION}"]`),
     ))
       node.remove();
+    removeEmptyStrip(this.document);
     this.#drawn = undefined;
   }
 
@@ -247,31 +246,6 @@ export class QuickIgnoreDelete {
         this.#inFlight = undefined;
         this.teardown();
       });
-  }
-
-  /** After the JoyFox sections that follow JoyClub's header, in any order. */
-  #insertionPoint(anchor: Element): Element {
-    let point = anchor;
-    let next = anchor.nextElementSibling;
-    while (
-      next &&
-      JOYFOX_SECTIONS.includes(next.getAttribute(UI_ATTRIBUTE) ?? "")
-    ) {
-      point = next;
-      next = next.nextElementSibling;
-    }
-    return point;
-  }
-
-  #placed(node: Element, anchor: Element): boolean {
-    let previous = node.previousElementSibling;
-    while (
-      previous &&
-      previous !== anchor &&
-      JOYFOX_SECTIONS.includes(previous.getAttribute(UI_ATTRIBUTE) ?? "")
-    )
-      previous = previous.previousElementSibling;
-    return previous === anchor;
   }
 
   #clearStaleTimer(): void {
@@ -324,13 +298,13 @@ export class QuickIgnoreDelete {
       !drawn ||
       drawn.key !== shown.key ||
       !drawn.section.isConnected ||
-      !this.#placed(drawn.section, shown.anchor)
+      !isPlaced(drawn.section, shown.anchor)
     ) {
       const focused =
         drawn?.section.contains(this.document.activeElement) === true;
       this.teardown();
       drawn = this.#build(shown, latest.accountId);
-      this.#insertionPoint(shown.anchor).after(drawn.section);
+      placeInStrip(this.document, shown.anchor, drawn.section);
       this.#drawn = drawn;
       if (focused) drawn.button.focus({ preventScroll: true });
     }

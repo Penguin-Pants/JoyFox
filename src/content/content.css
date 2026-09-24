@@ -3,21 +3,32 @@
  * security policy does not apply. Every selector targets JoyFox's own
  * `joyfox-` classes or `data-joyfox-` attributes; no JoyClub class is styled.
  */
-/* Design tokens, scoped to JoyFox elements rather than the page root. */
+/*
+ * Design tokens, scoped to JoyFox elements rather than the page root. Text,
+ * lines and surfaces are mixed from the page's own text color (currentColor),
+ * so JoyFox follows JoyClub's dark theme and would follow a light one (owner
+ * decision, 2026-09-24). Only the placement colors are fixed; they are
+ * mid-tones that read on both, and every placement is also written in words.
+ */
 .joyfox-triage,
 .joyfox-panel,
 .joyfox-badge,
-.joyfox-template-picker {
-  --joyfox-ink: #1f2328;
-  --joyfox-muted: #57606a;
-  --joyfox-surface: #ffffff;
-  --joyfox-line: #8c959f;
-  --joyfox-focus: #0969da;
-  --joyfox-qualified: #1a7f37;
-  --joyfox-review: #9a6700;
-  --joyfox-quarantined: #cf222e;
+.joyfox-template-picker,
+.joyfox-strip {
+  --joyfox-ink: currentColor;
+  --joyfox-muted: color-mix(in srgb, currentColor 70%, transparent);
+  --joyfox-surface: color-mix(in srgb, currentColor 6%, transparent);
+  --joyfox-surface-strong: color-mix(in srgb, currentColor 12%, transparent);
+  --joyfox-field: color-mix(in srgb, currentColor 4%, transparent);
+  --joyfox-line: color-mix(in srgb, currentColor 28%, transparent);
+  --joyfox-brand: #e38b3f;
+  --joyfox-focus: #4d90fe;
+  --joyfox-qualified: #2ea663;
+  --joyfox-review: #d49b1f;
+  --joyfox-quarantined: #e0544a;
   --joyfox-space: 0.5em;
-  --joyfox-radius: 0.375em;
+  --joyfox-radius: 0.5em;
+  color: inherit;
 }
 
 /*
@@ -39,11 +50,10 @@
 .joyfox-panel {
   box-sizing: border-box;
   margin: var(--joyfox-space) 0;
-  padding: var(--joyfox-space);
+  padding: var(--joyfox-space) 0.75em;
   border: 1px solid var(--joyfox-line);
   border-radius: var(--joyfox-radius);
   background: var(--joyfox-surface);
-  color: var(--joyfox-ink);
   font: inherit;
   font-size: 0.875rem;
   line-height: 1.4;
@@ -64,13 +74,17 @@
   padding: 0.125em 0.625em;
   border: 1px solid var(--joyfox-line);
   border-radius: var(--joyfox-radius);
-  background: var(--joyfox-surface);
-  color: var(--joyfox-ink);
+  background: var(--joyfox-surface-strong);
+  color: inherit;
   cursor: pointer;
 }
 
+.joyfox-button:hover:not(:disabled) {
+  border-color: currentColor;
+}
+
 .joyfox-button[aria-pressed="true"] {
-  border-width: 2px;
+  border-color: currentColor;
   font-weight: 700;
 }
 
@@ -146,8 +160,8 @@
 .joyfox-notes__tag-input {
   box-sizing: border-box;
   font: inherit;
-  color: var(--joyfox-ink);
-  background: var(--joyfox-surface);
+  color: inherit;
+  background: var(--joyfox-field);
   border: 1px solid var(--joyfox-line);
   border-radius: var(--joyfox-radius);
   padding: 0.25em 0.5em;
@@ -205,7 +219,6 @@
 .joyfox-template-picker {
   box-sizing: border-box;
   margin: var(--joyfox-space) 0;
-  color: var(--joyfox-ink);
   font: inherit;
 }
 
@@ -214,8 +227,8 @@
   cursor: pointer;
   border: 1px solid var(--joyfox-line);
   border-radius: var(--joyfox-radius);
-  background: var(--joyfox-surface);
-  color: var(--joyfox-ink);
+  background: var(--joyfox-surface-strong);
+  color: inherit;
   padding: 0.2em 0.6em;
 }
 
@@ -253,4 +266,167 @@
 .joyfox-template-picker__status {
   margin: var(--joyfox-space) 0 0;
   color: var(--joyfox-muted);
+}
+
+/* Screen-reader text: part of the name, not shown. */
+.joyfox-visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/*
+ * The member strip (owner decision, 2026-09-24, "Option A"): one full-width
+ * block after JoyClub's header row, holding the member bar, the note editor
+ * and the Ignore and Delete panel side by side. Its sections drop their own
+ * box, so the strip reads as one bar.
+ */
+.joyfox-strip {
+  box-sizing: border-box;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: var(--joyfox-space) 1em;
+  flex-basis: 100%;
+  width: 100%;
+  margin: var(--joyfox-space) 0;
+  padding: var(--joyfox-space) 0.75em;
+  border: 1px solid var(--joyfox-line);
+  border-radius: var(--joyfox-radius);
+  background: var(--joyfox-surface);
+  font-size: 0.875rem;
+  line-height: 1.4;
+}
+
+.joyfox-strip > .joyfox-panel {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  min-width: 0;
+}
+
+.joyfox-member {
+  flex: 0 1 auto;
+}
+
+/* A section whose details are open takes the whole width. */
+.joyfox-strip > .joyfox-panel:has(> details[open]),
+.joyfox-strip > .joyfox-member:has(> .joyfox-drawer:not([hidden])) {
+  flex-basis: 100%;
+}
+
+.joyfox-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4em 0.6em;
+}
+
+.joyfox-bar__brand {
+  color: var(--joyfox-brand);
+  font-weight: 800;
+}
+
+.joyfox-bar__trust {
+  white-space: nowrap;
+}
+
+.joyfox-bar__group {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4em;
+}
+
+.joyfox-bar .joyfox-note {
+  margin: 0;
+}
+
+.joyfox-drawer {
+  margin-top: var(--joyfox-space);
+  padding: var(--joyfox-space) 0.75em;
+  border: 1px solid var(--joyfox-line);
+  border-radius: var(--joyfox-radius);
+  background: var(--joyfox-field);
+}
+
+.joyfox-drawer[hidden] {
+  display: none;
+}
+
+/* The placement pill: the word carries the meaning, the color repeats it. */
+.joyfox-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35em;
+  padding: 0.05em 0.6em;
+  border: 1px solid currentColor;
+  border-radius: 999px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.joyfox-pill::before {
+  content: "";
+  width: 0.5em;
+  height: 0.5em;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.joyfox-pill[data-placement="qualified"] {
+  color: var(--joyfox-qualified);
+}
+
+.joyfox-pill[data-placement="needs-review"] {
+  color: var(--joyfox-review);
+  border-style: dashed;
+}
+
+.joyfox-pill[data-placement="quarantined"] {
+  color: var(--joyfox-quarantined);
+  border-style: double;
+  border-width: 3px;
+}
+
+/* The note editor's summary reads as a button in the bar. */
+.joyfox-strip .joyfox-notes__summary {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35em;
+  padding: 0.125em 0.625em;
+  border: 1px solid var(--joyfox-line);
+  border-radius: var(--joyfox-radius);
+  background: var(--joyfox-surface-strong);
+  font-size: 0.8125rem;
+  list-style: none;
+}
+
+.joyfox-strip .joyfox-notes__summary::before {
+  content: "✎" / "";
+}
+
+/* Inbox triage bar: one row of views; the "?" opens the explanation. */
+.joyfox-triage__views {
+  align-items: center;
+}
+
+.joyfox-triage__about {
+  display: inline-block;
+}
+
+.joyfox-triage__about[open] {
+  flex-basis: 100%;
+}
+
+.joyfox-triage__about > summary {
+  list-style: none;
+}
+
+.joyfox-triage__about .joyfox-note {
+  margin: var(--joyfox-space) 0 0;
 }
