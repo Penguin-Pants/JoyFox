@@ -15,8 +15,9 @@ import {
 /**
  * The JoyClub side of M9, one method per kind of page action. The executor
  * decides when each is called; a driver only reads and clicks. No live
- * driver exists yet: where Ignore lives in JoyClub's UI is unverified (F7),
- * so only test drivers implement this.
+ * driver exists yet: F7 shows Ignore is only on the profile page (Path B), so
+ * the live driver waits on resume after navigation and on the conversation
+ * page's Delete result. Only test drivers implement this.
  */
 export interface QuickActionDriver {
   /** What the page shows now. Read fresh before every click. */

@@ -162,16 +162,20 @@ F7.
 
 ### Follow-up work recorded during the M9 core
 
-- Build the live `QuickActionDriver` once F7 evidence exists, with fixture tests
-  for its selectors, then run the manual matrix (items 43 to 54).
-- If F7 shows Path B (Ignore needs the profile): add the `storage.session`
+- Build the live `QuickActionDriver` from the F7 evidence
+  (`live-evidence/10-ignore.md`), with fixture tests for its selectors, then run
+  the manual matrix (items 43 to 54). The owner chose "conversation first"
+  (2026-09-24): Delete on the conversation page, then Ignore on the sender's
+  profile. Waits on one check: what the conversation page does after its Delete
+  control.
+- F7 showed Path B (Ignore needs the profile): add the `storage.session`
   pending-action marker and resume after navigation (build plan Section 16).
 - The PRD's settings toggle for the guided alternative (navigate and stage, the
   user clicks).
 - Confirm or tune the step timeout (15 seconds) and the interrupted threshold
   (2 minutes) against the live site.
 
-M9 is the largest and riskiest MVP task, both in size and in its dependency on F7's still-unverified in-page-versus-navigation question. If F1 through F7 push MVP's timeline out meaningfully, M9 is the one task worth reconsidering for a fast-follow release rather than the rest of MVP slipping with it. That is a scope call, not a technical one, and stays with the person running this project.
+M9 is the largest and riskiest MVP task, both in size and in its need to resume across a page navigation, since F7 answered the in-page-versus-navigation question with navigation (Path B). If F1 through F7 push MVP's timeline out meaningfully, M9 is the one task worth reconsidering for a fast-follow release rather than the rest of MVP slipping with it. That is a scope call, not a technical one, and stays with the person running this project.
 
 ## V1 Phase, for Context
 

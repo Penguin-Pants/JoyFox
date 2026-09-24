@@ -72,11 +72,12 @@ export function runtimeQuickActionClient(): QuickActionClient {
 }
 
 /**
- * The live JoyClub driver. None exists: F7 has not verified where Ignore is,
- * which confirmations JoyClub shows, or how success is visible
- * (`manual-verification-needed.md`, item 7), and the build plan forbids
- * guessing that path. Until the evidence exists this returns `undefined`, so
- * the button never appears, whatever the flag says.
+ * The live JoyClub driver. None exists yet. F7 shows Ignore is only on the
+ * profile page (Path B, `live-evidence/10-ignore.md`), so the driver also
+ * needs resume after navigation, and what the conversation page does after
+ * its Delete control is still unverified (`manual-verification-needed.md`,
+ * item 7). Until both exist this returns `undefined`, so the button never
+ * appears, whatever the flag says.
  */
 export function liveQuickActionDriver(): QuickActionDriver | undefined {
   return undefined;
