@@ -614,6 +614,20 @@ describe("M9 hand-off to the profile page (ADR 0011)", () => {
     expect(result.report.failure).toBe("turned-off");
   });
 
+  it("does not move on when the flag is turned off while the hand-off is stored", async () => {
+    let stop: "turned-off" | undefined;
+    const driver = new FakeDriver();
+    driver.current = () => HERE;
+    const result = await run(driver, undefined, {
+      stopReason: () => stop,
+      handOff: async () => {
+        stop = "turned-off";
+      },
+    });
+    expect(result.status).toBe("finished");
+    expect(result.report.failure).toBe("turned-off");
+  });
+
   it("reports a hand-off that never answers as a timeout", async () => {
     const driver = new FakeDriver();
     driver.current = () => HERE;

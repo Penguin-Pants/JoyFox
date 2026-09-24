@@ -309,6 +309,10 @@ export async function runQuickIgnoreDelete(
         const handed = await attempt(() => options.handOff!(operationId, step));
         if (handed)
           return stop(handed === "timeout" ? "timeout" : "handoff-failed");
+        // Stopped while the marker was stored: the page must not move. The
+        // stored Failed step makes the marker unusable for any page.
+        const late = options.stopReason?.();
+        if (late) return stop(late);
         return { status: "handed-off", operationId, report: report() };
       }
     }
