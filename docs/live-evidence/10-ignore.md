@@ -223,6 +223,34 @@ ignoring NAME", with the spelling as typed in the report).
   example to a "no longer ignore" entry), which would be a lasting signal, and
   whether the page address changes.
 
+## Lasting result and undo (2026-09-24, sixth report)
+
+- **The page address stays the same** after "Ignorieren" is confirmed.
+- **Lasting signal:** afterwards the same profile menu shows
+  `j-context-menu-item[title="Profil nicht mehr ignorieren"]` ("Stop ignoring
+  profile") in place of "Profil ignorieren". Its open shadow root holds the same
+  `button.j-context-menu-item[role="menuitem"]` with the text "Profil nicht mehr
+  ignorieren". A driver can verify Ignore by reading this `title`, with no need
+  to catch the short notice.
+- **Undo:** the owner chooses "Profil nicht mehr ignorieren" in the same menu.
+  The owner did not report whether that item opens a confirmation dialog.
+
+## Delete from the inbox row (2026-09-24, sixth report)
+
+The owner clicked the row control
+`j-control-button[data-e2e="button-delete-conversation"]` in the inbox:
+
+- **No confirmation dialog.** The conversation is moved at once.
+- **The row disappears** from the list. The page address stays the same.
+- A notice appears at the bottom of the page for about 5 seconds, with a green
+  bar that runs down as time passes: "Unterhaltung mit NAME in den Papierkorb
+  verschoben" ("Conversation with NAME moved to the trash"). It has a
+  "Rückgängig" ("Undo") button and a close button (✕). Its HTML was not captured
+  before it disappeared.
+- Not yet observed: the same control on the **conversation page**
+  (`02-conversation.md` lists it there too), where the result may be different,
+  for example a return to the inbox.
+
 ## Consequence
 
 F7's answer is **Path B**: Quick Ignore and Delete must go from the conversation
@@ -231,9 +259,8 @@ build plan Section 16 and ADR 0008.
 
 ## Still missing for the M9 driver
 
-- A lasting success signal after "Ignorieren": whether the profile menu item
-  changes afterwards, and its new `title`. The notice "Du ignorierst NAME" is
-  seen but short-lived and not captured.
-- Whether the page address changes after confirming.
-- For Delete (`button-delete-conversation`): its confirmation and success
-  signal.
+- What the conversation page does after its Delete control is clicked: does it
+  stay on the conversation, go to the inbox, or show an empty state.
+- The HTML of the trash notice, so its "Rückgängig" button can be offered. Not
+  needed to verify Delete: the row, or the conversation, goes away.
+- Whether "Profil nicht mehr ignorieren" asks for confirmation.
