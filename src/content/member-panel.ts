@@ -107,6 +107,8 @@ export class MemberPanel {
   #page?: MemberPage;
   /** Whether "Why and move" is open; kept across redraws of the bar. */
   #drawerOpen = false;
+  /** The member the drawer state belongs to. */
+  #drawerMember?: string;
 
   constructor(
     private readonly document: Document,
@@ -158,6 +160,7 @@ export class MemberPanel {
    */
   accountChanged(): void {
     this.teardown();
+    this.#drawerOpen = false;
     this.#captured = "";
     this.invalidate();
   }
@@ -170,6 +173,7 @@ export class MemberPanel {
     this.#generation += 1;
     this.#inFlight = undefined;
     this.teardown();
+    this.#drawerOpen = false;
   }
 
   teardown(): void {
@@ -270,6 +274,12 @@ export class MemberPanel {
     }
     existing?.remove();
     this.#rendered = key;
+    // Any path to another member (a route, a failed load, the inbox between
+    // them) starts with the drawer closed.
+    if (this.#drawerMember !== target.memberId) {
+      this.#drawerMember = target.memberId;
+      this.#drawerOpen = false;
+    }
     const panel = element(
       this.document,
       "section",

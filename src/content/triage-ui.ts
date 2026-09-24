@@ -303,6 +303,18 @@ export function memberBar(
   const drawer = element(document, "div", "joyfox-drawer");
   drawer.id = `joyfox-drawer-${(drawerIds += 1)}`;
   drawer.hidden = !input.drawerOpen;
+  if (result && actions.onOverride) {
+    // Without `onTrust` the explanation leaves out the outcome buttons,
+    // which live in the bar. The drawer keeps the reasons, the conditions,
+    // the move controls and the score breakdown.
+    drawer.append(
+      explanation(document, result, { onOverride: actions.onOverride }),
+    );
+  } else if (trust !== undefined) {
+    drawer.append(trustSection(document, trust, {}));
+  }
+  // Nothing to show: no toggle that would open an empty region.
+  if (!drawer.hasChildNodes()) return [bar];
   const toggle = button(
     document,
     "joyfox-button joyfox-bar__toggle",
@@ -317,16 +329,5 @@ export function memberBar(
   toggle.setAttribute("aria-expanded", String(input.drawerOpen));
   toggle.setAttribute("aria-controls", drawer.id);
   bar.append(toggle);
-
-  if (result && actions.onOverride) {
-    // Without `onTrust` the explanation leaves out the outcome buttons,
-    // which live in the bar. The drawer keeps the reasons, the conditions,
-    // the move controls and the score breakdown.
-    drawer.append(
-      explanation(document, result, { onOverride: actions.onOverride }),
-    );
-  } else if (trust !== undefined) {
-    drawer.append(trustSection(document, trust, {}));
-  }
   return [bar, drawer];
 }

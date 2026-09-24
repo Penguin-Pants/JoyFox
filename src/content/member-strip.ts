@@ -69,7 +69,17 @@ export function placeInStrip(
     strip.className = "joyfox-strip";
     strip.setAttribute(UI_ATTRIBUTE, MEMBER_STRIP);
   }
-  if (strip.previousElementSibling !== after) after.after(strip);
+  if (strip.previousElementSibling !== after) {
+    // Moving a node blurs whatever is focused inside it, such as the note
+    // text area. The sections already in place do not rebuild, so they would
+    // not restore focus themselves.
+    const active = document.activeElement;
+    const focused =
+      active instanceof HTMLElement && strip.contains(active) ? active : null;
+    after.after(strip);
+    if (focused && document.activeElement !== focused)
+      focused.focus({ preventScroll: true });
+  }
   const rank = SECTION_ORDER.indexOf(section.getAttribute(UI_ATTRIBUTE) ?? "");
   const next = Array.from(strip.children).find(
     (child) =>

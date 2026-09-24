@@ -314,7 +314,8 @@
 }
 
 /* A section whose details are open takes the whole width. */
-.joyfox-strip > .joyfox-panel:has(> details[open]) {
+.joyfox-strip > .joyfox-panel:has(> details[open]),
+.joyfox-strip > .joyfox-member:has(> .joyfox-drawer:not([hidden])) {
   flex-basis: 100%;
 }
 
@@ -406,7 +407,7 @@
 }
 
 .joyfox-strip .joyfox-notes__summary::before {
-  content: "✎";
+  content: "✎" / "";
 }
 
 /* Inbox triage bar: one row of views; the "?" opens the explanation. */

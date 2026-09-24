@@ -55,4 +55,22 @@ describe("member strip", () => {
     const header = document.querySelector("#header")!;
     expect(stripAnchor(header)).toBe(header);
   });
+
+  it("keeps focus in a section when the strip moves to a new header row", () => {
+    const header = document.querySelector("#header")!;
+    const notes = section("member-notes");
+    const field = document.createElement("textarea");
+    notes.append(field);
+    placeInStrip(document, header, notes);
+    field.focus();
+    // JoyClub rebuilds its header row; the next section placed moves the strip.
+    document.body.insertAdjacentHTML(
+      "afterbegin",
+      '<div id="row2" style="display: flex"><a id="header2"></a></div>',
+    );
+    const header2 = document.querySelector("#header2")!;
+    placeInStrip(document, header2, section("member-panel"));
+    expect(isPlaced(notes, header2)).toBe(true);
+    expect(document.activeElement).toBe(field);
+  });
 });

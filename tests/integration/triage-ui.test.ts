@@ -9,6 +9,7 @@ import {
   VIEW_ATTRIBUTE,
 } from "../../src/content/inbox-triage";
 import { MemberPanel } from "../../src/content/member-panel";
+import { memberBar } from "../../src/content/triage-ui";
 import type { TriageClient } from "../../src/content/triage-client";
 import type {
   ContactRuleDefinition,
@@ -501,6 +502,36 @@ describe("conversation and profile panel", () => {
         "Why and move",
       )?.getAttribute("aria-expanded"),
     ).toBe("true");
+  });
+
+  it("closes the details again after the page is left", async () => {
+    await rules.saveGlobalRule(ACCOUNT, knownRule());
+    setPage(CONVERSATION, conversationHtml);
+    const memberPanel = new MemberPanel(document, serviceClient());
+    memberPanel.update("conversation");
+    await vi.waitFor(() => expect(panel()).not.toBeNull());
+    buttonNamed(
+      panel()!.querySelector(".joyfox-bar")!,
+      "Why and move",
+    )!.click();
+    memberPanel.leave();
+    expect(panel()).toBeNull();
+    memberPanel.update("conversation");
+    await vi.waitFor(() => expect(panel()).not.toBeNull());
+    expect(panel()!.querySelector<HTMLElement>(".joyfox-drawer")!.hidden).toBe(
+      true,
+    );
+  });
+
+  it("offers no details toggle when there are no details to show", () => {
+    const [bar, ...rest] = memberBar(document, {
+      ruleOff: "No contact rule is set.",
+      actions: {},
+      drawerOpen: false,
+      onToggle: () => undefined,
+    });
+    expect(rest).toEqual([]);
+    expect(bar!.querySelector("[aria-expanded]")).toBeNull();
   });
 
   it("keeps the member strip when the inbox is torn down", async () => {
