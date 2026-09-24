@@ -1,6 +1,7 @@
 import { AccountService } from "../accounts/account-service";
 import { ActionLogService } from "../actions/action-log-service";
 import { MessageRouter } from "../messaging/router";
+import { runtimeSessionArea } from "../storage/session-area";
 import { NotesService } from "../notes/notes-service";
 import { TemplateService } from "../templates/template-service";
 import { TriageService } from "../triage/triage-service";
@@ -31,16 +32,20 @@ registerTriageHandlers(router, {
   openOptions: () => browser.runtime.openOptionsPage(),
 });
 registerNotesHandlers(router, { notes: new NotesService(), activeAccountId });
-// M9's ActionLog. No page starts an operation until F7 verifies a live path.
+// M9's ActionLog and the hand-off marker for its move to the profile page.
 registerActionHandlers(router, {
   actions: new ActionLogService(),
   activeAccountId,
+  session: runtimeSessionArea,
 });
 registerTemplateHandlers(router, {
   templates: new TemplateService(),
   activeAccountId,
 });
 registerOnboarding(browser.runtime);
-browser.runtime.onMessage.addListener((message: unknown) =>
-  router.route(message as never),
+browser.runtime.onMessage.addListener(
+  (message: unknown, sender: browser.runtime.MessageSender) =>
+    router.route(message as never, {
+      ...(typeof sender?.tab?.id === "number" ? { tabId: sender.tab.id } : {}),
+    }),
 );

@@ -11,9 +11,14 @@ import type { ActionLog } from "../domain/types";
 export const QUICK_IGNORE_DELETE = "quick-ignore-delete";
 
 /**
+ * The order is Delete, then Ignore (owner decision, 2026-09-24, ADR 0011):
+ * JoyClub offers Delete on the conversation page and Ignore only on the
+ * sender's profile (F7, `live-evidence/10-ignore.md`), so the run starts
+ * where the user reads the message and moves to the profile once.
+ *
  * - `Started`: the operation exists and its target is fixed. Nothing was
  *   clicked yet.
- * - `IgnoreRequested`, `DeleteRequested`: recorded just before JoyFox clicks
+ * - `DeleteRequested`, `IgnoreRequested`: recorded just before JoyFox clicks
  *   JoyClub's control. A crash after this point leaves the step's outcome
  *   unknown, never falsely "not done".
  * - `IgnoreConfirmed`, `DeleteConfirmed`: JoyClub's own confirmation was
@@ -22,29 +27,29 @@ export const QUICK_IGNORE_DELETE = "quick-ignore-delete";
  */
 export type ActionState =
   | "Started"
-  | "IgnoreRequested"
-  | "IgnoreConfirmed"
   | "DeleteRequested"
   | "DeleteConfirmed"
+  | "IgnoreRequested"
+  | "IgnoreConfirmed"
   | "Completed"
   | "Failed";
 
 export const ACTION_STATES: readonly ActionState[] = [
   "Started",
-  "IgnoreRequested",
-  "IgnoreConfirmed",
   "DeleteRequested",
   "DeleteConfirmed",
+  "IgnoreRequested",
+  "IgnoreConfirmed",
   "Completed",
   "Failed",
 ];
 
 const NEXT: Partial<Record<ActionState, ActionState>> = {
-  Started: "IgnoreRequested",
-  IgnoreRequested: "IgnoreConfirmed",
-  IgnoreConfirmed: "DeleteRequested",
+  Started: "DeleteRequested",
   DeleteRequested: "DeleteConfirmed",
-  DeleteConfirmed: "Completed",
+  DeleteConfirmed: "IgnoreRequested",
+  IgnoreRequested: "IgnoreConfirmed",
+  IgnoreConfirmed: "Completed",
 };
 
 export const isTerminal = (state: ActionState) =>
@@ -64,6 +69,11 @@ export type ActionFailure =
   | "confirmation-missing"
   /** JoyClub did not show that the step succeeded. */
   | "not-verified"
+  /**
+   * The page gives no way to see the step's result, so it was not started:
+   * a step that cannot be checked is never clicked.
+   */
+  | "unverifiable"
   | "member-mismatch"
   | "conversation-mismatch"
   /** The page no longer shows a member or conversation JoyFox can read. */
@@ -82,6 +92,7 @@ export const ACTION_FAILURES: readonly ActionFailure[] = [
   "control-missing",
   "confirmation-missing",
   "not-verified",
+  "unverifiable",
   "member-mismatch",
   "conversation-mismatch",
   "identity-unavailable",
@@ -93,7 +104,10 @@ export const ACTION_FAILURES: readonly ActionFailure[] = [
   "step-error",
 ];
 
-export type ActionStep = "ignore" | "delete";
+export type ActionStep = "delete" | "ignore";
+
+/** The steps in the order they run. */
+export const STEP_ORDER: readonly ActionStep[] = ["delete", "ignore"];
 
 export const STEP_STATES: Record<
   ActionStep,
@@ -123,8 +137,8 @@ export interface CurrentTarget {
  * The safety invariant (build plan Section 16): before every destructive
  * click the page must show the expected member, and on a conversation page
  * the expected conversation. Delete acts on the conversation, so it needs
- * the conversation page. If identity cannot be proven, the answer is a
- * failure, never a pass.
+ * the conversation page; Ignore is only on the profile page (F7). If
+ * identity cannot be proven, the answer is a failure, never a pass.
  */
 export function checkTarget(
   expected: ActionTarget,
@@ -135,6 +149,8 @@ export function checkTarget(
     return "identity-unavailable";
   if (current.memberId !== expected.memberId) return "member-mismatch";
   if (step === "delete" && current.page !== "conversation")
+    return "identity-unavailable";
+  if (step === "ignore" && current.page !== "profile")
     return "identity-unavailable";
   if (current.page === "conversation") {
     if (current.conversationId === undefined) return "identity-unavailable";
@@ -197,6 +213,8 @@ function failureText(
       return `JoyClub's confirmation for ${name} did not appear.`;
     case "not-verified":
       return `JoyClub did not show that ${name} succeeded.`;
+    case "unverifiable":
+      return `JoyFox cannot see JoyClub's result for ${name} on this page, so it stopped ${where}.`;
     case "member-mismatch":
       return `The page showed another member, so JoyFox stopped ${where}.`;
     case "conversation-mismatch":
@@ -270,8 +288,8 @@ export function reportOperation(
           : "running";
   const lines: string[] = [];
   if (status === "completed") {
-    lines.push("Ignore and Delete finished.", STEP_TEXT.ignore.done);
-    lines.push(STEP_TEXT.delete.done);
+    lines.push("Ignore and Delete finished.", STEP_TEXT.delete.done);
+    lines.push(STEP_TEXT.ignore.done);
     return { status, ignore, delete: remove, lines };
   }
   if (status === "running") {
@@ -284,17 +302,18 @@ export function reportOperation(
       : "Ignore and Delete was interrupted, for example because the tab closed.",
   );
   if (failure) {
-    const step = ignore === "done" ? "delete" : "ignore";
+    // The step that did not complete: Delete runs first.
+    const step = remove === "done" ? "ignore" : "delete";
     lines.push(failureText(failure, step, step === "ignore" ? ignore : remove));
   }
-  lines.push(STEP_TEXT.ignore[ignore], STEP_TEXT.delete[remove]);
+  lines.push(STEP_TEXT.delete[remove], STEP_TEXT.ignore[ignore]);
   lines.push(
     ignore === "not-done" && remove === "not-done"
       ? "Nothing was changed on JoyClub."
       : "JoyFox did not undo anything.",
   );
-  if (ignore !== "done") lines.push(NEXT_ACTION.ignore);
   if (remove !== "done") lines.push(NEXT_ACTION.delete);
+  if (ignore !== "done") lines.push(NEXT_ACTION.ignore);
   return {
     status,
     ignore,

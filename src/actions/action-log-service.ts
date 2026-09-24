@@ -125,6 +125,16 @@ export class ActionLogService {
     return "recorded";
   }
 
+  /** One operation by ID, or `undefined` when it is not this action's. */
+  async find(
+    accountId: string,
+    operationId: string,
+  ): Promise<ActionLog | undefined> {
+    requireAccountId(accountId);
+    const log = await this.logs.get(accountId, operationId);
+    return log?.action === QUICK_IGNORE_DELETE ? log : undefined;
+  }
+
   /** The newest Quick Ignore and Delete operation for one member. */
   async latest(
     accountId: string,

@@ -260,10 +260,23 @@ F7's answer is **Path B**: Quick Ignore and Delete must go from the conversation
 to the sender's profile to ignore, which is the same-tab navigation case in
 build plan Section 16 and ADR 0008.
 
-## Still missing for the M9 driver
+## Delete on the conversation page (2026-09-24, seventh report)
 
-- What the conversation page does after its Delete control is clicked: does it
-  stay on the conversation, go to the inbox, or show an empty state.
-- The HTML of the trash notice, so its "Rückgängig" button can be offered. Not
-  needed to verify Delete: the row, or the conversation, goes away.
+The owner clicked the conversation page's own Delete control
+(`j-control-button[data-e2e="button-delete-conversation"]` in the header row):
+
+- **No confirmation dialog**, as on the inbox row.
+- **The page address stays the same.** The conversation stays open in the right
+  panel at first.
+- **The conversation's row leaves the list** on the left, and the rows below
+  move up with no gap.
+- The same "Unterhaltung mit NAME in den Papierkorb verschoben" notice with
+  "Rückgängig" (Undo) appears. Its HTML was not captured.
+
+## Used by the M9 driver (ADR 0011)
+
+Everything the driver needs is recorded above. Still not captured, and not
+needed by it:
+
+- The HTML of the trash notice with "Rückgängig".
 - Whether "Profil nicht mehr ignorieren" asks for confirmation.

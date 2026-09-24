@@ -27,13 +27,13 @@ verified from it. Still open:
   icon are those where you sent the last message.
 - **Empty inbox:** how the inbox renders with no conversations, for example an
   empty-state element. This decides how a feature tells "empty" from "loading".
-- **Item 7 (F7), mostly done (2026-09-24):** Ignore is only on the profile page
+- **Item 7 (F7), done (2026-09-24):** Ignore is only on the profile page
   (`Profil ignorieren` in `profile-context-menu`), behind a `j-modal`
-  confirmation. Afterwards the menu item reads "Profil nicht mehr ignorieren",
-  which is a lasting success signal, and the address does not change. Deleting
-  from the inbox row asks for no confirmation: the row goes and a 5-second
-  notice with "Rückgängig" (Undo) appears (`live-evidence/10-ignore.md`). Still
-  open: what the conversation page does after its own Delete control.
+  confirmation; afterwards the item reads "Profil nicht mehr ignorieren". Delete
+  asks for no confirmation, on the inbox row and on the conversation page; the
+  row leaves the list and a 5-second Undo notice appears. The address does not
+  change in either case (`live-evidence/10-ignore.md`). M9's live driver uses
+  this (ADR 0011).
 - **Item 9:** profile → Back, inbox → search and inbox → events.
 - **Items 4, 5, 6 (event ClubMail composer) and 10:** not started.
 

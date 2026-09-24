@@ -33,6 +33,6 @@ What each partial item still lacks:
   profile's account age are resolved; see `08-attribute-matrix.md`.
 
 Not yet captured: search (4), events (5), event ClubMail composer (6), the rest
-of item 7 (the conversation page's result after its Delete control; the Ignore
-result and the inbox-row Delete result are in `10-ignore.md`), the remaining
-navigation moves (9) and the distribution channel (10).
+of item 7 (only the trash notice's HTML; everything M9 uses is in
+`10-ignore.md`), the remaining navigation moves (9) and the distribution channel
+(10).
