@@ -68,9 +68,16 @@ flows: conversation first, profile first, or two separate buttons.
    `JoyClubQuickActionDriver`. The button still needs `joyfox.quickIgnoreDelete`
    set to `true`, so M9 stays off by default.
 7. **Selectors.** Every selector is from the evidence
-   (`src/selectors/quick-action.ts`). The conversation's own Delete control is
-   the one outside every inbox row and inside the header's row; if there is not
-   exactly one, nothing is clicked.
+   (`src/selectors/quick-action.ts`). Delete on the conversation page is the
+   item "In den Papierkorb schieben" in the conversation's three-dot menu
+   (`j-context-menu.cm-conversation__context-menu`, opened by
+   `button-conversation-kebap`), inside the same `header.cm-clubmail-header` as
+   the conversation header (owner evidence, eighth report). The item has no
+   `title` or hook, so it is matched by that exact text inside that menu. Unless
+   there is exactly one such menu and exactly one such item, nothing is clicked.
+   The standalone `button-delete-conversation` is on the inbox rows only and is
+   never clicked. (Corrected 2026-09-24: the first live run looked for that
+   button in the header row, found none, and stopped before any click.)
 
 ## Consequences
 

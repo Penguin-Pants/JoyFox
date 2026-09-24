@@ -2,8 +2,10 @@ import type { QuickActionDriver } from "../actions/executor";
 import type { ActionStep, CurrentTarget } from "../actions/ignore-delete";
 import { extractInboxRows } from "../extraction/joyclub";
 import { resolveMemberIdentity } from "../identity/member-identity";
-import { QUICK_ACTION_SELECTORS as S } from "../selectors/quick-action";
-import { verifiedSelector } from "../selectors/registry";
+import {
+  DELETE_ITEM_TEXT,
+  QUICK_ACTION_SELECTORS as S,
+} from "../selectors/quick-action";
 import { inboxListState } from "./inbox-triage";
 import { pageMember } from "./member-panel";
 
@@ -30,11 +32,11 @@ function press(control: Element): void {
  * the controls the evidence names; the executor decides when, checks
  * identity before every click and records each step first.
  *
- * - Delete: the conversation page's own Delete control, outside the inbox
- *   rows and in the header's row. JoyClub asks for no confirmation. It is
- *   verified by the member's row leaving the conversation list, which the
- *   owner saw happen (`10-ignore.md`); without that list on screen it is
- *   not started.
+ * - Delete: "In den Papierkorb schieben" in the conversation's three-dot
+ *   menu, which shares JoyClub's header with the conversation header.
+ *   JoyClub asks for no confirmation. It is verified by the member's row
+ *   leaving the conversation list, which the owner saw happen
+ *   (`10-ignore.md`); without that list on screen it is not started.
  * - Ignore: on the profile page, the menu's "Profil ignorieren", then
  *   "Ignorieren" in JoyClub's dialog. Verified by the menu showing "Profil
  *   nicht mehr ignorieren" afterwards.
@@ -64,7 +66,14 @@ export class JoyClubQuickActionDriver implements QuickActionDriver {
   }
 
   hasControl(step: ActionStep): boolean {
-    if (step === "delete") return this.#deleteControl() !== undefined;
+    if (step === "delete") {
+      const menu = this.#conversationMenu();
+      if (!menu) return false;
+      // Items may render only while the menu is open. When they show, the
+      // Delete item must be one of them.
+      const shown = menu.querySelectorAll("j-context-menu-item").length > 0;
+      return !shown || this.#deleteItem(menu) !== undefined;
+    }
     const menu = this.#menu();
     if (!menu?.querySelector(`:scope > ${S.menuActivator}`)) return false;
     // Already ignored: there is no Ignore to click.
@@ -78,14 +87,37 @@ export class JoyClubQuickActionDriver implements QuickActionDriver {
   }
 
   async request(step: ActionStep): Promise<void> {
+    // The executor checked identity just before this call. Opening a menu
+    // can wait, and JoyClub can switch pages in place meanwhile, so the page
+    // must still show the same member and conversation right before the
+    // click; otherwise nothing is clicked.
+    const before = this.currentTarget();
+    const same = () => {
+      const now = this.currentTarget();
+      return (
+        now.page === before.page &&
+        now.memberId === before.memberId &&
+        now.conversationId === before.conversationId
+      );
+    };
     if (step === "delete") {
-      const control = this.#deleteControl();
-      const memberId = this.currentTarget().memberId;
+      const menu = this.#conversationMenu();
+      const memberId = before.memberId;
       const rows = memberId ? this.#rows(memberId) : undefined;
-      if (!control || !memberId || !rows) throw new Error("Delete not ready");
+      if (!menu || !memberId || !rows) throw new Error("Delete not ready");
+      const item =
+        this.#deleteItem(menu) ??
+        (await this.#openMenu(menu, () => this.#deleteItem(menu) ?? null));
+      if (!item) throw new Error("Delete item not found");
+      if (!same() || this.#conversationMenu() !== menu)
+        throw new Error("The page changed before the click");
+      // Counted again after the wait: the list must still show the row, so
+      // the result can be checked, and the count after compares with now.
+      const baseline = this.#rows(memberId);
+      if (!baseline) throw new Error("The list no longer shows the row");
       // Fixed now: the page's header may change after the click.
-      this.#deleted = { memberId, rows };
-      press(control);
+      this.#deleted = { memberId, rows: baseline };
+      press(item);
       return;
     }
     const menu = this.#menu();
@@ -94,6 +126,8 @@ export class JoyClubQuickActionDriver implements QuickActionDriver {
       menu.querySelector(S.ignoreItem) ??
       (await this.#openMenu(menu, () => menu.querySelector(S.ignoreItem)));
     if (!item) throw new Error("Ignore item not found");
+    if (!same() || this.#menu() !== menu)
+      throw new Error("The page changed before the click");
     press(item);
   }
 
@@ -142,18 +176,31 @@ export class JoyClubQuickActionDriver implements QuickActionDriver {
     return (await this.#openMenu(menu, found, true, rest)) !== null;
   }
 
-  #deleteControl(): Element | undefined {
+  /**
+   * The conversation's three-dot menu: exactly one, with its button, in the
+   * JoyClub header that holds the conversation header. Never a guess.
+   */
+  #conversationMenu(): Element | undefined {
     const header = pageMember(this.document, "conversation")?.anchor;
-    const row = header?.parentElement;
-    const inboxRow = verifiedSelector("inbox", "row");
-    if (!row || !inboxRow) return undefined;
-    const controls = Array.from(
-      this.document.querySelectorAll(S.deleteControl),
-    ).filter((control) => !control.closest(inboxRow));
-    // Exactly one, in the header's row: never a row's control, never a guess.
-    return controls.length === 1 && row.contains(controls[0]!)
-      ? controls[0]
-      : undefined;
+    const scope = header?.closest(S.conversationScope);
+    if (!scope) return undefined;
+    const menus = Array.from(scope.querySelectorAll(S.conversationMenu)).filter(
+      (menu) =>
+        menu.querySelector(`:scope > ${S.conversationMenuButton}`) !== null,
+    );
+    return menus.length === 1 ? menus[0] : undefined;
+  }
+
+  /** The menu's Delete item, by its visible text; exactly one, or none. */
+  #deleteItem(menu: Element): Element | undefined {
+    const items = Array.from(
+      menu.querySelectorAll("j-context-menu-item"),
+    ).filter(
+      (item) =>
+        (item.shadowRoot?.textContent ?? "").replace(/\s+/g, " ").trim() ===
+        DELETE_ITEM_TEXT,
+    );
+    return items.length === 1 ? items[0] : undefined;
   }
 
   /**

@@ -56,11 +56,11 @@ Name element (for completeness, not requested but adjacent):
 
 ## Ignore / Block / Delete controls
 
-| Control | Present? | Visible label                                                            | Selector                                                  | Notes                                                                                                                                                                     |
-| ------- | -------- | ------------------------------------------------------------------------ | --------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Delete  | Present  | "Unterhaltung in den Papierkorb schieben" ("Move conversation to trash") | `j-control-button[data-e2e="button-delete-conversation"]` | Directly visible, not inside a menu. Not clicked.                                                                                                                         |
-| Ignore  | Unclear  | —                                                                        | —                                                         | No directly-visible control found labeled ignore/block/report. Likely lives inside the header's "Optionen" (options) kebab menu — see below. Not opened, per instruction. |
-| Block   | Unclear  | —                                                                        | —                                                         | Same as Ignore.                                                                                                                                                           |
+| Control | Present? | Visible label                            | Selector                                                  | Notes                                                                                                                                                                     |
+| ------- | -------- | ---------------------------------------- | --------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Delete  | Present  | "In den Papierkorb schieben" (menu item) | In the "Optionen" menu; see `10-ignore.md`, eighth report | Corrected 2026-09-24: `button-delete-conversation` ("Unterhaltung in den Papierkorb schieben") is the inbox row's button, seen here in the split view.                    |
+| Ignore  | Unclear  | —                                        | —                                                         | No directly-visible control found labeled ignore/block/report. Likely lives inside the header's "Optionen" (options) kebab menu — see below. Not opened, per instruction. |
+| Block   | Unclear  | —                                        | —                                                         | Same as Ignore.                                                                                                                                                           |
 
 A header options ("kebab") menu exists:
 `j-control-button[data-e2e="button-conversation-kebap"]`, aria-label "Optionen".

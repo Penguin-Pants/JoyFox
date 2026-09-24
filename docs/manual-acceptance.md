@@ -273,10 +273,10 @@ expected ActionLog. Each item has a synthetic test with the same case number in
 
 59. In "Your data", click "Export all JoyFox data (JSON)" and keep the file.
 60. In a second Firefox profile (or after "Delete all JoyFox data"), open the
-    options page, choose the file under "Import", and confirm the preview lists
-    what will be added. Confirm nothing changed yet, then click "Confirm
-    import". Confirm accounts, rules, templates and notes are back, and the
-    active account is set.
+    options page, choose the file under "Import" (on the Accounts tab since
+    2026-09-24), and confirm the preview lists what will be added. Confirm
+    nothing changed yet, then click "Confirm import". Confirm accounts, rules,
+    templates and notes are back, and the active account is set.
 61. Choose the same file again. Confirm the preview says nothing would change.
 62. Choose a file that is not a JoyFox export. Confirm the error says nothing
     was imported.
@@ -331,6 +331,15 @@ the gaps are closed.
     mode, confirm the page is dark and the red delete buttons are readable.
 
 **Result (2026-09-24): passed.** The project owner confirmed items 70 to 72.
+
+## Import on the Accounts tab (2026-09-24)
+
+73. Open the options page and click the Accounts tab. Confirm "Import", its
+    explanation and the file chooser appear under the account list and the "Add
+    account" form. Confirm "Your data" no longer shows Import.
+74. Choose a JoyFox export file there. Confirm the preview, "Confirm import" and
+    the result message appear on the Accounts tab, and that the imported
+    accounts show in the account list right after the import.
 
 Live selector and action acceptance must wait for the evidence checklist in
 `manual-verification-needed.md`. Never perform destructive action testing

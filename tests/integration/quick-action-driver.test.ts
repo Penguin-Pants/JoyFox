@@ -70,14 +70,52 @@ const rowsOf = (memberId: string) =>
     ),
   );
 
-/** The split view: the list on the left, the conversation on the right. */
-function openConversation(options: { list?: boolean } = {}) {
+/** Invented labels for the other items of the conversation menu. */
+const OTHER_ITEMS = ["Als ungelesen markieren", "Archivieren", "Melden"];
+
+/** A JoyClub menu item: its text is only inside its open shadow root. */
+function menuItem(menu: Element, text: string, onClick?: () => void): void {
+  const item = document.createElement("j-context-menu-item");
+  const button = document.createElement("button");
+  button.setAttribute("role", "menuitem");
+  const span = document.createElement("span");
+  span.className = "j-context-menu-item__text";
+  span.textContent = ` ${text} `;
+  button.append(span);
+  button.addEventListener("click", () => {
+    pressed.push(text);
+    menu.removeAttribute("open");
+    for (const node of Array.from(menu.querySelectorAll("j-context-menu-item")))
+      node.remove();
+    onClick?.();
+  });
+  item.attachShadow({ mode: "open" }).append(button);
+  menu.append(item);
+}
+
+/**
+ * The split view: the list on the left, the conversation on the right. The
+ * conversation's three-dot menu shares JoyClub's header with the
+ * conversation header, and renders its items only while open (owner
+ * evidence, 2026-09-24, eighth report).
+ */
+function openConversation(
+  options: { list?: boolean; onDelete?: () => void } = {},
+) {
   window.history.replaceState(null, "", CONVERSATION_PATH);
   const list =
     options.list === false
       ? ""
       : `<div class="cm-conversation-list">${inboxRow("5550001")}${inboxRow(MEMBER)}${inboxRow("5550002")}</div>`;
-  document.body.innerHTML = `${list}<div id="row" style="display: flex">${conversationHtml.split("<ul")[0]}</div><ul${conversationHtml.split("<ul")[1]}`;
+  const header = conversationHtml.slice(
+    0,
+    conversationHtml.indexOf("</a>") + 4,
+  );
+  document.body.innerHTML =
+    `${list}<header class="cm-clubmail-header">${header}` +
+    `<j-context-menu class="cm-conversation__context-menu" offset-x="true">` +
+    `<j-control-button slot="activator" data-e2e="button-conversation-kebap" aria-label="Optionen"></j-control-button>` +
+    `</j-context-menu></header><ul${conversationHtml.split("<ul")[1]}`;
   for (const row of Array.from(
     document.querySelectorAll(".cm-conversation-list-item"),
   ))
@@ -85,13 +123,30 @@ function openConversation(options: { list?: boolean } = {}) {
       row.querySelector('[data-e2e="button-delete-conversation"]')!,
       "row delete",
     );
-  const own = document.querySelector(
-    '#row > [data-e2e="button-delete-conversation"]',
-  )!;
+  const menu = document.querySelector("j-context-menu")!;
   // JoyClub moves the conversation to the trash at once: its row goes.
-  control(own, "conversation delete", () =>
-    setTimeout(() => rowsOf(MEMBER)[0]?.closest("j-list-item")?.remove(), 20),
-  );
+  const onDelete =
+    options.onDelete ??
+    (() =>
+      setTimeout(
+        () => rowsOf(MEMBER)[0]?.closest("j-list-item")?.remove(),
+        20,
+      ));
+  control(menu.querySelector('[slot="activator"]')!, "Optionen", () => {
+    if (menu.getAttribute("open") === "true") {
+      menu.removeAttribute("open");
+      for (const node of Array.from(
+        menu.querySelectorAll("j-context-menu-item"),
+      ))
+        node.remove();
+      return;
+    }
+    menu.setAttribute("open", "true");
+    menuItem(menu, OTHER_ITEMS[0]!);
+    menuItem(menu, OTHER_ITEMS[1]!);
+    menuItem(menu, "In den Papierkorb schieben", onDelete);
+    menuItem(menu, OTHER_ITEMS[2]!);
+  });
 }
 
 function openProfile(options: { itemOnlyWhenOpen?: boolean } = {}) {
@@ -173,7 +228,8 @@ describe("M9 live driver on synthetic JoyClub pages (ADR 0011)", () => {
         client.handOff("account-a", operationId, next, PROFILE_PATH),
     });
     expect(first.status).toBe("handed-off");
-    expect(pressed).toEqual(["conversation delete"]);
+    // The menu, then its Delete item; never an inbox row's own button.
+    expect(pressed).toEqual(["Optionen", "In den Papierkorb schieben"]);
     expect(rowsOf(MEMBER)).toHaveLength(0);
     expect(rowsOf("5550001")).toHaveLength(1);
 
@@ -190,7 +246,8 @@ describe("M9 live driver on synthetic JoyClub pages (ADR 0011)", () => {
     });
     expect(second.report.status).toBe("completed");
     expect(pressed).toEqual([
-      "conversation delete",
+      "Optionen",
+      "In den Papierkorb schieben",
       "Profil ignorieren",
       "Ignorieren",
     ]);
@@ -219,26 +276,67 @@ describe("M9 live driver on synthetic JoyClub pages (ADR 0011)", () => {
     expect(pressed).not.toContain("Abbrechen");
   });
 
-  it("never presses an inbox row's Delete, and refuses an unclear control", () => {
+  it("refuses an unclear conversation menu, or one without a Delete item", async () => {
     openConversation();
     const driver = new JoyClubQuickActionDriver(document, TIMING);
     expect(driver.hasControl("delete")).toBe(true);
-    // A second control outside the rows: JoyFox cannot tell which is right.
-    document
-      .querySelector("#row")!
-      .append(document.createElement("j-control-button"));
-    document
-      .querySelector("#row > j-control-button:last-child")!
-      .setAttribute("data-e2e", "button-delete-conversation");
+    // A second such menu in the header: JoyFox cannot tell which is right.
+    const header = document.querySelector("header.cm-clubmail-header")!;
+    header.append(document.querySelector("j-context-menu")!.cloneNode(true));
     expect(driver.hasControl("delete")).toBe(false);
-    // None outside the rows: only the rows' own controls remain.
-    for (const node of Array.from(
-      document.querySelectorAll(
-        '#row > [data-e2e="button-delete-conversation"]',
-      ),
-    ))
-      node.remove();
+    // One menu again, open, with no item reading "In den Papierkorb schieben".
+    header.lastElementChild!.remove();
+    const menu = document.querySelector("j-context-menu")!;
+    menu.setAttribute("open", "true");
+    menuItem(menu, "In den Papierkorb");
     expect(driver.hasControl("delete")).toBe(false);
+    expect(pressed).toEqual([]);
+  });
+
+  it("clicks nothing when the conversation changes while the menu opens", async () => {
+    openConversation();
+    const menu = document.querySelector("j-context-menu")!;
+    // JoyClub routes to another conversation in place as the menu opens.
+    menu
+      .querySelector('[slot="activator"]')!
+      .shadowRoot!.querySelector("button")!
+      .addEventListener("click", () =>
+        window.history.replaceState(
+          null,
+          "",
+          "/clubmail/conversation/conversation-wrapper-personal-1234567-1111111",
+        ),
+      );
+    const driver = new JoyClubQuickActionDriver(document, TIMING);
+    await expect(driver.request("delete")).rejects.toThrow(/changed/);
+    expect(pressed).toEqual(["Optionen"]);
+    expect(rowsOf(MEMBER)).toHaveLength(1);
+  });
+
+  it("clicks nothing when the list loses the row while the menu opens", async () => {
+    openConversation();
+    const menu = document.querySelector("j-context-menu")!;
+    // The list re-renders without this member's row as the menu opens.
+    menu
+      .querySelector('[slot="activator"]')!
+      .shadowRoot!.querySelector("button")!
+      .addEventListener("click", () =>
+        rowsOf(MEMBER)[0]?.closest("j-list-item")?.remove(),
+      );
+    const driver = new JoyClubQuickActionDriver(document, TIMING);
+    await expect(driver.request("delete")).rejects.toThrow(/no longer/);
+    expect(pressed).toEqual(["Optionen"]);
+  });
+
+  it("never uses a menu outside the conversation's own header", () => {
+    openConversation();
+    // The same menu, but not in the header that holds the conversation.
+    const other = document.createElement("div");
+    other.append(document.querySelector("j-context-menu")!);
+    document.body.append(other);
+    expect(
+      new JoyClubQuickActionDriver(document, TIMING).hasControl("delete"),
+    ).toBe(false);
   });
 
   it("does not start Delete when the list that shows its result is missing", async () => {
@@ -251,17 +349,9 @@ describe("M9 live driver on synthetic JoyClub pages (ADR 0011)", () => {
   });
 
   it("reports Delete as not confirmed when the row stays", async () => {
-    openConversation();
-    const own = document.querySelector(
-      '#row > [data-e2e="button-delete-conversation"]',
-    )!;
-    own.replaceWith(own.cloneNode());
-    control(
-      document.querySelector('#row > [data-e2e="button-delete-conversation"]')!,
-      "conversation delete",
-    );
+    openConversation({ onDelete: () => undefined });
     const result = await run();
-    expect(pressed).toEqual(["conversation delete"]);
+    expect(pressed).toEqual(["Optionen", "In den Papierkorb schieben"]);
     expect(result.report).toMatchObject({
       failure: "not-verified",
       delete: "unknown",
@@ -270,24 +360,17 @@ describe("M9 live driver on synthetic JoyClub pages (ADR 0011)", () => {
   });
 
   it("never reads a vanished header or an emptied list as a done Delete", async () => {
-    openConversation();
-    const own = document.querySelector(
-      '#row > [data-e2e="button-delete-conversation"]',
-    )!;
-    own.replaceWith(own.cloneNode());
     // JoyClub re-renders: the header goes, and the list empties for a moment,
     // but the member's row comes back. Nothing was deleted.
-    control(
-      document.querySelector('#row > [data-e2e="button-delete-conversation"]')!,
-      "conversation delete",
-      () => {
+    openConversation({
+      onDelete: () => {
         document.querySelector(".cm-conversation-header")?.remove();
         const list = document.querySelector("div.cm-conversation-list")!;
         const rows = Array.from(list.children);
         list.replaceChildren();
         setTimeout(() => list.append(...rows), 30);
       },
-    );
+    });
     const driver = new JoyClubQuickActionDriver(document, TIMING);
     expect(driver.hasControl("delete")).toBe(true);
     expect(driver.canVerify("delete")).toBe(true);

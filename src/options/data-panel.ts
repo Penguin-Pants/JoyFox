@@ -85,6 +85,8 @@ const samePending = (a: Pending | undefined, b: Pending) =>
  */
 export class DataPanel {
   readonly #status: HTMLParagraphElement;
+  /** Import's own status line, beside it when it has its own place. */
+  readonly #importStatus: HTMLParagraphElement;
   #generation = 0;
   /** The account being inspected; not necessarily the active one. */
   #selected: string | undefined;
@@ -104,10 +106,20 @@ export class DataPanel {
     private readonly accounts = new AccountService(),
     private readonly saveFile: FileSaver = browserFileSaver,
     private readonly onChange: () => void = () => undefined,
+    /**
+     * Where Import is drawn, when not in this panel: the Accounts tab
+     * (owner request, 2026-09-24).
+     */
+    private readonly importRoot?: HTMLElement,
   ) {
-    this.#status = root.ownerDocument.createElement("p");
-    this.#status.className = "joyfox-panel__status";
-    this.#status.setAttribute("aria-live", "polite");
+    const status = () => {
+      const node = root.ownerDocument.createElement("p");
+      node.className = "joyfox-panel__status";
+      node.setAttribute("aria-live", "polite");
+      return node;
+    };
+    this.#status = status();
+    this.#importStatus = importRoot ? status() : this.#status;
   }
 
   async render(): Promise<void> {
@@ -174,6 +186,10 @@ export class DataPanel {
       );
     }
     this.root.append(this.#renderGlobalActions(document), this.#status);
+    this.importRoot?.replaceChildren(
+      this.#renderImport(document),
+      this.#importStatus,
+    );
   }
 
   #renderAccountPicker(
@@ -413,7 +429,7 @@ export class DataPanel {
         () => this.data.deleteEverything(),
         "Deleted all JoyFox data in this browser.",
       ),
-      this.#renderImport(document),
+      ...(this.importRoot ? [] : [this.#renderImport(document)]),
     );
     return section;
   }
@@ -551,7 +567,7 @@ export class DataPanel {
       "Cancel import",
       () => {
         this.#import = undefined;
-        this.#setStatus("Import cancelled. Nothing was changed.", "info");
+        this.#setImportStatus("Import cancelled. Nothing was changed.", "info");
         void this.render();
       },
     );
@@ -575,7 +591,7 @@ export class DataPanel {
       const plan = await this.data.previewImport(text);
       if (choice !== this.#importChoice) return;
       this.#import = { text, plan };
-      this.#setStatus(
+      this.#setImportStatus(
         plan.writes.length === 0 && plan.settingsAdded.length === 0
           ? "Everything in this file is already stored. Nothing would change."
           : 'Check what the import changes, then click "Confirm import".',
@@ -583,7 +599,7 @@ export class DataPanel {
       );
     } catch (error) {
       if (choice !== this.#importChoice) return;
-      this.#setStatus(
+      this.#setImportStatus(
         isExtensionError(error)
           ? `${error.message}. Nothing was imported.`
           : "JoyFox could not read that file. Nothing was imported.",
@@ -611,7 +627,7 @@ export class DataPanel {
         }),
         { added: 0, replaced: 0 },
       );
-      this.#setStatus(
+      this.#setImportStatus(
         `Import complete: ${totals.added} record(s) added, ${totals.replaced} replaced by a newer version.${
           plan.settingsSaved
             ? ""
@@ -621,7 +637,7 @@ export class DataPanel {
       );
       this.onChange();
     } catch (error) {
-      this.#setStatus(
+      this.#setImportStatus(
         isExtensionError(error)
           ? `${error.message}. Nothing was imported.`
           : "The import could not be completed. The counts shown now are what is stored.",
@@ -697,9 +713,11 @@ export class DataPanel {
   }
 
   #setStatus(message: string, kind: "info" | "error"): void {
-    this.#status.dataset.kind = kind;
-    this.#status.setAttribute("role", kind === "error" ? "alert" : "status");
-    this.#status.textContent = message;
+    setStatusLine(this.#status, message, kind);
+  }
+
+  #setImportStatus(message: string, kind: "info" | "error"): void {
+    setStatusLine(this.#importStatus, message, kind);
   }
 
   /**
@@ -722,4 +740,14 @@ export class DataPanel {
     }
     await this.render();
   }
+}
+
+function setStatusLine(
+  line: HTMLParagraphElement,
+  message: string,
+  kind: "info" | "error",
+): void {
+  line.dataset.kind = kind;
+  line.setAttribute("role", kind === "error" ? "alert" : "status");
+  line.textContent = message;
 }
