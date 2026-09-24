@@ -964,6 +964,8 @@ describe("M9 button and notice", () => {
     quick.update();
     await vi.waitFor(() => expect(runButton()).toBeDefined());
     runButton()!.click();
+    // The page moves only once the run returns "handed-off".
+    await vi.waitFor(() => expect(visited).toHaveLength(1));
     await vi.waitFor(() =>
       expect(notice()).toContain(QUICK_ACTION_TEXT.handedOff),
     );
@@ -1040,6 +1042,36 @@ describe("M9 button and notice", () => {
     const on = new QuickIgnoreDelete(document, client, () => driver);
     on.updateProfile();
     await new Promise((resolve) => setTimeout(resolve, 30));
+    expect(driver.clicks).toEqual([]);
+  });
+
+  it("closes a hand-off already read when the flag is turned off", async () => {
+    const recorder = client.recorder("account-a");
+    const begun = await recorder.begin(TARGET);
+    if (begun.status !== "started") throw new Error("not started");
+    await recorder.record(begun.operationId, "DeleteRequested");
+    await recorder.record(begun.operationId, "DeleteConfirmed");
+    await client.handOff(
+      "account-a",
+      begun.operationId,
+      "ignore",
+      PROFILE_PATH,
+    );
+    onProfilePage();
+    document.body.innerHTML = profileHtml;
+    // The profile menu is not there yet, so the run waits after reading.
+    const driver = new FakeDriver();
+    driver.current = () => PROFILE;
+    driver.controls.ignore = false;
+    const quick = new QuickIgnoreDelete(document, client, () => driver);
+    quick.updateProfile();
+    // Let the page read (and so remove) its marker.
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    expect(await client.pending()).toEqual({ status: "none" });
+    quick.turnOff();
+    await vi.waitFor(async () =>
+      expect((await logged())[0]?.at(-1)).toBe("Failed:turned-off"),
+    );
     expect(driver.clicks).toEqual([]);
   });
 

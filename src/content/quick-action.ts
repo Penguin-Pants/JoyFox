@@ -449,8 +449,19 @@ export class QuickIgnoreDelete {
     // checks the page), so other pages never ask.
     if (this.#discarded || !pageMember(this.document, "profile")) return;
     this.#discarded = true;
-    // A marker this page already read and has not run yet goes too.
-    if (this.#resume && !this.#resume.started) this.#resume.started = true;
+    // A marker this page already read (the background removed it) and has
+    // not run yet is closed from what was read.
+    const read = this.#resume;
+    if (read && !read.started) {
+      read.started = true;
+      clearTimeout(read.timer);
+      const answer = read.answer;
+      if (answer.status === "ok")
+        void this.client
+          .recorder(answer.accountId)
+          .record(answer.operationId, "Failed", "turned-off")
+          .catch(() => undefined);
+    }
     this.client
       .pending()
       .then(async (answer) => {
