@@ -77,6 +77,12 @@ JoyClub laying the conversation header and its menu buttons out as one row, as
 seen in the owner's screenshot of 2026-09-24. If that changes, the strip falls
 back to following the header element.
 
+The inbox views hide each row's slot: the row and the wrappers around it that
+hold nothing else, found by structure (`rowSlot`), not by class. JoyClub wraps
+each row in two plain `div`s that keep their height when only the row is hidden
+(`01-inbox.md`, "List structure"). The climb stops at the list root and at the
+first wrapper with more than one child, so it can never hide the list.
+
 ## Open points
 
 - **Verification codes.** Confirmed by the project owner on 2026-09-23: `1` is
@@ -94,9 +100,9 @@ back to following the header element.
   header's member ID is one of the numbers in the conversation ID. This assumes
   those numbers are participant member IDs; if they are not, header data always
   reads as missing, which is safe but must then be revisited.
-- **Inbox loading.** Whether scrolling loads more rows is unconfirmed. The
-  extractor reads only the rows rendered at the time; later rows are read on the
-  next mutation event only if the site appends them to the same list.
+- **Inbox loading.** Confirmed on 2026-09-24 (`01-inbox.md`, "List structure"):
+  scrolling appends more rows to the same list, so later rows are read on the
+  next mutation event.
 - **Message identifiers** were not looked for, so no per-message ID exists yet.
 - **Composer events.** Confirmed live on 2026-09-23 (`manual-acceptance.md` item
   33): after JoyFox sets the value and sends `input` and `change`, JoyClub

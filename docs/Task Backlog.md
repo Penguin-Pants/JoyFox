@@ -127,7 +127,11 @@ F7.
   full-width strip under the header row, with details on demand, and all
   injected UI takes its colors from the page (ADR 0010,
   `manual-acceptance.md` items 63 to 67). Triggered by the owner's screenshot
-  of narrow white columns in the dark ClubMail header.
+  of narrow white columns in the dark ClubMail header. Live acceptance passed
+  on 2026-09-24 (items 63 to 67).
+- Done: inbox views hide each row's wrappers too, so the rows of a view sit
+  together at the top with no gaps (`manual-acceptance.md` items 68 and 69).
+  Triggered by the owner's screenshot of gaps in the "Needs Review" view.
 
 ### Follow-up work recorded during Milestone D
 

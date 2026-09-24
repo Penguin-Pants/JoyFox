@@ -34,6 +34,8 @@
 /*
  * Triage views filter rows in place. A row without a placement is still
  * being checked and stays visible in the default and "Show all" views.
+ * The row's slot (the wrappers JoyClub puts around it) goes too, so no gap
+ * is left and the rows of a view sit together.
  */
 [data-joyfox-view="default"]
   [data-joyfox-row][data-joyfox-placement="quarantined"],
@@ -42,7 +44,14 @@
 [data-joyfox-view="needs-review"]
   [data-joyfox-row]:not([data-joyfox-placement="needs-review"]),
 [data-joyfox-view="quarantined"]
-  [data-joyfox-row]:not([data-joyfox-placement="quarantined"]) {
+  [data-joyfox-row]:not([data-joyfox-placement="quarantined"]),
+[data-joyfox-view="default"] [data-joyfox-slot="quarantined"],
+[data-joyfox-view="qualified"]
+  [data-joyfox-slot]:not([data-joyfox-slot="qualified"]),
+[data-joyfox-view="needs-review"]
+  [data-joyfox-slot]:not([data-joyfox-slot="needs-review"]),
+[data-joyfox-view="quarantined"]
+  [data-joyfox-slot]:not([data-joyfox-slot="quarantined"]) {
   display: none !important;
 }
 

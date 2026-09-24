@@ -6,6 +6,7 @@ import {
   inboxListShown,
   inboxListState,
   PLACEMENT_ATTRIBUTE,
+  rowSlot,
   VIEW_ATTRIBUTE,
 } from "../../src/content/inbox-triage";
 import { MemberPanel } from "../../src/content/member-panel";
@@ -192,6 +193,48 @@ describe("M2 inbox triage", () => {
     ).toBe("true");
     buttonNamed(bar()!, "Show all").click();
     expect(visible()).toEqual([true, true, true]);
+  });
+
+  it("hides each row's wrappers too, so a view's rows sit together", async () => {
+    await rules.saveGlobalRule(ACCOUNT, knownRule());
+    setPage("/clubmail/", inboxHtml);
+    // Live structure (owner evidence, 2026-09-24): each row sits in two
+    // plain divs inside a j-list, which keep their height when the row hides.
+    const items = document.createElement("j-list");
+    items.className = "cm-conversation-list__element";
+    for (const row of rows()) {
+      const outer = document.createElement("div");
+      const inner = document.createElement("div");
+      inner.className = "cm-conversation-list";
+      inner.append(row);
+      outer.append(inner);
+      items.append(outer);
+    }
+    list().append(items);
+    const original = document.body.innerHTML;
+    const inbox = new InboxTriage(document, serviceClient());
+    inbox.update();
+    await vi.waitFor(() => expect(bar()).not.toBeNull());
+    const shown = () =>
+      Array.from(items.children).map(
+        (slot) => getComputedStyle(slot).display !== "none",
+      );
+    expect(shown()).toEqual([true, false, true]);
+    buttonNamed(bar()!, "Quarantined").click();
+    expect(shown()).toEqual([false, true, false]);
+    buttonNamed(bar()!, "Needs Review").click();
+    expect(shown()).toEqual([false, false, true]);
+    inbox.teardown();
+    expect(document.body.innerHTML).toBe(original);
+  });
+
+  it("never takes the list, or a wrapper with other content, as a row's slot", () => {
+    document.body.innerHTML =
+      '<div id="list"><div id="only"><div id="row"></div></div></div>' +
+      '<div id="list2"><div id="shared"><div id="row2"></div><span></span></div></div>';
+    const at = (id: string) => document.getElementById(id)!;
+    expect(rowSlot(at("row"), at("list"))).toBe(at("only"));
+    expect(rowSlot(at("row2"), at("list2"))).toBe(at("row2"));
   });
 
   it("explains a placement and moves the sender at once when the user overrides it", async () => {

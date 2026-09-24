@@ -139,3 +139,24 @@ The project owner confirmed the shield labels from the site:
 - Green shield (`verification-status="3"`): "persönlich bekannt", meaning the
   logged-in user has marked this member as met in real life. It is the viewer's
   own confirmation, not JoyClub's verification.
+
+## List structure (2026-09-24)
+
+The project owner ran a read-only console snippet that printed tag names, class
+names and computed layout only, no member data. From one row up to the list:
+
+```text
+j-list-item.cm-conversation-list-item   display:flex  height:78px
+div.cm-conversation-list                display:block height:78px  children:1
+div (no class)                          display:block height:78px  children:1
+j-list.cm-conversation-list__element    display:flex  children:50 (89 after scrolling)
+div.ui-scrollbar-container.cm-layout-scroll__inner   overflowY:auto
+div.cm-layout-scroll.cm-conversation-list
+```
+
+- Each row sits in two plain wrappers of one child each. The wrappers kept their
+  height when the row inside was hidden, which left gaps in a triage view.
+- No element is absolutely positioned or transformed, so the list is not
+  virtualized.
+- Scrolling to the bottom loaded more rows into the same `j-list` (50, then 89),
+  which answers the open point on inbox loading.
