@@ -351,6 +351,9 @@ the gaps are closed.
     the result message appear on the Accounts tab, and that the imported
     accounts show in the account list right after the import.
 
+**Result (2026-09-24): passed.** The project owner confirmed items 73 and 74:
+Import now sits under the account list on the Accounts tab.
+
 Live selector and action acceptance must wait for the evidence checklist in
 `manual-verification-needed.md`. Never perform destructive action testing
 automatically.

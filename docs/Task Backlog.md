@@ -140,7 +140,8 @@ ready to run by hand (ADR 0011).
   2026-09-24.
 - Done: Import (text, file chooser, preview and confirm) moved to the Accounts
   tab, under the account list; the data panel still runs it
-  (`manual-acceptance.md` items 73 and 74).
+  (`manual-acceptance.md` items 73 and 74). Live acceptance passed on
+  2026-09-24.
 
 ### Follow-up work recorded during Milestone D
 
