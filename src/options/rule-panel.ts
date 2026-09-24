@@ -43,6 +43,11 @@ const EMPTY_FORM: BuilderForm = {
   any: {},
 };
 
+const noteText = (saved: boolean) =>
+  saved
+    ? "A rule is saved for the active account."
+    : "No rule is saved for the active account, so JoyFox does not sort the inbox.";
+
 function element<K extends keyof HTMLElementTagNameMap>(
   document: Document,
   tag: K,
@@ -73,6 +78,9 @@ export class RulePanel {
   #controls = new Map<string, ConditionControls>();
   #enabled?: HTMLInputElement;
   #placement?: HTMLSelectElement;
+  /** The line saying whether a rule is saved, updated after an autosave. */
+  #note?: HTMLParagraphElement;
+  #form?: HTMLFormElement;
   /**
    * Save and remove run one after another, in click order, so a quick
    * "Save" then "Remove" can never end with the rule saved again.
@@ -167,18 +175,14 @@ export class RulePanel {
       );
       return;
     }
-    this.root.append(
-      element(
-        document,
-        "p",
-        "",
-        stored
-          ? "A rule is saved for the active account."
-          : "No rule is saved for the active account, so JoyFox does not sort the inbox.",
-      ),
-      this.#renderForm(document, account.id, form, stored !== undefined),
-      this.#status,
+    this.#note = element(document, "p", "", noteText(stored !== undefined));
+    this.#form = this.#renderForm(
+      document,
+      account.id,
+      form,
+      stored !== undefined,
     );
+    this.root.append(this.#note, this.#form, this.#status);
   }
 
   #renderForm(
@@ -233,21 +237,27 @@ export class RulePanel {
         'Spam status is unknown for now: JoyFox does not read message text yet. Only your own "not spam" corrections count. The inbox shows only the verification shield; photos, profile words and account age come from profiles you opened before.',
       ),
     );
-    const submit = element(
-      document,
-      "button",
-      "joyfox-panel__submit",
-      "Save rule",
+    node.append(
+      element(
+        document,
+        "p",
+        "joyfox-panel__hint",
+        "Changes are saved automatically: a box or choice at once, a number when you leave its field.",
+      ),
     );
-    submit.type = "submit";
-    node.append(submit);
     if (saved) node.append(this.#removeButton(document, accountId));
-    node.addEventListener("submit", (event) => {
-      event.preventDefault();
-      // Read the form now, at click time, then queue the write.
+    // Autosave: checkboxes and choices report `change` at once, a number
+    // field when it loses focus or on Enter. Submitting (Enter) saves too.
+    const autosave = () => {
+      // Read the form now, at change time, then queue the write.
       const form = this.#readForm();
       const version = this.#version();
       void this.#serial(() => this.#save(accountId, form, version));
+    };
+    node.addEventListener("change", autosave);
+    node.addEventListener("submit", (event) => {
+      event.preventDefault();
+      autosave();
     });
     return node;
   }
@@ -367,10 +377,13 @@ export class RulePanel {
           fromBuilderForm(form),
         );
         this.#recordOwnWrite(rule.updatedAt);
+        // The form already shows what was saved, so it is not redrawn: a
+        // redraw would move focus and drop changes made while this saved.
+        this.#drawnStamp = rule.updatedAt;
         return "saved";
       });
       if (saved !== "saved") return this.#reportStale("saved", saved);
-      await this.render();
+      this.#markSaved(accountId);
       const vacuous =
         Object.keys(form.all).length === 0 && Object.keys(form.any).length > 0;
       this.#setStatus(
@@ -385,6 +398,13 @@ export class RulePanel {
         "error",
       );
     }
+  }
+
+  /** After the first save, say so and offer "Remove rule", in place. */
+  #markSaved(accountId: string): void {
+    if (this.#note) this.#note.textContent = noteText(true);
+    if (this.#form && !this.#form.querySelector(".joyfox-panel__remove"))
+      this.#form.append(this.#removeButton(this.root.ownerDocument, accountId));
   }
 
   #removeButton(document: Document, accountId: string): HTMLButtonElement {

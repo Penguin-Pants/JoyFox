@@ -43,6 +43,18 @@ function submit() {
     .dispatchEvent(new Event("submit", { cancelable: true, bubbles: true }));
 }
 
+/** Every condition kind in a stored rule tree, in order. */
+function kindsOf(node: unknown): string[] {
+  const value = node as { kind?: string; children?: unknown[] } | undefined;
+  if (!value) return [];
+  if (value.kind) return [value.kind];
+  return (value.children ?? []).flatMap(kindsOf);
+}
+
+function change(node: HTMLElement) {
+  node.dispatchEvent(new Event("change", { bubbles: true }));
+}
+
 describe("M4 rule builder panel", () => {
   it("asks for an account before offering a rule", async () => {
     await panel.render();
@@ -85,6 +97,62 @@ describe("M4 rule builder panel", () => {
     // The re-rendered form shows what was stored.
     expect(input("joyfox-rule-all-minimumPhotos-value").value).toBe("3");
     expect(input("joyfox-rule-any-personallyKnown-on").checked).toBe(true);
+  });
+
+  it("autosaves a ticked box at once, without a Save button", async () => {
+    const account = await accounts.createAccount({ joyClubAccountId: "a" });
+    await panel.render();
+    expect(root.querySelector(".joyfox-panel__submit")).toBeNull();
+    const box = input("joyfox-rule-all-personallyKnown-on");
+    box.checked = true;
+    change(box);
+    await settle(
+      () => status()?.textContent?.startsWith("Rule saved") ?? false,
+    );
+    expect(kindsOf((await rules.getGlobalRule(account.id))?.root)).toEqual([
+      "personallyKnown",
+    ]);
+    // Saved in place: the same form stays, and "Remove rule" appears.
+    expect(input("joyfox-rule-all-personallyKnown-on")).toBe(box);
+    expect(root.textContent).toContain("A rule is saved");
+    expect(root.querySelector(".joyfox-panel__remove")).not.toBeNull();
+  });
+
+  it("autosaves a number when its field reports a change", async () => {
+    const account = await accounts.createAccount({ joyClubAccountId: "a" });
+    await panel.render();
+    input("joyfox-rule-all-minimumPhotos-on").checked = true;
+    const value = input("joyfox-rule-all-minimumPhotos-value");
+    value.value = "4";
+    change(value);
+    await settle(
+      () => status()?.textContent?.startsWith("Rule saved") ?? false,
+    );
+    expect(
+      JSON.stringify((await rules.getGlobalRule(account.id))?.root),
+    ).toContain('"kind":"minimumPhotos","value":4');
+  });
+
+  it("keeps a change made while an earlier autosave runs", async () => {
+    const account = await accounts.createAccount({ joyClubAccountId: "a" });
+    await panel.render();
+    const first = input("joyfox-rule-all-verified-on");
+    first.checked = true;
+    change(first);
+    const second = input("joyfox-rule-all-personallyKnown-on");
+    second.checked = true;
+    change(second);
+    await settle(
+      () =>
+        root.querySelector(".joyfox-panel__remove") !== null &&
+        (status()?.textContent?.startsWith("Rule saved") ?? false),
+    );
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    expect(second.checked).toBe(true);
+    expect(kindsOf((await rules.getGlobalRule(account.id))?.root)).toEqual([
+      "verified",
+      "personallyKnown",
+    ]);
   });
 
   it("refuses an invalid number and keeps the stored rule", async () => {

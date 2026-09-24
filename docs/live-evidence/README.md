@@ -17,6 +17,7 @@ replaced with `0`. The code values in `01-inbox.md` (`verification-status`,
 | `03-profile.md`          | Profile page fields                           | 3                                              |
 | `08-attribute-matrix.md` | Where each qualification criterion appears    | 8 (partial)                                    |
 | `09-navigation.md`       | Full page load versus client-side navigation  | 9 (partial)                                    |
+| `10-ignore.md`           | Where Ignore lives: profile, not conversation | 7 (partial)                                    |
 
 What each partial item still lacks:
 
@@ -31,6 +32,6 @@ What each partial item still lacks:
   conversation, are Unclear. Profile type (codes confirmed 2026-09-23) and the
   profile's account age are resolved; see `08-attribute-matrix.md`.
 
-Not yet captured: search (4), events (5), event ClubMail composer (6), the
-content of the conversation options menu (7), the remaining navigation moves (9)
-and the distribution channel (10).
+Not yet captured: search (4), events (5), event ClubMail composer (6), the rest
+of item 7 (the result after confirming Ignore, Delete's confirmation and
+result), the remaining navigation moves (9) and the distribution channel (10).

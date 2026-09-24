@@ -28,6 +28,7 @@ Rules:
 | Event                   | Unverified | None                 | Disabled               |
 | Event calendar          | Unverified | None                 | Disabled               |
 | Standard composer       | Verified   | `02-conversation.md` | Template picker (M10)  |
+| Profile Ignore item     | Observed   | `10-ignore.md`       | Not used (M9 blocked)  |
 | Event ClubMail composer | Unverified | None                 | Disabled               |
 
 ## Page signals
