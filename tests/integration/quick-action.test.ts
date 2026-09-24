@@ -970,6 +970,66 @@ describe("M9 button and notice", () => {
     expect(await logged()).toEqual([]);
   });
 
+  it("drops a waiting hand-off when the flag is off, so it never runs later", async () => {
+    const recorder = client.recorder("account-a");
+    const begun = await recorder.begin(TARGET);
+    if (begun.status !== "started") throw new Error("not started");
+    await recorder.record(begun.operationId, "DeleteRequested");
+    await recorder.record(begun.operationId, "DeleteConfirmed");
+    await client.handOff(
+      "account-a",
+      begun.operationId,
+      "ignore",
+      PROFILE_PATH,
+    );
+    onProfilePage();
+    document.body.innerHTML = profileHtml;
+    const driver = new FakeDriver();
+    driver.current = () => PROFILE;
+    // The profile loads with the flag off.
+    const off = new QuickIgnoreDelete(document, client, () => driver);
+    off.turnOff();
+    await vi.waitFor(async () =>
+      expect((await logged())[0]?.at(-1)).toBe("Failed:turned-off"),
+    );
+    // Turned on again: nothing is left to continue.
+    const on = new QuickIgnoreDelete(document, client, () => driver);
+    on.updateProfile();
+    await new Promise((resolve) => setTimeout(resolve, 30));
+    expect(driver.clicks).toEqual([]);
+  });
+
+  it("asks again when reading the hand-off fails once", async () => {
+    const recorder = client.recorder("account-a");
+    const begun = await recorder.begin(TARGET);
+    if (begun.status !== "started") throw new Error("not started");
+    await recorder.record(begun.operationId, "DeleteRequested");
+    await recorder.record(begun.operationId, "DeleteConfirmed");
+    await client.handOff(
+      "account-a",
+      begun.operationId,
+      "ignore",
+      PROFILE_PATH,
+    );
+    onProfilePage();
+    document.body.innerHTML = profileHtml;
+    let failures = 1;
+    const flaky: QuickActionClient = {
+      ...client,
+      pending: () =>
+        failures-- > 0
+          ? Promise.reject(new Error("background restarting"))
+          : client.pending(),
+    };
+    const driver = new FakeDriver();
+    driver.current = () => PROFILE;
+    new QuickIgnoreDelete(document, flaky, () => driver).updateProfile();
+    await vi.waitFor(
+      () => expect(driver.clicks).toEqual(["request:ignore", "confirm:ignore"]),
+      { timeout: 3000 },
+    );
+  });
+
   it("reads the hand-off only on the profile it named", async () => {
     const recorder = client.recorder("account-a");
     const begun = await recorder.begin(TARGET);

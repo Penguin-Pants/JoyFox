@@ -189,6 +189,9 @@ export class QuickIgnoreDelete {
 
   /** The hand-off this profile page resumes, once read (one-shot). */
   #resume?: ResumeState;
+  #discarded = false;
+  /** Failed reads of the hand-off marker on this page; retried a few times. */
+  #pendingFailures = 0;
   #profileDrawn?: { section: HTMLElement; status: HTMLElement; lines: string };
 
   constructor(
@@ -230,7 +233,14 @@ export class QuickIgnoreDelete {
           resume.answer = answer;
           if (this.#resume === resume) this.updateProfile();
         })
-        .catch(() => undefined);
+        .catch(() => {
+          // The background may be restarting: ask again on a later page
+          // event, a few times, while the marker is still valid.
+          if (this.#resume !== resume || this.#pendingFailures >= 3) return;
+          this.#pendingFailures += 1;
+          this.#resume = undefined;
+          setTimeout(() => this.updateProfile(), 500);
+        });
       return;
     }
     const resume = this.#resume;
@@ -418,7 +428,32 @@ export class QuickIgnoreDelete {
   turnOff(): void {
     if (this.#running) this.#stop = "turned-off";
     this.#result = undefined;
+    this.#discardHandOff();
     this.leave();
+  }
+
+  /**
+   * With the flag off, a hand-off waiting for this tab must never run later,
+   * when the flag is turned on again: read it once (which removes it) and
+   * close its run as turned off. Once per page load, as `turnOff` runs on
+   * every page event while the flag is off.
+   */
+  #discardHandOff(): void {
+    // Only a profile page can hold this tab's hand-off (the background
+    // checks the page), so other pages never ask.
+    if (this.#discarded || !pageMember(this.document, "profile")) return;
+    this.#discarded = true;
+    // A marker this page already read and has not run yet goes too.
+    if (this.#resume && !this.#resume.started) this.#resume.started = true;
+    this.client
+      .pending()
+      .then(async (answer) => {
+        if (answer.status !== "ok") return;
+        await this.client
+          .recorder(answer.accountId)
+          .record(answer.operationId, "Failed", "turned-off");
+      })
+      .catch(() => undefined);
   }
 
   teardown(): void {
