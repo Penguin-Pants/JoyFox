@@ -27,11 +27,13 @@ verified from it. Still open:
   icon are those where you sent the last message.
 - **Empty inbox:** how the inbox renders with no conversations, for example an
   empty-state element. This decides how a feature tells "empty" from "loading".
-- **Item 7 (F7):** whether the conversation "Optionen" menu contains Ignore or
-  Block. The menu was not opened. This is now the only blocker for M9: the state
-  machine, ActionLog, identity checks and notice are built and tested with test
-  drivers (ADR 0008). The live driver needs the answers listed under item 7
-  below.
+- **Item 7 (F7), partial (2026-09-24):** the conversation "Optionen" menu does
+  not contain Ignore. The profile page's three-dot menu has "Profil ignorieren",
+  a `j-context-menu-item` with no `data-e2e` hook
+  (`live-evidence/10-ignore.md`). So M9 is Path B: ignore on the profile. Still
+  open for the live driver: the profile menu trigger, whether the menu item's
+  shadow root is open, what "Profil ignorieren" does next (dialog, result,
+  route), and Delete's confirmation and result.
 - **Item 9:** profile → Back, inbox → search and inbox → events.
 - **Items 4, 5, 6 (event ClubMail composer) and 10:** not started.
 
