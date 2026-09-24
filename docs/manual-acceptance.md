@@ -262,6 +262,18 @@ expected ActionLog. Each item has a synthetic test with the same case number in
     appears and the saved rule is unchanged. Reload the options page and confirm
     the form shows the last valid rule.
 
+## Import (2026-09-24)
+
+59. In "Your data", click "Export all JoyFox data (JSON)" and keep the file.
+60. In a second Firefox profile (or after "Delete all JoyFox data"), open the
+    options page, choose the file under "Import", and confirm the preview lists
+    what will be added. Confirm nothing changed yet, then click "Confirm
+    import". Confirm accounts, rules, templates and notes are back, and the
+    active account is set.
+61. Choose the same file again. Confirm the preview says nothing would change.
+62. Choose a file that is not a JoyFox export. Confirm the error says nothing
+    was imported.
+
 Live selector and action acceptance must wait for the evidence checklist in
 `manual-verification-needed.md`. Never perform destructive action testing
 automatically.

@@ -118,9 +118,10 @@ F7.
 - Done: the contact rule autosaves on each change, with no Save button
   (`manual-acceptance.md`, items 56 to 58). Triggered by a lost rule: the
   owner expected a ticked box to be kept.
-- Next: import of JSON exports (full and single-account), merging into what is
-  stored. The conflict rules are to be agreed with the owner before building.
-  PRD Section 13.3 names export only; this extends M8.
+- Done: import of JSON exports (full and single-account), merged into what is
+  stored by the owner-approved rules (ADR 0009), with a preview and a confirm
+  step (`manual-acceptance.md`, items 59 to 62). PRD Section 13.3 names export
+  only; this extends M8.
 
 ### Follow-up work recorded during Milestone D
 

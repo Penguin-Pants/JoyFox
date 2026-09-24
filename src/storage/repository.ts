@@ -15,6 +15,8 @@ export type Stored<T> = T & { storageKey: string };
 const keyPart = (value: string) => encodeURIComponent(value);
 const key = (accountId: string, id: string) =>
   `${keyPart(accountId)}:${keyPart(id)}`;
+/** The physical key of a record, for writers that bypass a repository class. */
+export const storageKeyFor = key;
 export function withoutStorageKey<T>(stored: Stored<T>): T {
   const copy: Partial<Stored<T>> = { ...stored };
   delete copy.storageKey;

@@ -137,3 +137,7 @@
 - The contact rule saves on every change: at once for a box or choice, and when
   a number field loses focus or on Enter. An invalid number is not saved; the
   error names the field, and the last valid rule stays in force.
+- Import merges; it never deletes. A newer note replaces an older one rather
+  than combining them, and retention is not applied until the next ordinary
+  write (ADR 0009). An import reads all stored data to plan, so a very large
+  store makes the preview slower.

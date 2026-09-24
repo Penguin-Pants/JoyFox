@@ -1,0 +1,576 @@
+import { ACTIVE_ACCOUNT_SETTING_KEY } from "../accounts/account-service";
+import type {
+  AccountScopedEntity,
+  EntityMap,
+  EntityName,
+  ExtensionAccount,
+  MessageTemplate,
+} from "../domain/types";
+import { ExtensionError } from "../errors";
+import { MAX_NOTE_LENGTH, MAX_TAG_LENGTH } from "../notes/limits";
+import { normalizeMessage } from "../spam/normalize";
+import {
+  MAX_TEMPLATE_BODY_LENGTH,
+  MAX_TEMPLATE_FOLDER_LENGTH,
+  MAX_TEMPLATE_NAME_LENGTH,
+} from "../templates/template-service";
+import { DATABASE_VERSION, ENTITY_NAMES } from "../storage/database";
+import type { RecordWrite } from "../storage/repositories";
+import { TRIAGE_REVISION_KEY } from "../storage/triage-revision";
+import { validateEntity, ValidationError } from "../storage/validation";
+
+/**
+ * Import of a JoyFox export file, merged into what is stored (owner
+ * decision, 2026-09-24; ADR 0009). This module is pure: it checks a file and
+ * plans the merge against a snapshot of stored data. `DataService` applies
+ * the plan.
+ */
+
+/** A file larger than this is refused before it is parsed. */
+export const MAX_IMPORT_BYTES = 50 * 1024 * 1024;
+
+type AnyEntity = EntityMap[EntityName];
+type Entities = { [N in EntityName]: EntityMap[N][] };
+
+export interface ImportFile {
+  scope: "all" | "account";
+  schemaVersion: number;
+  /** Only for a single-account export. */
+  accountId?: string;
+  entities: Entities;
+  /** `storage.local` settings; only a full export carries them. */
+  settings: Record<string, unknown>;
+}
+
+export interface StoredSnapshot {
+  entities: Entities;
+  settings: Record<string, unknown>;
+}
+
+export interface EntityImportCounts {
+  added: number;
+  replaced: number;
+  kept: number;
+  duplicates: number;
+}
+
+export interface ImportPlan {
+  scope: ImportFile["scope"];
+  accounts: { matched: number; added: number };
+  counts: { [N in EntityName]: EntityImportCounts };
+  settingsAdded: string[];
+  /** Settings in the file that are never imported (features, diagnostics). */
+  settingsSkipped: string[];
+  writes: RecordWrite[];
+  settings: Record<string, unknown>;
+  /** Changes when the plan would change, so a stale preview is detected. */
+  signature: string;
+}
+
+/**
+ * Records whose ID names one fact (a tag, a not-spam correction, a member
+ * entry) or that never change once written (trust outcomes, snapshots,
+ * cached messages, the action log, templates). On an ID clash the stored
+ * one is kept. Every other entity keeps the newer version by `updatedAt`.
+ */
+const KEEP_EXISTING: ReadonlySet<EntityName> = new Set<EntityName>([
+  "extensionAccounts",
+  "joyClubMembers",
+  "userTags",
+  "senderSpamOverrides",
+  "trustSignals",
+  "profileSnapshots",
+  "messageObservations",
+  "actionLogs",
+  "messageTemplates",
+  // A file must never redirect an existing sync endpoint.
+  "syncConfigs",
+]);
+
+/**
+ * The only settings taken from a file, each with the type it must have. The
+ * active account is handled on its own. Diagnostics, experimental actions
+ * (Quick Ignore and Delete) and change markers are never imported: a file
+ * must not switch on a feature, least of all a destructive one.
+ */
+/** Change markers carry no data; they are dropped without mention. */
+const CHANGE_MARKERS: ReadonlySet<string> = new Set([
+  TRIAGE_REVISION_KEY,
+  "joyfox.actionRevision",
+  "joyfox.notesRevision",
+]);
+
+const IMPORTED_SETTINGS: Readonly<Record<string, "boolean">> = {
+  "joyfox.templatePicker": "boolean",
+};
+
+/** Every field each entity may have. Anything else refuses the file. */
+const BASE_FIELDS = ["id", "accountId", "createdAt", "updatedAt"] as const;
+const ENTITY_FIELDS: Readonly<Record<EntityName, readonly string[]>> = {
+  extensionAccounts: ["joyClubAccountId", "label"],
+  joyClubMembers: ["joyClubMemberId"],
+  profileSnapshots: [
+    "memberId",
+    "capturedAt",
+    "verification",
+    "photoCount",
+    "profileWordCount",
+    "joinedAt",
+    "joinedEarliest",
+    "joinedLatest",
+  ],
+  userNotes: ["memberId", "body"],
+  userTags: ["memberId", "label"],
+  trustSignals: ["memberId", "kind", "occurredAt"],
+  contactRules: [
+    "name",
+    "schemaVersion",
+    "audience",
+    "enabled",
+    "defaultPlacement",
+    "root",
+  ],
+  conversationClassifications: [
+    "memberId",
+    "conversationId",
+    "placement",
+    "source",
+    "decidedAt",
+    "ruleId",
+    "reasons",
+  ],
+  savedSearches: ["name", "url", "filters"],
+  eventMetadata: ["eventId", "note", "tags", "attendance"],
+  spendLogEntries: ["occurredAt", "amountMinor", "currency", "category"],
+  syncConfigs: ["endpoint", "lastSyncedAt", "keyDerivation"],
+  extensionPreferences: ["key", "value"],
+  messageTemplates: ["name", "body", "folder"],
+  spamPhrases: ["phrase", "enabled"],
+  messageObservations: [
+    "memberId",
+    "conversationId",
+    "observedAt",
+    "normalizedText",
+  ],
+  senderSpamOverrides: ["memberId", "decision", "decidedAt", "reason"],
+  actionLogs: ["memberId", "conversationId", "action", "steps"],
+};
+
+/** Keys that could reach an object's prototype if a value were ever merged. */
+const FORBIDDEN_KEYS: ReadonlySet<string> = new Set([
+  "__proto__",
+  "constructor",
+  "prototype",
+]);
+
+function hasForbiddenKey(value: unknown, depth = 0): boolean {
+  if (depth > 64) return true;
+  if (Array.isArray(value))
+    return value.some((item) => hasForbiddenKey(item, depth + 1));
+  if (typeof value !== "object" || value === null) return false;
+  return Object.keys(value).some(
+    (key) =>
+      FORBIDDEN_KEYS.has(key) ||
+      hasForbiddenKey((value as Record<string, unknown>)[key], depth + 1),
+  );
+}
+
+const STEP_FIELDS = ["name", "ok", "at", "errorCode"];
+const GROUP_FIELDS = ["type", "match", "children"];
+const CONDITION_FIELDS = ["type", "kind", "value", "whenUnknown"];
+
+const extraKey = (value: Record<string, unknown>, allowed: string[]) =>
+  Object.keys(value).find((key) => !allowed.includes(key));
+
+/** The first field in a contact-rule tree that the rule schema does not have. */
+function ruleNodeExtra(node: unknown, depth = 0): string | undefined {
+  if (!isObject(node) || depth > 16) return undefined;
+  if (node.type === "group") {
+    const extra = extraKey(node, GROUP_FIELDS);
+    if (extra) return extra;
+    for (const child of Array.isArray(node.children) ? node.children : []) {
+      const nested = ruleNodeExtra(child, depth + 1);
+      if (nested) return nested;
+    }
+    return undefined;
+  }
+  return extraKey(node, CONDITION_FIELDS);
+}
+
+/**
+ * Checks ordinary saves make and the storage validation does not: closed
+ * nested shapes, the size limits of notes, tags and templates, and that
+ * cached message text really is in normalized form (the privacy guarantee
+ * of ADR 0004, and what the spam detector compares).
+ */
+function domainProblem(
+  name: EntityName,
+  record: Record<string, unknown>,
+): string | undefined {
+  const tooLong = (field: string, limit: number) =>
+    typeof record[field] === "string" &&
+    (record[field] as string).length > limit
+      ? `${field} is longer than ${limit} characters`
+      : undefined;
+  switch (name) {
+    case "actionLogs":
+      for (const step of Array.isArray(record.steps) ? record.steps : []) {
+        const extra = isObject(step) ? extraKey(step, STEP_FIELDS) : undefined;
+        if (extra) return `an action step holds an unknown field (${extra})`;
+      }
+      return undefined;
+    case "contactRules": {
+      const extra = ruleNodeExtra(record.root);
+      return extra
+        ? `a rule condition holds an unknown field (${extra})`
+        : undefined;
+    }
+    case "userNotes":
+      return tooLong("body", MAX_NOTE_LENGTH);
+    case "userTags":
+      return tooLong("label", MAX_TAG_LENGTH);
+    case "messageTemplates":
+      return (
+        tooLong("name", MAX_TEMPLATE_NAME_LENGTH) ??
+        tooLong("folder", MAX_TEMPLATE_FOLDER_LENGTH) ??
+        tooLong("body", MAX_TEMPLATE_BODY_LENGTH)
+      );
+    case "messageObservations":
+      return typeof record.normalizedText === "string" &&
+        normalizeMessage(record.normalizedText) !== record.normalizedText
+        ? "normalizedText is not in normalized form"
+        : undefined;
+    default:
+      return undefined;
+  }
+}
+
+/** A record dated more than a day ahead would win every later merge. */
+const FUTURE_TOLERANCE_MS = 24 * 60 * 60 * 1000;
+
+/**
+ * Every field that holds a date. Besides `updatedAt`, which decides merges,
+ * these order snapshots, messages, outcomes and action steps at run time,
+ * so a future date in any of them would stay "newest" for good.
+ */
+const DATE_FIELDS: readonly string[] = [
+  "createdAt",
+  "updatedAt",
+  "capturedAt",
+  "occurredAt",
+  "decidedAt",
+  "observedAt",
+  "lastSyncedAt",
+  "joinedAt",
+  "joinedEarliest",
+  "joinedLatest",
+];
+
+function datedInFuture(record: Record<string, unknown>, now: number): boolean {
+  const late = (value: unknown) =>
+    typeof value === "string" && Date.parse(value) > now + FUTURE_TOLERANCE_MS;
+  if (DATE_FIELDS.some((field) => late(record[field]))) return true;
+  // Action-log steps carry their own time.
+  return (
+    Array.isArray(record.steps) &&
+    record.steps.some((step: unknown) => isObject(step) && late(step.at))
+  );
+}
+
+function refuse(message: string): ExtensionError {
+  return new ExtensionError("ExtractionInvalid", message);
+}
+
+const isObject = (value: unknown): value is Record<string, unknown> =>
+  typeof value === "object" && value !== null && !Array.isArray(value);
+
+const emptyEntities = (): Entities =>
+  Object.fromEntries(
+    ENTITY_NAMES.map((name) => [name, []]),
+  ) as unknown as Entities;
+
+/**
+ * Parse and check a whole file before anything is planned. Any problem
+ * refuses the whole file, so an import never stores part of a bad file.
+ */
+export function parseImportFile(
+  text: string,
+  now: number = Date.now(),
+): ImportFile {
+  let data: unknown;
+  try {
+    data = JSON.parse(text);
+  } catch {
+    throw refuse("The file is not a JoyFox export (not valid JSON)");
+  }
+  if (!isObject(data) || !isObject(data.entities))
+    throw refuse("The file is not a JoyFox export");
+  const version = data.schemaVersion;
+  if (typeof version !== "number" || !Number.isInteger(version) || version < 1)
+    throw refuse("The file has no valid schema version");
+  if (version > DATABASE_VERSION)
+    throw refuse(
+      "The file comes from a newer JoyFox version. Update JoyFox first",
+    );
+  const scope = data.scope;
+  if (scope !== "all" && scope !== "account")
+    throw refuse("The file has no valid export scope");
+  const rawAccountId = scope === "account" ? data.accountId : undefined;
+  if (
+    scope === "account" &&
+    (typeof rawAccountId !== "string" || rawAccountId.length === 0)
+  )
+    throw refuse("The account export names no account");
+  const accountId = rawAccountId as string | undefined;
+
+  const entities = emptyEntities();
+  for (const [name, records] of Object.entries(data.entities)) {
+    if (!(ENTITY_NAMES as readonly string[]).includes(name))
+      throw refuse(`The file holds an unknown data type (${name})`);
+    if (!Array.isArray(records))
+      throw refuse(`The file's ${name} list is not a list`);
+    const seen = new Set<string>();
+    records.forEach((raw: unknown, index) => {
+      if (!isObject(raw))
+        throw refuse(`Record ${index + 1} of ${name} is not a record`);
+      if (hasForbiddenKey(raw))
+        throw refuse(`Record ${index + 1} of ${name} holds a forbidden key`);
+      const record = { ...raw };
+      delete record.storageKey;
+      const allowed = [...BASE_FIELDS, ...ENTITY_FIELDS[name as EntityName]];
+      const extra = Object.keys(record).find((key) => !allowed.includes(key));
+      if (extra)
+        throw refuse(
+          `Record ${index + 1} of ${name} holds an unknown field (${extra})`,
+        );
+      const problem = domainProblem(name as EntityName, record);
+      if (problem)
+        throw refuse(`Record ${index + 1} of ${name} is invalid: ${problem}`);
+      if (datedInFuture(record, now))
+        throw refuse(`Record ${index + 1} of ${name} is dated in the future`);
+      try {
+        validateEntity(
+          name as EntityName,
+          record as unknown as AccountScopedEntity,
+        );
+      } catch (error) {
+        const reason =
+          error instanceof ValidationError ? error.message : "it is invalid";
+        throw refuse(`Record ${index + 1} of ${name} is invalid: ${reason}`);
+      }
+      const entity = record as unknown as AnyEntity;
+      if (scope === "account" && entity.accountId !== accountId)
+        throw refuse(
+          `Record ${index + 1} of ${name} belongs to another account`,
+        );
+      if (name === "extensionAccounts" && entity.id !== entity.accountId)
+        throw refuse(`Account record ${index + 1} is not its own scope`);
+      const key = `${entity.accountId}\u0000${entity.id}`;
+      if (seen.has(key))
+        throw refuse(`Record ${index + 1} of ${name} appears twice`);
+      seen.add(key);
+      (entities[name as EntityName] as AnyEntity[]).push(entity);
+    });
+  }
+
+  const identifiers = new Set<string>();
+  for (const account of entities.extensionAccounts) {
+    if (identifiers.has(account.joyClubAccountId))
+      throw refuse("Two accounts in the file have the same identifier");
+    identifiers.add(account.joyClubAccountId);
+  }
+  if (
+    scope === "account" &&
+    !entities.extensionAccounts.some((account) => account.id === accountId)
+  )
+    throw refuse("The account export holds no account record");
+
+  const settings: Record<string, unknown> = {};
+  if (scope === "all" && data.settings !== undefined) {
+    if (!isObject(data.settings))
+      throw refuse("The file's settings are invalid");
+    if (hasForbiddenKey(data.settings))
+      throw refuse("The file's settings hold a forbidden key");
+    for (const [key, value] of Object.entries(data.settings)) {
+      if (!key.startsWith("joyfox."))
+        throw refuse(`The file holds a setting JoyFox does not use (${key})`);
+      settings[key] = value;
+    }
+  }
+  return {
+    scope,
+    schemaVersion: version,
+    ...(accountId ? { accountId } : {}),
+    entities,
+    settings,
+  };
+}
+
+const templateKey = (template: MessageTemplate) =>
+  JSON.stringify([template.name, template.folder ?? "", template.body]);
+
+/**
+ * Plan the merge. Pure: the same file and snapshot give the same plan, and
+ * `newId` is called only for an imported account whose ID is taken by a
+ * different stored account.
+ */
+export function planImport(
+  file: ImportFile,
+  stored: StoredSnapshot,
+  newId: () => string = () => crypto.randomUUID(),
+): ImportPlan {
+  const counts = Object.fromEntries(
+    ENTITY_NAMES.map((name) => [
+      name,
+      { added: 0, replaced: 0, kept: 0, duplicates: 0 },
+    ]),
+  ) as ImportPlan["counts"];
+  const writes: RecordWrite[] = [];
+  /**
+   * What each write came from in the file. The signature uses these, not the
+   * written IDs, because a moved account gets a new random ID on each plan.
+   */
+  const sources: string[] = [];
+
+  // Accounts: one with the same JoyClub identifier is the same account.
+  const storedAccounts = stored.entities.extensionAccounts;
+  const scopeMap = new Map<string, string>();
+  const accounts = { matched: 0, added: 0 };
+  for (const account of file.entities.extensionAccounts) {
+    const same = storedAccounts.find(
+      (existing) => existing.joyClubAccountId === account.joyClubAccountId,
+    );
+    if (same) {
+      scopeMap.set(account.id, same.id);
+      accounts.matched += 1;
+      counts.extensionAccounts.kept += 1;
+      continue;
+    }
+    const taken = storedAccounts.some((existing) => existing.id === account.id);
+    const id = taken ? newId() : account.id;
+    scopeMap.set(account.id, id);
+    accounts.added += 1;
+    counts.extensionAccounts.added += 1;
+    const added: ExtensionAccount = { ...account, id, accountId: id };
+    writes.push({ name: "extensionAccounts", entity: added });
+    sources.push(`extensionAccounts:${account.id}`);
+  }
+  // A scope that is not an account in the file (the wake counter) keeps its
+  // name. It must not name a stored account or an account this import writes
+  // to: its records would then land in an account the file does not hold.
+  const accountTargets = new Set([
+    ...storedAccounts.map((account) => account.id),
+    ...scopeMap.values(),
+  ]);
+  const target = (scope: string) => {
+    const mapped = scopeMap.get(scope);
+    if (mapped) return mapped;
+    if (accountTargets.has(scope))
+      throw refuse(
+        "Some records in the file belong to an account the file does not hold",
+      );
+    return scope;
+  };
+  const written = new Set<string>();
+
+  /** One write per stored key, however the file's scopes map. */
+  const record = (name: EntityName, entity: AnyEntity) => {
+    const key = `${name}\u0000${entity.accountId}\u0000${entity.id}`;
+    if (written.has(key))
+      throw refuse(
+        "The file holds the same record twice after merging accounts",
+      );
+    written.add(key);
+    writes.push({ name, entity } as RecordWrite);
+  };
+
+  for (const name of ENTITY_NAMES) {
+    if (name === "extensionAccounts") continue;
+    const existing = new Map<string, AnyEntity>();
+    for (const record of stored.entities[name] as AnyEntity[])
+      existing.set(`${record.accountId}\u0000${record.id}`, record);
+    const templates = new Set<string>();
+    if (name === "messageTemplates")
+      for (const record of stored.entities.messageTemplates)
+        templates.add(`${record.accountId}\u0000${templateKey(record)}`);
+
+    for (const source of file.entities[name] as AnyEntity[]) {
+      const entity = { ...source, accountId: target(source.accountId) };
+      const current = existing.get(`${entity.accountId}\u0000${entity.id}`);
+      if (!current) {
+        if (name === "messageTemplates") {
+          const key = `${entity.accountId}\u0000${templateKey(entity as MessageTemplate)}`;
+          if (templates.has(key)) {
+            counts[name].duplicates += 1;
+            continue;
+          }
+          templates.add(key);
+        }
+        counts[name].added += 1;
+        record(name, entity);
+        sources.push(`${name}:${source.accountId}:${source.id}`);
+        continue;
+      }
+      if (
+        !KEEP_EXISTING.has(name) &&
+        Date.parse(entity.updatedAt) > Date.parse(current.updatedAt)
+      ) {
+        counts[name].replaced += 1;
+        record(name, entity);
+        sources.push(`${name}:${source.accountId}:${source.id}`);
+      } else counts[name].kept += 1;
+    }
+  }
+
+  // Settings: only allowlisted keys, with the right type, not stored yet.
+  // The active account is taken from the file (mapped), or else the first
+  // imported account, only if none is set.
+  const settings: Record<string, unknown> = {};
+  const settingsSkipped: string[] = [];
+  for (const [key, value] of Object.entries(file.settings)) {
+    if (key === ACTIVE_ACCOUNT_SETTING_KEY) continue;
+    const type = IMPORTED_SETTINGS[key];
+    if (!type || typeof value !== type) {
+      if (!CHANGE_MARKERS.has(key)) settingsSkipped.push(key);
+      continue;
+    }
+    if (!(key in stored.settings)) settings[key] = value;
+  }
+  const storedActive = stored.settings[ACTIVE_ACCOUNT_SETTING_KEY];
+  const activeExists =
+    typeof storedActive === "string" &&
+    storedAccounts.some((account) => account.id === storedActive);
+  /** The file's account the active pointer comes from, for the signature. */
+  let activeSource: string | undefined;
+  if (!activeExists) {
+    const fileActive = file.settings[ACTIVE_ACCOUNT_SETTING_KEY];
+    activeSource =
+      typeof fileActive === "string" && scopeMap.has(fileActive)
+        ? fileActive
+        : file.entities.extensionAccounts[0]?.id;
+    const candidate = activeSource && scopeMap.get(activeSource);
+    if (candidate) settings[ACTIVE_ACCOUNT_SETTING_KEY] = candidate;
+  }
+
+  const settingsAdded = Object.keys(settings).sort();
+  return {
+    scope: file.scope,
+    accounts,
+    counts,
+    settingsAdded,
+    settingsSkipped: settingsSkipped.sort(),
+    writes,
+    settings,
+    // Signed by what the settings come from, not a moved account's new
+    // random ID, so the preview and the apply agree.
+    signature: JSON.stringify([
+      accounts,
+      counts,
+      {
+        ...settings,
+        ...(activeSource ? { [ACTIVE_ACCOUNT_SETTING_KEY]: activeSource } : {}),
+      },
+      sources,
+    ]),
+  };
+}

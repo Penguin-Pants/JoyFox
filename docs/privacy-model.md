@@ -69,3 +69,7 @@ write. It is off by default and has no live driver until F7 verifies its path,
 so today it never clicks anything. Its ActionLog holds member and conversation
 IDs, step names, times and failure codes, never message text. It never sends a
 message.
+
+Import reads a file the user chooses, in the options page only. Nothing is
+fetched or uploaded. The file is checked in full before anything is stored, and
+nothing is written until the user confirms the preview.
