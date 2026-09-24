@@ -495,6 +495,89 @@ describe("M8 import: restoring and merging", () => {
     expect(() => parseImportFile(step)).toThrow("dated in the future");
   });
 
+  it("refuses unknown fields inside action steps and rule conditions", () => {
+    const step = fullFile({
+      extensionAccounts: [account("a", "me")],
+      actionLogs: [
+        {
+          id: "log",
+          accountId: "a",
+          action: "x",
+          steps: [{ name: "s", ok: true, at: t0, messageText: "secret" }],
+          createdAt: t0,
+          updatedAt: t0,
+        },
+      ],
+    });
+    expect(() => parseImportFile(step)).toThrow("unknown field (messageText)");
+    const rule = fullFile({
+      extensionAccounts: [account("a", "me")],
+      contactRules: [
+        {
+          id: "rule:global",
+          accountId: "a",
+          name: "R",
+          schemaVersion: 1,
+          audience: "all",
+          enabled: true,
+          defaultPlacement: "needs-review",
+          root: {
+            type: "group",
+            match: "all",
+            children: [
+              {
+                type: "condition",
+                kind: "verified",
+                whenUnknown: "needs-review",
+                note: "x",
+              },
+            ],
+          },
+          createdAt: t0,
+          updatedAt: t0,
+        },
+      ],
+    });
+    expect(() => parseImportFile(rule)).toThrow("unknown field (note)");
+  });
+
+  it("applies the size limits ordinary saves use", () => {
+    const longNote = fullFile({
+      extensionAccounts: [account("a", "me")],
+      userNotes: [note("a", "x".repeat(4001), t1)],
+    });
+    expect(() => parseImportFile(longNote)).toThrow("longer than 4000");
+    const longTemplate = fullFile({
+      extensionAccounts: [account("a", "me")],
+      messageTemplates: [{ ...template("a", "t", "x"), name: "n".repeat(81) }],
+    });
+    expect(() => parseImportFile(longTemplate)).toThrow("longer than 80");
+  });
+
+  it("refuses cached message text that is not normalized", () => {
+    const observation = (normalizedText: string) =>
+      fullFile({
+        extensionAccounts: [account("a", "me")],
+        messageObservations: [
+          {
+            id: "obs",
+            accountId: "a",
+            memberId: "1234567",
+            observedAt: t0,
+            normalizedText,
+            createdAt: t0,
+            updatedAt: t0,
+          },
+        ],
+      });
+    expect(() => parseImportFile(observation("HELLO THERE!"))).toThrow(
+      "not in normalized form",
+    );
+    expect(
+      parseImportFile(observation("hello there")).entities.messageObservations,
+    ).toHaveLength(1);
+  });
+
   it("imports only allowlisted settings, never a feature switch", async () => {
     const plan = await importText(
       fullFile(

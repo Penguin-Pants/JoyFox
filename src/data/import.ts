@@ -7,6 +7,13 @@ import type {
   MessageTemplate,
 } from "../domain/types";
 import { ExtensionError } from "../errors";
+import { MAX_NOTE_LENGTH, MAX_TAG_LENGTH } from "../notes/limits";
+import { normalizeMessage } from "../spam/normalize";
+import {
+  MAX_TEMPLATE_BODY_LENGTH,
+  MAX_TEMPLATE_FOLDER_LENGTH,
+  MAX_TEMPLATE_NAME_LENGTH,
+} from "../templates/template-service";
 import { DATABASE_VERSION, ENTITY_NAMES } from "../storage/database";
 import type { RecordWrite } from "../storage/repositories";
 import { TRIAGE_REVISION_KEY } from "../storage/triage-revision";
@@ -168,6 +175,76 @@ function hasForbiddenKey(value: unknown, depth = 0): boolean {
   );
 }
 
+const STEP_FIELDS = ["name", "ok", "at", "errorCode"];
+const GROUP_FIELDS = ["type", "match", "children"];
+const CONDITION_FIELDS = ["type", "kind", "value", "whenUnknown"];
+
+const extraKey = (value: Record<string, unknown>, allowed: string[]) =>
+  Object.keys(value).find((key) => !allowed.includes(key));
+
+/** The first field in a contact-rule tree that the rule schema does not have. */
+function ruleNodeExtra(node: unknown, depth = 0): string | undefined {
+  if (!isObject(node) || depth > 16) return undefined;
+  if (node.type === "group") {
+    const extra = extraKey(node, GROUP_FIELDS);
+    if (extra) return extra;
+    for (const child of Array.isArray(node.children) ? node.children : []) {
+      const nested = ruleNodeExtra(child, depth + 1);
+      if (nested) return nested;
+    }
+    return undefined;
+  }
+  return extraKey(node, CONDITION_FIELDS);
+}
+
+/**
+ * Checks ordinary saves make and the storage validation does not: closed
+ * nested shapes, the size limits of notes, tags and templates, and that
+ * cached message text really is in normalized form (the privacy guarantee
+ * of ADR 0004, and what the spam detector compares).
+ */
+function domainProblem(
+  name: EntityName,
+  record: Record<string, unknown>,
+): string | undefined {
+  const tooLong = (field: string, limit: number) =>
+    typeof record[field] === "string" &&
+    (record[field] as string).length > limit
+      ? `${field} is longer than ${limit} characters`
+      : undefined;
+  switch (name) {
+    case "actionLogs":
+      for (const step of Array.isArray(record.steps) ? record.steps : []) {
+        const extra = isObject(step) ? extraKey(step, STEP_FIELDS) : undefined;
+        if (extra) return `an action step holds an unknown field (${extra})`;
+      }
+      return undefined;
+    case "contactRules": {
+      const extra = ruleNodeExtra(record.root);
+      return extra
+        ? `a rule condition holds an unknown field (${extra})`
+        : undefined;
+    }
+    case "userNotes":
+      return tooLong("body", MAX_NOTE_LENGTH);
+    case "userTags":
+      return tooLong("label", MAX_TAG_LENGTH);
+    case "messageTemplates":
+      return (
+        tooLong("name", MAX_TEMPLATE_NAME_LENGTH) ??
+        tooLong("folder", MAX_TEMPLATE_FOLDER_LENGTH) ??
+        tooLong("body", MAX_TEMPLATE_BODY_LENGTH)
+      );
+    case "messageObservations":
+      return typeof record.normalizedText === "string" &&
+        normalizeMessage(record.normalizedText) !== record.normalizedText
+        ? "normalizedText is not in normalized form"
+        : undefined;
+    default:
+      return undefined;
+  }
+}
+
 /** A record dated more than a day ahead would win every later merge. */
 const FUTURE_TOLERANCE_MS = 24 * 60 * 60 * 1000;
 
@@ -266,6 +343,9 @@ export function parseImportFile(
         throw refuse(
           `Record ${index + 1} of ${name} holds an unknown field (${extra})`,
         );
+      const problem = domainProblem(name as EntityName, record);
+      if (problem)
+        throw refuse(`Record ${index + 1} of ${name} is invalid: ${problem}`);
       if (datedInFuture(record, now))
         throw refuse(`Record ${index + 1} of ${name} is dated in the future`);
       try {

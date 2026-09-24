@@ -43,9 +43,12 @@ already stored, which files to accept, and how conflicts resolve.
    - The whole file is checked first: JSON, schema version, scope, every record
      against the storage validation and a closed list of fields per data type,
      no `__proto__`, `constructor` or `prototype` key at any depth, no date more
-     than a day in the future in any date field (including action steps), no
-     duplicate records, no two accounts with one identifier, and in an account
-     export every record in that account. Any problem refuses the whole file.
+     than a day in the future in any date field (including action steps), closed
+     nested shapes for action steps and rule conditions, the size limits of
+     notes, tags and templates, cached message text already in normalized form,
+     no duplicate records, no two accounts with one identifier, and in an
+     account export every record in that account. Any problem refuses the whole
+     file.
    - A record whose scope is not an account in the file (the diagnostic wake
      counter) keeps its scope, but it must not name a stored account or an
      account the import writes to. Two file records that map to the same stored
