@@ -159,6 +159,57 @@ style:
   the identity check must rely on the profile URL, which stays the same while
   the dialog is open (to be confirmed).
 
+## Dialog structure (2026-09-24, fourth report)
+
+The dialog is JoyClub's `j-modal` web component. Its open shadow root holds a
+native `<dialog class="j-modal" open>` with a header, a content area and a
+footer. Everything JoyClub puts into it arrives through slots: the
+`.profile-ignore-modal__content` block through the default slot, and a
+`j-button-group` holding the two `j-button`s through the `actions` slot. The
+`data-component-tag="j-modal"` on the slots names the host element. Sanitized
+outline of the shadow tree (Lit markers, the SVG path and inline styles
+removed):
+
+```html
+<dialog class="j-modal" aria-labelledby="titleElement" open>
+  <div class="j-modal__wrapper">
+    <div class="j-modal__header">
+      <div class="j-modal__title">
+        <slot id="titleElement" name="title"></slot>
+      </div>
+      <j-control-button
+        class="j-modal__close"
+        icon-only="true"
+        a11y-label="Modal schließen"
+      >
+        #shadow-root (open)
+        <button aria-label="Modal schließen">…</button>
+      </j-control-button>
+    </div>
+    <div class="j-modal__content"><slot></slot></div>
+    <div class="j-modal__footer has-actions">
+      <div class="j-modal__meta-text"><slot name="meta-text"></slot></div>
+      <div class="j-modal__actions"><slot name="actions"></slot></div>
+    </div>
+  </div>
+</dialog>
+```
+
+Consequences for the driver:
+
+- Slotted children stay in the light DOM of the `j-modal` host. So the dialog
+  can be scoped from the Ignore content itself: `.profile-ignore-modal__content`
+  → `closest("j-modal")` → the `j-button[aria-label="Ignorieren"]` or
+  `[aria-label="Abbrechen"]` inside that host. No other dialog's buttons can be
+  picked up, and no shadow root has to be entered to find them.
+- Whether the dialog is open shows as the `open` attribute of the shadow
+  `<dialog>`. The `j-modal` host's own attributes were not captured.
+- The close button (`Modal schließen`) sits inside the shadow root. Cancel
+  (`Abbrechen`) is the one to use.
+- The report wrote class names with single underscores (`j-modal_header`); the
+  outline above assumes the BEM double underscore used by every other JoyClub
+  class seen so far. The driver does not depend on these classes.
+
 ## Consequence
 
 F7's answer is **Path B**: Quick Ignore and Delete must go from the conversation
@@ -167,10 +218,8 @@ build plan Section 16 and ADR 0008.
 
 ## Still missing for the M9 driver
 
-- The profile's three-dot menu trigger: its element, a selector and its label.
-- Whether the `j-context-menu-item` shadow root is open or closed.
-- What "Profil ignorieren" does: a confirmation dialog (its root, confirm and
-  cancel controls) or an immediate action; the success signal; whether the page
-  stays on the profile or routes elsewhere.
+- What happens after "Ignorieren" is confirmed: the success signal (a message, a
+  changed menu item such as "Ignorieren aufheben"), how long it takes, and
+  whether the page stays on the profile or routes elsewhere.
 - For Delete (`button-delete-conversation`): its confirmation and success
   signal.
