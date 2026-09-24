@@ -1,8 +1,11 @@
 # Ignore location (F7, partial)
 
-Reported by the project owner on 2026-09-24 from their own logged-in account. No
-control was clicked except to open the menus. Nothing was ignored, blocked or
-deleted.
+Reported by the project owner on 2026-09-24 from their own logged-in account.
+The first four reports are read-only: no control was clicked except to open the
+menus, and nothing was ignored, blocked or deleted. From the fifth report on,
+the owner deliberately confirmed Ignore on a profile and deleted a conversation
+from the inbox, to record the results; each section says which report it comes
+from.
 
 ## Conversation page
 

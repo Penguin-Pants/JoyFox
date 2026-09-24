@@ -105,12 +105,15 @@
   inbox was opened, so the third step has no state. A temporary install from
   `about:debugging` counts as a fresh install each time it is loaded.
 - Quick Ignore and Delete (M9) has no live driver. Its state machine, ActionLog,
-  identity checks and notice are built and tested with test drivers, but where
-  Ignore lives in JoyClub's UI is unverified (F7), so the button never appears,
-  even with `joyfox.quickIgnoreDelete` set to `true` (ADR 0008).
-- M9 does not resume after a page navigation. If F7 shows that Ignore needs the
-  sender's profile (Path B), a pending-action marker in `storage.session` and
-  resume on the next page are still to be built.
+  identity checks and notice are built and tested with test drivers. F7 now
+  shows Ignore is only on the profile page (Path B,
+  `live-evidence/10-ignore.md`), but the driver is not built, so the button
+  never appears, even with `joyfox.quickIgnoreDelete` set to `true` (ADR 0008).
+  What the conversation page does after its own Delete control is still
+  unverified.
+- M9 does not resume after a page navigation. Path B needs it: a pending-action
+  marker in `storage.session` and resume on the profile page are still to be
+  built.
 - The M9 step timeout (15 seconds) and the interrupted threshold (2 minutes) are
   provisional; no document sets them.
 - The PRD's guided alternative for M9 (navigate and stage, the user clicks) is
