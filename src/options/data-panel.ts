@@ -7,8 +7,9 @@ import {
   serializeExport,
   type AnyEntity,
 } from "../data/data-service";
+import { MAX_IMPORT_BYTES, type ImportPlan } from "../data/import";
 import type { EntityName, ExtensionAccount } from "../domain/types";
-import { isExtensionError } from "../errors";
+import { ExtensionError, isExtensionError } from "../errors";
 import { ENTITY_NAMES } from "../storage/database";
 import type { EntityCounts } from "../storage/repositories";
 import { confirmAllowed, confirmTiming } from "./confirm";
@@ -28,6 +29,20 @@ function element<K extends keyof HTMLElementTagNameMap>(
 
 function accountName(account: ExtensionAccount): string {
   return account.label?.trim() || account.joyClubAccountId;
+}
+
+/**
+ * A file's text. Firefox has `Blob.text()`; `FileReader` is the fallback for
+ * environments without it (the jsdom test runner).
+ */
+function readText(file: Blob): Promise<string> {
+  if (typeof file.text === "function") return file.text();
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result ?? ""));
+    reader.onerror = () => reject(reader.error ?? new Error("Unreadable file"));
+    reader.readAsText(file);
+  });
 }
 
 /** Records shown per step, so a large store does not freeze the page. */
@@ -77,6 +92,9 @@ export class DataPanel {
   #shownLimit = RECORD_PAGE_SIZE;
   #pending: Pending | undefined;
   #armedAt = 0;
+  /** A checked file waiting for "Confirm import", with its preview. */
+  #import: { text: string; plan: ImportPlan } | undefined;
+  #importing = false;
 
   constructor(
     private readonly root: HTMLElement,
@@ -389,8 +407,219 @@ export class DataPanel {
         () => this.data.deleteEverything(),
         "Deleted all JoyFox data in this browser.",
       ),
+      this.#renderImport(document),
     );
     return section;
+  }
+
+  /**
+   * Import (owner request, ADR 0009): choose a file, read the preview, then
+   * confirm. Nothing is written before "Confirm import".
+   */
+  #renderImport(document: Document): HTMLElement {
+    const section = element(document, "div", "joyfox-data__import");
+    section.append(
+      element(document, "h3", "joyfox-data__import-title", "Import"),
+      element(
+        document,
+        "p",
+        "joyfox-panel__hint",
+        "Import a JoyFox export file: everything, or one account. It is merged into what is stored here. An account with the same JoyClub identifier is merged into the existing one. For the same note, rule or placement the newer version wins; existing tags and corrections are kept. You see what will change before anything is saved.",
+      ),
+    );
+    const field = element(document, "p", "joyfox-panel__field");
+    const label = element(
+      document,
+      "label",
+      "joyfox-panel__field-label",
+      "JoyFox export file (JSON)",
+    );
+    label.htmlFor = "joyfox-data-import";
+    const input = element(document, "input", "joyfox-data__import-file");
+    input.type = "file";
+    input.id = "joyfox-data-import";
+    input.accept = ".json,application/json";
+    input.addEventListener("change", () => {
+      const file = input.files?.[0];
+      if (file) void this.#previewImport(file);
+    });
+    field.append(label, input);
+    section.append(field);
+    if (this.#import)
+      section.append(this.#renderPreview(document, this.#import.plan));
+    return section;
+  }
+
+  #renderPreview(document: Document, plan: ImportPlan): HTMLElement {
+    const preview = element(document, "div", "joyfox-data__import-preview");
+    const { matched, added } = plan.accounts;
+    preview.append(
+      element(
+        document,
+        "p",
+        "",
+        `This ${plan.scope === "all" ? "full" : "single-account"} export holds ${matched + added} account(s): ${matched} merged into an existing account, ${added} added as new.`,
+      ),
+    );
+    const table = element(document, "table", "joyfox-data__counts");
+    table.append(
+      element(
+        document,
+        "caption",
+        "joyfox-data__caption",
+        "What the import changes",
+      ),
+    );
+    const head = document.createElement("tr");
+    for (const title of [
+      "Data type",
+      "Added",
+      "Replaced (newer)",
+      "Kept",
+      "Skipped duplicates",
+    ]) {
+      const cell = element(document, "th", "", title);
+      cell.scope = "col";
+      head.append(cell);
+    }
+    const thead = document.createElement("thead");
+    thead.append(head);
+    const body = document.createElement("tbody");
+    let rows = 0;
+    for (const name of ENTITY_NAMES) {
+      const count = plan.counts[name];
+      if (count.added + count.replaced + count.kept + count.duplicates === 0)
+        continue;
+      rows += 1;
+      const row = document.createElement("tr");
+      row.dataset.importEntity = name;
+      const title = element(document, "th", "", ENTITY_LABELS[name]);
+      title.scope = "row";
+      row.append(title);
+      for (const value of [
+        count.added,
+        count.replaced,
+        count.kept,
+        count.duplicates,
+      ])
+        row.append(element(document, "td", "", String(value)));
+      body.append(row);
+    }
+    table.append(thead, body);
+    preview.append(
+      rows > 0
+        ? table
+        : element(document, "p", "", "The file holds no records."),
+    );
+    if (plan.settingsSkipped.length > 0)
+      preview.append(
+        element(
+          document,
+          "p",
+          "",
+          `Settings in the file that are never imported (they switch features on): ${plan.settingsSkipped.join(", ")}.`,
+        ),
+      );
+    if (plan.settingsAdded.length > 0)
+      preview.append(
+        element(
+          document,
+          "p",
+          "",
+          `Settings added (only those not set here): ${plan.settingsAdded.join(", ")}.`,
+        ),
+      );
+    const confirm = this.#button(
+      document,
+      "joyfox-data__import-confirm",
+      "Confirm import",
+      undefined,
+      () => void this.#applyImport(),
+    );
+    confirm.disabled =
+      plan.writes.length === 0 && plan.settingsAdded.length === 0;
+    const cancel = this.#button(
+      document,
+      "joyfox-data__import-cancel",
+      "Cancel",
+      "Cancel import",
+      () => {
+        this.#import = undefined;
+        this.#setStatus("Import cancelled. Nothing was changed.", "info");
+        void this.render();
+      },
+    );
+    preview.append(confirm, document.createTextNode(" "), cancel);
+    return preview;
+  }
+
+  async #previewImport(file: File): Promise<void> {
+    this.#pending = undefined;
+    this.#import = undefined;
+    try {
+      if (file.size > MAX_IMPORT_BYTES)
+        throw new ExtensionError(
+          "ExtractionInvalid",
+          "The file is too large to be a JoyFox export",
+        );
+      const text = await readText(file);
+      const plan = await this.data.previewImport(text);
+      this.#import = { text, plan };
+      this.#setStatus(
+        plan.writes.length === 0 && plan.settingsAdded.length === 0
+          ? "Everything in this file is already stored. Nothing would change."
+          : 'Check what the import changes, then click "Confirm import".',
+        "info",
+      );
+    } catch (error) {
+      this.#setStatus(
+        isExtensionError(error)
+          ? `${error.message}. Nothing was imported.`
+          : "JoyFox could not read that file. Nothing was imported.",
+        "error",
+      );
+    }
+    await this.render();
+  }
+
+  async #applyImport(): Promise<void> {
+    const pending = this.#import;
+    if (!pending || this.#importing) return;
+    this.#importing = true;
+    this.#import = undefined;
+    this.#pending = undefined;
+    try {
+      const plan = await this.data.applyImport(
+        pending.text,
+        pending.plan.signature,
+      );
+      const totals = ENTITY_NAMES.reduce(
+        (sum, name) => ({
+          added: sum.added + plan.counts[name].added,
+          replaced: sum.replaced + plan.counts[name].replaced,
+        }),
+        { added: 0, replaced: 0 },
+      );
+      this.#setStatus(
+        `Import complete: ${totals.added} record(s) added, ${totals.replaced} replaced by a newer version.${
+          plan.settingsSaved
+            ? ""
+            : " Some settings could not be saved; check the active account."
+        }`,
+        plan.settingsSaved ? "info" : "error",
+      );
+      this.onChange();
+    } catch (error) {
+      this.#setStatus(
+        isExtensionError(error)
+          ? `${error.message}. Nothing was imported.`
+          : "The import could not be completed. The counts shown now are what is stored.",
+        "error",
+      );
+    } finally {
+      this.#importing = false;
+    }
+    await this.render();
   }
 
   #button(

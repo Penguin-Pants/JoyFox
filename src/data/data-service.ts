@@ -20,12 +20,19 @@ import {
   deleteAccountEntities,
   exportAccount,
   exportAllData,
+  putRecords,
   repositories,
   type DataExport,
   type EntityCounts,
   type FullDataExport,
 } from "../storage/repositories";
 import { bumpTriageRevision } from "../storage/triage-revision";
+import {
+  parseImportFile,
+  planImport,
+  type ImportPlan,
+  type StoredSnapshot,
+} from "./import";
 
 /** Plain-language names for the inspector (PRD Section 13.5). */
 export const ENTITY_LABELS: Readonly<Record<EntityName, string>> = {
@@ -155,6 +162,57 @@ export class DataService {
       )
         throw new Error("Data was written while deleting");
     });
+  }
+
+  /**
+   * Check a file and show what importing it would change, without writing.
+   * The returned signature must be passed to `applyImport`.
+   */
+  async previewImport(text: string): Promise<ImportPlan> {
+    return planImport(parseImportFile(text), await this.#snapshot());
+  }
+
+  /**
+   * Merge a file into stored data. Holds the exclusive data lock, so no write
+   * overlaps it, and plans again from current data: if the result differs
+   * from the preview the user confirmed, nothing is written. All records are
+   * written in one transaction, so a failure leaves stored records unchanged.
+   * Settings follow as a best-effort second step.
+   */
+  async applyImport(
+    text: string,
+    signature: string,
+  ): Promise<ImportPlan & { settingsSaved: boolean }> {
+    const file = parseImportFile(text);
+    const plan = await withExclusiveDataLock(async () => {
+      const current = planImport(file, await this.#snapshot());
+      if (current.signature !== signature)
+        throw new ExtensionError(
+          "StorageError",
+          "Stored data changed since the preview. Choose the file again to see what would change",
+        );
+      await putRecords(current.writes);
+      // After the records committed, settings are best effort: a failure
+      // here must not report the stored records as not imported.
+      let settingsSaved = true;
+      if (Object.keys(current.settings).length > 0)
+        try {
+          await this.settings.set(current.settings);
+        } catch {
+          settingsSaved = false;
+        }
+      return { ...current, settingsSaved };
+    });
+    await bumpTriageRevision(this.settings);
+    return plan;
+  }
+
+  async #snapshot(): Promise<StoredSnapshot> {
+    const [data, settings] = await Promise.all([
+      exportAllData(),
+      this.settings.getAll(),
+    ]);
+    return { entities: data.entities, settings };
   }
 
   /**

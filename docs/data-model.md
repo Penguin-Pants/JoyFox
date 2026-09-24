@@ -192,3 +192,12 @@ registers the JoyClubMember record. Every stored transition sets
 `joyfox.actionRevision` in `storage.local`, so another open tab follows the run.
 `conversationId` is an optional field on the existing store, so no database
 version change was needed.
+
+## Import (owner request, ADR 0009)
+
+"Your data" imports both export scopes and merges them into stored data. The
+file is checked record by record against the same validation every repository
+write uses, and any problem refuses the whole file. Accounts are matched by
+JoyClub identifier; conflicts follow ADR 0009. All records are written in one
+transaction through `putRecords` in `src/storage/repositories.ts`, the only
+writer besides the repository classes. Retention is not applied during import.

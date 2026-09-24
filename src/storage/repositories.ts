@@ -15,9 +15,11 @@ import {
 } from "./database";
 import {
   IndexedDbRepository,
+  storageKeyFor,
   withoutStorageKey,
   type Stored,
 } from "./repository";
+import { validateEntity } from "./validation";
 
 /**
  * Profile snapshots are time-series personal data, so the store keeps only the
@@ -353,4 +355,31 @@ export async function countAllRecords(): Promise<number> {
     ),
   );
   return counts.reduce((sum, count) => sum + count, 0);
+}
+
+export interface RecordWrite<N extends EntityName = EntityName> {
+  name: N;
+  entity: EntityMap[N];
+}
+
+/**
+ * Writes many records, in any stores and scopes, in one transaction: all of
+ * them commit or none do. Every record is validated before the transaction
+ * opens. Used by import only. Retention (snapshot count, message age) is not
+ * applied here; it applies on the next ordinary write to that store.
+ */
+export async function putRecords(
+  writes: readonly RecordWrite[],
+): Promise<void> {
+  if (writes.length === 0) return;
+  for (const { name, entity } of writes) validateEntity(name, entity);
+  const names = [...new Set(writes.map((write) => write.name))];
+  const db = await openDatabase();
+  const transaction = db.transaction(names, "readwrite");
+  for (const { name, entity } of writes)
+    transaction.objectStore(name).put({
+      ...entity,
+      storageKey: storageKeyFor(entity.accountId, entity.id),
+    });
+  await transactionDone(transaction);
 }

@@ -60,6 +60,8 @@ const count = (entity: string) =>
   root.querySelector(`tr[data-entity="${entity}"] .joyfox-data__count`)
     ?.textContent;
 
+const data = () => new DataService(accounts, settings);
+
 describe("M8 data panel", () => {
   let saved: Array<{ name: string; text: string }>;
   let panel: DataPanel;
@@ -250,6 +252,48 @@ describe("M8 data panel", () => {
       "joyfox.activeAccountId": a,
       "joyfox.diagnostics": true,
     });
+  });
+
+  it("imports a file after a preview, and only on confirm", async () => {
+    // Export account B, then change its template so the import has work.
+    root.querySelector<HTMLButtonElement>(".joyfox-data__export-all")!.click();
+    await settle(() => saved.length === 1);
+    const file = new File([saved[0]!.text], "export.json", {
+      type: "application/json",
+    });
+    await data().clearAccountData(b);
+    await panel.render();
+
+    const input = root.querySelector<HTMLInputElement>("#joyfox-data-import")!;
+    Object.defineProperty(input, "files", { value: [file] });
+    input.dispatchEvent(new Event("change"));
+    await settle(
+      () => root.querySelector(".joyfox-data__import-confirm") !== null,
+    );
+    const row = root.querySelector('tr[data-import-entity="messageTemplates"]');
+    expect(row?.textContent).toContain("1");
+    // Nothing is written by the preview.
+    expect(await templates.list(b)).toEqual([]);
+
+    root
+      .querySelector<HTMLButtonElement>(".joyfox-data__import-confirm")!
+      .click();
+    await settle(
+      () =>
+        text().includes("Import complete") &&
+        root.querySelector(".joyfox-data__import-confirm") === null,
+    );
+    expect((await templates.list(b)).map((t) => t.body)).toEqual(["Beta text"]);
+  });
+
+  it("reports a file that is not an export, and imports nothing", async () => {
+    const input = root.querySelector<HTMLInputElement>("#joyfox-data-import")!;
+    Object.defineProperty(input, "files", {
+      value: [new File(["not json"], "x.json")],
+    });
+    input.dispatchEvent(new Event("change"));
+    await settle(() => text().includes("Nothing was imported"));
+    expect(root.querySelector(".joyfox-data__import-confirm")).toBeNull();
   });
 
   it("deletes all JoyFox data after confirmation", async () => {
