@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   contactRuleProblem,
   evaluateContactRule,
+  rulePhrases,
   schemaVersionFor,
   type ContactRuleDefinition,
   type RuleCondition,
@@ -281,7 +282,7 @@ describe("contactRuleProblem", () => {
       "qualified as default placement",
       { ...prdRule, defaultPlacement: "qualified" },
     ],
-    ["a future schema", { ...prdRule, schemaVersion: 3 }],
+    ["a future schema", { ...prdRule, schemaVersion: 4 }],
     [
       "negate in schema version 1",
       rule([condition("verified", { negate: true })]),
@@ -462,5 +463,125 @@ describe("rule groups and not (ADR 0012)", () => {
     expect(
       contactRuleProblem({ ...advanced(), schemaVersion: 2 }),
     ).toBeUndefined();
+  });
+});
+
+describe("First message contains (ADR 0013)", () => {
+  const phraseRule = (
+    extra: Partial<RuleCondition> = {},
+  ): ContactRuleDefinition => ({
+    ...rule([
+      condition("firstMessageContains", { text: "Blue Heron", ...extra }),
+    ]),
+    schemaVersion: 3,
+  });
+  const messages = (
+    seenNow: string[],
+    seenBefore: string[] = [],
+    previewShown = true,
+  ) => ({
+    messages: {
+      previewShown,
+      seenNow: new Set(seenNow),
+      seenBefore: new Set(seenBefore),
+    },
+  });
+  const phraseCondition = (result: ReturnType<typeof evaluateContactRule>) =>
+    result.evaluatedConditions.find((c) => c.kind === "firstMessageContains");
+
+  it("is met when the preview on screen contains the phrase", () => {
+    const result = evaluateContactRule(
+      phraseRule(),
+      input(messages(["blue heron"])),
+    );
+    expect(result.placement).toBe("qualified");
+    expect(phraseCondition(result)).toMatchObject({
+      state: "pass",
+      source: "observed",
+    });
+    expect(phraseCondition(result)?.reason).toContain('"Blue Heron"');
+  });
+
+  it("stays met from an earlier match after a later message", () => {
+    const result = evaluateContactRule(
+      phraseRule(),
+      input(messages([], ["blue heron"])),
+    );
+    expect(result.placement).toBe("qualified");
+    expect(phraseCondition(result)).toMatchObject({
+      state: "pass",
+      source: "cached",
+    });
+  });
+
+  it("counts a preview without the phrase as unknown, never as failed", () => {
+    const result = evaluateContactRule(phraseRule(), input(messages([])));
+    expect(result.placement).toBe("needs-review");
+    expect(phraseCondition(result)).toMatchObject({
+      state: "unknown",
+      outcome: "needs-review",
+    });
+    expect(phraseCondition(result)?.reason).toContain(
+      "shows only the latest message",
+    );
+  });
+
+  it("follows the unknown choice, so the user can filter hard", () => {
+    const result = evaluateContactRule(
+      phraseRule({ whenUnknown: "not-met" }),
+      input(messages([])),
+    );
+    expect(result.placement).toBe("quarantined");
+  });
+
+  it("is unknown when no message was seen, as on a profile page", () => {
+    const result = evaluateContactRule(phraseRule(), input());
+    expect(phraseCondition(result)).toMatchObject({
+      state: "unknown",
+      source: "none",
+    });
+  });
+
+  it("turns around with not", () => {
+    const result = evaluateContactRule(
+      phraseRule({ negate: true }),
+      input(messages(["blue heron"])),
+    );
+    expect(result.placement).toBe("quarantined");
+  });
+
+  it("collects the rule's phrases in normalized form", () => {
+    expect(rulePhrases(phraseRule().root)).toEqual(new Set(["blue heron"]));
+  });
+
+  it("writes version 3 for a rule with a text condition", () => {
+    expect(schemaVersionFor(phraseRule().root)).toBe(3);
+    expect(schemaVersionFor(phraseRule({ negate: true }).root)).toBe(3);
+    expect(contactRuleProblem(phraseRule())).toBeUndefined();
+  });
+
+  it.each([
+    ["an older schema version", { ...phraseRule(), schemaVersion: 2 }],
+    ["no text", phraseRule({ text: undefined })],
+    ["empty text", phraseRule({ text: "" })],
+    ["text with spaces at an end", phraseRule({ text: " heron" })],
+    ["text that is too long", phraseRule({ text: "x".repeat(101) })],
+    [
+      "text that grows too long when normalized",
+      phraseRule({ text: "\uFDFA".repeat(23) }),
+    ],
+    [
+      "text on another condition",
+      {
+        ...rule([condition("verified", { text: "heron" })]),
+        schemaVersion: 3,
+      },
+    ],
+  ])("rejects %s", (_name, value) => {
+    expect(contactRuleProblem(value)).toBeTypeOf("string");
+  });
+
+  it("accepts an emoji", () => {
+    expect(contactRuleProblem(phraseRule({ text: "🦊" }))).toBeUndefined();
   });
 });

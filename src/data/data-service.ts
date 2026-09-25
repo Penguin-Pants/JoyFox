@@ -54,6 +54,7 @@ export const ENTITY_LABELS: Readonly<Record<EntityName, string>> = {
   messageObservations: "Cached message text (normalized)",
   senderSpamOverrides: "Not-spam corrections",
   actionLogs: "Action log",
+  messagePhraseMatches: "Message phrase matches",
 };
 
 /**

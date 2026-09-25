@@ -4,6 +4,7 @@ import {
   CONDITION_TEXT,
   NUMERIC_CONDITION_KINDS,
   RULE_LIMITS,
+  TEXT_CONDITION_KINDS,
   type ConditionKind,
   type ContactRuleDefinition,
   type FailPlacement,
@@ -23,6 +24,10 @@ import {
   type BoxEntry,
   type BuilderForm,
 } from "../rules/rule-builder";
+import {
+  MAX_NORMALIZED_PHRASE_LENGTH,
+  normalizePhrase,
+} from "../rules/message-phrase";
 import { RuleService } from "../rules/rule-service";
 import { withAccountLock } from "../storage/account-lock";
 
@@ -82,6 +87,7 @@ function element<K extends keyof HTMLElementTagNameMap>(
 interface ConditionControls {
   on: HTMLInputElement;
   value?: HTMLInputElement;
+  text?: HTMLInputElement;
   unknown: HTMLSelectElement;
 }
 
@@ -99,6 +105,27 @@ function numberInput(
   input.max = String(RULE_LIMITS.maxValue);
   input.value = String(value ?? "");
   input.setAttribute("aria-label", `${CONDITION_TEXT[kind]} value`);
+  return input;
+}
+
+/** The word, phrase or emoji field of a text condition. */
+function textInput(
+  document: Document,
+  kind: ConditionKind,
+  text: string | undefined,
+): HTMLInputElement {
+  const input = document.createElement("input");
+  input.type = "text";
+  input.className = "joyfox-rule__text";
+  input.maxLength = RULE_LIMITS.maxTextLength;
+  input.placeholder = "Word, phrase or emoji";
+  input.autocomplete = "off";
+  input.spellcheck = false;
+  input.value = text ?? "";
+  input.setAttribute(
+    "aria-label",
+    `${CONDITION_TEXT[kind]}: word, phrase or emoji`,
+  );
   return input;
 }
 
@@ -149,6 +176,22 @@ function readNumber(
   )
     return `Enter a whole number from ${minimum} to ${RULE_LIMITS.maxValue} for "${CONDITION_TEXT[kind]}".`;
   return value;
+}
+
+/** The trimmed text in a field, or the problem in words. */
+function readText(
+  input: HTMLInputElement,
+  kind: ConditionKind,
+): { text: string } | string {
+  const text = input.value.trim();
+  const phrase = normalizePhrase(text);
+  if (
+    phrase.length === 0 ||
+    phrase.length > MAX_NORMALIZED_PHRASE_LENGTH ||
+    text.length > RULE_LIMITS.maxTextLength
+  )
+    return `Enter a word, phrase or emoji of up to ${RULE_LIMITS.maxTextLength} characters for "${CONDITION_TEXT[kind]}".`;
+  return { text };
 }
 
 /** A default threshold for a condition just added in the advanced editor. */
@@ -352,7 +395,13 @@ export class RulePanel {
         document,
         "p",
         "joyfox-panel__hint",
-        'Spam status is unknown for now: JoyFox does not read message text yet. Only your own "not spam" corrections count. The inbox shows only the verification shield; photos, profile words and account age come from profiles you opened before.',
+        'Spam status is unknown for now: JoyFox does not check messages for templates yet. Only your own "not spam" corrections count. The inbox shows only the verification shield; photos, profile words and account age come from profiles you opened before.',
+      ),
+      element(
+        document,
+        "p",
+        "joyfox-panel__hint",
+        '"First message contains" reads the message preview in your inbox, ignoring upper and lower case. The inbox shows only the latest message, so when a sender sent more than one, the preview may not be the first. If the preview does not contain your text, the condition counts as your "If JoyFox cannot see this" choice. Once JoyFox sees your text, it stays met.',
       ),
     );
     node.append(
@@ -360,7 +409,7 @@ export class RulePanel {
         document,
         "p",
         "joyfox-panel__hint",
-        "Changes are saved automatically: a box or choice at once, a number when you leave its field.",
+        "Changes are saved automatically: a box or choice at once, a number or text when you leave its field.",
       ),
     );
     if (saved) node.append(this.#removeButton(document, accountId));
@@ -557,6 +606,12 @@ export class RulePanel {
       });
       list.append(row);
       this.#renumber();
+      // A text condition has no default: it is saved when its text is
+      // entered, so an empty field never shows as a save error.
+      if (TEXT_CONDITION_KINDS.has(kind)) {
+        row.querySelector<HTMLElement>(".joyfox-rule__text")?.focus();
+        return;
+      }
       row.querySelector<HTMLElement>("input[type=number], select")?.focus();
       this.#autosave();
     });
@@ -614,6 +669,10 @@ export class RulePanel {
     if (NUMERIC_CONDITION_KINDS.has(kind))
       row.append(numberInput(document, kind, entry.value));
     else row.append(element(document, "span", "joyfox-rule__no-value"));
+    if (TEXT_CONDITION_KINDS.has(kind)) {
+      row.classList.add("joyfox-rule__condition--text");
+      row.append(textInput(document, kind, entry.text));
+    }
     const unknown = unknownSelect(document, entry.whenUnknown);
     unknown.className = "joyfox-rule__unknown";
     unknown.setAttribute(
@@ -739,6 +798,14 @@ export class RulePanel {
         gap.className = "joyfox-rule__no-value";
         row.append(gap);
       }
+      if (TEXT_CONDITION_KINDS.has(kind)) {
+        // On a line of its own under the name, so a phrase has room.
+        row.classList.add("joyfox-rule__condition--text");
+        const text = textInput(document, kind, entry?.text);
+        text.id = `${id}-text`;
+        controls.text = text;
+        row.append(text);
+      }
       const unknownLabel = element(
         document,
         "label",
@@ -814,6 +881,11 @@ export class RulePanel {
           if (typeof value === "string") return value;
           entry.value = value;
         }
+        if (controls.text) {
+          const text = readText(controls.text, kind);
+          if (typeof text === "string") return text;
+          entry.text = text.text;
+        }
         form[box][kind] = entry;
       }
     return form;
@@ -858,6 +930,13 @@ export class RulePanel {
           const value = readNumber(input, kind);
           if (typeof value === "string") return value;
           entry.value = value;
+        }
+        const textField =
+          row.querySelector<HTMLInputElement>(".joyfox-rule__text");
+        if (textField) {
+          const text = readText(textField, kind);
+          if (typeof text === "string") return text;
+          entry.text = text.text;
         }
         rule.conditions[kind] = entry;
       }

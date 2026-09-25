@@ -13,7 +13,10 @@ Rules:
   page is detected there.
 - Identity comes only from the numeric member ID. The inbox sender name is read
   for display alone (the F2 proof of concept); it is never an identity, never
-  stored and never logged. Message text is never extracted.
+  stored and never logged. The only message text read is the inbox row's
+  preview, for the "First message contains" rule condition (ADR 0013): it is
+  compared with the rule's phrases and dropped, never stored and never logged.
+  Conversation message bubbles are never read.
 - The content script starts only on a verified host.
 - The member panel (M2, M6) and the note and tag editor (M5) are placed after
   the conversation and profile roots below, and read only the member ID. If the
@@ -56,6 +59,7 @@ app (`09-navigation.md`) and the inbox list can stay in the DOM.
 | Inbox        | Verification code | `j-veri-icon[verification-status]`                                                 | `1` verified; `3` personally known (own criterion)   |
 | Inbox        | Gender code       | `j-gender-icon[universal-gender]`                                                  | `1` man, `2` woman, `3` couple                       |
 | Inbox        | Read state        | `.cm-conversation-list-item__read-status`                                          | BEM modifier; on some rows only; meaning unconfirmed |
+| Inbox        | Message preview   | `.cm-conversation-list-item__text`                                                 | Latest message; phrase check only (ADR 0013)         |
 | Conversation | Conversation ID   | URL path                                                                           | `personal-<n>-<n>`, kept opaque                      |
 | Conversation | Member ID         | `a.cm-conversation-header[href]`                                                   | Digits in the profile link                           |
 | Conversation | Verification code | `.cm-conversation-header j-veri-icon[verification-status]`                         | Numeric code                                         |

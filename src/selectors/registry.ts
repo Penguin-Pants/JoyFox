@@ -57,6 +57,8 @@ export const selectorRegistry: Readonly<
       verificationCode: "j-veri-icon[verification-status]",
       genderCode: "j-gender-icon[universal-gender]",
       readStatus: ".cm-conversation-list-item__read-status",
+      // Compared with the rule's phrases (ADR 0013). Never stored or logged.
+      messagePreview: ".cm-conversation-list-item__text",
     },
   },
   conversation: {

@@ -45,8 +45,17 @@ const observation = (id: string, observedAt: string): MessageObservation => ({
   updatedAt: observedAt,
 });
 
-/** Builds a real version 1 database, as an install from the last release has. */
-async function createVersion1Database(): Promise<void> {
+const VERSION_2_STORES = [
+  ...VERSION_1_STORES,
+  "messageObservations",
+  "senderSpamOverrides",
+];
+
+/** Builds a real older database, as an install from an earlier release has. */
+async function createOlderDatabase(
+  version: number,
+  stores: readonly string[],
+): Promise<void> {
   await resetDatabaseConnectionForTests();
   await new Promise<void>((resolve, reject) => {
     const request = indexedDB.deleteDatabase(DATABASE_NAME);
@@ -54,9 +63,9 @@ async function createVersion1Database(): Promise<void> {
     request.onerror = () => reject(request.error);
   });
   const db = await new Promise<IDBDatabase>((resolve, reject) => {
-    const request = indexedDB.open(DATABASE_NAME, 1);
+    const request = indexedDB.open(DATABASE_NAME, version);
     request.onupgradeneeded = () => {
-      for (const name of VERSION_1_STORES) {
+      for (const name of stores) {
         const store = request.result.createObjectStore(name, {
           keyPath: "storageKey",
         });
@@ -98,11 +107,23 @@ describe("schema version 2", () => {
   });
 
   it("upgrades a version 1 database without losing its records", async () => {
-    await createVersion1Database();
+    await createOlderDatabase(1, VERSION_1_STORES);
     const db = await openDatabase();
-    expect(db.version).toBe(2);
+    expect(db.version).toBe(DATABASE_VERSION);
     expect(db.objectStoreNames.contains("messageObservations")).toBe(true);
     expect(db.objectStoreNames.contains("senderSpamOverrides")).toBe(true);
+    expect(db.objectStoreNames.contains("messagePhraseMatches")).toBe(true);
+    const note = await repositories.userNotes.get(ACCOUNT, "note-1");
+    expect(note?.body).toBe("Note written before the upgrade");
+  });
+
+  it("upgrades a version 2 database by adding only the phrase match store", async () => {
+    await createOlderDatabase(2, VERSION_2_STORES);
+    const db = await openDatabase();
+    expect(db.version).toBe(3);
+    expect(Array.from(db.objectStoreNames).sort()).toEqual(
+      [...VERSION_2_STORES, "messagePhraseMatches"].sort(),
+    );
     const note = await repositories.userNotes.get(ACCOUNT, "note-1");
     expect(note?.body).toBe("Note written before the upgrade");
   });

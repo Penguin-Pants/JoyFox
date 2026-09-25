@@ -82,6 +82,11 @@ const entityData: {
     decidedAt: now,
   },
   actionLogs: { action: "synthetic.action", steps: [] },
+  messagePhraseMatches: {
+    memberId: "member-1",
+    phrase: "blue heron",
+    matchedAt: now,
+  },
 };
 
 function entity<N extends EntityName>(
@@ -152,6 +157,15 @@ describe("F6 repositories", () => {
     await expect(
       repositories.profileSnapshots.put("account-a", malformed),
     ).rejects.toThrow("photoCount");
+  });
+  it("refuses a phrase match longer than a rule phrase can normalize to", async () => {
+    const long = {
+      ...entity("messagePhraseMatches", "account-a", "match"),
+      phrase: "x".repeat(401),
+    };
+    await expect(
+      repositories.messagePhraseMatches.put("account-a", long),
+    ).rejects.toThrow("phrase is too long");
   });
   it("never accepts passphrases in sync configuration", async () => {
     const unsafe = {

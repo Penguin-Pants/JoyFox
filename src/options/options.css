@@ -129,6 +129,20 @@
   max-width: 100%;
 }
 
+/* A text condition's field goes on a second line under its name, so a
+   phrase has more room than the number column. */
+.joyfox-rule__condition--text .joyfox-rule__text {
+  grid-row: 2;
+  grid-column: 2 / 4;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.joyfox-rule__condition--advanced.joyfox-rule__condition--text
+  .joyfox-rule__text {
+  grid-column: 3 / 5;
+}
+
 @media (max-width: 40rem) {
   .joyfox-rule__condition {
     grid-template-columns: auto 1fr 6rem;
@@ -161,6 +175,16 @@
 
   .joyfox-rule__condition--advanced .joyfox-rule__unknown-label,
   .joyfox-rule__condition--advanced select {
+    grid-column: 3;
+  }
+
+  .joyfox-rule__condition--text .joyfox-rule__text {
+    grid-row: auto;
+    grid-column: 2 / -1;
+  }
+
+  .joyfox-rule__condition--advanced.joyfox-rule__condition--text
+    .joyfox-rule__text {
     grid-column: 3;
   }
 }

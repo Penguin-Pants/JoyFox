@@ -441,3 +441,21 @@ automatically.
     was imported.
 
 **Result (2026-09-25): passed.** The project owner confirmed items 83 to 85.
+
+## First message contains (ADR 0013)
+
+86. On the Contact rule tab, tick "First message contains" in the ALL box, type
+    a word from your own profile instruction, and leave the field. Confirm "Rule
+    saved". Reload the options page and confirm the text is still there.
+87. Ask a test contact to send you a first message that contains the word. Open
+    the inbox and confirm the row is Qualified. Open "Why" and confirm it says
+    the latest message contains the word.
+88. Ask the same contact to send a second message without the word. Reload the
+    inbox and confirm the row stays Qualified ("An earlier message … contains").
+89. For a sender whose preview does not contain the word, confirm the row goes
+    to Needs Review. Set "If JoyFox cannot see this" to "Count as not met" and
+    confirm the row goes to Quarantined.
+90. Type an emoji as the text (for example 🦊) and repeat item 87 with a message
+    that holds the emoji.
+
+**Result:** not yet run.

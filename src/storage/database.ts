@@ -1,7 +1,7 @@
 import type { EntityName } from "../domain/types";
 
 export const DATABASE_NAME = "joyfox";
-export const DATABASE_VERSION = 2;
+export const DATABASE_VERSION = 3;
 
 /** The stores schema version 1 created. Frozen: it describes history. */
 const VERSION_1_ENTITY_NAMES: readonly EntityName[] = [
@@ -29,9 +29,13 @@ const VERSION_2_ENTITY_NAMES: readonly EntityName[] = [
   "senderSpamOverrides",
 ];
 
+/** The store schema version 3 added, for "First message contains". */
+const VERSION_3_ENTITY_NAMES: readonly EntityName[] = ["messagePhraseMatches"];
+
 export const ENTITY_NAMES: readonly EntityName[] = [
   ...VERSION_1_ENTITY_NAMES,
   ...VERSION_2_ENTITY_NAMES,
+  ...VERSION_3_ENTITY_NAMES,
 ];
 
 let connection: Promise<IDBDatabase> | undefined;
@@ -52,6 +56,7 @@ export function openDatabase(): Promise<IDBDatabase> {
       };
       if (event.oldVersion < 1) createStores(VERSION_1_ENTITY_NAMES);
       if (event.oldVersion < 2) createStores(VERSION_2_ENTITY_NAMES);
+      if (event.oldVersion < 3) createStores(VERSION_3_ENTITY_NAMES);
     };
     request.onsuccess = () => resolve(request.result);
     request.onerror = () => reject(request.error);
