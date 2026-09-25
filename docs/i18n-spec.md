@@ -101,10 +101,18 @@ export async function readLocale(area: SettingsArea): Promise<Locale>;
 // en.ts
 export const en = {
   "options.tabs.start": "Get started",
-  "triage.reason.belowMinimum": (p: { field: string; value: number; minimum: number }) =>
+  "field.accountAge": "Account age",
+  "triage.reason.belowMinimum": (p: { field: Translated; value: number; minimum: number }) =>
     `${p.field} is ${p.value}, below the required ${p.minimum}.`,
 } as const;
 export type MessageKey = keyof typeof en;
+
+/** A param that the translator fills with an already translated string. */
+export type Translated = string & { readonly __translated: true };
+/** The params a key's function takes, or undefined for a plain string. */
+export type ArgsOf<K extends MessageKey> = (typeof en)[K] extends (p: infer A) => string
+  ? A
+  : undefined;
 
 // de.ts: a missing key or a wrong param shape fails `npm run typecheck`.
 export const de: { [K in MessageKey]: (typeof en)[K] extends string
@@ -112,8 +120,12 @@ export const de: { [K in MessageKey]: (typeof en)[K] extends string
   : (typeof en)[K] } = { ... };
 ```
 
-- A reason that names a field (for example "Account age") passes the field as a
-  `MessageKey`, and the translator resolves it first.
+- A param that must be translated (for example the field "Account age") has the
+  type `Translated` in the catalog. In a `Message` it is a nested `Message`,
+  never a string (see 3.5).
+- A plain `string` param is always literal. The translator never looks it up in
+  the catalog, even when its text is equal to a key. This keeps `legacy.text`
+  and user text verbatim.
 
 ### 3.5 Message descriptor
 
@@ -121,12 +133,38 @@ Reasons cross the background-to-content message port and are stored in
 IndexedDB, so they must be plain JSON:
 
 ```ts
-export type MessageParam = string | number | Message;
-export interface Message {
-  key: MessageKey;
-  params?: Record<string, MessageParam>;
-}
+/** On the wire, each Translated param is a nested Message. */
+type WireParams<A> = {
+  [P in keyof A]: A[P] extends Translated ? Message : A[P];
+};
+
+/** One variant per key, so the key decides the required params. */
+export type Message = {
+  [K in MessageKey]: ArgsOf<K> extends undefined
+    ? { key: K }
+    : { key: K; params: WireParams<ArgsOf<K>> };
+}[MessageKey];
 ```
+
+- `{ key: "triage.reason.belowMinimum", params: {} }` fails `npm run typecheck`.
+  So does a misspelled param name or a wrong param type.
+- Example:
+  `{ key: "triage.reason.belowMinimum", params: { field: { key: "field.accountAge" }, value: 3, minimum: 5 } }`.
+- Stored and imported records are not typed at runtime. A runtime spec, typed
+  against the catalog, lists each key's param names and kinds:
+
+```ts
+type ParamKind = "string" | "number" | "message";
+export const MESSAGE_PARAMS: {
+  [K in MessageKey]: ArgsOf<K> extends undefined
+    ? null
+    : { [P in keyof ArgsOf<K>]-?: ParamKind };
+} = { "options.tabs.start": null, "triage.reason.belowMinimum": { field: "message", value: "number", minimum: "number" }, ... };
+```
+
+- `isMessage(value)` checks a value against `MESSAGE_PARAMS`: a known key,
+  exactly the listed param names, each of the listed kind, nested messages
+  checked the same way.
 
 - `reasons: string[]` becomes `reasons: Message[]` in the engine result, the
   rule result, the trust result and `ConversationClassification`.
@@ -136,11 +174,11 @@ export interface Message {
 ### 3.6 Translator
 
 ```ts
-export function t(
-  key: MessageKey,
-  params?: Record<string, MessageParam>,
-): string;
 export function t(message: Message): string;
+export function t<K extends MessageKey>(
+  key: K,
+  ...params: ArgsOf<K> extends undefined ? [] : [WireParams<ArgsOf<K>>]
+): string;
 export function formatDate(iso: string): string; // de: 25.09.2026, en: Sep 25, 2026
 export function formatNumber(value: number): string; // de: 1.234, en: 1,234
 export function currentLocale(): Locale;
@@ -151,8 +189,10 @@ export function onLocaleChange(listener: (locale: Locale) => void): () => void;
   `Intl.NumberFormat` with the same locale tags.
 - Replace every `.slice(0, 10)` date shown to the user, for example in
   `src/content/triage-ui.ts:181` and `src/content/observed-facts.ts:56`.
-- An unknown key at runtime (a record from a newer version) shows the key itself
-  and logs once. It never throws.
+- `t()` resolves each nested `Message` param first, then calls the catalog
+  function. It passes `string` and `number` params unchanged.
+- A value that fails `isMessage` at render time shows its key (or "?" if it has
+  none) and logs once. It never throws.
 
 ### 3.7 Live switching
 
@@ -203,14 +243,16 @@ export function onLocaleChange(listener: (locale: Locale) => void): () => void;
 - In `onupgradeneeded`, when `oldVersion < 3` and the store exists, open a
   cursor on `conversationClassifications` and rewrite `reasons`:
   - A string that matches `You moved this sender to <placement>.` becomes
-    `{ key: "triage.reason.userMoved", params: { placement: <record.placement> } }`.
+    `{ key: "triage.reason.userMoved", params: { placement: { key: "placement.<record.placement>" } } }`.
+    The placement is a nested `Message`, because it is translated. The catalog
+    has one `placement.*` key per stored placement value.
   - Any other string becomes
     `{ key: "legacy.text", params: { text: <original> } }`. It renders verbatim
     in both languages.
 - Records are plain objects (no encryption at rest), so the rewrite runs
   synchronously inside the upgrade transaction.
-- `src/storage/validation.ts` checks `reasons` as a `Message[]`: each item has a
-  string `key` and an optional plain-object `params`.
+- `src/storage/validation.ts` checks each item of `reasons` with `isMessage`
+  (3.5). A record that fails is invalid, the same as other validation errors.
 
 ### 4.2 Import and export
 
@@ -254,8 +296,13 @@ export function onLocaleChange(listener: (locale: Locale) => void): () => void;
   an empty string. `readLocale` with a stored, missing and invalid value.
 - Catalog: no empty value in either language. For string values, the set of
   `${...}`-style placeholders is the same in `en` and `de`.
-- Translator: nested `Message` params, unknown key fallback, date and number
-  output for both locales.
+- Types: a `// @ts-expect-error` test for a missing param, a misspelled param
+  and a string where a nested `Message` is required.
+- `isMessage`: accepts valid nested messages. Refuses an unknown key, a missing
+  or extra param and a param of the wrong kind.
+- Translator: nested `Message` params, a string param equal to a catalog key
+  stays literal, invalid value fallback, date and number output for both
+  locales.
 - Migration: a v2 database with both reason forms opens as v3 with the expected
   `Message[]` (fake-indexeddb, next to the v1 to v2 test in
   `tests/integration/schema-migration.test.ts`).
