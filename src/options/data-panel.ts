@@ -569,7 +569,10 @@ export class DataPanel {
   /** Runs with `#importing` set; clears it when the import settles. */
   async #importFile(file: File): Promise<void> {
     this.#pending = undefined;
+    // Clear the last result at once: it belongs to another file.
     this.#importResult = undefined;
+    this.#setImportStatus("Importing the file.", "info");
+    void this.render();
     let checked = false;
     try {
       if (file.size > MAX_IMPORT_BYTES)

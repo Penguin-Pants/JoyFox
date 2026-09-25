@@ -56,6 +56,11 @@ const byLabel = (label: string) =>
   root.querySelector<HTMLButtonElement>(`button[aria-label="${label}"]`)!;
 // Note: a status message is set before the redraw finishes, so waits key off
 // the redrawn DOM, never off the status text alone.
+// A file choice disables the chooser; only the redraw that ends the import
+// draws it enabled again.
+const importIdle = () =>
+  root.querySelector<HTMLInputElement>("#joyfox-data-import")?.disabled ===
+  false;
 const count = (entity: string) =>
   root.querySelector(`tr[data-entity="${entity}"] .joyfox-data__count`)
     ?.textContent;
@@ -283,17 +288,18 @@ describe("M8 data panel", () => {
     Object.defineProperty(input, "files", { value: [file] });
     input.dispatchEvent(new Event("change"));
     // No second click: choosing the file is the whole import.
-    await settle(() => text().includes("Import complete"));
+    await settle(() => importIdle() && text().includes("Import complete"));
     expect((await templates.list(b)).map((t) => t.body)).toEqual(["Beta text"]);
     const row = root.querySelector('tr[data-import-entity="messageTemplates"]');
     expect(row?.textContent).toContain("1");
     expect(root.querySelector(".joyfox-data__import-confirm")).toBeNull();
 
-    // The same file again changes nothing.
+    // The same file again changes nothing. The old result goes at once.
     const again = root.querySelector<HTMLInputElement>("#joyfox-data-import")!;
     Object.defineProperty(again, "files", { value: [file] });
     again.dispatchEvent(new Event("change"));
-    await settle(() => text().includes("Nothing was changed"));
+    expect(text()).not.toContain("Import complete");
+    await settle(() => importIdle() && text().includes("Nothing was changed"));
     expect((await templates.list(b)).map((t) => t.body)).toEqual(["Beta text"]);
   });
 
@@ -323,11 +329,8 @@ describe("M8 data panel", () => {
     await new Promise((resolve) => setTimeout(resolve, 20));
     expect(text()).not.toContain("Nothing was imported");
     finishFirst(saved[0]!.text);
-    await settle(() => text().includes("Import complete"));
+    await settle(() => importIdle() && text().includes("Import complete"));
     expect((await templates.list(b)).map((t) => t.body)).toEqual(["Beta text"]);
-    expect(
-      root.querySelector<HTMLInputElement>("#joyfox-data-import")!.disabled,
-    ).toBe(false);
   });
 
   it("does not call settings added when they could not be saved", async () => {
@@ -355,7 +358,9 @@ describe("M8 data panel", () => {
       value: [new File([saved[0]!.text], "export.json")],
     });
     input.dispatchEvent(new Event("change"));
-    await settle(() => text().includes("Settings that could not be saved"));
+    await settle(
+      () => importIdle() && text().includes("Settings that could not be saved"),
+    );
     expect(text()).not.toContain("Settings added");
   });
 
@@ -365,7 +370,7 @@ describe("M8 data panel", () => {
       value: [new File(["not json"], "x.json")],
     });
     input.dispatchEvent(new Event("change"));
-    await settle(() => text().includes("Nothing was imported"));
+    await settle(() => importIdle() && text().includes("Nothing was imported"));
     expect(root.querySelector(".joyfox-data__import-result")).toBeNull();
   });
 
