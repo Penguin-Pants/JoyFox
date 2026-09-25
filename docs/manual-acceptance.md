@@ -38,8 +38,8 @@
 
 14. Upgrade an existing installation rather than a clean one, and confirm notes
     and tags written before the upgrade are still present.
-15. Confirm a data export reports schema version 2 and includes the message
-    observation and sender override collections.
+15. Confirm a data export reports schema version 2 (3 since ADR 0013) and
+    includes the message observation and sender override collections.
 16. Confirm no message is cached anywhere while selectors are unverified, since
     nothing reads a page yet.
 
@@ -439,5 +439,38 @@ automatically.
 84. Choose the same file again. Confirm the message says nothing was changed.
 85. Choose a file that is not a JoyFox export. Confirm the error says nothing
     was imported.
+
+**Result:** not yet run.
+
+## German and English UI (ADR 0013)
+
+86. In a Firefox profile where no JoyFox language was picked yet, set Firefox to
+    German (`about:preferences`, Language) and open the options page. Confirm it
+    shows German ("Erste Schritte", "Konten") and "Sprache / Language" shows
+    "Deutsch". Set Firefox to English and confirm the page shows English after a
+    reload.
+87. On the options page, choose "English" in "Sprache / Language", then
+    "Deutsch". Confirm every tab, heading, button and hint changes at once, with
+    no reload, and that the toggle's own label stays "Sprache / Language".
+    Confirm typed but unsaved text in "Konto hinzufügen", a template and a rule
+    number stays after each switch.
+88. Keep a ClubMail inbox and a conversation open in other tabs. Switch the
+    language on the options page. Confirm the JoyFox tab bar, the badges, the
+    "Warum" panel, the member bar, the note editor and the "Ignorieren und
+    löschen" notice change at once. Confirm text typed in an open note editor
+    stays.
+89. On an installation upgraded from a build before this change, with a sender
+    you moved by hand, open the "Warum" panel in German. Confirm it says "Du
+    hast diese Person nach „…“ verschoben." and that the sender is still in the
+    placement you chose.
+90. In German, open the "Warum" panel of a sender you moved by hand. Confirm the
+    date shows as `TT.MM.JJJJ` (for example 25.09.2026), and in English as "Sep
+    25, 2026".
+91. In German, on "Konten", choose a file that is not a JoyFox export. Confirm
+    the error is German and ends "Es wurde nichts importiert."
+92. In German, look at every tab and every JoyFox element on JoyClub. Confirm no
+    English text is left, except brand names (JoyFox, JoyClub, JOYCE, ClubMail)
+    and your own data. Confirm "Profil ignorieren" and "In den Papierkorb
+    schieben" match JoyClub's own labels.
 
 **Result:** not yet run.

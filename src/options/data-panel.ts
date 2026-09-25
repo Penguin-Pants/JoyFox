@@ -517,7 +517,7 @@ export class DataPanel {
           plan.scope === "all"
             ? "data.import.summary.all"
             : "data.import.summary.account",
-          { matched, added },
+          { matched, added, total: matched + added },
         ),
       ),
     );

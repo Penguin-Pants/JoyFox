@@ -420,7 +420,7 @@ export const de: Catalog = {
   "rule.note.none":
     "Für das aktive Konto ist keine Regel gespeichert, deshalb sortiert JoyFox den Posteingang nicht.",
   "rule.enabled": "Meinen JoyClub-Posteingang mit dieser Regel sortieren",
-  "rule.placementLabel": "Wer die Regel nicht erfüllt, kommt nach",
+  "rule.placementLabel": "Einordnung, wenn die Regel nicht erfüllt ist:",
   "rule.spamHint":
     "Der Spam-Status ist vorerst unbekannt: JoyFox liest noch keine Nachrichtentexte. Nur deine eigenen Korrekturen „kein Spam“ zählen. Der Posteingang zeigt nur das Prüfsiegel. Fotos, Wörter im Profil und Kontoalter stammen aus Profilen, die du vorher geöffnet hast.",
   "rule.autosaveHint":
@@ -610,18 +610,15 @@ export const de: Catalog = {
     "Importiere eine JoyFox-Exportdatei: alles oder ein Konto. Sie wird mit dem zusammengeführt, was hier gespeichert ist. Ein Konto mit derselben JoyClub-Kennung wird mit dem vorhandenen Konto zusammengeführt. Bei derselben Notiz, Regel oder Einordnung gewinnt die neuere Version. Vorhandene Tags und Korrekturen bleiben erhalten. Der Import beginnt, sobald du die Datei wählst, und danach siehst du, was sich geändert hat.",
   "data.import.fileLabel": "JoyFox-Exportdatei (JSON)",
   "data.import.summary.all": (p, f) =>
-    `Dieser vollständige Export enthält ${f.plural(p.matched + p.added, {
+    `Dieser vollständige Export enthält ${f.plural(p.total, {
       one: "1 Konto",
-      other: `${f.number(p.matched + p.added)} Konten`,
+      other: `${f.number(p.total)} Konten`,
     })}: ${f.number(p.matched)} mit einem vorhandenen Konto zusammengeführt, ${f.number(p.added)} neu hinzugefügt.`,
   "data.import.summary.account": (p, f) =>
-    `Dieser Export eines einzelnen Kontos enthält ${f.plural(
-      p.matched + p.added,
-      {
-        one: "1 Konto",
-        other: `${f.number(p.matched + p.added)} Konten`,
-      },
-    )}: ${f.number(p.matched)} mit einem vorhandenen Konto zusammengeführt, ${f.number(p.added)} neu hinzugefügt.`,
+    `Dieser Export eines einzelnen Kontos enthält ${f.plural(p.total, {
+      one: "1 Konto",
+      other: `${f.number(p.total)} Konten`,
+    })}: ${f.number(p.matched)} mit einem vorhandenen Konto zusammengeführt, ${f.number(p.added)} neu hinzugefügt.`,
   "data.import.caption": "Was der Import geändert hat",
   "data.import.col.added": "Hinzugefügt",
   "data.import.col.replaced": "Ersetzt (neuer)",

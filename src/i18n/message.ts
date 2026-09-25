@@ -166,8 +166,16 @@ export const MESSAGE_PARAMS: {
   "data.deletedRecord": { id: "string" },
   "data.showMore": { count: "number" },
   "data.confirmLabel": { label: "message" },
-  "data.import.summary.all": { matched: "number", added: "number" },
-  "data.import.summary.account": { matched: "number", added: "number" },
+  "data.import.summary.all": {
+    matched: "number",
+    added: "number",
+    total: "number",
+  },
+  "data.import.summary.account": {
+    matched: "number",
+    added: "number",
+    total: "number",
+  },
   "data.import.settingsSkipped": { keys: "string" },
   "data.import.settingsNotSaved": { keys: "string" },
   "data.import.settingsAdded": { keys: "string" },

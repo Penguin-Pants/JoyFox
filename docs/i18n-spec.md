@@ -1,7 +1,10 @@
 # German and English UI: build spec
 
-Status: approved by the owner on 2026-09-25. Build after the M9 manual matrix
-(`manual-acceptance.md`, items 43 to 54) passes. No code exists for this yet.
+Status: approved by the owner on 2026-09-25. Built on 2026-09-25, after the M9
+manual matrix (`manual-acceptance.md`, items 43 to 54) passed. The decision
+record is ADR 0013 (Section 7 names it 0012, which was already taken). The
+German copy waits for the owner's review of `docs/i18n-strings.md`. Manual
+acceptance: items 86 to 92.
 
 Most JoyClub members are native German speakers. JoyFox must show all of its own
 text in German or English, and the user must be able to switch between them.

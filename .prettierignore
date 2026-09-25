@@ -6,3 +6,4 @@ docs/Technical Design.md
 docs/Test Strategy.md
 dist/
 node_modules/
+docs/i18n-strings.md

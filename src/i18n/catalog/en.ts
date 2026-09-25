@@ -637,15 +637,15 @@ export const en = {
     "Import a JoyFox export file: everything, or one account. It is merged into what is stored here. An account with the same JoyClub identifier is merged into the existing one. For the same note, rule or placement the newer version wins; existing tags and corrections are kept. The import starts when you choose the file, and you then see what changed.",
   "data.import.fileLabel": "JoyFox export file (JSON)",
   "data.import.summary.all": (
-    p: { matched: number; added: number },
+    p: { matched: number; added: number; total: number },
     f: Format,
   ) =>
-    `This full export holds ${f.number(p.matched + p.added)} account(s): ${f.number(p.matched)} merged into an existing account, ${f.number(p.added)} added as new.`,
+    `This full export holds ${f.number(p.total)} account(s): ${f.number(p.matched)} merged into an existing account, ${f.number(p.added)} added as new.`,
   "data.import.summary.account": (
-    p: { matched: number; added: number },
+    p: { matched: number; added: number; total: number },
     f: Format,
   ) =>
-    `This single-account export holds ${f.number(p.matched + p.added)} account(s): ${f.number(p.matched)} merged into an existing account, ${f.number(p.added)} added as new.`,
+    `This single-account export holds ${f.number(p.total)} account(s): ${f.number(p.matched)} merged into an existing account, ${f.number(p.added)} added as new.`,
   "data.import.caption": "What the import changed",
   "data.import.col.added": "Added",
   "data.import.col.replaced": "Replaced (newer)",
