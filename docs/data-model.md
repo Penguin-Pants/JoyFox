@@ -8,6 +8,10 @@ keys combine the account and record IDs, each percent-encoded so a value
 containing the separator cannot collide with another account's key. Account
 indexes make scoped listing and deletion explicit.
 
+Each extension context keeps one open connection. It closes that connection when
+another context upgrades or deletes the database (`versionchange`), so it never
+blocks that change, and opens a new one on its next read.
+
 The PRD Section 12.1 entities are ExtensionAccount, JoyClubMember,
 ProfileSnapshot, UserNote, UserTag, TrustSignal, ContactRule,
 ConversationClassification, SavedSearch, EventMetadata, SpendLogEntry,
