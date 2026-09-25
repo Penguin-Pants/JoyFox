@@ -293,7 +293,8 @@ matrix by hand:
 - **46: accepted, with a known gap.** The conversation went to the trash and the
   member stayed ignored, so the end state is correct. No notice said the member
   was already ignored. This is the deferred review item in ADR 0011 ("report an
-  already ignored member as such").
+  already ignored member as such"). The owner decided to keep it as is, with no
+  fix.
 - **47 and 50: not reproducible live.** JoyFox clicks Ignore too quickly to
   press "Abbrechen" or to open another profile first. The owner accepts this as
   is: an unwanted Ignore can be undone by hand. The synthetic tests (cases 5
