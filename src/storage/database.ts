@@ -71,7 +71,8 @@ function migrateToVersion4(
 }
 
 export function openDatabase(): Promise<IDBDatabase> {
-  connection ??= new Promise<IDBDatabase>((resolve, reject) => {
+  if (connection) return connection;
+  const opening = new Promise<IDBDatabase>((resolve, reject) => {
     const request = indexedDB.open(DATABASE_NAME, DATABASE_VERSION);
     request.onupgradeneeded = (event) => {
       const db = request.result;
@@ -89,7 +90,17 @@ export function openDatabase(): Promise<IDBDatabase> {
       if (event.oldVersion < 3) createStores(VERSION_3_ENTITY_NAMES);
       if (event.oldVersion < 4) migrateToVersion4(db, request.transaction);
     };
-    request.onsuccess = () => resolve(request.result);
+    request.onsuccess = () => {
+      const db = request.result;
+      // Another context upgrades or deletes the database (an extension
+      // update, or a test starting fresh): close this connection at once so
+      // it never blocks that, and let the next caller open a new one.
+      db.onversionchange = () => {
+        db.close();
+        if (connection === opening) connection = undefined;
+      };
+      resolve(db);
+    };
     request.onerror = () => reject(request.error);
     // `blocked` means another connection still holds an older version. The open
     // request stays pending and succeeds once that connection closes, so this is
@@ -102,10 +113,11 @@ export function openDatabase(): Promise<IDBDatabase> {
     // Do not keep a rejected promise cached: a transient or blocking failure
     // would otherwise disable persistence for the rest of this background
     // lifetime. The next caller retries the open.
-    connection = undefined;
+    if (connection === opening) connection = undefined;
     throw error;
   });
-  return connection;
+  connection = opening;
+  return opening;
 }
 
 export async function resetDatabaseConnectionForTests(): Promise<void> {
