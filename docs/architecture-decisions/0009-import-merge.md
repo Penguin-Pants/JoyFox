@@ -57,6 +57,8 @@ already stored, which files to accept, and how conflicts resolve.
      request, 2026-09-25). The file is checked and planned first; a file that
      fails the check writes nothing. After the import, a table shows, per data
      type, what was added, replaced, kept and skipped.
+   - The file chooser is disabled from a file choice until that import settles,
+     so a second choice can never overlap a write.
    - The import runs under the exclusive data lock and plans again from current
      data. If the plan differs from the check made on file choice, nothing is
      written.

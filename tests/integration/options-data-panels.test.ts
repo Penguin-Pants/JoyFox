@@ -297,10 +297,9 @@ describe("M8 data panel", () => {
     expect((await templates.list(b)).map((t) => t.body)).toEqual(["Beta text"]);
   });
 
-  it("imports only the newest file choice when reads finish out of order", async () => {
+  it("ignores a second file choice while an import runs", async () => {
     root.querySelector<HTMLButtonElement>(".joyfox-data__export-all")!.click();
     await settle(() => saved.length === 1);
-    // Clear B, so a stale import of the export would be visible.
     await data().clearAccountData(b);
     await panel.render();
     let finishFirst!: (text: string) => void;
@@ -308,7 +307,7 @@ describe("M8 data panel", () => {
       size: 10,
       text: () => new Promise<string>((resolve) => (finishFirst = resolve)),
     } as unknown as File;
-    const fast = {
+    const other = {
       size: 10,
       text: () => Promise.resolve("not json"),
     } as unknown as File;
@@ -316,15 +315,48 @@ describe("M8 data panel", () => {
     let files: File[] = [slow];
     Object.defineProperty(input, "files", { get: () => files });
     input.dispatchEvent(new Event("change"));
-    files = [fast];
+    // The chooser is disabled until the import settles, and a second
+    // choice cannot start a second import meanwhile.
+    expect(input.disabled).toBe(true);
+    files = [other];
     input.dispatchEvent(new Event("change"));
-    await settle(() => text().includes("Nothing was imported"));
-    // The first, older choice finishes last with a valid export.
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    expect(text()).not.toContain("Nothing was imported");
     finishFirst(saved[0]!.text);
-    await new Promise((resolve) => setTimeout(resolve, 30));
-    expect(await templates.list(b)).toEqual([]);
-    expect(text()).not.toContain("Import complete");
-    expect(text()).toContain("Nothing was imported");
+    await settle(() => text().includes("Import complete"));
+    expect((await templates.list(b)).map((t) => t.body)).toEqual(["Beta text"]);
+    expect(
+      root.querySelector<HTMLInputElement>("#joyfox-data-import")!.disabled,
+    ).toBe(false);
+  });
+
+  it("does not call settings added when they could not be saved", async () => {
+    root.querySelector<HTMLButtonElement>(".joyfox-data__export-all")!.click();
+    await settle(() => saved.length === 1);
+    await data().clearAccountData(b);
+    // With no active account set, the import adds one.
+    await settings.remove(["joyfox.activeAccountId"]);
+    class FailingSettings extends DataService {
+      override async applyImport(text: string, signature: string) {
+        return {
+          ...(await super.applyImport(text, signature)),
+          settingsSaved: false,
+        };
+      }
+    }
+    const failing = new DataPanel(
+      root,
+      new FailingSettings(accounts, settings),
+      accounts,
+    );
+    await failing.render();
+    const input = root.querySelector<HTMLInputElement>("#joyfox-data-import")!;
+    Object.defineProperty(input, "files", {
+      value: [new File([saved[0]!.text], "export.json")],
+    });
+    input.dispatchEvent(new Event("change"));
+    await settle(() => text().includes("Settings that could not be saved"));
+    expect(text()).not.toContain("Settings added");
   });
 
   it("reports a file that is not an export, and imports nothing", async () => {

@@ -95,9 +95,12 @@ export class DataPanel {
   #pending: Pending | undefined;
   #armedAt = 0;
   /** What the last import changed, shown until the next file choice. */
-  #importResult: ImportPlan | undefined;
-  /** Bumped per file choice; only the newest choice may import. */
-  #importChoice = 0;
+  #importResult: (ImportPlan & { settingsSaved?: boolean }) | undefined;
+  /**
+   * True from a file choice until its import settles. The file chooser is
+   * disabled meanwhile, so a second choice can never overlap a write.
+   */
+  #importing = false;
 
   constructor(
     private readonly root: HTMLElement,
@@ -461,9 +464,13 @@ export class DataPanel {
     input.type = "file";
     input.id = "joyfox-data-import";
     input.accept = ".json,application/json";
+    input.disabled = this.#importing;
     input.addEventListener("change", () => {
       const file = input.files?.[0];
-      if (file) void this.#importFile(file);
+      if (!file || this.#importing) return;
+      this.#importing = true;
+      input.disabled = true;
+      void this.#importFile(file);
     });
     field.append(label, input);
     section.append(field);
@@ -472,7 +479,10 @@ export class DataPanel {
     return section;
   }
 
-  #renderImportResult(document: Document, plan: ImportPlan): HTMLElement {
+  #renderImportResult(
+    document: Document,
+    plan: ImportPlan & { settingsSaved?: boolean },
+  ): HTMLElement {
     const preview = element(document, "div", "joyfox-data__import-result");
     const { matched, added } = plan.accounts;
     preview.append(
@@ -548,16 +558,16 @@ export class DataPanel {
           document,
           "p",
           "",
-          `Settings added (only those not set here): ${plan.settingsAdded.join(", ")}.`,
+          plan.settingsSaved === false
+            ? `Settings that could not be saved: ${plan.settingsAdded.join(", ")}.`
+            : `Settings added (only those not set here): ${plan.settingsAdded.join(", ")}.`,
         ),
       );
     return preview;
   }
 
+  /** Runs with `#importing` set; clears it when the import settles. */
   async #importFile(file: File): Promise<void> {
-    // Each choice supersedes the one before: a slower read of an earlier
-    // file must never be imported after a newer choice.
-    const choice = (this.#importChoice += 1);
     this.#pending = undefined;
     this.#importResult = undefined;
     let checked = false;
@@ -569,7 +579,6 @@ export class DataPanel {
         );
       const text = await readText(file);
       const preview = await this.data.previewImport(text);
-      if (choice !== this.#importChoice) return;
       checked = true;
       if (preview.writes.length === 0 && preview.settingsAdded.length === 0) {
         this.#importResult = preview;
@@ -586,21 +595,18 @@ export class DataPanel {
           }),
           { added: 0, replaced: 0 },
         );
-        if (choice === this.#importChoice) {
-          this.#importResult = plan;
-          this.#setImportStatus(
-            `Import complete: ${totals.added} record(s) added, ${totals.replaced} replaced by a newer version.${
-              plan.settingsSaved
-                ? ""
-                : " Some settings could not be saved; check the active account."
-            }`,
-            plan.settingsSaved ? "info" : "error",
-          );
-        }
+        this.#importResult = plan;
+        this.#setImportStatus(
+          `Import complete: ${totals.added} record(s) added, ${totals.replaced} replaced by a newer version.${
+            plan.settingsSaved
+              ? ""
+              : " Some settings could not be saved; check the active account."
+          }`,
+          plan.settingsSaved ? "info" : "error",
+        );
         this.onChange();
       }
     } catch (error) {
-      if (choice !== this.#importChoice) return;
       this.#setImportStatus(
         isExtensionError(error)
           ? `${error.message}. Nothing was imported.`
@@ -609,6 +615,8 @@ export class DataPanel {
             : "JoyFox could not read that file. Nothing was imported.",
         "error",
       );
+    } finally {
+      this.#importing = false;
     }
     await this.render();
   }
