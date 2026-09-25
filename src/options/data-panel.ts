@@ -94,11 +94,13 @@ export class DataPanel {
   #shownLimit = RECORD_PAGE_SIZE;
   #pending: Pending | undefined;
   #armedAt = 0;
-  /** A checked file waiting for "Confirm import", with its preview. */
-  #import: { text: string; plan: ImportPlan } | undefined;
+  /** What the last import changed, shown until the next file choice. */
+  #importResult: (ImportPlan & { settingsSaved?: boolean }) | undefined;
+  /**
+   * True from a file choice until its import settles. The file chooser is
+   * disabled meanwhile, so a second choice can never overlap a write.
+   */
   #importing = false;
-  /** Bumped per file choice; only the newest choice may set the preview. */
-  #importChoice = 0;
 
   constructor(
     private readonly root: HTMLElement,
@@ -141,9 +143,16 @@ export class DataPanel {
           records = await this.data.records(selected, this.#shown);
       }
     } catch {
-      if (generation === this.#generation)
+      if (generation === this.#generation) {
         this.root.textContent =
           "JoyFox could not read its stored data. Nothing was changed.";
+        // Import needs none of these reads. Redraw it, so a chooser that a
+        // file choice disabled is enabled again.
+        this.importRoot?.replaceChildren(
+          this.#renderImport(document),
+          this.#importStatus,
+        );
+      }
       return;
     }
     if (generation !== this.#generation) return;
@@ -435,8 +444,9 @@ export class DataPanel {
   }
 
   /**
-   * Import (owner request, ADR 0009): choose a file, read the preview, then
-   * confirm. Nothing is written before "Confirm import".
+   * Import (owner request, ADR 0009): choosing a file imports it. The file is
+   * checked first, and a file that fails the check writes nothing. The
+   * result shows what the import changed.
    */
   #renderImport(document: Document): HTMLElement {
     const section = element(document, "div", "joyfox-data__import");
@@ -446,7 +456,7 @@ export class DataPanel {
         document,
         "p",
         "joyfox-panel__hint",
-        "Import a JoyFox export file: everything, or one account. It is merged into what is stored here. An account with the same JoyClub identifier is merged into the existing one. For the same note, rule or placement the newer version wins; existing tags and corrections are kept. You see what will change before anything is saved.",
+        "Import a JoyFox export file: everything, or one account. It is merged into what is stored here. An account with the same JoyClub identifier is merged into the existing one. For the same note, rule or placement the newer version wins; existing tags and corrections are kept. The import starts when you choose the file, and you then see what changed.",
       ),
     );
     const field = element(document, "p", "joyfox-panel__field");
@@ -461,19 +471,26 @@ export class DataPanel {
     input.type = "file";
     input.id = "joyfox-data-import";
     input.accept = ".json,application/json";
+    input.disabled = this.#importing;
     input.addEventListener("change", () => {
       const file = input.files?.[0];
-      if (file) void this.#previewImport(file);
+      if (!file || this.#importing) return;
+      this.#importing = true;
+      input.disabled = true;
+      void this.#importFile(file);
     });
     field.append(label, input);
     section.append(field);
-    if (this.#import)
-      section.append(this.#renderPreview(document, this.#import.plan));
+    if (this.#importResult)
+      section.append(this.#renderImportResult(document, this.#importResult));
     return section;
   }
 
-  #renderPreview(document: Document, plan: ImportPlan): HTMLElement {
-    const preview = element(document, "div", "joyfox-data__import-preview");
+  #renderImportResult(
+    document: Document,
+    plan: ImportPlan & { settingsSaved?: boolean },
+  ): HTMLElement {
+    const preview = element(document, "div", "joyfox-data__import-result");
     const { matched, added } = plan.accounts;
     preview.append(
       element(
@@ -489,7 +506,7 @@ export class DataPanel {
         document,
         "caption",
         "joyfox-data__caption",
-        "What the import changes",
+        "What the import changed",
       ),
     );
     const head = document.createElement("tr");
@@ -548,39 +565,22 @@ export class DataPanel {
           document,
           "p",
           "",
-          `Settings added (only those not set here): ${plan.settingsAdded.join(", ")}.`,
+          plan.settingsSaved === false
+            ? `Settings that could not be saved: ${plan.settingsAdded.join(", ")}.`
+            : `Settings added (only those not set here): ${plan.settingsAdded.join(", ")}.`,
         ),
       );
-    const confirm = this.#button(
-      document,
-      "joyfox-data__import-confirm",
-      "Confirm import",
-      undefined,
-      () => void this.#applyImport(),
-    );
-    confirm.disabled =
-      plan.writes.length === 0 && plan.settingsAdded.length === 0;
-    const cancel = this.#button(
-      document,
-      "joyfox-data__import-cancel",
-      "Cancel",
-      "Cancel import",
-      () => {
-        this.#import = undefined;
-        this.#setImportStatus("Import cancelled. Nothing was changed.", "info");
-        void this.render();
-      },
-    );
-    preview.append(confirm, document.createTextNode(" "), cancel);
     return preview;
   }
 
-  async #previewImport(file: File): Promise<void> {
-    // Each choice supersedes the one before: a slower read of an earlier
-    // file must never become the preview the user confirms.
-    const choice = (this.#importChoice += 1);
+  /** Runs with `#importing` set; clears it when the import settles. */
+  async #importFile(file: File): Promise<void> {
     this.#pending = undefined;
-    this.#import = undefined;
+    // Clear the last result at once: it belongs to another file.
+    this.#importResult = undefined;
+    this.#setImportStatus("Importing the file.", "info");
+    void this.render();
+    let checked = false;
     try {
       if (file.size > MAX_IMPORT_BYTES)
         throw new ExtensionError(
@@ -588,59 +588,42 @@ export class DataPanel {
           "The file is too large to be a JoyFox export",
         );
       const text = await readText(file);
-      const plan = await this.data.previewImport(text);
-      if (choice !== this.#importChoice) return;
-      this.#import = { text, plan };
-      this.#setImportStatus(
-        plan.writes.length === 0 && plan.settingsAdded.length === 0
-          ? "Everything in this file is already stored. Nothing would change."
-          : 'Check what the import changes, then click "Confirm import".',
-        "info",
-      );
-    } catch (error) {
-      if (choice !== this.#importChoice) return;
-      this.#setImportStatus(
-        isExtensionError(error)
-          ? `${error.message}. Nothing was imported.`
-          : "JoyFox could not read that file. Nothing was imported.",
-        "error",
-      );
-    }
-    await this.render();
-  }
-
-  async #applyImport(): Promise<void> {
-    const pending = this.#import;
-    if (!pending || this.#importing) return;
-    this.#importing = true;
-    this.#import = undefined;
-    this.#pending = undefined;
-    try {
-      const plan = await this.data.applyImport(
-        pending.text,
-        pending.plan.signature,
-      );
-      const totals = ENTITY_NAMES.reduce(
-        (sum, name) => ({
-          added: sum.added + plan.counts[name].added,
-          replaced: sum.replaced + plan.counts[name].replaced,
-        }),
-        { added: 0, replaced: 0 },
-      );
-      this.#setImportStatus(
-        `Import complete: ${totals.added} record(s) added, ${totals.replaced} replaced by a newer version.${
-          plan.settingsSaved
-            ? ""
-            : " Some settings could not be saved; check the active account."
-        }`,
-        plan.settingsSaved ? "info" : "error",
-      );
-      this.onChange();
+      const preview = await this.data.previewImport(text);
+      checked = true;
+      // Always through `applyImport`: it plans again under the data lock, so
+      // even "nothing changed" is checked against current data.
+      const plan = await this.data.applyImport(text, preview.signature);
+      this.#importResult = plan;
+      if (plan.writes.length === 0 && plan.settingsAdded.length === 0) {
+        this.#setImportStatus(
+          "Everything in this file is already stored. Nothing was changed.",
+          "info",
+        );
+      } else {
+        const totals = ENTITY_NAMES.reduce(
+          (sum, name) => ({
+            added: sum.added + plan.counts[name].added,
+            replaced: sum.replaced + plan.counts[name].replaced,
+          }),
+          { added: 0, replaced: 0 },
+        );
+        this.#setImportStatus(
+          `Import complete: ${totals.added} record(s) added, ${totals.replaced} replaced by a newer version.${
+            plan.settingsSaved
+              ? ""
+              : " Some settings could not be saved; check the active account."
+          }`,
+          plan.settingsSaved ? "info" : "error",
+        );
+        this.onChange();
+      }
     } catch (error) {
       this.#setImportStatus(
         isExtensionError(error)
           ? `${error.message}. Nothing was imported.`
-          : "The import could not be completed. The counts shown now are what is stored.",
+          : checked
+            ? "The import could not be completed. The counts shown now are what is stored."
+            : "JoyFox could not read that file. Nothing was imported.",
         "error",
       );
     } finally {

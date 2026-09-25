@@ -77,5 +77,7 @@ memory only, and is removed when the profile page reads it. M9 never sends a
 message.
 
 Import reads a file the user chooses, in the options page only. Nothing is
-fetched or uploaded. The file is checked in full before anything is stored, and
-nothing is written until the user confirms the preview.
+fetched or uploaded. The file is checked in full before anything is stored. A
+file that fails the check writes nothing. A file that passes is imported as soon
+as the user chooses it, with no second confirmation, and the options page then
+shows what changed.

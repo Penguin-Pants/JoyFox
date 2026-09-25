@@ -53,10 +53,15 @@ already stored, which files to accept, and how conflicts resolve.
      counter) keeps its scope, but it must not name a stored account or an
      account the import writes to. Two file records that map to the same stored
      record refuse the file.
-   - A preview shows, per data type, what is added, replaced, kept and skipped.
-     Nothing is written before "Confirm import".
+   - Choosing the file starts the import; there is no second confirmation (owner
+     request, 2026-09-25). The file is checked and planned first; a file that
+     fails the check writes nothing. After the import, a table shows, per data
+     type, what was added, replaced, kept and skipped.
+   - The file chooser is disabled from a file choice until that import settles,
+     so a second choice can never overlap a write.
    - The import runs under the exclusive data lock and plans again from current
-     data. If the plan differs from the confirmed preview, nothing is written.
+     data. If the plan differs from the check made on file choice, nothing is
+     written.
    - All records are written in one IndexedDB transaction, so a failure leaves
      stored records unchanged. Settings are written after that as a best-effort
      step; if they fail, the user is told the records were imported and the
