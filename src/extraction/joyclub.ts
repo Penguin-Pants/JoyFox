@@ -216,6 +216,29 @@ export interface ConversationExtraction {
   genderCode: ExtractionResult<number>;
   /** Word count of the sender's short profile description in the header. */
   descriptionWordCount: ExtractionResult<number>;
+  /**
+   * The sender's profile page, from the header link: the same origin as the
+   * conversation, the path only. The user opens it; JoyFox never loads it.
+   */
+  profileUrl: ExtractionResult<string>;
+}
+
+/** The profile link's path on the page's own origin, or `undefined`. */
+function sameOriginProfileUrl(
+  href: string | null,
+  base: string,
+): string | undefined {
+  if (href === null) return undefined;
+  try {
+    const page = new URL(base);
+    const link = new URL(href, base);
+    if (link.origin !== page.origin) return undefined;
+    return pagePath("profile")?.test(link.pathname)
+      ? `${link.origin}${link.pathname}`
+      : undefined;
+  } catch {
+    return undefined;
+  }
 }
 
 export function extractConversation(
@@ -241,10 +264,11 @@ export function extractConversation(
   const conversation: ExtractionResult<string> = conversationId
     ? found(conversationId, "conversation.url")
     : missing("conversation.url");
+  const headerHref = headerLink
+    ? (root.querySelector(headerLink)?.getAttribute("href") ?? null)
+    : null;
   const memberId = memberIdFromProfileHref(
-    headerLink
-      ? (root.querySelector(headerLink)?.getAttribute("href") ?? null)
-      : null,
+    headerHref,
     url,
     "conversation.memberId",
   );
@@ -268,8 +292,10 @@ export function extractConversation(
       verificationCode: stale<number>("verificationCode"),
       genderCode: stale<number>("genderCode"),
       descriptionWordCount: stale<number>("profileDescription"),
+      profileUrl: stale<string>("profileUrl"),
     };
   }
+  const profileUrl = sameOriginProfileUrl(headerHref, url);
   return {
     conversationId: conversation,
     memberId,
@@ -291,6 +317,9 @@ export function extractConversation(
           "conversation.profileDescription",
         )
       : missing("conversation.profileDescription"),
+    profileUrl: profileUrl
+      ? found(profileUrl, "conversation.profileUrl")
+      : invalid("conversation.profileUrl", "Profile link is not on this site"),
   };
 }
 

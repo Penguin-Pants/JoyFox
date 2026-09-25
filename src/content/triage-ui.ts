@@ -2,6 +2,7 @@ import type { TriagePlacement } from "../domain/types";
 import {
   CONDITION_TEXT,
   PLACEMENT_TEXT,
+  type ConditionKind,
   type EvaluatedCondition,
 } from "../rules/contact-rule";
 import type { MemberTriage } from "../triage/triage-service";
@@ -218,6 +219,40 @@ export function explanation(
   return root;
 }
 
+/** Rule conditions whose facts only the profile page shows. */
+const PROFILE_FACT_TEXT: Partial<Record<ConditionKind, string>> = {
+  minimumPhotos: "photo count",
+  minimumProfileWords: "profile word count",
+  minimumAccountAgeDays: "account age",
+};
+
+/**
+ * Which profile facts the rule needed but does not know, in words, or
+ * `undefined` when none is unknown. Only the profile page shows these facts,
+ * and JoyFox never opens it by itself (build plan Section 12), so the user
+ * opens it and JoyFox reads them then.
+ */
+export function unknownProfileFactsText(
+  conditions: readonly EvaluatedCondition[],
+): string | undefined {
+  const names = [
+    ...new Set(
+      conditions
+        .filter((condition) => condition.state === "unknown")
+        .map((condition) => PROFILE_FACT_TEXT[condition.kind])
+        .filter((name): name is string => name !== undefined),
+    ),
+  ];
+  if (names.length === 0) return undefined;
+  const list =
+    names.length === 1
+      ? names[0]
+      : `${names.slice(0, -1).join(", ")} and ${names[names.length - 1]}`;
+  return names.length === 1
+    ? `The ${list} is unknown. Open the profile and JoyFox reads it.`
+    : `The ${list} are unknown. Open the profile and JoyFox reads them.`;
+}
+
 let drawerIds = 0;
 
 export interface MemberBarInput {
@@ -226,6 +261,11 @@ export interface MemberBarInput {
   /** Why no placement is shown, when there is none. */
   ruleOff?: string;
   trust?: TrustScore | "unknown";
+  /**
+   * A link to the member's profile, shown when the rule needs facts only
+   * the profile shows. A plain link the user clicks; JoyFox never follows it.
+   */
+  openProfile?: { href: string; text: string };
   actions: Partial<ExplanationActions> & { onOpenOptions?(): void };
   drawerOpen: boolean;
   onToggle(open: boolean): void;
@@ -254,6 +294,21 @@ export function memberBar(
     bar.append(pill);
     if (result.source === "override")
       bar.append(element(document, "span", "joyfox-note", "(your choice)"));
+    if (input.openProfile) {
+      const group = element(document, "span", "joyfox-bar__group");
+      const link = element(
+        document,
+        "a",
+        "joyfox-button joyfox-bar__profile",
+        "Open profile",
+      );
+      link.href = input.openProfile.href;
+      group.append(
+        element(document, "span", "joyfox-note", input.openProfile.text),
+        link,
+      );
+      bar.append(group);
+    }
   } else if (input.ruleOff) {
     bar.append(element(document, "span", "joyfox-note", input.ruleOff));
     if (actions.onOpenOptions)

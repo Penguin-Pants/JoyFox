@@ -10,10 +10,14 @@ import {
   VIEW_ATTRIBUTE,
 } from "../../src/content/inbox-triage";
 import { MemberPanel } from "../../src/content/member-panel";
-import { memberBar } from "../../src/content/triage-ui";
+import {
+  memberBar,
+  unknownProfileFactsText,
+} from "../../src/content/triage-ui";
 import type { TriageClient } from "../../src/content/triage-client";
 import type {
   ContactRuleDefinition,
+  EvaluatedCondition,
   RuleCondition,
 } from "../../src/rules/contact-rule";
 import { RuleService } from "../../src/rules/rule-service";
@@ -813,6 +817,89 @@ describe("conversation and profile panel", () => {
     await vi.waitFor(() => expect(placements()[0]).toBe("qualified"));
     expect(placements()[1]).toBe("needs-review");
     expect(VERIFIED).toBe("98765432");
+  });
+
+  it("links to the profile while the rule needs facts only it shows", async () => {
+    await rules.saveGlobalRule(ACCOUNT, {
+      ...knownRule(),
+      root: {
+        type: "group",
+        match: "all",
+        children: [
+          condition("minimumPhotos", { value: 3 }),
+          condition("minimumProfileWords", { value: 5 }),
+        ],
+      },
+    });
+    setPage(CONVERSATION, conversationHtml);
+    const client = serviceClient();
+    new MemberPanel(document, client).update("conversation");
+    await vi.waitFor(() => expect(panel()).not.toBeNull());
+    const link = panel()!.querySelector<HTMLAnchorElement>(
+      "a.joyfox-bar__profile",
+    );
+    expect(link?.textContent).toBe("Open profile");
+    expect(link?.href).toBe(
+      new URL("/profile/1234567.synthetic_one.html", window.location.href).href,
+    );
+    expect(panel()!.querySelector(".joyfox-bar")?.textContent).toContain(
+      "The photo count and profile word count are unknown. Open the profile and JoyFox reads them.",
+    );
+    // Opening the profile is the user's own navigation: JoyFox loaded
+    // nothing by itself, so no snapshot exists yet.
+    expect(await repositories.profileSnapshots.list(ACCOUNT)).toHaveLength(0);
+
+    // The user opens the profile; its facts are captured there.
+    setPage("/profile/1234567.synthetic_one.html", profileHtml);
+    new MemberPanel(document, serviceClient()).update("profile");
+    await vi.waitFor(async () =>
+      expect(await repositories.profileSnapshots.list(ACCOUNT)).toHaveLength(1),
+    );
+
+    // Back on the conversation the facts are known, so the link goes.
+    setPage(CONVERSATION, conversationHtml);
+    new MemberPanel(document, serviceClient()).update("conversation");
+    await vi.waitFor(() =>
+      expect(panel()?.textContent).toContain("Placement: Qualified"),
+    );
+    expect(panel()!.querySelector("a.joyfox-bar__profile")).toBeNull();
+  });
+
+  it("shows no profile link when the rule needs no profile-only fact", async () => {
+    await rules.saveGlobalRule(ACCOUNT, knownRule());
+    setPage(CONVERSATION, conversationHtml);
+    new MemberPanel(document, serviceClient()).update("conversation");
+    await vi.waitFor(() => expect(panel()).not.toBeNull());
+    expect(panel()!.querySelector("a.joyfox-bar__profile")).toBeNull();
+  });
+
+  it("names every unknown profile fact in one sentence", () => {
+    const unknown = (kind: EvaluatedCondition["kind"]): EvaluatedCondition => ({
+      kind,
+      state: "unknown",
+      outcome: "needs-review",
+      reason: "",
+      source: "none",
+    });
+    expect(
+      unknownProfileFactsText([
+        unknown("minimumPhotos"),
+        unknown("minimumProfileWords"),
+        unknown("minimumAccountAgeDays"),
+        // Not a profile fact: opening the profile does not help.
+        unknown("minimumTrustScore"),
+      ]),
+    ).toBe(
+      "The photo count, profile word count and account age are unknown. Open the profile and JoyFox reads them.",
+    );
+    expect(unknownProfileFactsText([unknown("minimumPhotos")])).toBe(
+      "The photo count is unknown. Open the profile and JoyFox reads it.",
+    );
+    expect(
+      unknownProfileFactsText([
+        { ...unknown("minimumPhotos"), state: "pass", outcome: "met" },
+      ]),
+    ).toBeUndefined();
   });
 
   it("captures the profile again for a newly active account", async () => {
