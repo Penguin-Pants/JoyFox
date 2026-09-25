@@ -112,7 +112,11 @@ what it matches, or a screenshot with DOM inspection notes.
 10. **F8 — Firefox distribution:** Confirm the intended distribution channel
     (temporary development, unlisted self-distribution, or listed AMO). Current
     Mozilla signing requirements then need verification against official
-    documentation before release packaging is claimed.
+    documentation before release packaging is claimed. A research draft with the
+    steps, the manifest gaps (the placeholder extension ID and the missing
+    `data_collection_permissions`) and a verification checklist is in
+    `docs/distribution.md` (2026-09-25); it could not be checked against the
+    live pages from this environment.
 
 ## Phase gate
 
