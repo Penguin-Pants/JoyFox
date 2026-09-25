@@ -225,11 +225,11 @@ text; never record the member's real data in this repository.
 
 ## M9 destructive-action matrix (build plan Section 24)
 
-**Ready to run, by hand only (ADR 0011).** The live driver now exists. Run these
-only on test conversations you mean to trash, with members you are willing to
-ignore and then un-ignore ("Profil nicht mehr ignorieren" in the profile menu).
-Never run them automatically. Use the split view (conversation list on the
-left), because Delete is checked by the row leaving the list.
+**Accepted by hand on 2026-09-25 (ADR 0011); results below the table.** Run
+these only on test conversations you mean to trash, with members you are willing
+to ignore and then un-ignore ("Profil nicht mehr ignorieren" in the profile
+menu). Never run them automatically. Use the split view (conversation list on
+the left), because Delete is checked by the row leaving the list.
 
 Turn the button on first, from the console of the JoyFox options page:
 
