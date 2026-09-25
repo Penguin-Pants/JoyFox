@@ -95,6 +95,8 @@ export class DataPanel {
   #selected: string | undefined;
   #shown: EntityName | undefined;
   #shownLimit = RECORD_PAGE_SIZE;
+  /** The records expanded when the panel was last drawn. */
+  #openRecords = new Set<string>();
   #pending: Pending | undefined;
   #armedAt = 0;
   /** What the last import changed, shown until the next file choice. */
@@ -162,6 +164,15 @@ export class DataPanel {
     }
     this.#selected = selected;
 
+    // A redraw (a language change, a delete elsewhere) keeps the records the
+    // user expanded. Read after the storage reads, just before the redraw.
+    this.#openRecords = new Set(
+      Array.from(
+        this.root.querySelectorAll<HTMLElement>(".joyfox-data__record"),
+      )
+        .filter((item) => item.querySelector("details")?.open)
+        .map((item) => item.dataset.recordId ?? ""),
+    );
     this.root.replaceChildren();
     this.#status.redraw();
     this.#importStatus.redraw();
@@ -334,6 +345,7 @@ export class DataPanel {
       const item = element(document, "li", "joyfox-data__record");
       item.dataset.recordId = record.id;
       const details = element(document, "details", "joyfox-data__details");
+      details.open = this.#openRecords.has(record.id);
       details.append(
         element(
           document,

@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import "../setup-indexeddb";
 import { beforeEach, describe, expect, it } from "vitest";
+import { setLocale } from "../../src/i18n/translator";
 import { AccountService } from "../../src/accounts/account-service";
 import { DataService } from "../../src/data/data-service";
 import { confirmTiming } from "../../src/options/confirm";
@@ -115,6 +116,23 @@ describe("M8 data panel", () => {
     expect(
       root.querySelector("label[for='joyfox-data-account']"),
     ).not.toBeNull();
+  });
+
+  it("keeps expanded records open when the panel redraws", async () => {
+    byLabel("Show Message templates").click();
+    await settle(() => text().includes("Hallo"));
+    const record = () =>
+      root.querySelector<HTMLDetailsElement>(".joyfox-data__record details")!;
+    record().open = true;
+    // A language change redraws the whole panel the same way.
+    setLocale("de");
+    await panel.render();
+    setLocale("en");
+    expect(root.querySelectorAll(".joyfox-data__record")).toHaveLength(1);
+    expect(record().open).toBe(true);
+    record().open = false;
+    await panel.render();
+    expect(record().open).toBe(false);
   });
 
   it("inspects another account without changing the active one", async () => {

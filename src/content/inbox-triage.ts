@@ -18,7 +18,14 @@ import {
 } from "../triage/triage-service";
 import { factsKey, observedFromInboxRow } from "./observed-facts";
 import type { TriageClient } from "./triage-client";
-import { button, element, explanation, UI_ATTRIBUTE } from "./triage-ui";
+import {
+  button,
+  element,
+  explanation,
+  openSections,
+  reopenSections,
+  UI_ATTRIBUTE,
+} from "./triage-ui";
 
 /**
  * The `data-joyfox-ui` values the inbox itself creates. Teardown removes only
@@ -284,9 +291,14 @@ export class InboxTriage {
    * and the open details stay.
    */
   localeChanged(): void {
-    this.document.querySelector(`[${UI_ATTRIBUTE}="triage-bar"]`)?.remove();
+    const bar = () =>
+      this.document.querySelector(`[${UI_ATTRIBUTE}="triage-bar"]`);
+    const open = openSections(bar());
+    bar()?.remove();
     this.#detailsKey = "";
     this.#refresh();
+    const redrawn = bar();
+    if (redrawn) reopenSections(redrawn, open);
   }
 
   setView(view: TriageView): void {

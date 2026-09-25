@@ -64,6 +64,26 @@ export function button(
   return node;
 }
 
+/**
+ * The classes of the `<details>` sections open under `root`, so a redraw
+ * (for example after a language change) can open the same sections again.
+ */
+export function openSections(root: Element | null | undefined): Set<string> {
+  return new Set(
+    Array.from(root?.querySelectorAll<HTMLDetailsElement>("details") ?? [])
+      .filter((node) => node.open && node.className)
+      .map((node) => node.className),
+  );
+}
+
+/** Open the sections under `root` that `openSections` found open before. */
+export function reopenSections(root: Element, open: Set<string>): void {
+  for (const node of Array.from(
+    root.querySelectorAll<HTMLDetailsElement>("details"),
+  ))
+    if (open.has(node.className)) node.open = true;
+}
+
 export interface ExplanationActions {
   onOverride(placement: TriagePlacement | null): void;
   /** Present where the user can log outcomes (conversation, profile). */

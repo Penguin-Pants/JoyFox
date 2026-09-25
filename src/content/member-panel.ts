@@ -20,6 +20,8 @@ import { isPlaced, placeInStrip, removeEmptyStrip } from "./member-strip";
 import {
   element,
   memberBar,
+  openSections,
+  reopenSections,
   UI_ATTRIBUTE,
   unknownProfileFactsText,
 } from "./triage-ui";
@@ -294,6 +296,11 @@ export class MemberPanel {
       this.teardown();
       return;
     }
+    // A redraw for the same member keeps its open sections.
+    const open =
+      existing?.getAttribute("data-member") === target.memberId
+        ? openSections(existing)
+        : new Set<string>();
     existing?.remove();
     this.#rendered = key;
     // Any path to another member (a route, a failed load, the inbox between
@@ -369,6 +376,7 @@ export class MemberPanel {
       panel.append(
         element(this.document, "p", "joyfox-error", t("common.saveFailed")),
       );
+    reopenSections(panel, open);
     placeInStrip(this.document, target.anchor, panel);
   }
 

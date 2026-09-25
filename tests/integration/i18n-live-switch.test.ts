@@ -366,9 +366,14 @@ describe("content surfaces (docs/i18n-spec.md, Sections 3.7 and 6)", () => {
     );
     const badges = document.querySelectorAll('[data-joyfox-ui="badge"]').length;
     expect(leaks(joyfox()).length).toBeGreaterThan(5);
+    const conditions = () =>
+      document.querySelector<HTMLDetailsElement>(".joyfox-explain__conditions");
+    conditions()!.open = true;
 
     setLocale("de");
     inbox.localeChanged();
+    // The section the user opened stays open.
+    expect(conditions()?.open).toBe(true);
     const bar = document.querySelector('[data-joyfox-ui="triage-bar"]')!;
     expect(
       document.querySelectorAll('[data-joyfox-ui="triage-bar"]'),
@@ -474,8 +479,20 @@ describe("content surfaces (docs/i18n-spec.md, Sections 3.7 and 6)", () => {
         document.querySelector('[data-joyfox-ui="quick-action"] li'),
       ).not.toBeNull();
     });
-    // Open everything a user can open: the drawer, the editor, the picker.
+    // Open everything a user can open: the drawer and its sections, the
+    // editor, the picker.
     document.querySelector<HTMLButtonElement>(".joyfox-bar__toggle")!.click();
+    for (const section of Array.from(
+      document.querySelectorAll<HTMLDetailsElement>(".joyfox-drawer details"),
+    ))
+      section.open = true;
+    const openInDrawer = () =>
+      Array.from(
+        document.querySelectorAll<HTMLDetailsElement>(".joyfox-drawer details"),
+        (section) => [section.className, section.open],
+      );
+    const drawerSections = openInDrawer();
+    expect(drawerSections.length).toBeGreaterThan(1);
     const editor = document.querySelector<HTMLDetailsElement>(
       ".joyfox-notes__details",
     )!;
@@ -535,6 +552,7 @@ describe("content surfaces (docs/i18n-spec.md, Sections 3.7 and 6)", () => {
     expect(document.querySelector<HTMLElement>(".joyfox-drawer")?.hidden).toBe(
       false,
     );
+    expect(openInDrawer()).toEqual(drawerSections);
     // A German date, and JoyClub's own German label for its control.
     expect(document.querySelector(".joyfox-explain")?.textContent).toMatch(
       /am \d{2}\.\d{2}\.\d{4} verschoben/u,
