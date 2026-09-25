@@ -145,7 +145,7 @@ accepted by hand on 2026-09-25 (ADR 0011, `manual-acceptance.md`).
 - Done: choosing a file imports it at once, with no "Confirm import" step; a
   table then shows what changed (`manual-acceptance.md` items 83 to 85).
   Triggered by the owner: the confirm button needed extra scrolling and a
-  second click. Live acceptance not yet run.
+  second click. Live acceptance passed on 2026-09-25.
 
 ### Owner requests (2026-09-25)
 
