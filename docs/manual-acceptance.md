@@ -228,11 +228,27 @@ text; never record the member's real data in this repository.
 **Ready to run, by hand only (ADR 0011).** The live driver now exists. Run these
 only on test conversations you mean to trash, with members you are willing to
 ignore and then un-ignore ("Profil nicht mehr ignorieren" in the profile menu).
-Never run them automatically. Turn the button on first: in `about:debugging`,
-click **Inspect** next to JoyFox, and in that console run
-`browser.storage.local.set({"joyfox.quickIgnoreDelete": true})`. Use the split
-view (conversation list on the left), because Delete is checked by the row
-leaving the list.
+Never run them automatically. Use the split view (conversation list on the
+left), because Delete is checked by the row leaving the list.
+
+Turn the button on first, from the console of the JoyFox options page:
+
+- Open the JoyFox options page: in `about:addons`, click the "..." next to
+  JoyFox, then **Options** (older Firefox: **Preferences**). It opens in its own
+  tab, and the address starts with `moz-extension://`.
+- In that tab, press `Ctrl+Shift+K` (macOS: `Cmd+Option+K`) to open the Web
+  Console.
+- Run `browser.storage.local.set({"joyfox.quickIgnoreDelete": true})`. If
+  Firefox asks, type `allow pasting` first.
+- To check it, run `browser.storage.local.get("joyfox.quickIgnoreDelete")`. The
+  result must show `true`. To turn it off again, run the same `set` with
+  `false`.
+- Reload the JoyClub tab.
+
+Other consoles give "ReferenceError: browser is not defined": a JoyClub page,
+the `about:debugging` page itself, and the Inspect toolbox when its console is
+not in the extension's own context. Only extension pages, such as the options
+page, can use `browser`.
 
 The run: on the conversation page, JoyFox moves the conversation to the trash,
 opens the member's profile in the same tab, and ignores them there. The result
