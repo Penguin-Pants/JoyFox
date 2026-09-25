@@ -1,6 +1,7 @@
 import "../setup-indexeddb";
 import { beforeEach, describe, expect, it } from "vitest";
 import type { MessageObservation } from "../../src/domain/types";
+import { setLocale } from "../../src/i18n/translator";
 import {
   DATABASE_NAME,
   DATABASE_VERSION,
@@ -13,6 +14,7 @@ import {
   MESSAGE_OBSERVATION_RETENTION_DAYS,
   repositories,
 } from "../../src/storage/repositories";
+import { texts } from "../i18n-text";
 import { freshDatabase } from "../setup-indexeddb";
 
 const ACCOUNT = "account-a";
@@ -209,5 +211,156 @@ describe("schema version 2", () => {
     expect(
       await repositories.messageObservations.list("account-b"),
     ).toHaveLength(1);
+  });
+});
+
+/** A version 2 install with manual placements in version 2's English form. */
+async function createVersion2Database(
+  classifications: Array<Record<string, unknown>>,
+): Promise<void> {
+  await resetDatabaseConnectionForTests();
+  await new Promise<void>((resolve, reject) => {
+    const request = indexedDB.deleteDatabase(DATABASE_NAME);
+    request.onsuccess = () => resolve();
+    request.onerror = () => reject(request.error);
+  });
+  const db = await new Promise<IDBDatabase>((resolve, reject) => {
+    const request = indexedDB.open(DATABASE_NAME, 2);
+    request.onupgradeneeded = () => {
+      for (const name of [
+        ...VERSION_1_STORES,
+        "messageObservations",
+        "senderSpamOverrides",
+      ]) {
+        const store = request.result.createObjectStore(name, {
+          keyPath: "storageKey",
+        });
+        store.createIndex("accountId", "accountId", { unique: false });
+        store.createIndex("updatedAt", "updatedAt", { unique: false });
+      }
+    };
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error);
+  });
+  const transaction = db.transaction(
+    "conversationClassifications",
+    "readwrite",
+  );
+  for (const record of classifications)
+    transaction.objectStore("conversationClassifications").put({
+      storageKey: `${ACCOUNT}:${String(record.id)}`,
+      accountId: ACCOUNT,
+      source: "user",
+      decidedAt: "2026-09-20T00:00:00.000Z",
+      createdAt: "2026-09-20T00:00:00.000Z",
+      updatedAt: "2026-09-20T00:00:00.000Z",
+      ...record,
+    });
+  await new Promise<void>((resolve, reject) => {
+    transaction.oncomplete = () => resolve();
+    transaction.onerror = () => reject(transaction.error);
+  });
+  db.close();
+}
+
+describe("schema version 3", () => {
+  beforeEach(async () => {
+    await freshDatabase();
+  });
+
+  it("rewrites version 2 reasons as messages and keeps every override", async () => {
+    await createVersion2Database([
+      {
+        id: "classification:1",
+        memberId: "1",
+        placement: "needs-review",
+        reasons: ["You moved this sender to Needs Review."],
+      },
+      {
+        id: "classification:2",
+        memberId: "2",
+        placement: "quarantined",
+        reasons: [
+          "You moved this sender to Quarantined.",
+          "A reason from an older build.",
+        ],
+      },
+    ]);
+    const db = await openDatabase();
+    expect(db.version).toBe(3);
+    const stored = await repositories.conversationClassifications.list(ACCOUNT);
+    expect(
+      stored
+        .sort((a, b) => a.id.localeCompare(b.id))
+        .map(({ memberId, placement, reasons }) => ({
+          memberId,
+          placement,
+          reasons,
+        })),
+    ).toEqual([
+      {
+        memberId: "1",
+        placement: "needs-review",
+        reasons: [
+          {
+            key: "triage.reason.userMoved",
+            params: { placement: { key: "placement.needs-review" } },
+          },
+        ],
+      },
+      {
+        memberId: "2",
+        placement: "quarantined",
+        reasons: [
+          {
+            key: "triage.reason.userMoved",
+            params: { placement: { key: "placement.quarantined" } },
+          },
+          {
+            key: "legacy.text",
+            params: { text: "A reason from an older build." },
+          },
+        ],
+      },
+    ]);
+    // The migrated reasons read in both languages; old text stays verbatim.
+    const reasons = stored.flatMap((record) => record.reasons);
+    expect(texts(reasons)).toEqual([
+      "You moved this sender to Needs Review.",
+      "You moved this sender to Quarantined.",
+      "A reason from an older build.",
+    ]);
+    setLocale("de");
+    expect(texts(reasons)).toEqual([
+      "Du hast diese Person nach „Zu prüfen“ verschoben.",
+      "Du hast diese Person nach „Quarantäne“ verschoben.",
+      "A reason from an older build.",
+    ]);
+    setLocale("en");
+  });
+
+  it("upgrades a version 1 database through both versions", async () => {
+    await createVersion1Database();
+    const db = await openDatabase();
+    expect(db.version).toBe(3);
+    expect((await repositories.userNotes.get(ACCOUNT, "note-1"))?.body).toBe(
+      "Note written before the upgrade",
+    );
+  });
+
+  it("refuses to store a reason that is not a catalog message", async () => {
+    await expect(
+      repositories.conversationClassifications.put(ACCOUNT, {
+        id: "classification:3",
+        accountId: ACCOUNT,
+        memberId: "3",
+        placement: "qualified",
+        source: "user",
+        decidedAt: "2026-09-20T00:00:00.000Z",
+        reasons: ["Plain English" as never],
+        createdAt: "2026-09-20T00:00:00.000Z",
+        updatedAt: "2026-09-20T00:00:00.000Z",
+      }),
+    ).rejects.toThrow("catalog messages");
   });
 });
