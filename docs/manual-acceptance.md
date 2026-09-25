@@ -258,7 +258,10 @@ For each item, check three things: JoyClub's final state, the ActionLog record
 in "Your data" (steps, in order, with the `errorCode` of `Failed`), and the
 on-screen notice. Success means every item ends in the expected state with the
 expected ActionLog. Each item has a synthetic test with the same case number in
-`tests/integration/quick-action.test.ts`.
+`tests/integration/quick-action.test.ts`, except item 45: its test is "does not
+start Delete when the list that shows its result is missing" in
+`tests/integration/quick-action-driver.test.ts` (case 3 there tests a missing
+Delete confirmation instead).
 
 | Item | Case                                   | How to cause it                                                                           | Expected ActionLog steps                                                                           | Expected notice                                                                          |
 | ---- | -------------------------------------- | ----------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
@@ -288,8 +291,9 @@ three-dot menu (`live-evidence/10-ignore.md`, eighth report).
 matrix by hand:
 
 - **44 and 45: not reproducible live.** JoyClub always shows the Delete control
-  and the list row, so these cases cannot be caused by hand. The synthetic tests
-  (cases 2 and 3) cover them.
+  and the list row, so these cases cannot be caused by hand. Synthetic tests
+  cover them: case 2 for item 44, and the driver test for a missing list for
+  item 45.
 - **46: accepted, with a known gap.** The conversation went to the trash and the
   member stayed ignored, so the end state is correct. No notice said the member
   was already ignored. This is the deferred review item in ADR 0011 ("report an
