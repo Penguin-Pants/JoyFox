@@ -798,7 +798,7 @@ describe("conversation and profile panel", () => {
     expect(snapshots[0]).toMatchObject({
       memberId: KNOWN,
       photoCount: 12,
-      profileWordCount: 13,
+      profileWordCount: 8,
     });
     // A re-render on the same page does not store the facts again.
     member.update("profile");

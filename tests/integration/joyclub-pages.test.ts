@@ -246,7 +246,8 @@ describe("F1/F9 extraction from the verified profile", () => {
       memberId: { status: "found", value: "1234567" },
       verificationCode: { status: "found", value: 3 },
       photoCount: { status: "found", value: 12 },
-      profileWordCount: { status: "found", value: 13 },
+      // The main text only: the five motto words are not counted.
+      profileWordCount: { status: "found", value: 8 },
       joinedAt: { status: "missing" },
     });
   });
@@ -339,17 +340,30 @@ describe("F1/F9 extraction from the verified profile", () => {
     );
   });
 
-  it("keeps the word count missing when no text block rendered", () => {
+  it("keeps the word count missing when no main text rendered", () => {
     load("profile");
-    for (const element of Array.from(
-      document.querySelectorAll(
-        ".profile-description-motto__text, .profile-description-maintext__text",
-      ),
-    ))
-      element.remove();
+    document.querySelector(".profile-description-maintext__text")?.remove();
+    // The motto is still on the page, but it is not the main text.
     expect(extractProfile(document, PROFILE_URL).profileWordCount.status).toBe(
       "missing",
     );
+  });
+
+  it("counts no text outside the main text block", () => {
+    load("profile");
+    const mainText = document.querySelector(
+      ".profile-description-maintext__text",
+    );
+    mainText?.insertAdjacentHTML(
+      "beforebegin",
+      "<p>Four more outside words</p>",
+    );
+    mainText?.insertAdjacentHTML("afterend", "<div>Two more</div>");
+    expect(extractProfile(document, PROFILE_URL).profileWordCount).toEqual({
+      status: "found",
+      value: 8,
+      source: "profile.mainText",
+    });
   });
 });
 
@@ -414,7 +428,7 @@ describe("M1 on verified profile data", () => {
         requireVerification: true,
         requirePersonallyKnown: true,
         minimumPhotoCount: 3,
-        minimumProfileWordCount: 10,
+        minimumProfileWordCount: 8,
         minimumAccountAgeDays: 30,
       },
     });
