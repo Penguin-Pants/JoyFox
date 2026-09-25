@@ -354,6 +354,28 @@ the gaps are closed.
 **Result (2026-09-24): passed.** The project owner confirmed items 73 and 74:
 Import now sits under the account list on the Accounts tab.
 
+## Advanced contact rule (ADR 0012)
+
+75. Open the Contact rule tab and click "Advanced". Build: Rule 1 met if ALL of
+    "Personally known"; "+ Add rule"; Rule 2 met if ALL of "Verified by
+    JoyClub", "Minimum account age in days" 180 and "Minimum photos" 3. Confirm
+    "OR" shows between the rules and "Rule saved" after each change.
+76. Reload the options page. Confirm it opens in Advanced with both rules as
+    built. Click "Simple" and confirm the ALL box holds the Rule 2 conditions
+    and the ANY box holds "Personally known". Click "Advanced" again.
+77. On a JoyClub inbox, open the "Why" panel of a verified sender with fewer
+    than 3 photos. Confirm it is not Qualified and the reasons start with "Rule
+    1:" and "Rule 2:". For a sender you marked as personally known, confirm
+    Qualified with a "Rule 1:" reason.
+78. In Advanced, tick "not" on "Minimum photos". Confirm the "not" label turns
+    bold and red, the Simple button turns off and the reason shows next to it.
+    Untick it and confirm Simple is offered again.
+79. Change "A sender is qualified if ANY" to "ALL". Confirm "AND" shows between
+    the rules and Simple turns off. Set it back to ANY.
+80. Click "Remove rule" on a rule and ✕ on a condition. Confirm each saves at
+    once and the rules are numbered again. Confirm "+ Add rule" turns off at 10
+    rules.
+
 Live selector and action acceptance must wait for the evidence checklist in
 `manual-verification-needed.md`. Never perform destructive action testing
 automatically.

@@ -541,6 +541,45 @@ describe("M8 import: restoring and merging", () => {
     expect(() => parseImportFile(rule)).toThrow("unknown field (note)");
   });
 
+  it("accepts a version 2 rule with a turned-around condition", () => {
+    const file = fullFile({
+      extensionAccounts: [account("a", "me")],
+      contactRules: [
+        {
+          id: "rule:global",
+          accountId: "a",
+          name: "R",
+          schemaVersion: 2,
+          audience: "all",
+          enabled: true,
+          defaultPlacement: "needs-review",
+          root: {
+            type: "group",
+            match: "any",
+            children: [
+              {
+                type: "group",
+                match: "all",
+                children: [
+                  {
+                    type: "condition",
+                    kind: "minimumPhotos",
+                    value: 3,
+                    whenUnknown: "needs-review",
+                    negate: true,
+                  },
+                ],
+              },
+            ],
+          },
+          createdAt: t0,
+          updatedAt: t0,
+        },
+      ],
+    });
+    expect(() => parseImportFile(file)).not.toThrow();
+  });
+
   it("applies the size limits ordinary saves use", () => {
     const longNote = fullFile({
       extensionAccounts: [account("a", "me")],

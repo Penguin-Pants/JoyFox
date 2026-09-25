@@ -136,6 +136,113 @@
   .joyfox-rule__condition select {
     grid-column: 2 / -1;
   }
+
+  /* ✕, "not" and the name on one line; the number and the unknown choice
+     below the name. */
+  .joyfox-rule__condition--advanced {
+    grid-template-columns: auto auto minmax(0, 1fr);
+    row-gap: var(--joyfox-space-1);
+  }
+
+  .joyfox-rule__condition--advanced input[type="number"] {
+    grid-column: 3;
+    justify-self: start;
+    width: 6rem;
+  }
+
+  .joyfox-rule__condition--advanced .joyfox-rule__no-value {
+    display: none;
+  }
+
+  .joyfox-rule__condition--advanced .joyfox-rule__unknown-label,
+  .joyfox-rule__condition--advanced select {
+    grid-column: 3;
+  }
+}
+
+.joyfox-rule__switch-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--joyfox-space-2);
+  align-items: center;
+  margin: var(--joyfox-space-3) 0 var(--joyfox-space-2);
+}
+
+.joyfox-rule__switch {
+  display: inline-flex;
+  border: 1px solid var(--joyfox-border);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.joyfox-rule__switch button {
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  padding: 0.2rem 0.9rem;
+  cursor: pointer;
+}
+
+.joyfox-rule__switch button[aria-pressed="true"] {
+  background: var(--joyfox-accent);
+  color: HighlightText;
+}
+
+.joyfox-rule__switch button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.joyfox-rule__simple-why {
+  font-size: 0.875em;
+}
+
+.joyfox-rule__rule-head {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--joyfox-space-1);
+  align-items: center;
+  padding: 0 var(--joyfox-space-1);
+}
+
+.joyfox-rule__remove-rule {
+  margin-inline-start: var(--joyfox-space-2);
+}
+
+.joyfox-rule__joiner {
+  margin: var(--joyfox-space-2) 0;
+  text-align: center;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+}
+
+.joyfox-rule__add-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--joyfox-space-2);
+  align-items: center;
+}
+
+.joyfox-rule__condition--advanced {
+  grid-template-columns: 2.2rem 3.2rem 15rem 6rem auto minmax(0, 1fr);
+}
+
+/* "not" is quiet until ticked: grey and small, then bold in the danger colour. */
+.joyfox-rule__not {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+  font-size: 0.8em;
+  opacity: 0.6;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.joyfox-rule__not--on {
+  color: var(--joyfox-danger);
+  font-weight: 700;
+  opacity: 1;
 }
 
 .joyfox-data__counts {

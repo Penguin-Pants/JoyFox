@@ -114,14 +114,16 @@ change, so it is read from the current page each time and never cached.
 ## ContactRule (Milestone C)
 
 The ContactRule entity now holds the V1-compatible rule schema from
-`src/rules/contact-rule.ts`: `schemaVersion` (1), `audience` (`all`, `man`,
+`src/rules/contact-rule.ts`: `schemaVersion` (1 or 2), `audience` (`all`, `man`,
 `woman` or `couple`), `enabled`, `defaultPlacement` (`needs-review` or
 `quarantined`, for a sender who does not meet the rule) and `root`, a tree of
 All/Any groups (at most 4 levels, 32 children each) whose conditions each carry
-a kind, an optional whole-number threshold and a `whenUnknown` handling. The
-earlier placeholder field `conditions` is gone; no record with it could exist,
-as nothing wrote rules before. No database version change was needed. The MVP
-keeps one rule per account, with ID `rule:global`.
+a kind, an optional whole-number threshold, a `whenUnknown` handling and, from
+schema version 2, an optional `negate: true` ("not", ADR 0012). A rule without
+`negate` is still written as version 1. The earlier placeholder field
+`conditions` is gone; no record with it could exist, as nothing wrote rules
+before. No database version change was needed. The MVP keeps one rule per
+account, with ID `rule:global`.
 
 ## ConversationClassification (Milestone C)
 
