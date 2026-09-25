@@ -173,6 +173,21 @@ export function checkTarget(
 export const STEP_TIMEOUT_MS = 15_000;
 export const STALE_AFTER_MS = 120_000;
 
+/**
+ * A run still at `Started` is interrupted much sooner. Its tab records the
+ * first request (`DeleteRequested`) within one step timeout of `Started`
+ * being stored, or gives up. Twice that leaves margin for a slow answer.
+ * Nothing is clicked before that request is stored, and a replaced run is
+ * refused (`superseded`) before its next click, so reading it as
+ * interrupted early never lets two runs act on one member.
+ */
+export const STARTED_STALE_AFTER_MS = 2 * STEP_TIMEOUT_MS;
+
+/** How long a run whose last step is `last` may stay still while running. */
+export function staleAfterMs(last: string | undefined): number {
+  return last === "Started" ? STARTED_STALE_AFTER_MS : STALE_AFTER_MS;
+}
+
 export type StepOutcome = "done" | "not-done" | "unknown";
 
 export interface OperationReport {
@@ -249,7 +264,7 @@ export function reportOperation(
       ? "completed"
       : lastState === "Failed"
         ? "failed"
-        : !Number.isFinite(lastAt) || now - lastAt > STALE_AFTER_MS
+        : !Number.isFinite(lastAt) || now - lastAt > staleAfterMs(lastState)
           ? "interrupted"
           : "running";
   const lines: Message[] = [];

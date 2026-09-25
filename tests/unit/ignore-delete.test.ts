@@ -7,6 +7,7 @@ import {
   isTerminal,
   reportOperation,
   STALE_AFTER_MS,
+  STARTED_STALE_AFTER_MS,
   type ActionState,
 } from "../../src/actions/ignore-delete";
 
@@ -175,6 +176,22 @@ describe("M9 report", () => {
     expect(stale.status).toBe("interrupted");
     expect(stale.delete).toBe("unknown");
     expect(texts(stale.lines)[0]).toMatch(/interrupted/);
+  });
+
+  it("reads a run still at its start as interrupted after the shorter wait", () => {
+    const started = steps("Started");
+    expect(report(started, T0 + STARTED_STALE_AFTER_MS).status).toBe("running");
+    const stale = report(started, T0 + STARTED_STALE_AFTER_MS + 1);
+    expect(stale.status).toBe("interrupted");
+    expect(stale.delete).toBe("not-done");
+    expect(texts(stale.lines)).toContain("Nothing was changed on JoyClub.");
+    // Past its start, a run keeps the longer wait.
+    expect(
+      report(
+        steps("Started", "DeleteRequested"),
+        T0 + STARTED_STALE_AFTER_MS + 1,
+      ).status,
+    ).toBe("running");
   });
 
   it("never says a started step was not attempted when the log fails", () => {

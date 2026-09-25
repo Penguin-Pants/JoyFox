@@ -101,7 +101,7 @@ regression test confirmed to fail without the fix:
 
 - A `start` that times out but is stored later leaves a `Started` entry that
   reads as running for 2 minutes, so a retry meanwhile answers `busy`. Nothing
-  is clicked either way.
+  is clicked either way. Fixed on 2026-09-25 (see "Late start" below).
 
 ## Blocked or remaining
 
@@ -162,3 +162,27 @@ Validation: `npm test` (668 tests), `npm run lint`, `npm run typecheck`,
 `npm run format:check` and `npm run build:firefox` pass. Live check:
 `manual-acceptance.md`, item 100, accepted on 2026-09-25 as not reproducible by
 hand (synthetic tests cover it).
+
+## Late start (2026-09-25)
+
+Fixes the deferred issue above, chosen by the owner.
+
+- **No late start.** The page sends its deadline (when it stops waiting) with
+  `action.ignoreDelete.start`. The background checks it under the account lock,
+  since waiting for the lock is what makes a start late, and answers `expired`
+  without storing anything once it has passed. The page reports an expired start
+  like a log that did not answer (`log-unavailable`).
+- **Shorter wait at `Started`.** A run still at `Started` reads as interrupted
+  after 30 seconds (`STARTED_STALE_AFTER_MS`, twice the step timeout), not 2
+  minutes. A live run records `DeleteRequested` within one step timeout of its
+  start, and nothing is clicked before that. A replaced run is refused
+  (`superseded`) before its next click, so reading it as interrupted early never
+  lets two runs act on one member. This covers a start stored in the moment
+  between the deadline check and the write.
+- **Other tabs.** `.latest` returns the run's own wait (`staleAfterMs`), so the
+  conversation page re-reads the log when that run would count as stale.
+
+Validation: `npm test` (674 tests; the 6 new or changed tests fail on the old
+code), `npm run lint`, `npm run typecheck`, `npm run format:check` and
+`npm run build:firefox` pass. No permission, schema version or UI string was
+added.

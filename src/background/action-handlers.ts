@@ -4,6 +4,7 @@ import {
   ACTION_STATES,
   reportOperation,
   STALE_AFTER_MS,
+  staleAfterMs,
   STEP_ORDER,
   STEP_STATES,
   type ActionFailure,
@@ -109,6 +110,13 @@ function conversationId(value: unknown): string {
   return value;
 }
 
+function deadline(value: unknown): number | undefined {
+  if (value === undefined) return undefined;
+  if (typeof value !== "number" || !Number.isFinite(value))
+    throw invalid("deadline");
+  return value;
+}
+
 function operationId(value: unknown): string {
   if (
     typeof value !== "string" ||
@@ -147,10 +155,17 @@ export function registerActionHandlers(
       memberId: memberId(payload?.memberId),
       conversationId: conversationId(payload?.conversationId),
     };
+    const until = deadline(payload?.deadline);
     const answer = await lockedWrite<
-      Awaited<ReturnType<ActionLogService["begin"]>> | { status: "refused" }
-    >(deps, payload?.accountId, { status: "refused" }, (accountId) =>
-      deps.actions.begin(accountId, target),
+      | Awaited<ReturnType<ActionLogService["begin"]>>
+      | { status: "refused" }
+      | { status: "expired" }
+    >(deps, payload?.accountId, { status: "refused" }, async (accountId) =>
+      // Checked under the lock, since waiting for it is what makes a start
+      // late: the page has stopped waiting, so nothing is stored.
+      until !== undefined && now() > until
+        ? { status: "expired" }
+        : deps.actions.begin(accountId, target),
     );
     if (answer.status === "started") await bumpActionRevision(deps.settings);
     return answer;
@@ -377,6 +392,7 @@ export function registerActionHandlers(
       accountId,
       ...(log.conversationId ? { conversationId: log.conversationId } : {}),
       updatedAt: log.steps.at(-1)?.at ?? log.updatedAt,
+      staleAfterMs: staleAfterMs(log.steps.at(-1)?.name),
       report: reportOperation(log, now()),
     };
   });

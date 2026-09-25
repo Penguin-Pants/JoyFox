@@ -11,6 +11,7 @@ import {
 } from "../../src/actions/executor";
 import {
   STALE_AFTER_MS,
+  STARTED_STALE_AFTER_MS,
   type ActionStep,
   type CurrentTarget,
 } from "../../src/actions/ignore-delete";
@@ -398,6 +399,53 @@ describe("M9 manual test matrix, synthetic (build plan Section 24)", () => {
     // Account A's log stops where it could still write; B has nothing.
     expect(await logged("account-a")).toEqual([["Started", "DeleteRequested"]]);
     expect(await logged("account-b")).toEqual([]);
+  });
+
+  it("stores no start the tab stopped waiting for", async () => {
+    const recorder = client.recorder("account-a");
+    // The deadline passed while the request waited for the account lock.
+    expect(await recorder.begin(TARGET, clock - 1)).toEqual({
+      status: "expired",
+    });
+    expect(await logged()).toEqual([]);
+    // A start within its deadline is stored.
+    expect(await recorder.begin(TARGET, clock + 1000)).toMatchObject({
+      status: "started",
+    });
+    expect(await logged()).toEqual([["Started"]]);
+  });
+
+  it("reports an expired start like a log that did not answer", async () => {
+    const driver = new FakeDriver();
+    const deadlines: Array<number | undefined> = [];
+    const result = await run(driver, {
+      begin: async (_target, deadline) => {
+        deadlines.push(deadline);
+        return { status: "expired" };
+      },
+      record: async () => "recorded",
+    });
+    expect(result.status).toBe("finished");
+    expect(result.report.failure).toBe("log-unavailable");
+    expect(driver.clicks).toEqual([]);
+    // The deadline is the step timeout from now (200 ms in these tests).
+    expect(deadlines[0]).toBeGreaterThan(Date.now() - 1000);
+    expect(deadlines[0]).toBeLessThanOrEqual(Date.now() + 200);
+  });
+
+  it("lets a retry start once a late stored start stops counting as running", async () => {
+    const recorder = client.recorder("account-a");
+    // A start stored after its tab gave up: nothing continues it.
+    const late = await recorder.begin(TARGET);
+    if (late.status !== "started") throw new Error("not started");
+    expect(await recorder.begin(TARGET)).toMatchObject({ status: "busy" });
+    clock += STARTED_STALE_AFTER_MS + 1;
+    const retry = await recorder.begin(TARGET);
+    expect(retry.status).toBe("started");
+    // Should the first tab wake up after all, it may not go on.
+    expect(await recorder.record(late.operationId, "DeleteRequested")).toBe(
+      "superseded",
+    );
   });
 
   it("never clicks when the step cannot be recorded first", async () => {
@@ -1081,6 +1129,14 @@ describe("M9 ActionLog messages", () => {
         accountId: "account-a",
         memberId: "Synthetic Name",
         conversationId: CONVERSATION,
+      }),
+    ).toMatchObject(rejected);
+    expect(
+      await send("action.ignoreDelete.start", {
+        accountId: "account-a",
+        memberId: MEMBER,
+        conversationId: CONVERSATION,
+        deadline: "soon" as never,
       }),
     ).toMatchObject(rejected);
     expect(
@@ -1808,10 +1864,13 @@ describe("M9 button and notice", () => {
   it("sets the stale timer once, from when the other run last moved", async () => {
     const quick = openConversation(new FakeDriver());
     await vi.waitFor(() => expect(runButton()).toBeDefined());
-    // Another tab's run last moved 110 seconds ago.
+    // Another tab's run last moved 110 seconds ago, past its start.
     clock = Date.now() - (STALE_AFTER_MS - 10_000);
     const begun = await client.recorder("account-a").begin(TARGET);
     if (begun.status !== "started") throw new Error("not started");
+    await client
+      .recorder("account-a")
+      .record(begun.operationId, "DeleteRequested");
     const timer = vi.spyOn(globalThis, "setTimeout");
     const staleTimers = () =>
       timer.mock.calls.filter(([, delay]) => (delay ?? 0) >= 5_000);
@@ -1826,6 +1885,26 @@ describe("M9 button and notice", () => {
     // Page mutations redraw often; none may postpone the timer.
     for (let index = 0; index < 5; index += 1) quick.update();
     expect(staleTimers()).toHaveLength(1);
+    timer.mockRestore();
+  });
+
+  it("sets the stale timer from the shorter wait for a run still at its start", async () => {
+    const quick = openConversation(new FakeDriver());
+    await vi.waitFor(() => expect(runButton()).toBeDefined());
+    // Another tab's run started 20 seconds ago and has not moved since.
+    clock = Date.now() - (STARTED_STALE_AFTER_MS - 10_000);
+    const begun = await client.recorder("account-a").begin(TARGET);
+    if (begun.status !== "started") throw new Error("not started");
+    const timer = vi.spyOn(globalThis, "setTimeout");
+    const staleTimers = () =>
+      timer.mock.calls.filter(([, delay]) => (delay ?? 0) >= 5_000);
+    quick.invalidate();
+    await vi.waitFor(() =>
+      expect(runButton()?.getAttribute("aria-disabled")).toBe("true"),
+    );
+    const delay = staleTimers()[0]![1]!;
+    expect(delay).toBeGreaterThan(5_000);
+    expect(delay).toBeLessThan(15_000);
     timer.mockRestore();
   });
 

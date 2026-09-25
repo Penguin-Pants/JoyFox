@@ -485,6 +485,7 @@ describe("content surfaces (docs/i18n-spec.md, Sections 3.7 and 6)", () => {
           accountId: ACCOUNT,
           conversationId: "personal-1234567-7654321",
           updatedAt: "2026-09-25T10:00:02.000Z",
+          staleAfterMs: 120_000,
           report: stopped,
         }),
       recorder: () => ({}) as never,

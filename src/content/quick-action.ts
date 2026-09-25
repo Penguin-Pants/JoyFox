@@ -4,7 +4,6 @@ import {
   type QuickActionDriver,
 } from "../actions/executor";
 import {
-  STALE_AFTER_MS,
   STEP_TIMEOUT_MS,
   type ActionFailure,
   type ActionState,
@@ -89,10 +88,11 @@ export function messageQuickActionClient(
         operationId,
       }),
     recorder: (accountId) => ({
-      begin: (target) =>
+      begin: (target, deadline) =>
         request(sender, "action.ignoreDelete.start", {
           accountId,
           ...target,
+          ...(deadline !== undefined ? { deadline } : {}),
         }),
       record: async (operationId, state, failure) =>
         (
@@ -647,9 +647,10 @@ export class QuickIgnoreDelete {
     else if (this.#staleFor !== latest) {
       this.#clearStaleTimer();
       const moved = Date.parse(latest.updatedAt);
+      const limit = latest.staleAfterMs;
       const left = Number.isFinite(moved)
-        ? STALE_AFTER_MS - (Date.now() - moved)
-        : STALE_AFTER_MS;
+        ? limit - (Date.now() - moved)
+        : limit;
       this.#staleFor = latest;
       this.#staleTimer = setTimeout(
         () => this.invalidate(),
