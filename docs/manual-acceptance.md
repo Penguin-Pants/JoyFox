@@ -491,4 +491,6 @@ automatically.
     and your own data. Confirm "Profil ignorieren" and "In den Papierkorb
     schieben" match JoyClub's own labels.
 
-**Result:** not yet run.
+**Result (2026-09-25): passed.** The project owner confirmed items 91 to 97 on
+the build of commit 1f1f5f7, with the upgrade in item 94 from the build of main
+at dbba25a (database version 3).
