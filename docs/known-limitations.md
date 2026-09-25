@@ -77,9 +77,8 @@
   `Intl.Segmenter` would be finer but needs Firefox 125, above the 121 floor.
 - Nothing writes a message observation yet. The detector is wired to storage but
   not to any page, because reading a message needs verified selectors. The
-  user-facing toggle PRD Section 19.5 requires for message caching must exist
-  before the first live caller is added. The owner deferred it to that caller
-  (ADR 0015).
+  user-facing toggle ADR 0004 requires for message caching must exist before the
+  first live caller is added. The owner deferred it to that caller (ADR 0015).
 - A very short known phrase matches almost every message, because phrase
   matching includes substring containment. The phrase list is user-authored and
   no minimum length is documented, so none is enforced.

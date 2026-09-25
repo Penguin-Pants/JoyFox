@@ -21,7 +21,7 @@ about JoyClub's verification.
 PRD Section 12.1 defines no entity for previous messages and none for a
 per-sender spam correction, yet M3 requires both. Two entities were added at
 schema version 2 on the project owner's decision: `MessageObservation`, holding
-normalized message text as PRD Section 19.5 anticipates, and
+normalized message text as PRD Section 13.3 anticipates, and
 `SenderSpamOverride`. Neither was inferred from the code; see
 `docs/data-model.md`.
 

@@ -95,8 +95,8 @@ accepted by hand on 2026-09-25 (ADR 0011, `manual-acceptance.md`).
 - Add a member index for user tags and message observations, so per-member
   reads and the retention purge do not scan the account. This changes the
   database schema and belongs with M8.
-- Add the user-facing toggle for message caching that PRD Section 19.5
-  requires, before anything writes a message observation from a live page.
+- Add the user-facing toggle for message caching that ADR 0004 requires,
+  before anything writes a message observation from a live page.
   Deferred by the owner (2026-09-25, ADR 0015): built with the first feature
   that stores message text.
 - Tune the spam thresholds against a real inbox and record the outcome, since

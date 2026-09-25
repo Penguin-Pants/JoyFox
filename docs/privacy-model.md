@@ -24,7 +24,7 @@ editor does not claim that JoyClub cannot see it.
 
 The template spam detector stores the normalized form of messages the user
 already had on screen, never the original text, and purges them on the 12-month
-window PRD Section 19.5 sets. Its explanations name what matched and how
+window PRD Section 13.3 sets. Its explanations name what matched and how
 closely, never the message text, so an explanation stays safe to show and safe
 to log. Comparison is local and deterministic, with no model and no network.
 

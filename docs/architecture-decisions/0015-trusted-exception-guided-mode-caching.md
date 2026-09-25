@@ -20,12 +20,12 @@ evidence:
    manual matrix was accepted on 2026-09-25 (ADR 0011).
 3. A user-facing toggle for message caching, required before JoyFox stores
    message text. This is a project requirement from ADR 0004, not PRD text. ADR
-   0004 and later docs cite it as "PRD Section 19.5", but the PRD has no Section
-   19.5 (Section 19 has only 19.1 and 19.2). The PRD's own rule is Section 13.3:
-   cached message text is on by default, with a configurable auto-purge window
-   (default 12 months), and is always manually deletable. Nothing stores message
-   text yet: the spam detector is not wired to pages (ADR 0004), and that wiring
-   waits on the message-bubble evidence.
+   0004 and later docs cited it as "PRD Section 19.5", but the PRD has no
+   Section 19.5 (Section 19 has only 19.1 and 19.2). The PRD's own rule is
+   Section 13.3: cached message text is on by default, with a configurable
+   auto-purge window (default 12 months), and is always manually deletable.
+   Nothing stores message text yet: the spam detector is not wired to pages (ADR
+   0004), and that wiring waits on the message-bubble evidence.
 
 ## Decision
 
@@ -58,5 +58,6 @@ evidence:
     cancel followed by the same member's profile within the 15-second wait still
     continues the run (ADR 0011).
 - The PRD text is unchanged. This record states where the build differs from it.
-- Earlier docs that cite "PRD Section 19.5" for the caching toggle mean the ADR
-  0004 requirement described in item 3 of the context above.
+- Earlier docs cited "PRD Section 19.5". On 2026-09-25 each citation was
+  corrected: the 12-month retention now cites PRD Section 13.3, and the caching
+  toggle cites ADR 0004.
