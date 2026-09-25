@@ -142,6 +142,10 @@ ready to run by hand (ADR 0011).
   tab, under the account list; the data panel still runs it
   (`manual-acceptance.md` items 73 and 74). Live acceptance passed on
   2026-09-24.
+- Done: choosing a file imports it at once, with no "Confirm import" step; a
+  table then shows what changed (`manual-acceptance.md` items 83 to 85).
+  Triggered by the owner: the confirm button needed extra scrolling and a
+  second click. Live acceptance not yet run.
 
 ### Owner requests (2026-09-25)
 

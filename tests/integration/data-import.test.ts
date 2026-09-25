@@ -365,7 +365,7 @@ describe("M8 import: restoring and merging", () => {
     await repositories.extensionAccounts.put("a", account("a", "me"));
     await repositories.userNotes.put("a", note("a", "newer", t2));
     await expect(data.applyImport(text, plan.signature)).rejects.toThrow(
-      "changed since the preview",
+      "changed while the file was checked",
     );
     expect((await repositories.userNotes.get("a", "note:1234567"))?.body).toBe(
       "newer",

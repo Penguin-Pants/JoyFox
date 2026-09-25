@@ -364,6 +364,74 @@ describe("M8 data panel", () => {
     expect(text()).not.toContain("Settings added");
   });
 
+  it("checks even a file that changes nothing under the data lock", async () => {
+    root.querySelector<HTMLButtonElement>(".joyfox-data__export-all")!.click();
+    await settle(() => saved.length === 1);
+    let applied = 0;
+    class Counting extends DataService {
+      override applyImport(text: string, signature: string) {
+        applied += 1;
+        return super.applyImport(text, signature);
+      }
+    }
+    const counting = new DataPanel(
+      root,
+      new Counting(accounts, settings),
+      accounts,
+    );
+    await counting.render();
+    const input = root.querySelector<HTMLInputElement>("#joyfox-data-import")!;
+    Object.defineProperty(input, "files", {
+      value: [new File([saved[0]!.text], "export.json")],
+    });
+    input.dispatchEvent(new Event("change"));
+    await settle(() => importIdle() && text().includes("Nothing was changed"));
+    expect(applied).toBe(1);
+  });
+
+  it("enables the chooser again when the redraw after an import fails", async () => {
+    const importRoot = document.createElement("section");
+    document.body.append(importRoot);
+    let failReads = false;
+    class Flaky extends AccountService {
+      override listAccounts() {
+        if (failReads) return Promise.reject(new Error("read failed"));
+        return super.listAccounts();
+      }
+    }
+    const placed = new DataPanel(
+      root,
+      new DataService(accounts, settings),
+      new Flaky(repositories.extensionAccounts, settings),
+      () => undefined,
+      () => undefined,
+      importRoot,
+    );
+    await placed.render();
+    failReads = true;
+    const input = importRoot.querySelector<HTMLInputElement>(
+      "#joyfox-data-import",
+    )!;
+    Object.defineProperty(input, "files", {
+      value: [new File(["not json"], "x.json")],
+    });
+    input.dispatchEvent(new Event("change"));
+    expect(input.disabled).toBe(true);
+    for (
+      let attempt = 0;
+      attempt < 500 &&
+      importRoot.querySelector<HTMLInputElement>("#joyfox-data-import")
+        ?.disabled !== false;
+      attempt += 1
+    )
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(
+      importRoot.querySelector<HTMLInputElement>("#joyfox-data-import")
+        ?.disabled,
+    ).toBe(false);
+    expect(importRoot.textContent).toContain("Nothing was imported");
+  });
+
   it("reports a file that is not an export, and imports nothing", async () => {
     const input = root.querySelector<HTMLInputElement>("#joyfox-data-import")!;
     Object.defineProperty(input, "files", {

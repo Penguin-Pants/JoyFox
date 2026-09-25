@@ -143,9 +143,16 @@ export class DataPanel {
           records = await this.data.records(selected, this.#shown);
       }
     } catch {
-      if (generation === this.#generation)
+      if (generation === this.#generation) {
         this.root.textContent =
           "JoyFox could not read its stored data. Nothing was changed.";
+        // Import needs none of these reads. Redraw it, so a chooser that a
+        // file choice disabled is enabled again.
+        this.importRoot?.replaceChildren(
+          this.#renderImport(document),
+          this.#importStatus,
+        );
+      }
       return;
     }
     if (generation !== this.#generation) return;
@@ -583,14 +590,16 @@ export class DataPanel {
       const text = await readText(file);
       const preview = await this.data.previewImport(text);
       checked = true;
-      if (preview.writes.length === 0 && preview.settingsAdded.length === 0) {
-        this.#importResult = preview;
+      // Always through `applyImport`: it plans again under the data lock, so
+      // even "nothing changed" is checked against current data.
+      const plan = await this.data.applyImport(text, preview.signature);
+      this.#importResult = plan;
+      if (plan.writes.length === 0 && plan.settingsAdded.length === 0) {
         this.#setImportStatus(
           "Everything in this file is already stored. Nothing was changed.",
           "info",
         );
       } else {
-        const plan = await this.data.applyImport(text, preview.signature);
         const totals = ENTITY_NAMES.reduce(
           (sum, name) => ({
             added: sum.added + plan.counts[name].added,
@@ -598,7 +607,6 @@ export class DataPanel {
           }),
           { added: 0, replaced: 0 },
         );
-        this.#importResult = plan;
         this.#setImportStatus(
           `Import complete: ${totals.added} record(s) added, ${totals.replaced} replaced by a newer version.${
             plan.settingsSaved

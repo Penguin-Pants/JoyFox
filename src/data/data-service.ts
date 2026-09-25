@@ -175,8 +175,8 @@ export class DataService {
   /**
    * Merge a file into stored data. Holds the exclusive data lock, so no write
    * overlaps it, and plans again from current data: if the result differs
-   * from the preview the user confirmed, nothing is written. All records are
-   * written in one transaction, so a failure leaves stored records unchanged.
+   * from the preview, nothing is written. All records are written in one
+   * transaction, so a failure leaves stored records unchanged.
    * Settings follow as a best-effort second step.
    */
   async applyImport(
@@ -189,7 +189,7 @@ export class DataService {
       if (current.signature !== signature)
         throw new ExtensionError(
           "StorageError",
-          "Stored data changed since the preview. Choose the file again to see what would change",
+          "Stored data changed while the file was checked. Choose the file again",
         );
       await putRecords(current.writes);
       // After the records committed, settings are best effort: a failure
