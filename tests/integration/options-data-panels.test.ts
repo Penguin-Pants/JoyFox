@@ -269,7 +269,7 @@ describe("M8 data panel", () => {
     });
   });
 
-  it("imports a file after a preview, and only on confirm", async () => {
+  it("imports a file as soon as it is chosen, and shows what changed", async () => {
     // Export account B, then change its template so the import has work.
     root.querySelector<HTMLButtonElement>(".joyfox-data__export-all")!.click();
     await settle(() => saved.length === 1);
@@ -282,28 +282,27 @@ describe("M8 data panel", () => {
     const input = root.querySelector<HTMLInputElement>("#joyfox-data-import")!;
     Object.defineProperty(input, "files", { value: [file] });
     input.dispatchEvent(new Event("change"));
-    await settle(
-      () => root.querySelector(".joyfox-data__import-confirm") !== null,
-    );
+    // No second click: choosing the file is the whole import.
+    await settle(() => text().includes("Import complete"));
+    expect((await templates.list(b)).map((t) => t.body)).toEqual(["Beta text"]);
     const row = root.querySelector('tr[data-import-entity="messageTemplates"]');
     expect(row?.textContent).toContain("1");
-    // Nothing is written by the preview.
-    expect(await templates.list(b)).toEqual([]);
+    expect(root.querySelector(".joyfox-data__import-confirm")).toBeNull();
 
-    root
-      .querySelector<HTMLButtonElement>(".joyfox-data__import-confirm")!
-      .click();
-    await settle(
-      () =>
-        text().includes("Import complete") &&
-        root.querySelector(".joyfox-data__import-confirm") === null,
-    );
+    // The same file again changes nothing.
+    const again = root.querySelector<HTMLInputElement>("#joyfox-data-import")!;
+    Object.defineProperty(again, "files", { value: [file] });
+    again.dispatchEvent(new Event("change"));
+    await settle(() => text().includes("Nothing was changed"));
     expect((await templates.list(b)).map((t) => t.body)).toEqual(["Beta text"]);
   });
 
-  it("shows only the newest file's preview when reads finish out of order", async () => {
+  it("imports only the newest file choice when reads finish out of order", async () => {
     root.querySelector<HTMLButtonElement>(".joyfox-data__export-all")!.click();
     await settle(() => saved.length === 1);
+    // Clear B, so a stale import of the export would be visible.
+    await data().clearAccountData(b);
+    await panel.render();
     let finishFirst!: (text: string) => void;
     const slow = {
       size: 10,
@@ -323,7 +322,8 @@ describe("M8 data panel", () => {
     // The first, older choice finishes last with a valid export.
     finishFirst(saved[0]!.text);
     await new Promise((resolve) => setTimeout(resolve, 30));
-    expect(root.querySelector(".joyfox-data__import-confirm")).toBeNull();
+    expect(await templates.list(b)).toEqual([]);
+    expect(text()).not.toContain("Import complete");
     expect(text()).toContain("Nothing was imported");
   });
 
@@ -334,7 +334,7 @@ describe("M8 data panel", () => {
     });
     input.dispatchEvent(new Event("change"));
     await settle(() => text().includes("Nothing was imported"));
-    expect(root.querySelector(".joyfox-data__import-confirm")).toBeNull();
+    expect(root.querySelector(".joyfox-data__import-result")).toBeNull();
   });
 
   it("draws Import in its own place, with its own status line, when given one", async () => {
