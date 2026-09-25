@@ -521,3 +521,12 @@ conversation you mean to trash, with a member you are willing to ignore.
       the profile opens too quickly to cancel, record the item as not
       reproducible live; the synthetic test "drops a hand-off when another page
       loads in the tab first" covers it.
+
+**Result, items 98 and 100 (2026-09-25): accepted as not reproducible by hand.**
+The project owner judged that the move to the profile (about 1.7 seconds in
+item 43) is too fast to cancel on purpose. Both rest on synthetic tests in
+`tests/integration/quick-action.test.ts`: item 98 on "withdraws the hand-off
+when the page is not left for the profile", item 100 on "drops a hand-off when
+another page loads in the tab first". This matches items 44, 45, 47 and 50. Item
+99, a normal run, is still pending: it is the only live check that the
+sending-page check does not refuse the normal hand-off.

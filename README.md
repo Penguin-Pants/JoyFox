@@ -49,4 +49,6 @@ then Ignore on the member's profile in the same tab (ADR 0011). It stays off
 unless `joyfox.quickIgnoreDelete` is set to `true`. The manual matrix
 (`docs/manual-acceptance.md`, items 43 to 54) was accepted on 2026-09-25. If the
 move to the profile is cancelled, the conversation page withdraws the hand-off
-after 15 seconds and says Ignore was not done (items 98 and 99).
+after 15 seconds and says Ignore was not done (item 98). If another JoyClub page
+loads in the tab first, that page drops the hand-off at once (item 100). Both
+are covered by synthetic tests; item 99, a normal run, checks the hand-off live.
