@@ -178,7 +178,8 @@ accepted by hand on 2026-09-25 (ADR 0011, `manual-acceptance.md`).
 ### Follow-up work recorded during the M5 editor
 
 - Show notes and tags on the inbox, search and event surfaces (build plan
-  Section 12, "reusable later"), once search and events are verified.
+  Section 12, "reusable later"), once search and events are verified. Now
+  V1-10.
 - Decide whether to isolate the note editor from JoyClub's scripts, for example
   in a closed shadow root. It would not stop a page script that records
   keystrokes, so it needs a design decision first.
@@ -231,22 +232,23 @@ owner's approval before the task starts. The others quote the PRD.
 | V1-3 | Saved Searches: store a search's URL and filter state, replay it in one click (PRD 6.2, 8.2) | E1 | **Proposed:** a saved search opens the same URL with the same filters. If JoyClub's search address no longer matches, JoyFox says so and opens nothing. | S |
 | V1-4 | Conversation History Search: full-text search over the user's own cached messages (PRD 6.2, 13.3) | E2; the message-caching toggle (ADR 0004, deferred to this caller by ADR 0015) | Cached message text is on by default, has a configurable auto-purge window, default 12 months, and is always manually deletable (PRD 13.3). **Proposed:** every cached message that contains the query is found, and no cached message without it is shown; with caching off, nothing is stored. | M |
 | V1-5 | Personal Event Tracker: private notes, attendance and tags on event and venue listings, and a personal calendar of tracked events (PRD 6.3, 9.1, 9.2) | E4; D6 | Event notes persist after the listing is removed from JoyClub's own calendar post-event (PRD 6.3). **Proposed:** notes, attendance and tags save and show again on event and venue listings; a filter by the user's own tags or notes shows only the matching events in JoyClub's already-loaded event list, with no new request to JoyClub (PRD 9.1, 10.1); the personal calendar lists every tracked event and filters the same way (PRD 9.1). | M |
-| V1-6 | Self-hosted sync: encrypted client-side (ADR 0002) to the user's own endpoint (PRD 13.4, 14.2, 15) | F4 (done); D2 | No network request goes anywhere but joyclub.de or joyce.app until the user has explicitly completed sync setup (PRD 21.1). The encrypted payload is pushed only with an explicit on-screen confirmation; nothing syncs silently (PRD 10.2). **Proposed:** the endpoint receives only ciphertext, and a second browser restores the same data from it. | L |
+| V1-6 | Self-hosted sync: encrypted client-side (ADR 0002) to the user's own endpoint (PRD 13.4, 14.2, 15) | F4 (done); D2 | No network request goes anywhere but joyclub.de or joyce.app until the user has explicitly completed sync setup (PRD 21.1). The encrypted payload is pushed only with an explicit on-screen confirmation; nothing syncs silently (PRD 10.2). The key is derived from a user-held passphrase before anything leaves the device (PRD 13.4); neither the passphrase nor the derived key is stored (ADR 0002). Host access covers only the configured endpoint, is requested at runtime as an optional permission once the user configures sync, and is never in the static manifest; no `<all_urls>` or broad host wildcard (PRD 15, 15.1). **Proposed:** the endpoint receives only ciphertext, and a second browser restores the same data from it with the same passphrase; a restore with a wrong passphrase fails and changes no data; neither the passphrase nor the derived key appears in storage or in any upload. | L |
 | V1-7 | Data-inspector polish (PRD 13.5, 20) | M8 (done) | **Proposed:** each record shows as readable fields, not raw JSON only; a full export stays complete against every entity, verified item by item (PRD 21.4). | S |
 | V1-8 | Repository cleanup and documentation (PRD 20) | None; it can run beside the MVP gate items | **Proposed:** cleanup: no placeholder values (such as the extension ID `joyfox@example.invalid`), no unused source files or fixtures, and no debug output outside the diagnostics flag remain, and every check passes; docs: every document in build plan Section 33 is current, and the README states how to build, install and verify a release; a license file exists (D3). | S |
-| V1-9 | Self-distributed public release on GitHub (PRD 18.2, 20) | V1-1 to V1-8; the personal dogfooding period after MVP feature-complete (PRD 24.7: "MVP feature-complete → personal dogfooding period → V1 feature-complete → self-distributed public release"; D7); MVP release gate (build plan Section 28); F8; D3; D4 | **Proposed:** the GitHub repository and its release are public and hold the source under the chosen license (D3); the signed build attached to the release installs on release Firefox and passes the MVP release gate. | M |
+| V1-10 | Cross-surface profile signals: the completeness badge, trust score, note icon and profile tags on every surface where a profile card shows (search results, the inbox, event attendee lists; PRD 8.3, 8.4). V1-2 covers the compatibility overlay | E1; E4 (attendee lists) | The signals render the same way on every surface where a profile card shows up (PRD 8.3). A note or tag attached to a profile ID follows that profile everywhere, not just where it was created (PRD 8.4). **Proposed:** for one member, each signal on a search-result card, an inbox row and an attendee-list entry matches the same signal on that member's profile page; a tag added from a search result shows on that member's attendee-list entry. | M |
+| V1-9 | Self-distributed public release on GitHub (PRD 18.2, 20) | V1-1 to V1-8 and V1-10; the personal dogfooding period after MVP feature-complete (PRD 24.7: "MVP feature-complete → personal dogfooding period → V1 feature-complete → self-distributed public release"; D7); MVP release gate (build plan Section 28); F8; D3; D4 | **Proposed:** the GitHub repository and its release are public and hold the source under the chosen license (D3); the signed build attached to the release installs on release Firefox and passes the MVP release gate. | M |
 
 ### Blocked on site evidence
 
 - **E1:** the search page and one result (`manual-verification-needed.md`,
-  item 4). Blocks V1-3 and the search part of V1-2.
+  item 4). Blocks V1-3 and the search parts of V1-2 and V1-10.
 - **E2:** message text on the conversation page and whether a message has a
   stable identifier (item 2). Blocks V1-4, and M3 on pages.
 - **E3:** the profile's preference checklist on another member's profile and on
   the user's own profile. No evidence file covers it yet. Blocks V1-2.
 - **E4:** the event, calendar and venue pages (item 5 covers events and the
   calendar; no item covers venue pages yet). Blocks V1-5 and the attendee-list
-  part of V1-2.
+  parts of V1-2 and V1-10.
 
 ### Owner decisions needed
 
@@ -279,6 +281,7 @@ A task with **proposed** criteria starts only after the owner approves them (see
    storing profile type as a fact: `ProfileSnapshot` has no field for it yet,
    and `profileTypeFromCode` (`src/extraction/joyclub.ts`) has no caller.
 2. Ready once their proposed criteria are approved: V1-7 and V1-8.
-3. Blocked on evidence: V1-3 (E1), V1-4 (E2), V1-2 (E1, E3, E4), V1-5 (E4).
-4. Last: V1-9, after V1-1 to V1-8, the personal dogfooding period (D7), the
-   MVP release gate, F8, D3 and D4.
+3. Blocked on evidence: V1-3 (E1), V1-4 (E2), V1-2 (E1, E3, E4), V1-5 (E4),
+   V1-10 (E1, E4).
+4. Last: V1-9, after V1-1 to V1-8 and V1-10, the personal dogfooding period
+   (D7), the MVP release gate, F8, D3 and D4.
