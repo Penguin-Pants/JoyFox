@@ -144,7 +144,9 @@ describe("advanced form (ADR 0012)", () => {
     expect(contactRuleProblem(rule)).toBeUndefined();
     expect(toAdvancedForm(rule)).toEqual(negated);
     expect(toBuilderForm(rule)).toBeUndefined();
-    expect(advancedToBuilder(negated)).toMatch(/not/);
+    expect(advancedToBuilder(negated)).toEqual({
+      key: "rule.simpleUnavailable.not",
+    });
   });
 
   it("leaves out a rule without conditions", () => {
@@ -188,19 +190,21 @@ describe("advanced form (ADR 0012)", () => {
   });
 
   it("says why the two boxes cannot show a rule", () => {
-    expect(advancedToBuilder({ ...owner, match: "all" })).toMatch(/ALL/);
+    expect(advancedToBuilder({ ...owner, match: "all" })).toEqual({
+      key: "rule.simpleUnavailable.all",
+    });
     expect(
       advancedToBuilder({
         ...owner,
         rules: [owner.rules[1]!, owner.rules[1]!],
       }),
-    ).toMatch(/more than one rule/);
+    ).toEqual({ key: "rule.simpleUnavailable.severalAll" });
     expect(
       advancedToBuilder({
         ...owner,
         rules: [owner.rules[1]!, owner.rules[0]!, owner.rules[0]!],
       }),
-    ).toMatch(/appears in more than one rule/);
+    ).toEqual({ key: "rule.simpleUnavailable.duplicate" });
   });
 
   it("reads the two boxes into rules without an empty ALL rule", () => {

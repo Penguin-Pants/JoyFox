@@ -1,3 +1,5 @@
+import type { PlainKey } from "../i18n/catalog/en";
+import { t } from "../i18n/translator";
 import type {
   ExtensionMessage,
   ExtensionResponse,
@@ -85,21 +87,21 @@ interface FocusState {
 
 const CONTROL = "data-joyfox-control";
 
+/** Catalog keys of the editor's notices, translated when shown. */
 export const NOTES_TEXT = {
-  scope:
-    "Private to JoyFox: stored only in this browser, under the active JoyFox account. JoyFox never sends it anywhere.",
-  saved: "Note saved.",
-  removed: "Note removed.",
-  conflict:
-    "This note changed in another tab or in the JoyFox data inspector, so JoyFox did not save your text. It is still in the box. Save again to replace the stored note, or discard your changes to see it.",
-  refused:
-    "The active JoyFox account changed, so nothing was stored. Text typed for the previous account was dropped.",
-  failed: "JoyFox could not save that change. Nothing was changed.",
-  emptyTag: "Type a tag first. Nothing was added.",
-  emptyNote: "Type a note first. Nothing was saved.",
-  tagAdded: "Tag added.",
-  tagRemoved: "Tag removed.",
-} as const;
+  scope: "notes.scope",
+  saved: "notes.saved",
+  removed: "notes.removed",
+  conflict: "notes.conflict",
+  refused: "notes.refused",
+  failed: "common.saveFailed",
+  emptyTag: "notes.emptyTag",
+  emptyNote: "notes.emptyNote",
+  tagAdded: "notes.tagAdded",
+  tagRemoved: "notes.tagRemoved",
+} as const satisfies Record<string, PlainKey>;
+
+type NotesStatus = { text: PlainKey; error: boolean };
 
 /**
  * M5: the private note and tag editor on a conversation or profile page
@@ -123,7 +125,7 @@ export class MemberNotes {
   #draft?: Draft;
   #tagDraft = "";
   #open?: boolean;
-  #status?: { text: string; error: boolean };
+  #status?: NotesStatus;
   /**
    * Bumped whenever the shown member or the account changes. A write's
    * answer from before that must not touch the new state: the page and
@@ -199,6 +201,15 @@ export class MemberNotes {
     this.#data = undefined;
     this.#status = undefined;
     this.teardown();
+  }
+
+  /**
+   * The language changed: draw the editor again. Typed text, the open state
+   * and the status stay; the status is shown in the new language.
+   */
+  localeChanged(): void {
+    this.#rendered = "";
+    if (this.#page) this.update(this.#page);
   }
 
   teardown(): void {
@@ -288,7 +299,7 @@ export class MemberNotes {
     const section = element(document, "section", "joyfox-panel joyfox-notes");
     section.setAttribute(UI_ATTRIBUTE, MEMBER_NOTES);
     section.setAttribute("data-member", target.memberId);
-    section.setAttribute("aria-label", "JoyFox notes and tags");
+    section.setAttribute("aria-label", t("notes.region"));
     const details = element(document, "details", "joyfox-notes__details");
     // Closed until opened (owner decision, 2026-09-24: details on demand).
     // The summary still says whether a note or tags exist.
@@ -305,14 +316,14 @@ export class MemberNotes {
     summary.setAttribute(CONTROL, "summary");
     details.append(
       summary,
-      element(document, "p", "joyfox-note", NOTES_TEXT.scope),
+      element(document, "p", "joyfox-note", t(NOTES_TEXT.scope)),
     );
 
     const noteLabel = element(
       document,
       "label",
       "joyfox-notes__label",
-      "Private note",
+      t("notes.privateNote"),
     );
     noteLabel.htmlFor = "joyfox-note-text";
     const note = element(document, "textarea", "joyfox-notes__text");
@@ -324,7 +335,7 @@ export class MemberNotes {
     const discard = button(
       document,
       "joyfox-button",
-      "Discard my changes",
+      t("notes.discard"),
       () => {
         this.#draft = undefined;
         this.#setStatus(undefined);
@@ -342,7 +353,7 @@ export class MemberNotes {
       };
       discard.disabled = false;
     });
-    const save = button(document, "joyfox-button", "Save note", () =>
+    const save = button(document, "joyfox-button", t("notes.save"), () =>
       this.#saveNote(target, data, note.value),
     );
     save.setAttribute(CONTROL, "save-note");
@@ -350,18 +361,23 @@ export class MemberNotes {
     noteActions.append(save, discard);
     details.append(noteLabel, note, noteActions);
 
-    details.append(element(document, "h3", "joyfox-notes__heading", "Tags"));
+    details.append(
+      element(document, "h3", "joyfox-notes__heading", t("notes.tags")),
+    );
     if (data.tags.length === 0)
-      details.append(element(document, "p", "joyfox-note", "No tags yet."));
+      details.append(element(document, "p", "joyfox-note", t("notes.noTags")));
     else {
       const list = element(document, "ul", "joyfox-notes__tags");
-      list.setAttribute("aria-label", "Tags");
+      list.setAttribute("aria-label", t("notes.tags"));
       for (const label of data.tags) {
         const item = element(document, "li", "joyfox-notes__tag");
-        const remove = button(document, "joyfox-button", "Remove", () =>
-          this.#removeTag(target, data, label),
+        const remove = button(
+          document,
+          "joyfox-button",
+          t("notes.remove"),
+          () => this.#removeTag(target, data, label),
         );
-        remove.setAttribute("aria-label", `Remove tag ${label}`);
+        remove.setAttribute("aria-label", t("notes.removeTag", { label }));
         remove.setAttribute(CONTROL, `remove-tag:${label}`);
         item.append(element(document, "span", "", label), remove);
         list.append(item);
@@ -372,7 +388,7 @@ export class MemberNotes {
       document,
       "label",
       "joyfox-notes__label",
-      "Add a tag",
+      t("notes.addTagLabel"),
     );
     tagLabel.htmlFor = "joyfox-tag-input";
     const tagInput = element(document, "input", "joyfox-notes__tag-input");
@@ -390,7 +406,7 @@ export class MemberNotes {
       event.stopPropagation();
       this.#addTag(target, data, tagInput.value);
     });
-    const add = button(document, "joyfox-button", "Add tag", () =>
+    const add = button(document, "joyfox-button", t("notes.addTag"), () =>
       this.#addTag(target, data, tagInput.value),
     );
     add.setAttribute(CONTROL, "add-tag");
@@ -511,7 +527,7 @@ export class MemberNotes {
   }
 
   /** Shown in place, so a status change does not redraw the editor. */
-  #setStatus(status: { text: string; error: boolean } | undefined): void {
+  #setStatus(status: NotesStatus | undefined): void {
     this.#status = status;
     const node = this.#element()?.querySelector<HTMLElement>(
       ".joyfox-notes__status",
@@ -520,7 +536,7 @@ export class MemberNotes {
   }
 
   #showStatus(node: HTMLElement): void {
-    node.textContent = this.#status?.text ?? "";
+    node.textContent = this.#status ? t(this.#status.text) : "";
     node.classList.toggle("joyfox-error", this.#status?.error === true);
   }
 
@@ -572,9 +588,12 @@ export class MemberNotes {
 }
 
 function summaryText(data: NotesData): string {
-  const parts: string[] = [];
-  if (data.note !== null) parts.push("a note");
-  if (data.tags.length > 0)
-    parts.push(data.tags.length === 1 ? "1 tag" : `${data.tags.length} tags`);
-  return `Your notes and tags (${parts.length > 0 ? parts.join(" and ") : "none yet"})`;
+  const count = data.tags.length;
+  if (data.note !== null)
+    return count > 0
+      ? t("notes.summary.noteAndTags", { count })
+      : t("notes.summary.note");
+  return count > 0
+    ? t("notes.summary.tags", { count })
+    : t("notes.summary.none");
 }

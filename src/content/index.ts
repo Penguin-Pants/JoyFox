@@ -1,5 +1,7 @@
 import { ACTIVE_ACCOUNT_SETTING_KEY } from "../accounts/account-service";
 import { extractInboxRows } from "../extraction/joyclub";
+import { LOCALE_KEY, localeFromSetting, readLocale } from "../i18n/locale";
+import { onLocaleChange, setLocale } from "../i18n/translator";
 import { hasVerifiedSelectors, VERIFIED_HOSTS } from "../selectors/registry";
 import { runtimeSettingsArea } from "../storage/local-settings";
 import { ACTION_REVISION_KEY } from "../storage/action-revision";
@@ -63,6 +65,15 @@ if (hasVerifiedSelectors() && VERIFIED_HOSTS.includes(location.hostname)) {
     runtimeQuickActionClient(),
     liveQuickActionDriver,
   );
+  // A language picked on the options page redraws every JoyFox surface in
+  // this tab at once, with no reload. Unsaved input stays.
+  onLocaleChange(() => {
+    inbox.localeChanged();
+    panel.localeChanged();
+    notes.localeChanged();
+    picker.localeChanged();
+    quick.localeChanged();
+  });
   let lastType: string | undefined;
   const updatePicker = () => {
     if (lastType === "conversation" && templatePicker.enabled) picker.update();
@@ -118,8 +129,14 @@ if (hasVerifiedSelectors() && VERIFIED_HOSTS.includes(location.hostname)) {
   });
   // A rule, placement, trust or snapshot write, or an account switch, in
   // any tab or the options page: re-evaluate what this page shows.
+  let localeChanged = false;
   storageEvents?.addListener((changes, area) => {
     if (area !== "local") return;
+    if (LOCALE_KEY in changes) {
+      localeChanged = true;
+      // A removed value ("delete all JoyFox data") means Firefox's language.
+      setLocale(localeFromSetting(changes[LOCALE_KEY]?.newValue));
+    }
     // The flag listener registered first, so it already holds the new value.
     if (TEMPLATE_PICKER_KEY in changes) updatePicker();
     if (QUICK_ACTION_KEY in changes) updateQuickAction();
@@ -143,10 +160,16 @@ if (hasVerifiedSelectors() && VERIFIED_HOSTS.includes(location.hostname)) {
       notes.invalidate();
     }
   });
-  // Start after the initial flag is known, so the first event is not missed.
+  // Start after the initial flag and language are known, so the first event
+  // is not missed and the first drawing is already in the right language.
+  const language = readLocale(runtimeSettingsArea).then((locale) => {
+    // A change heard while reading is newer than what was read.
+    if (!localeChanged) setLocale(locale);
+  });
   void Promise.all([
     diagnostics.ready,
     templatePicker.ready,
     quickAction.ready,
+    language,
   ]).then(() => coordinator.start());
 }

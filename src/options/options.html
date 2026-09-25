@@ -4,19 +4,40 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="color-scheme" content="light dark" />
-    <title>JoyFox options</title>
+    <title data-i18n="options.title">JoyFox options</title>
     <link rel="stylesheet" href="options.css" />
   </head>
   <body class="joyfox-options">
     <header class="joyfox-options__header">
-      <h1>JoyFox</h1>
-      <p class="joyfox-options__intro">
+      <div class="joyfox-options__title-row">
+        <h1>JoyFox</h1>
+        <!-- Bilingual and never translated, so a user who cannot read the
+             current language can still find it (docs/i18n-spec.md, 3.9). -->
+        <p class="joyfox-options__language">
+          <label for="joyfox-language">Sprache / Language</label>
+          <select id="joyfox-language">
+            <option value="de" lang="de">Deutsch</option>
+            <option value="en" lang="en">English</option>
+          </select>
+        </p>
+      </div>
+      <p class="joyfox-options__intro" data-i18n="options.intro">
         JoyFox stores everything locally in this browser profile. Inbox triage
         stays off until you save a contact rule.
       </p>
     </header>
-    <nav class="joyfox-tabs" role="tablist" aria-label="JoyFox options">
-      <a role="tab" id="tab-start" href="#start" aria-controls="panel-start"
+    <nav
+      class="joyfox-tabs"
+      role="tablist"
+      aria-label="JoyFox options"
+      data-i18n-attr="aria-label:options.title"
+    >
+      <a
+        role="tab"
+        id="tab-start"
+        href="#start"
+        aria-controls="panel-start"
+        data-i18n="options.tabs.start"
         >Get started</a
       >
       <a
@@ -24,9 +45,15 @@
         id="tab-accounts"
         href="#accounts"
         aria-controls="panel-accounts"
+        data-i18n="options.tabs.accounts"
         >Accounts</a
       >
-      <a role="tab" id="tab-rule" href="#rule" aria-controls="panel-rule"
+      <a
+        role="tab"
+        id="tab-rule"
+        href="#rule"
+        aria-controls="panel-rule"
+        data-i18n="options.tabs.rule"
         >Contact rule</a
       >
       <a
@@ -34,9 +61,15 @@
         id="tab-templates"
         href="#templates"
         aria-controls="panel-templates"
+        data-i18n="options.tabs.templates"
         >Templates</a
       >
-      <a role="tab" id="tab-data" href="#data" aria-controls="panel-data"
+      <a
+        role="tab"
+        id="tab-data"
+        href="#data"
+        aria-controls="panel-data"
+        data-i18n="options.tabs.data"
         >Your data</a
       >
     </nav>
@@ -55,7 +88,11 @@
       class="joyfox-tabpanel"
     >
       <section id="joyfox-accounts"></section>
-      <section id="joyfox-import" aria-label="Import JoyFox data"></section>
+      <section
+        id="joyfox-import"
+        aria-label="Import JoyFox data"
+        data-i18n-attr="aria-label:options.importRegion"
+      ></section>
     </div>
     <div
       role="tabpanel"

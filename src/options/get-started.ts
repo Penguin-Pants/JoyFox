@@ -1,4 +1,6 @@
 import { AccountService } from "../accounts/account-service";
+import type { PlainKey } from "../i18n/catalog/en";
+import { t } from "../i18n/translator";
 import { RuleService } from "../rules/rule-service";
 
 export type StepState = "done" | "off" | "todo";
@@ -8,10 +10,10 @@ export interface SetupProgress {
   rule: StepState;
 }
 
-const STATE_TEXT: Record<StepState, string> = {
-  done: "Done",
-  off: "Saved, but turned off",
-  todo: "Not done yet",
+const STATE_TEXT: Record<StepState, PlainKey> = {
+  done: "start.state.done",
+  off: "start.state.off",
+  todo: "start.state.todo",
 };
 
 /**
@@ -58,17 +60,12 @@ export class GetStartedPanel {
       node.textContent = value;
       return node;
     };
-    const heading = text("h2", "Get started");
+    const heading = text("h2", t("options.tabs.start"));
     heading.className = "joyfox-panel__heading";
     heading.id = "joyfox-get-started-heading";
     this.root.setAttribute("aria-labelledby", heading.id);
     const ready = progress.account === "done" && progress.rule === "done";
-    const summary = text(
-      "p",
-      ready
-        ? "JoyFox is set up. Open your JoyClub inbox to see it sorted."
-        : "Three steps, a few minutes. Everything stays in this browser.",
-    );
+    const summary = text("p", t(ready ? "start.ready" : "start.intro"));
     const list = document.createElement("ol");
     list.className = "joyfox-get-started__steps";
     /** `[Name](#tab)` in a label becomes a link to that options tab. */
@@ -92,24 +89,16 @@ export class GetStartedPanel {
       if (state) item.dataset.state = state;
       item.append(withLinks(label));
       if (state) {
-        const status = text("strong", ` ${STATE_TEXT[state]}.`);
+        const status = text("strong", ` ${t(STATE_TEXT[state])}.`);
         status.className = "joyfox-get-started__state";
         item.append(status);
       }
       return item;
     };
     list.append(
-      step(
-        "Add your JoyClub account under [Accounts](#accounts). JoyFox makes the first one active.",
-        progress.account,
-      ),
-      step(
-        "Save a contact rule under [Contact rule](#rule). Inbox triage stays off until a rule is saved and turned on.",
-        progress.rule,
-      ),
-      step(
-        "Open your JoyClub inbox (www.joyclub.de, ClubMail). JoyFox adds its tabs above the list.",
-      ),
+      step(t("start.step.account"), progress.account),
+      step(t("start.step.rule"), progress.rule),
+      step(t("start.step.inbox")),
     );
     this.root.replaceChildren(heading, summary, list);
   }

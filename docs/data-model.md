@@ -1,6 +1,6 @@
 # Data model
 
-Database schema version 3 stores the 16 PRD entities plus two entities the
+Database schema version 4 stores the 16 PRD entities plus two entities the
 template spam detector requires and one for the "First message contains" rule
 condition, in IndexedDB. Every record, including an account record, has an
 account scope, stable local ID, and creation and update timestamps. Physical
@@ -80,6 +80,40 @@ in order without any store being created twice. An upgrade from version 1 or 2
 keeps every existing record. An export names the database version; import
 accepts a file from this version or an earlier one.
 
+Version 4 adds no store. It rewrites `ConversationClassification.reasons` from
+English text to catalog messages (`Message`, below), inside the upgrade
+transaction (`src/storage/reason-migration.ts`):
+
+- The exact sentence an earlier version wrote for the record's own placement
+  (`You moved this sender to Qualified.`, `… Needs Review.` or `… Quarantined.`)
+  becomes
+  `{ key: "triage.reason.userMoved", params: { placement: { key: "placement.<record.placement>" } } }`.
+- Any other string, including a similar sentence JoyFox did not write, becomes
+  `{ key: "legacy.text", params: { text: <original> } }` and is shown verbatim
+  in both languages.
+
+An upgrade from version 1, 2 or 3 keeps every override.
+
+## Message (schema version 4)
+
+Text that code writes for display is stored and sent as a `Message`, never as
+English text (docs/i18n-spec.md, ADR 0014). A `Message` is plain JSON: a catalog
+`key` and, for a key whose text takes values, `params`. A param is a string
+(always shown as is), a number (formatted for the language when shown), or a
+nested `Message` (translated first). `src/i18n/message.ts` defines it, lists
+each key's params in `MESSAGE_PARAMS`, and checks a stored value with
+`isMessage`. The translator (`t()` in `src/i18n/translator.ts`) turns a
+`Message` into text in the language shown.
+
+Stored: `ConversationClassification.reasons` (`Message[]`). Runtime only: the
+reasons of the qualification engine, the contact rule and the trust score, the
+spam detector's findings, and the Quick Ignore and Delete notice. The validation
+refuses a `reasons` item that is not a valid `Message`.
+
+The UI language is `joyfox.locale` in `storage.local` (`"en"` or `"de"`),
+global, not per account. It is written only when the user picks a language;
+until then the language follows Firefox. "Delete all JoyFox data" removes it.
+
 ## MessageObservation
 
 Holds the normalized text of a message the user already had on screen, keyed to
@@ -150,9 +184,10 @@ version change was needed. The MVP keeps one rule per account, with ID
 
 Holds only the user's manual placement for one sender, with ID
 `classification:<member>`: `placement`, `source` (`user`), `decidedAt`, an
-optional `ruleId` and the reason text. `conversationId` is optional, because the
-inbox shows no conversation ID. Clearing the placement deletes the record.
-Automatic placements are never stored; they are recomputed from the rule.
+optional `ruleId` and the reasons as catalog messages (schema version 4).
+`conversationId` is optional, because the inbox shows no conversation ID.
+Clearing the placement deletes the record. Automatic placements are never
+stored; they are recomputed from the rule.
 
 ## TrustSignal and snapshot capture (Milestone C)
 
@@ -224,3 +259,9 @@ write uses, and any problem refuses the whole file. Accounts are matched by
 JoyClub identifier; conflicts follow ADR 0009. All records are written in one
 transaction through `putRecords` in `src/storage/repositories.ts`, the only
 writer besides the repository classes. Retention is not applied during import.
+
+Exports carry `schemaVersion: 4`. Import still accepts versions 1 to 3 and
+converts their English reasons as the version 4 upgrade does, before the file is
+checked. `joyfox.locale` is imported only when it is `"en"` or `"de"` and no
+language is stored here. Each refusal carries a display message, so the UI
+states it in the language shown.

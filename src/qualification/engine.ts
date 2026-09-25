@@ -1,4 +1,6 @@
 import type { CriterionState, TriagePlacement } from "../domain/types";
+import type { PlainKey } from "../i18n/catalog/en";
+import { message, type Message } from "../i18n/message";
 import {
   isJoinWindow,
   isStrictIsoDate,
@@ -37,8 +39,8 @@ export type CriterionName =
 export interface EvaluatedCriterion {
   name: CriterionName;
   state: CriterionState;
-  /** Plain-language reason, safe to show and safe to log. */
-  reason: string;
+  /** Plain-language reason, safe to log, translated when shown. */
+  reason: Message;
   source: FactSource;
 }
 
@@ -57,7 +59,7 @@ export interface QualificationResult {
   placement: TriagePlacement;
   criteria: EvaluatedCriterion[];
   /** One line per criterion that drove the outcome, in evaluation order. */
-  reasons: string[];
+  reasons: Message[];
 }
 
 const OUTCOME_PLACEMENT: Record<QualificationOutcome, TriagePlacement> = {
@@ -67,37 +69,42 @@ const OUTCOME_PLACEMENT: Record<QualificationOutcome, TriagePlacement> = {
   "does-not-meet-rule": "quarantined",
 };
 
-export const OUTCOME_TEXT: Record<QualificationOutcome, string> = {
-  qualified: "Qualified",
-  "partial-information": "Partial information",
-  "does-not-meet-rule": "Does not meet rule",
+export const OUTCOME_TEXT: Record<QualificationOutcome, PlainKey> = {
+  qualified: "outcome.qualified",
+  "partial-information": "outcome.partial-information",
+  "does-not-meet-rule": "outcome.does-not-meet-rule",
 };
 
 function numericCriterion(
   name: CriterionName,
-  label: string,
+  label: PlainKey,
   value: number | "unknown",
   minimum: number,
   source: FactSource,
 ): EvaluatedCriterion {
+  const field = message(label);
   if (value === "unknown")
     return {
       name,
       state: "unknown",
-      reason: `${label} is unknown, so it was not counted for or against.`,
+      reason: message("triage.reason.unknownValue", { field }),
       source,
     };
   return value >= minimum
     ? {
         name,
         state: "pass",
-        reason: `${label} is ${value}, at or above the required ${minimum}.`,
+        reason: message("triage.reason.atOrAbove", { field, value, minimum }),
         source,
       }
     : {
         name,
         state: "fail",
-        reason: `${label} is ${value}, below the required ${minimum}.`,
+        reason: message("triage.reason.belowMinimum", {
+          field,
+          value,
+          minimum,
+        }),
         source,
       };
 }
@@ -157,7 +164,7 @@ function accountAgeCriterion(
   if (exact !== "unknown" || facts.joinedWindow === "unknown")
     return numericCriterion(
       "accountAge",
-      "Account age in days",
+      "field.accountAgeDays",
       exact,
       minimum,
       sourceOf("joinedAt"),
@@ -167,30 +174,30 @@ function accountAgeCriterion(
   if (range === "unknown")
     return numericCriterion(
       "accountAge",
-      "Account age in days",
+      "field.accountAgeDays",
       "unknown",
       minimum,
       source,
     );
-  const span = `between ${range.min} and ${range.max} days`;
+  const span = { min: range.min, max: range.max, minimum };
   if (range.min >= minimum)
     return {
       name: "accountAge",
       state: "pass",
-      reason: `Account age is ${span}, at or above the required ${minimum}.`,
+      reason: message("triage.reason.accountAgeRangeAbove", span),
       source,
     };
   if (range.max < minimum)
     return {
       name: "accountAge",
       state: "fail",
-      reason: `Account age is ${span}, below the required ${minimum}.`,
+      reason: message("triage.reason.accountAgeRangeBelow", span),
       source,
     };
   return {
     name: "accountAge",
     state: "unknown",
-    reason: `Account age is ${span}, which is too coarse to compare with the required ${minimum}, so it was not counted for or against.`,
+    reason: message("triage.reason.accountAgeRangeCoarse", span),
     source,
   };
 }
@@ -223,16 +230,17 @@ export function evaluateCriterion(
         return {
           name: "verification",
           state: "unknown",
-          reason:
-            "Verification status is unknown, so it was not counted for or against.",
+          reason: message("triage.reason.verificationUnknown"),
           source,
         };
       return {
         name: "verification",
         state: facts.verification ? "pass" : "fail",
-        reason: facts.verification
-          ? "The profile is verified, as the rule requires."
-          : "The profile is not verified, which the rule requires.",
+        reason: message(
+          facts.verification
+            ? "triage.reason.verified"
+            : "triage.reason.notVerified",
+        ),
         source,
       };
     }
@@ -242,23 +250,24 @@ export function evaluateCriterion(
         ? {
             name: "personallyKnown",
             state: "unknown",
-            reason:
-              "Whether you know this member personally is unknown, so it was not counted for or against.",
+            reason: message("triage.reason.personallyKnownUnknown"),
             source,
           }
         : {
             name: "personallyKnown",
             state: facts.personallyKnown ? "pass" : "fail",
-            reason: facts.personallyKnown
-              ? "You marked this member as personally known, as the rule requires."
-              : "You have not marked this member as personally known, which the rule requires.",
+            reason: message(
+              facts.personallyKnown
+                ? "triage.reason.personallyKnown"
+                : "triage.reason.notPersonallyKnown",
+            ),
             source,
           };
     }
     case "photoCount":
       return numericCriterion(
         "photoCount",
-        "Photo count",
+        "field.photoCount",
         facts.photoCount,
         criterion.minimum,
         sourceOf("photoCount"),
@@ -266,7 +275,7 @@ export function evaluateCriterion(
     case "profileWordCount":
       return numericCriterion(
         "profileWordCount",
-        "Profile word count",
+        "field.profileWordCount",
         facts.profileWordCount,
         criterion.minimum,
         sourceOf("profileWordCount"),
@@ -330,9 +339,7 @@ export function evaluateQualification(input: {
       outcome: "qualified",
       placement: OUTCOME_PLACEMENT.qualified,
       criteria: [],
-      reasons: [
-        "No qualification criteria are configured, so every sender qualifies.",
-      ],
+      reasons: [message("triage.reason.noCriteria")],
     };
 
   return {

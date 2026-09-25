@@ -61,8 +61,9 @@ describe("M10 template.list", () => {
       },
     });
     active = "account-a";
+    // No folder: the background sends "", and the page shows "General".
     expect(await list()).toMatchObject({
-      payload: { templates: [{ name: "A", folder: "General" }] },
+      payload: { templates: [{ name: "A", folder: "" }] },
     });
   });
 });

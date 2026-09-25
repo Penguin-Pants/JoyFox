@@ -1,7 +1,10 @@
 import { AccountService } from "../accounts/account-service";
 import type { MessageTemplate } from "../domain/types";
-import { isExtensionError } from "../errors";
+import { message, type Message } from "../i18n/message";
+import { errorDisplay, t } from "../i18n/translator";
 import {
+  compareTemplates,
+  DEFAULT_FOLDER,
   folderOf,
   MAX_TEMPLATE_BODY_LENGTH,
   MAX_TEMPLATE_FOLDER_LENGTH,
@@ -10,6 +13,7 @@ import {
   TemplateService,
 } from "../templates/template-service";
 import { confirmAllowed, confirmTiming } from "./confirm";
+import { StatusLine } from "./status-line";
 
 function element<K extends keyof HTMLElementTagNameMap>(
   document: Document,
@@ -48,7 +52,7 @@ interface TemplateForm {
  * own composer; this panel never sends anything.
  */
 export class TemplatePanel {
-  readonly #status: HTMLParagraphElement;
+  readonly #status: StatusLine;
   /** Bumped per render, so a slower, older render never replaces a newer one. */
   #generation = 0;
   /** The account the list and form were drawn for. */
@@ -69,9 +73,7 @@ export class TemplatePanel {
     private readonly accounts = new AccountService(),
     private readonly onChange: () => void = () => undefined,
   ) {
-    this.#status = root.ownerDocument.createElement("p");
-    this.#status.className = "joyfox-panel__status";
-    this.#status.setAttribute("aria-live", "polite");
+    this.#status = new StatusLine(root.ownerDocument);
   }
 
   async render(): Promise<void> {
@@ -84,8 +86,7 @@ export class TemplatePanel {
       templates = accountId ? await this.templates.list(accountId) : [];
     } catch {
       if (generation === this.#generation)
-        this.root.textContent =
-          "JoyFox could not read your templates. No template was changed.";
+        this.root.textContent = t("templates.readFailed");
       return;
     }
     if (generation !== this.#generation) return;
@@ -94,7 +95,7 @@ export class TemplatePanel {
       // its templates) must never carry over.
       this.#editing = undefined;
       this.#pendingDelete = undefined;
-      this.#setStatus("", "info");
+      this.#status.clear();
     }
     if (this.#editing && !templates.some((t) => t.id === this.#editing?.id))
       this.#editing = undefined;
@@ -113,32 +114,23 @@ export class TemplatePanel {
     this.#form = undefined;
     this.#accountId = accountId;
     this.root.replaceChildren();
+    this.#status.redraw();
     const heading = element(
       document,
       "h2",
       "joyfox-panel__heading",
-      "Message templates",
+      t("templates.heading"),
     );
     heading.id = "joyfox-templates-heading";
     this.root.setAttribute("aria-labelledby", heading.id);
     this.root.append(
       heading,
-      element(
-        document,
-        "p",
-        "joyfox-panel__hint",
-        'On a JoyClub conversation, the "JoyFox templates" button below the message field inserts a template at the cursor. You can still edit the text, and you always click JoyClub\'s Send button yourself. JoyFox never sends a message.',
-      ),
+      element(document, "p", "joyfox-panel__hint", t("templates.hint")),
     );
     if (!accountId) {
       this.root.append(
-        element(
-          document,
-          "p",
-          "joyfox-panel__empty",
-          "Choose an active account above to store templates.",
-        ),
-        this.#status,
+        element(document, "p", "joyfox-panel__empty", t("templates.noAccount")),
+        this.#status.node,
       );
       return;
     }
@@ -150,7 +142,7 @@ export class TemplatePanel {
       form.body.value = draft.body;
     }
     this.#form = form;
-    this.root.append(form.form, this.#status);
+    this.root.append(form.form, this.#status.node);
   }
 
   #renderList(
@@ -163,14 +155,20 @@ export class TemplatePanel {
         document,
         "p",
         "joyfox-panel__empty",
-        "No templates yet. Add one below.",
+        t("templates.empty"),
       );
     const wrapper = element(document, "div", "joyfox-templates__folders");
     let list: HTMLUListElement | undefined;
     let folder: string | undefined;
-    for (const template of templates) {
-      if (folderOf(template) !== folder) {
-        folder = folderOf(template);
+    // A template without a folder is listed under "General" in the language
+    // shown, and sorted where that name reads.
+    const general = t(DEFAULT_FOLDER);
+    const sorted = [...templates].sort((a, b) =>
+      compareTemplates(a, b, general),
+    );
+    for (const template of sorted) {
+      if (folderOf(template, general) !== folder) {
+        folder = folderOf(template, general);
         const title = element(
           document,
           "h3",
@@ -178,7 +176,7 @@ export class TemplatePanel {
           folder,
         );
         list = element(document, "ul", "joyfox-panel__list");
-        list.setAttribute("aria-label", `Templates in ${folder}`);
+        list.setAttribute("aria-label", t("templates.inFolder", { folder }));
         wrapper.append(title, list);
       }
       list!.append(this.#renderItem(document, accountId, template));
@@ -202,13 +200,19 @@ export class TemplatePanel {
         preview(template.body),
       ),
     );
-    const edit = element(document, "button", "joyfox-templates__edit", "Edit");
+    const name = { name: template.name };
+    const edit = element(
+      document,
+      "button",
+      "joyfox-templates__edit",
+      t("templates.edit"),
+    );
     edit.type = "button";
-    edit.setAttribute("aria-label", `Edit template ${template.name}`);
+    edit.setAttribute("aria-label", t("templates.editLabel", name));
     edit.addEventListener("click", () => {
       this.#pendingDelete = undefined;
       this.#editing = template;
-      this.#setStatus(`Editing ${template.name}.`, "info");
+      this.#setStatus(message("templates.editing", name), "info");
       void this.render().then(() => this.#form?.name.focus());
     });
     const confirming = this.#pendingDelete === template.id;
@@ -216,14 +220,15 @@ export class TemplatePanel {
       document,
       "button",
       "joyfox-panel__remove",
-      confirming ? "Confirm delete" : "Delete",
+      t(confirming ? "templates.confirmDelete" : "templates.delete"),
     );
     remove.type = "button";
     remove.setAttribute(
       "aria-label",
-      confirming
-        ? `Confirm deleting template ${template.name}`
-        : `Delete template ${template.name}`,
+      t(
+        confirming ? "templates.confirmDeleteLabel" : "templates.deleteLabel",
+        name,
+      ),
     );
     remove.addEventListener("click", (event) => {
       // `confirming` is fixed at draw time: a node drawn unarmed only arms.
@@ -231,10 +236,7 @@ export class TemplatePanel {
         if (event.detail > 1) return;
         this.#pendingDelete = template.id;
         this.#armedAt = confirmTiming.now();
-        this.#setStatus(
-          `Click "Confirm delete" to delete ${template.name}.`,
-          "info",
-        );
+        this.#setStatus(message("templates.deletePrompt", name), "info");
         void this.render();
         return;
       }
@@ -244,7 +246,7 @@ export class TemplatePanel {
         this.#pendingDelete = undefined;
         await this.templates.delete(accountId, template.id, this.#guard);
         if (this.#editing?.id === template.id) this.#editing = undefined;
-        this.#setStatus(`Deleted ${template.name}.`, "info");
+        this.#setStatus(message("templates.deleted", name), "info");
       });
     });
     item.append(edit, remove);
@@ -256,13 +258,15 @@ export class TemplatePanel {
     const form = element(document, "form", "joyfox-panel__form");
     form.setAttribute(
       "aria-label",
-      editing ? `Edit template ${editing.name}` : "Add a template",
+      editing
+        ? t("templates.editLabel", { name: editing.name })
+        : t("templates.addForm"),
     );
     const name = this.#input(
       document,
       form,
       "joyfox-template-name",
-      "Name",
+      t("templates.name"),
       MAX_TEMPLATE_NAME_LENGTH,
     );
     name.required = true;
@@ -271,15 +275,15 @@ export class TemplatePanel {
       document,
       form,
       "joyfox-template-folder",
-      "Folder (optional, General if empty)",
+      t("templates.folder"),
       MAX_TEMPLATE_FOLDER_LENGTH,
     );
     folder.value = editing?.folder ?? "";
     const suggestions = element(document, "datalist", "");
     suggestions.id = "joyfox-template-folders";
-    for (const value of SUGGESTED_FOLDERS) {
+    for (const key of SUGGESTED_FOLDERS) {
       const option = document.createElement("option");
-      option.value = value;
+      option.value = t(key);
       suggestions.append(option);
     }
     folder.setAttribute("list", suggestions.id);
@@ -290,7 +294,7 @@ export class TemplatePanel {
       document,
       "label",
       "joyfox-panel__field-label",
-      "Text",
+      t("templates.text"),
     );
     bodyLabel.htmlFor = "joyfox-template-body";
     const body = element(document, "textarea", "joyfox-panel__field-input");
@@ -307,7 +311,7 @@ export class TemplatePanel {
       document,
       "button",
       "joyfox-panel__submit",
-      editing ? "Save changes" : "Add template",
+      t(editing ? "templates.saveChanges" : "templates.add"),
     );
     submit.type = "submit";
     form.append(submit);
@@ -316,12 +320,12 @@ export class TemplatePanel {
         document,
         "button",
         "joyfox-templates__cancel",
-        "Cancel editing",
+        t("templates.cancel"),
       );
       cancel.type = "button";
       cancel.addEventListener("click", () => {
         this.#editing = undefined;
-        this.#setStatus("", "info");
+        this.#status.clear();
         void this.render();
       });
       form.append(cancel);
@@ -361,7 +365,9 @@ export class TemplatePanel {
         // Saved: the next render starts from an empty form.
         this.#form = undefined;
         this.#setStatus(
-          id ? `Saved ${saved.name}.` : `Added ${saved.name}.`,
+          message(id ? "templates.saved" : "templates.added", {
+            name: saved.name,
+          }),
           "info",
         );
       }).finally(() => {
@@ -398,10 +404,8 @@ export class TemplatePanel {
     return input;
   }
 
-  #setStatus(message: string, kind: "info" | "error"): void {
-    this.#status.dataset.kind = kind;
-    this.#status.setAttribute("role", kind === "error" ? "alert" : "status");
-    this.#status.textContent = message;
+  #setStatus(message: Message, kind: "info" | "error"): void {
+    this.#status.set(message, kind);
   }
 
   /**
@@ -415,19 +419,17 @@ export class TemplatePanel {
         this.#pendingDelete = undefined;
         // Redraw first: the redraw for the new account clears the status.
         await this.render();
-        this.#setStatus(
-          "The active account changed. Nothing was changed.",
-          "error",
-        );
+        this.#setStatus(message("templates.accountChanged"), "error");
         return;
       }
       await action();
     } catch (error) {
       this.#pendingDelete = undefined;
+      const display = errorDisplay(error);
       this.#setStatus(
-        isExtensionError(error)
-          ? `${error.message}. Nothing was changed.`
-          : "That change could not be saved. Nothing was changed.",
+        display
+          ? message("error.withSuffix.nothingChanged", { error: display })
+          : message("accounts.saveFailed"),
         "error",
       );
       return;

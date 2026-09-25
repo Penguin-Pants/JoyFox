@@ -1,5 +1,6 @@
 import type { ExtensionAccount } from "../domain/types";
 import { ExtensionError } from "../errors";
+import { message } from "../i18n/message";
 import {
   runtimeSettingsArea,
   type SettingsArea,
@@ -50,6 +51,7 @@ export class AccountService {
       throw new ExtensionError(
         "IdentityMismatch",
         "An account needs a non-empty identifier",
+        { display: message("error.account.emptyIdentifier") },
       );
     const existing = await this.listAccounts();
     if (
@@ -58,6 +60,7 @@ export class AccountService {
       throw new ExtensionError(
         "IdentityMismatch",
         "That account identifier is already registered",
+        { display: message("error.account.duplicate") },
       );
     const timestamp = this.now();
     const id = this.newId();
@@ -119,6 +122,7 @@ export class AccountService {
             throw new ExtensionError(
               "IdentityMismatch",
               "Cannot activate an account that is not registered",
+              { display: message("error.account.notRegistered") },
             );
           await this.settings.set({ [ACTIVE_ACCOUNT_SETTING_KEY]: accountId });
           return true;

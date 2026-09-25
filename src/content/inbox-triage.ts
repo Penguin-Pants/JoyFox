@@ -1,4 +1,7 @@
 import type { TriagePlacement } from "../domain/types";
+import type { PlainKey } from "../i18n/catalog/en";
+import { message } from "../i18n/message";
+import { t } from "../i18n/translator";
 import {
   extractInboxRows,
   type InboxRowExtraction,
@@ -15,7 +18,14 @@ import {
 } from "../triage/triage-service";
 import { factsKey, observedFromInboxRow } from "./observed-facts";
 import type { TriageClient } from "./triage-client";
-import { button, element, explanation, UI_ATTRIBUTE } from "./triage-ui";
+import {
+  button,
+  element,
+  explanation,
+  openSections,
+  reopenSections,
+  UI_ATTRIBUTE,
+} from "./triage-ui";
 
 /**
  * The `data-joyfox-ui` values the inbox itself creates. Teardown removes only
@@ -92,12 +102,12 @@ export function rowSlot(row: Element, list: Element): Element {
   return slot;
 }
 
-const VIEW_TEXT: Record<TriageView, string> = {
-  default: "Inbox",
-  qualified: "Qualified",
-  "needs-review": "Needs Review",
-  quarantined: "Quarantined",
-  all: "Show all",
+const VIEW_TEXT: Record<TriageView, PlainKey> = {
+  default: "inbox.view.default",
+  qualified: PLACEMENT_TEXT.qualified,
+  "needs-review": PLACEMENT_TEXT["needs-review"],
+  quarantined: PLACEMENT_TEXT.quarantined,
+  all: "inbox.view.all",
 };
 
 interface RowState {
@@ -113,9 +123,6 @@ interface RowState {
   /** Display only: shown in the details panel, never stored or logged. */
   name?: string;
 }
-
-const UNIDENTIFIED_REASON =
-  "JoyFox could not read this sender's profile number, so it could not check your rule. The row stays visible.";
 
 /**
  * M2 inbox triage. Rows are grouped by filtering in place: a JoyFox view
@@ -140,6 +147,11 @@ export class InboxTriage {
   #view: TriageView = "default";
   #selected?: string;
   #detailsKey = "";
+  /**
+   * The member whose last move failed. The notice stays when the details
+   * redraw (for example after a language change) until another choice.
+   */
+  #failedFor?: string;
   #writeQueue: Promise<void> = Promise.resolve();
   #active = false;
   #day?: string;
@@ -276,6 +288,23 @@ export class InboxTriage {
       node.removeAttribute(VIEW_ATTRIBUTE);
     this.#detailsKey = "";
     this.#selected = undefined;
+    this.#failedFor = undefined;
+  }
+
+  /**
+   * The language changed: the bar is drawn again and every badge and the
+   * details panel take the new text on the next refresh. The chosen view
+   * and the open details stay.
+   */
+  localeChanged(): void {
+    const bar = () =>
+      this.document.querySelector(`[${UI_ATTRIBUTE}="triage-bar"]`);
+    const open = openSections(bar());
+    bar()?.remove();
+    this.#detailsKey = "";
+    this.#refresh();
+    const redrawn = bar();
+    if (redrawn) reopenSections(redrawn, open);
   }
 
   setView(view: TriageView): void {
@@ -397,15 +426,15 @@ export class InboxTriage {
     const bar = element(this.document, "div", "joyfox-triage");
     bar.setAttribute(UI_ATTRIBUTE, "triage-bar");
     bar.setAttribute("role", "region");
-    bar.setAttribute("aria-label", "JoyFox triage");
+    bar.setAttribute("aria-label", t("inbox.region"));
     const group = element(this.document, "div", "joyfox-triage__views");
     group.setAttribute("role", "group");
-    group.setAttribute("aria-label", "Show messages");
+    group.setAttribute("aria-label", t("inbox.views"));
     for (const view of Object.keys(VIEW_TEXT) as TriageView[]) {
       const tab = button(
         this.document,
         "joyfox-button joyfox-triage__view",
-        VIEW_TEXT[view],
+        t(VIEW_TEXT[view]),
         () => this.setView(view),
       );
       tab.dataset.view = view;
@@ -414,16 +443,11 @@ export class InboxTriage {
     // The explanation sits behind a small "?" so the bar stays one line.
     const about = element(this.document, "details", "joyfox-triage__about");
     const summary = element(this.document, "summary", "joyfox-button", "?");
-    summary.setAttribute("aria-label", "About these views");
-    summary.title = "About these views";
+    summary.setAttribute("aria-label", t("inbox.about"));
+    summary.title = t("inbox.about");
     about.append(
       summary,
-      element(
-        this.document,
-        "p",
-        "joyfox-note",
-        "Inbox hides Quarantined rows from this view only. Nothing is deleted, and JoyFox changes nothing on JoyClub.",
-      ),
+      element(this.document, "p", "joyfox-note", t("inbox.aboutText")),
     );
     group.append(about);
     bar.append(group);
@@ -442,15 +466,19 @@ export class InboxTriage {
       const view = tab.dataset.view as TriageView;
       const label =
         view === "default" || view === "all"
-          ? VIEW_TEXT[view]
-          : `${VIEW_TEXT[view]} (${counts[view]})`;
+          ? t(VIEW_TEXT[view])
+          : t("inbox.viewCount", {
+              view: message(VIEW_TEXT[view]),
+              count: counts[view],
+            });
       setText(tab, label);
       setAttribute(tab, "aria-pressed", String(view === this.#view));
     }
   }
 
   #ensureBadge(state: RowState, placement: TriagePlacement | undefined): void {
-    const text = placement ? PLACEMENT_TEXT[placement] : "Checking";
+    const key = placement ? PLACEMENT_TEXT[placement] : "inbox.checking";
+    const text = t(key);
     let badge = state.row.querySelector<HTMLButtonElement>(
       `[${UI_ATTRIBUTE}="badge"]`,
     );
@@ -462,6 +490,7 @@ export class InboxTriage {
         () => {
           // Read at click time: JoyClub may reuse a row for another sender.
           this.#selected = created.dataset.member ?? "";
+          this.#failedFor = undefined;
           this.#detailsKey = "";
           this.#refresh();
           const details = this.document.querySelector<HTMLElement>(
@@ -480,7 +509,7 @@ export class InboxTriage {
     }
     setText(badge, text);
     setAttribute(badge, "data-placement", placement ?? "pending");
-    setAttribute(badge, "aria-label", `JoyFox: ${text}. Show why.`);
+    setAttribute(badge, "aria-label", t("inbox.badge", { text: message(key) }));
     // The member the badge opens, read on click from the row's current state.
     setAttribute(badge, "data-member", state.memberId ?? "");
   }
@@ -502,18 +531,24 @@ export class InboxTriage {
       "h2",
       "joyfox-triage__heading",
       // The name is shown as JoyClub shows it, never stored or logged.
-      state?.name ? `Why: ${state.name}` : "Why this placement",
+      state?.name ? t("inbox.whyNamed", { name: state.name }) : t("inbox.why"),
     );
-    const close = button(this.document, "joyfox-button", "Close", () => {
-      this.#selected = undefined;
-      this.#detailsKey = "";
-      details.hidden = true;
-      details.replaceChildren();
-    });
+    const close = button(
+      this.document,
+      "joyfox-button",
+      t("common.close"),
+      () => {
+        this.#selected = undefined;
+        this.#failedFor = undefined;
+        this.#detailsKey = "";
+        details.hidden = true;
+        details.replaceChildren();
+      },
+    );
     if (!state) {
       details.replaceChildren(
         heading,
-        element(this.document, "p", "", "This row is no longer shown."),
+        element(this.document, "p", "", t("inbox.rowGone")),
         close,
       );
       return;
@@ -521,7 +556,7 @@ export class InboxTriage {
     if (!state.memberId) {
       details.replaceChildren(
         heading,
-        element(this.document, "p", "", UNIDENTIFIED_REASON),
+        element(this.document, "p", "", t("inbox.unidentified")),
         close,
       );
       return;
@@ -529,12 +564,7 @@ export class InboxTriage {
     if (!result) {
       details.replaceChildren(
         heading,
-        element(
-          this.document,
-          "p",
-          "",
-          "JoyFox is still checking this sender.",
-        ),
+        element(this.document, "p", "", t("inbox.stillChecking")),
         close,
       );
       return;
@@ -550,23 +580,30 @@ export class InboxTriage {
           this.#writeQueue = this.#writeQueue.then(() =>
             this.client
               .setOverride(accountId, memberId, placement)
-              .then(() => this.invalidate())
-              .catch(() => this.#showError(details)),
+              .then(() => {
+                this.#failedFor = undefined;
+                this.invalidate();
+              })
+              .catch(() => {
+                this.#failedFor = memberId;
+                this.#showError();
+              }),
           );
         },
       }),
       close,
     );
+    if (this.#failedFor === memberId) this.#showError();
   }
 
-  #showError(details: HTMLElement): void {
+  /** The failure notice, in the details shown now (a redraw replaces them). */
+  #showError(): void {
+    const details = this.document.querySelector<HTMLElement>(
+      `[${UI_ATTRIBUTE}="triage-bar"] .joyfox-triage__details`,
+    );
+    if (!details || details.querySelector(".joyfox-error")) return;
     details.append(
-      element(
-        this.document,
-        "p",
-        "joyfox-error",
-        "JoyFox could not save that change. Nothing was changed.",
-      ),
+      element(this.document, "p", "joyfox-error", t("common.saveFailed")),
     );
   }
 }

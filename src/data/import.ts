@@ -7,6 +7,8 @@ import type {
   MessageTemplate,
 } from "../domain/types";
 import { ExtensionError } from "../errors";
+import { isLocale, LOCALE_KEY } from "../i18n/locale";
+import { message, type Message } from "../i18n/message";
 import { MAX_NOTE_LENGTH, MAX_TAG_LENGTH } from "../notes/limits";
 import {
   MAX_NORMALIZED_PHRASE_LENGTH,
@@ -19,6 +21,7 @@ import {
   MAX_TEMPLATE_NAME_LENGTH,
 } from "../templates/template-service";
 import { DATABASE_VERSION, ENTITY_NAMES } from "../storage/database";
+import { migrateReasons } from "../storage/reason-migration";
 import type { RecordWrite } from "../storage/repositories";
 import { TRIAGE_REVISION_KEY } from "../storage/triage-revision";
 import { validateEntity, ValidationError } from "../storage/validation";
@@ -106,9 +109,13 @@ const CHANGE_MARKERS: ReadonlySet<string> = new Set([
   "joyfox.notesRevision",
 ]);
 
-const IMPORTED_SETTINGS: Readonly<Record<string, "boolean">> = {
-  "joyfox.templatePicker": "boolean",
-};
+const IMPORTED_SETTINGS: Readonly<Record<string, (value: unknown) => boolean>> =
+  {
+    "joyfox.templatePicker": (value) => typeof value === "boolean",
+    // The UI language. Imported only when valid and none is stored, like
+    // every setting here.
+    [LOCALE_KEY]: isLocale,
+  };
 
 /** Every field each entity may have. Anything else refuses the file. */
 const BASE_FIELDS = ["id", "accountId", "createdAt", "updatedAt"] as const;
@@ -212,6 +219,14 @@ function ruleNodeExtra(node: unknown, depth = 0): string | undefined {
 }
 
 /**
+ * What is wrong with a record: the English text for the refusal's message,
+ * and what the UI shows about it.
+ */
+type DomainProblem =
+  | { text: string; field: string; maximum?: number }
+  | { text: string; field?: undefined };
+
+/**
  * Checks ordinary saves make and the storage validation does not: closed
  * nested shapes, the size limits of notes, tags and templates, and that
  * cached message text really is in normalized form (the privacy guarantee
@@ -220,23 +235,34 @@ function ruleNodeExtra(node: unknown, depth = 0): string | undefined {
 function domainProblem(
   name: EntityName,
   record: Record<string, unknown>,
-): string | undefined {
+): DomainProblem | undefined {
   const tooLong = (field: string, limit: number) =>
     typeof record[field] === "string" &&
     (record[field] as string).length > limit
-      ? `${field} is longer than ${limit} characters`
+      ? {
+          text: `${field} is longer than ${limit} characters`,
+          field,
+          maximum: limit,
+        }
       : undefined;
   switch (name) {
     case "actionLogs":
       for (const step of Array.isArray(record.steps) ? record.steps : []) {
         const extra = isObject(step) ? extraKey(step, STEP_FIELDS) : undefined;
-        if (extra) return `an action step holds an unknown field (${extra})`;
+        if (extra)
+          return {
+            text: `an action step holds an unknown field (${extra})`,
+            field: extra,
+          };
       }
       return undefined;
     case "contactRules": {
       const extra = ruleNodeExtra(record.root);
       return extra
-        ? `a rule condition holds an unknown field (${extra})`
+        ? {
+            text: `a rule condition holds an unknown field (${extra})`,
+            field: extra,
+          }
         : undefined;
     }
     case "userNotes":
@@ -252,12 +278,12 @@ function domainProblem(
     case "messageObservations":
       return typeof record.normalizedText === "string" &&
         normalizeMessage(record.normalizedText) !== record.normalizedText
-        ? "normalizedText is not in normalized form"
+        ? { text: "normalizedText is not in normalized form" }
         : undefined;
     case "messagePhraseMatches":
       return typeof record.phrase === "string" &&
         normalizePhrase(record.phrase) !== record.phrase
-        ? "phrase is not in normalized form"
+        ? { text: "phrase is not in normalized form" }
         : tooLong("phrase", MAX_NORMALIZED_PHRASE_LENGTH);
     default:
       return undefined;
@@ -297,9 +323,16 @@ function datedInFuture(record: Record<string, unknown>, now: number): boolean {
   );
 }
 
-function refuse(message: string): ExtensionError {
-  return new ExtensionError("ExtractionInvalid", message);
+/**
+ * A refusal: the English text for logs, and the message the UI shows. The
+ * panel adds "Nothing was imported." to either.
+ */
+function refuse(text: string, display: Message): ExtensionError {
+  return new ExtensionError("ExtractionInvalid", text, { display });
 }
+
+/** The inspector's name of a data type, for a refusal the UI shows. */
+const entityLabel = (name: EntityName): Message => message(`entity.${name}`);
 
 const isObject = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null && !Array.isArray(value);
@@ -321,53 +354,106 @@ export function parseImportFile(
   try {
     data = JSON.parse(text);
   } catch {
-    throw refuse("The file is not a JoyFox export (not valid JSON)");
+    throw refuse(
+      "The file is not a JoyFox export (not valid JSON)",
+      message("error.import.notJson"),
+    );
   }
   if (!isObject(data) || !isObject(data.entities))
-    throw refuse("The file is not a JoyFox export");
+    throw refuse(
+      "The file is not a JoyFox export",
+      message("error.import.notExport"),
+    );
   const version = data.schemaVersion;
   if (typeof version !== "number" || !Number.isInteger(version) || version < 1)
-    throw refuse("The file has no valid schema version");
+    throw refuse(
+      "The file has no valid schema version",
+      message("error.import.noVersion"),
+    );
   if (version > DATABASE_VERSION)
     throw refuse(
       "The file comes from a newer JoyFox version. Update JoyFox first",
+      message("error.import.newerVersion"),
     );
   const scope = data.scope;
   if (scope !== "all" && scope !== "account")
-    throw refuse("The file has no valid export scope");
+    throw refuse(
+      "The file has no valid export scope",
+      message("error.import.noScope"),
+    );
   const rawAccountId = scope === "account" ? data.accountId : undefined;
   if (
     scope === "account" &&
     (typeof rawAccountId !== "string" || rawAccountId.length === 0)
   )
-    throw refuse("The account export names no account");
+    throw refuse(
+      "The account export names no account",
+      message("error.import.noAccountNamed"),
+    );
   const accountId = rawAccountId as string | undefined;
 
   const entities = emptyEntities();
   for (const [name, records] of Object.entries(data.entities)) {
     if (!(ENTITY_NAMES as readonly string[]).includes(name))
-      throw refuse(`The file holds an unknown data type (${name})`);
+      throw refuse(
+        `The file holds an unknown data type (${name})`,
+        message("error.import.unknownType", { name }),
+      );
+    const entity = entityLabel(name as EntityName);
     if (!Array.isArray(records))
-      throw refuse(`The file's ${name} list is not a list`);
+      throw refuse(
+        `The file's ${name} list is not a list`,
+        message("error.import.notList", { entity }),
+      );
     const seen = new Set<string>();
-    records.forEach((raw: unknown, index) => {
+    records.forEach((raw: unknown, position) => {
+      const index = position + 1;
+      const at = { index, entity };
       if (!isObject(raw))
-        throw refuse(`Record ${index + 1} of ${name} is not a record`);
+        throw refuse(
+          `Record ${index} of ${name} is not a record`,
+          message("error.import.notRecord", at),
+        );
       if (hasForbiddenKey(raw))
-        throw refuse(`Record ${index + 1} of ${name} holds a forbidden key`);
+        throw refuse(
+          `Record ${index} of ${name} holds a forbidden key`,
+          message("error.import.forbiddenKey", at),
+        );
       const record = { ...raw };
       delete record.storageKey;
       const allowed = [...BASE_FIELDS, ...ENTITY_FIELDS[name as EntityName]];
       const extra = Object.keys(record).find((key) => !allowed.includes(key));
       if (extra)
         throw refuse(
-          `Record ${index + 1} of ${name} holds an unknown field (${extra})`,
+          `Record ${index} of ${name} holds an unknown field (${extra})`,
+          message("error.import.unknownField", { ...at, field: extra }),
         );
+      // Files from schema versions 1 to 3 hold English reason text. It is
+      // converted as the database upgrade converts it, then validated.
+      if (name === "conversationClassifications" && version < 4)
+        record.reasons = migrateReasons(record.reasons, record.placement);
       const problem = domainProblem(name as EntityName, record);
       if (problem)
-        throw refuse(`Record ${index + 1} of ${name} is invalid: ${problem}`);
+        throw refuse(
+          `Record ${index} of ${name} is invalid: ${problem.text}`,
+          problem.field === undefined
+            ? message("error.import.invalid", at)
+            : problem.maximum === undefined
+              ? message("error.import.unknownField", {
+                  ...at,
+                  field: problem.field,
+                })
+              : message("error.import.tooLong", {
+                  ...at,
+                  field: problem.field,
+                  maximum: problem.maximum,
+                }),
+        );
       if (datedInFuture(record, now))
-        throw refuse(`Record ${index + 1} of ${name} is dated in the future`);
+        throw refuse(
+          `Record ${index} of ${name} is dated in the future`,
+          message("error.import.future", at),
+        );
       try {
         validateEntity(
           name as EntityName,
@@ -376,44 +462,69 @@ export function parseImportFile(
       } catch (error) {
         const reason =
           error instanceof ValidationError ? error.message : "it is invalid";
-        throw refuse(`Record ${index + 1} of ${name} is invalid: ${reason}`);
-      }
-      const entity = record as unknown as AnyEntity;
-      if (scope === "account" && entity.accountId !== accountId)
         throw refuse(
-          `Record ${index + 1} of ${name} belongs to another account`,
+          `Record ${index} of ${name} is invalid: ${reason}`,
+          message("error.import.invalid", at),
         );
-      if (name === "extensionAccounts" && entity.id !== entity.accountId)
-        throw refuse(`Account record ${index + 1} is not its own scope`);
-      const key = `${entity.accountId}\u0000${entity.id}`;
+      }
+      const stored = record as unknown as AnyEntity;
+      if (scope === "account" && stored.accountId !== accountId)
+        throw refuse(
+          `Record ${index} of ${name} belongs to another account`,
+          message("error.import.otherAccount", at),
+        );
+      if (name === "extensionAccounts" && stored.id !== stored.accountId)
+        throw refuse(
+          `Account record ${index} is not its own scope`,
+          message("error.import.notOwnScope", { index }),
+        );
+      const key = `${stored.accountId}\u0000${stored.id}`;
       if (seen.has(key))
-        throw refuse(`Record ${index + 1} of ${name} appears twice`);
+        throw refuse(
+          `Record ${index} of ${name} appears twice`,
+          message("error.import.twice", at),
+        );
       seen.add(key);
-      (entities[name as EntityName] as AnyEntity[]).push(entity);
+      (entities[name as EntityName] as AnyEntity[]).push(stored);
     });
   }
 
   const identifiers = new Set<string>();
   for (const account of entities.extensionAccounts) {
     if (identifiers.has(account.joyClubAccountId))
-      throw refuse("Two accounts in the file have the same identifier");
+      throw refuse(
+        "Two accounts in the file have the same identifier",
+        message("error.import.sameIdentifier"),
+      );
     identifiers.add(account.joyClubAccountId);
   }
   if (
     scope === "account" &&
     !entities.extensionAccounts.some((account) => account.id === accountId)
   )
-    throw refuse("The account export holds no account record");
+    throw refuse(
+      "The account export holds no account record",
+      message("error.import.noAccountRecord"),
+    );
 
   const settings: Record<string, unknown> = {};
   if (scope === "all" && data.settings !== undefined) {
     if (!isObject(data.settings))
-      throw refuse("The file's settings are invalid");
+      throw refuse(
+        "The file's settings are invalid",
+        message("error.import.settingsInvalid"),
+      );
     if (hasForbiddenKey(data.settings))
-      throw refuse("The file's settings hold a forbidden key");
+      throw refuse(
+        "The file's settings hold a forbidden key",
+        message("error.import.settingsForbidden"),
+      );
     for (const [key, value] of Object.entries(data.settings)) {
       if (!key.startsWith("joyfox."))
-        throw refuse(`The file holds a setting JoyFox does not use (${key})`);
+        throw refuse(
+          `The file holds a setting JoyFox does not use (${key})`,
+          message("error.import.unknownSetting", { key }),
+        );
       settings[key] = value;
     }
   }
@@ -488,6 +599,7 @@ export function planImport(
     if (accountTargets.has(scope))
       throw refuse(
         "Some records in the file belong to an account the file does not hold",
+        message("error.import.orphans"),
       );
     return scope;
   };
@@ -499,6 +611,7 @@ export function planImport(
     if (written.has(key))
       throw refuse(
         "The file holds the same record twice after merging accounts",
+        message("error.import.sameRecordTwice"),
       );
     written.add(key);
     writes.push({ name, entity } as RecordWrite);
@@ -549,8 +662,8 @@ export function planImport(
   const settingsSkipped: string[] = [];
   for (const [key, value] of Object.entries(file.settings)) {
     if (key === ACTIVE_ACCOUNT_SETTING_KEY) continue;
-    const type = IMPORTED_SETTINGS[key];
-    if (!type || typeof value !== type) {
+    const valid = IMPORTED_SETTINGS[key];
+    if (!valid?.(value)) {
       if (!CHANGE_MARKERS.has(key)) settingsSkipped.push(key);
       continue;
     }

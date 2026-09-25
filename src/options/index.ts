@@ -1,4 +1,18 @@
 import { ACTIVE_ACCOUNT_SETTING_KEY } from "../accounts/account-service";
+import { applyStaticText } from "../i18n/dom";
+import {
+  isLocale,
+  LOCALE_KEY,
+  localeFromSetting,
+  readLocale,
+} from "../i18n/locale";
+import {
+  currentLocale,
+  onLocaleChange,
+  setLocale,
+  t,
+} from "../i18n/translator";
+import { runtimeSettingsArea } from "../storage/local-settings";
 import { TRIAGE_REVISION_KEY } from "../storage/triage-revision";
 import { mountAccountPanel, type AccountPanel } from "./account-panel";
 import { DataPanel } from "./data-panel";
@@ -47,15 +61,18 @@ const renderRules = quietly(async () => rules?.render());
 
 let accounts: AccountPanel | undefined;
 const accountRoot = find("joyfox-accounts");
-if (accountRoot)
+let accountsFailed = false;
+function mountAccounts(): void {
+  if (!accountRoot) return;
   void mountAccountPanel(accountRoot, undefined, renderData)
     .then((panel) => {
       accounts = panel;
     })
     .catch(() => {
-      accountRoot.textContent =
-        "JoyFox could not read its stored accounts. No account was changed.";
+      accountsFailed = true;
+      accountRoot.textContent = t("accounts.readFailed");
     });
+}
 
 /** After a delete in the data panel, every other panel shows what is left. */
 function refreshAll(): void {
@@ -65,13 +82,42 @@ function refreshAll(): void {
   renderTemplates();
 }
 
-renderStart();
-renderRules();
-renderTemplates();
-renderData();
+/**
+ * The language toggle (docs/i18n-spec.md, Section 3.9). A choice is only
+ * written: the page follows through `storage.onChanged`, the same path
+ * every other tab takes.
+ */
+const language = document.querySelector<HTMLSelectElement>("#joyfox-language");
+language?.addEventListener("change", () => {
+  const value = language.value;
+  if (!isLocale(value)) return;
+  void runtimeSettingsArea.set({ [LOCALE_KEY]: value }).catch(() => {
+    // Not saved: show the language that is still in use.
+    language.value = currentLocale();
+  });
+});
 
+/** Every panel draws again in the new language. Unsaved input stays. */
+onLocaleChange((locale) => {
+  applyStaticText(document);
+  if (language) language.value = locale;
+  if (accounts) void accounts.render().catch(() => undefined);
+  else if (accountsFailed && accountRoot)
+    accountRoot.textContent = t("accounts.readFailed");
+  renderStart();
+  if (rules) void rules.localeChanged().catch(() => undefined);
+  renderTemplates();
+  renderData();
+});
+
+let localeHeard = false;
 browser.storage.onChanged.addListener((changes, area) => {
   if (area !== "local") return;
+  if (LOCALE_KEY in changes) {
+    localeHeard = true;
+    // A removed value ("delete all JoyFox data") means Firefox's language.
+    setLocale(localeFromSetting(changes[LOCALE_KEY]?.newValue));
+  }
   // The rule and templates belong to the active account, so a switch (or a
   // "delete all" in another tab, which clears the pointer) redraws them.
   if (ACTIVE_ACCOUNT_SETTING_KEY in changes) {
@@ -89,4 +135,19 @@ browser.storage.onChanged.addListener((changes, area) => {
     if (rules) void rules.refreshIfChanged().catch(() => undefined);
     renderData();
   }
+});
+
+// The language is known before the first drawing, so the page never flashes
+// English text for a German user. The English in the HTML is the fallback
+// until then.
+void readLocale(runtimeSettingsArea).then((locale) => {
+  // A change heard while reading is newer than what was read.
+  if (!localeHeard) setLocale(locale);
+  applyStaticText(document);
+  if (language) language.value = currentLocale();
+  mountAccounts();
+  renderStart();
+  renderRules();
+  renderTemplates();
+  renderData();
 });

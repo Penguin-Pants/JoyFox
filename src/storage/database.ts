@@ -1,7 +1,13 @@
 import type { EntityName } from "../domain/types";
+import { migrateReasons } from "./reason-migration";
 
 export const DATABASE_NAME = "joyfox";
-export const DATABASE_VERSION = 3;
+/**
+ * Version 4 adds no store: it rewrites the stored reasons of manual
+ * placements from English text to catalog messages (docs/i18n-spec.md,
+ * ADR 0014).
+ */
+export const DATABASE_VERSION = 4;
 
 /** The stores schema version 1 created. Frozen: it describes history. */
 const VERSION_1_ENTITY_NAMES: readonly EntityName[] = [
@@ -40,6 +46,30 @@ export const ENTITY_NAMES: readonly EntityName[] = [
 
 let connection: Promise<IDBDatabase> | undefined;
 
+/**
+ * Rewrite each manual placement's `reasons` as catalog messages. Records are
+ * plain objects, so the rewrite runs inside the upgrade transaction and
+ * commits or aborts with it.
+ */
+function migrateToVersion4(
+  db: IDBDatabase,
+  transaction: IDBTransaction | null,
+): void {
+  const name = "conversationClassifications";
+  if (!transaction || !db.objectStoreNames.contains(name)) return;
+  const cursor = transaction.objectStore(name).openCursor();
+  cursor.onsuccess = () => {
+    const current = cursor.result;
+    if (!current) return;
+    const record = current.value as Record<string, unknown>;
+    current.update({
+      ...record,
+      reasons: migrateReasons(record.reasons, record.placement),
+    });
+    current.continue();
+  };
+}
+
 export function openDatabase(): Promise<IDBDatabase> {
   connection ??= new Promise<IDBDatabase>((resolve, reject) => {
     const request = indexedDB.open(DATABASE_NAME, DATABASE_VERSION);
@@ -57,6 +87,7 @@ export function openDatabase(): Promise<IDBDatabase> {
       if (event.oldVersion < 1) createStores(VERSION_1_ENTITY_NAMES);
       if (event.oldVersion < 2) createStores(VERSION_2_ENTITY_NAMES);
       if (event.oldVersion < 3) createStores(VERSION_3_ENTITY_NAMES);
+      if (event.oldVersion < 4) migrateToVersion4(db, request.transaction);
     };
     request.onsuccess = () => resolve(request.result);
     request.onerror = () => reject(request.error);

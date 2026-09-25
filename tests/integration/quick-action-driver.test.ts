@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import "../setup-indexeddb";
 import { beforeEach, describe, expect, it } from "vitest";
+import { texts } from "../i18n-text";
 import { ActionLogService } from "../../src/actions/action-log-service";
 import { runQuickIgnoreDelete } from "../../src/actions/executor";
 import { registerActionHandlers } from "../../src/background/action-handlers";
@@ -343,7 +344,9 @@ describe("M9 live driver on synthetic JoyClub pages (ADR 0011)", () => {
     openConversation({ list: false });
     const result = await run();
     expect(result.report.failure).toBe("unverifiable");
-    expect(result.report.lines).toContain("Nothing was changed on JoyClub.");
+    expect(texts(result.report.lines)).toContain(
+      "Nothing was changed on JoyClub.",
+    );
     expect(pressed).toEqual([]);
     expect(await steps()).toEqual(["Started", "Failed:unverifiable"]);
   });

@@ -1,4 +1,5 @@
 import type { TrustSignal } from "../domain/types";
+import { message, type Message } from "../i18n/message";
 import type { SpamStatus } from "../rules/contact-rule";
 
 /**
@@ -16,7 +17,7 @@ import type { SpamStatus } from "../rules/contact-rule";
  */
 export interface TrustContribution {
   points: number;
-  reason: string;
+  reason: Message;
 }
 
 export interface TrustScore {
@@ -32,11 +33,8 @@ export interface TrustInput {
   personallyKnown: boolean | "unknown";
 }
 
-export const TRUST_SCOPE_NOTE =
-  "Based only on what you logged and saw in this browser. It is not a JoyClub or community rating.";
-
-const plural = (count: number, word: string) =>
-  `${count} ${word}${count === 1 ? "" : "s"}`;
+/** Catalog key of the note that says what the score is based on. */
+export const TRUST_SCOPE_NOTE = "trust.scopeNote";
 
 /**
  * The score, or `unknown` when nothing contributes: with no history, zero
@@ -52,27 +50,27 @@ export function computeTrustScore(input: TrustInput): TrustScore | "unknown" {
   if (positive > 0)
     contributions.push({
       points: positive,
-      reason: `You logged ${plural(positive, "positive outcome")}.`,
+      reason: message("trust.reason.positive", { count: positive }),
     });
   if (negative > 0)
     contributions.push({
       points: -negative,
-      reason: `You logged ${plural(negative, "negative outcome")}.`,
+      reason: message("trust.reason.negative", { count: negative }),
     });
   if (neutral > 0)
     contributions.push({
       points: 0,
-      reason: `You logged ${plural(neutral, "neutral outcome")}, which count 0.`,
+      reason: message("trust.reason.neutral", { count: neutral }),
     });
   if (input.personallyKnown === true)
     contributions.push({
       points: 1,
-      reason: "You marked this member as personally known.",
+      reason: message("trust.reason.personallyKnown"),
     });
   if (input.spam === "flagged")
     contributions.push({
       points: -1,
-      reason: "A message from this member looks like a copied template.",
+      reason: message("trust.reason.spamFlagged"),
     });
   if (contributions.length === 0) return "unknown";
   return {

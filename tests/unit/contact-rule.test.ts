@@ -9,6 +9,7 @@ import {
   type RuleInput,
 } from "../../src/rules/contact-rule";
 import { UNKNOWN_FACTS } from "../../src/qualification/facts";
+import { text, texts } from "../i18n-text";
 
 const now = new Date("2026-09-23T12:00:00.000Z");
 
@@ -87,9 +88,11 @@ describe("evaluateContactRule", () => {
       }),
     );
     expect(result.placement).toBe("quarantined");
-    expect(result.reasons[0]).toMatch(/does not meet your contact rule/);
-    expect(result.reasons).toContain("Photo count is 1, below the required 3.");
-    expect(result.reasons).toHaveLength(2);
+    expect(texts(result.reasons)[0]).toMatch(/does not meet your contact rule/);
+    expect(texts(result.reasons)).toContain(
+      "Photo count is 1, below the required 3.",
+    );
+    expect(texts(result.reasons)).toHaveLength(2);
   });
 
   it("uses Needs Review as the default placement when the rule says so", () => {
@@ -109,7 +112,11 @@ describe("evaluateContactRule", () => {
     expect(
       result.evaluatedConditions.filter((c) => c.state === "unknown"),
     ).toHaveLength(2);
-    expect(result.reasons.slice(1).every((r) => /unknown/i.test(r))).toBe(true);
+    expect(
+      texts(result.reasons)
+        .slice(1)
+        .every((r) => /unknown/i.test(r)),
+    ).toBe(true);
   });
 
   it("honors an explicit per-condition unknown handling", () => {
@@ -135,7 +142,9 @@ describe("evaluateContactRule", () => {
       state: "unknown",
       outcome: "not-met",
     });
-    expect(strict.reasons[1]).toMatch(/counts an unknown value as not met/);
+    expect(texts(strict.reasons)[1]).toMatch(
+      /counts an unknown value as not met/,
+    );
   });
 
   it("lets an Any exception qualify a sender who fails the All box", () => {
@@ -147,7 +156,7 @@ describe("evaluateContactRule", () => {
     );
     expect(result.placement).toBe("qualified");
     // Only the reasons behind the outcome are listed, not the failed box.
-    expect(result.reasons.join(" ")).not.toMatch(/not verified/);
+    expect(texts(result.reasons).join(" ")).not.toMatch(/not verified/);
   });
 
   it("does not let a failed exception hide a Needs Review from the main box", () => {
@@ -175,7 +184,7 @@ describe("evaluateContactRule", () => {
       }),
     );
     expect(result.placement).toBe("qualified");
-    expect(result.reasons).toEqual([
+    expect(texts(result.reasons)).toEqual([
       "This sender meets your contact rule.",
       "You marked this member as personally known, as the rule requires.",
     ]);
@@ -189,7 +198,7 @@ describe("evaluateContactRule", () => {
       input({ facts: { ...UNKNOWN_FACTS, verification: true } }),
     );
     expect(result.placement).toBe("qualified");
-    expect(result.reasons).toEqual([
+    expect(texts(result.reasons)).toEqual([
       "Your contact rule has no required conditions, so every sender qualifies.",
     ]);
   });
@@ -197,7 +206,7 @@ describe("evaluateContactRule", () => {
   it("qualifies everyone when the rule has no conditions", () => {
     const result = evaluateContactRule(rule([]), input());
     expect(result.placement).toBe("qualified");
-    expect(result.reasons[0]).toMatch(/no required conditions/);
+    expect(texts(result.reasons)[0]).toMatch(/no required conditions/);
   });
 
   it("reads spam status, including the user's not-spam correction", () => {
@@ -391,24 +400,27 @@ describe("rule groups and not (ADR 0012)", () => {
       input({ facts: { ...UNKNOWN_FACTS, personallyKnown: true } }),
     );
     expect(result.placement).toBe("qualified");
-    expect(result.reasons[1]).toMatch(/^Rule 1: /);
+    expect(texts(result.reasons)[1]).toMatch(/^Rule 1: /);
   });
 
   it("qualifies a verified sender with enough photos and days by rule 2", () => {
     const result = evaluateContactRule(advanced(), known(false, 3));
     expect(result.placement).toBe("qualified");
-    expect(result.reasons.slice(1).every((r) => r.startsWith("Rule 2: "))).toBe(
-      true,
-    );
+    expect(
+      texts(result.reasons)
+        .slice(1)
+        .every((r) => r.startsWith("Rule 2: ")),
+    ).toBe(true);
   });
 
   it("names every rule that failed", () => {
     const result = evaluateContactRule(advanced(), known(false, 2));
     expect(result.placement).toBe("quarantined");
-    expect(result.reasons.slice(1).map((r) => r.slice(0, 7))).toEqual([
-      "Rule 1:",
-      "Rule 2:",
-    ]);
+    expect(
+      texts(result.reasons)
+        .slice(1)
+        .map((r) => r.slice(0, 7)),
+    ).toEqual(["Rule 1:", "Rule 2:"]);
   });
 
   it("combines rules with ALL", () => {
@@ -436,7 +448,7 @@ describe("rule groups and not (ADR 0012)", () => {
       state: "pass",
       outcome: "not-met",
     });
-    expect(photos?.reason).toContain('"not Minimum photos"');
+    expect(text(photos?.reason)).toContain('"not Minimum photos"');
   });
 
   it("keeps the unknown choice for a turned-around condition", () => {
@@ -454,7 +466,9 @@ describe("rule groups and not (ADR 0012)", () => {
       prdRule,
       input({ facts: { ...UNKNOWN_FACTS, verification: false } }),
     );
-    expect(result.reasons.some((r) => r.startsWith("Rule "))).toBe(false);
+    expect(texts(result.reasons).some((r) => r.startsWith("Rule "))).toBe(
+      false,
+    );
   });
 
   it("writes version 2 only when a rule uses not", () => {
@@ -499,7 +513,7 @@ describe("First message contains (ADR 0013)", () => {
       state: "pass",
       source: "observed",
     });
-    expect(phraseCondition(result)?.reason).toContain('"Blue Heron"');
+    expect(text(phraseCondition(result)?.reason)).toContain('"Blue Heron"');
   });
 
   it("stays met from an earlier match after a later message", () => {
@@ -521,7 +535,7 @@ describe("First message contains (ADR 0013)", () => {
       state: "unknown",
       outcome: "needs-review",
     });
-    expect(phraseCondition(result)?.reason).toContain(
+    expect(text(phraseCondition(result)?.reason)).toContain(
       "shows only the latest message",
     );
   });

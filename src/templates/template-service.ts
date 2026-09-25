@@ -1,5 +1,7 @@
 import type { MessageTemplate } from "../domain/types";
 import { ExtensionError } from "../errors";
+import type { PlainKey } from "../i18n/catalog/en";
+import { message, type Message } from "../i18n/message";
 import { withAccountLock } from "../storage/account-lock";
 import {
   ExtensionAccountRepository,
@@ -15,13 +17,16 @@ export const MAX_TEMPLATE_NAME_LENGTH = 80;
 export const MAX_TEMPLATE_FOLDER_LENGTH = 40;
 export const MAX_TEMPLATE_BODY_LENGTH = 4000;
 
-/** Shown for a template saved without a folder (PRD Section 6.1). */
-export const DEFAULT_FOLDER = "General";
-/** Offered as suggestions only; any folder name is accepted. */
-export const SUGGESTED_FOLDERS: readonly string[] = [
+/**
+ * Catalog key of the folder a template saved without one is shown under
+ * (PRD Section 6.1): "General" in English, "Allgemein" in German.
+ */
+export const DEFAULT_FOLDER = "templates.folder.general";
+/** Catalog keys of folder suggestions; any folder name is accepted. */
+export const SUGGESTED_FOLDERS: readonly PlainKey[] = [
   DEFAULT_FOLDER,
-  "Event confirmation",
-  "Event cancellation",
+  "templates.folder.eventConfirmation",
+  "templates.folder.eventCancellation",
 ];
 
 export interface TemplateInput {
@@ -53,24 +58,36 @@ export function normalizeTemplateBody(body: string): string {
   return body.replace(/\r\n?/gu, "\n");
 }
 
-export function folderOf(template: Pick<MessageTemplate, "folder">): string {
-  return template.folder ?? DEFAULT_FOLDER;
+/**
+ * The folder a template is shown under. `general` is the default folder's
+ * name in the language shown; the background, which never produces display
+ * text, leaves it out and gets "" for a template without a folder.
+ */
+export function folderOf(
+  template: Pick<MessageTemplate, "folder">,
+  general = "",
+): string {
+  return template.folder ?? general;
 }
 
-/** Folder, then name, then ID: a stable order for the list and the picker. */
+/**
+ * Folder, then name, then ID: a stable order for the list and the picker.
+ * `general` is the default folder's shown name, so it sorts where it reads.
+ */
 export function compareTemplates(
   a: MessageTemplate,
   b: MessageTemplate,
+  general = "",
 ): number {
   return (
-    folderOf(a).localeCompare(folderOf(b)) ||
+    folderOf(a, general).localeCompare(folderOf(b, general)) ||
     a.name.localeCompare(b.name) ||
     a.id.localeCompare(b.id)
   );
 }
 
-function invalid(message: string): ExtensionError {
-  return new ExtensionError("ExtractionInvalid", message);
+function invalid(text: string, display: Message): ExtensionError {
+  return new ExtensionError("ExtractionInvalid", text, { display });
 }
 
 /**
@@ -100,19 +117,36 @@ export class TemplateService {
     const name = collapse(input.name);
     const folder = collapse(input.folder ?? "");
     const body = normalizeTemplateBody(input.body);
-    if (name.length === 0) throw invalid("A template needs a name");
+    if (name.length === 0)
+      throw invalid(
+        "A template needs a name",
+        message("error.template.noName"),
+      );
     if (name.length > MAX_TEMPLATE_NAME_LENGTH)
       throw invalid(
         `A template name can have at most ${MAX_TEMPLATE_NAME_LENGTH} characters`,
+        message("error.template.nameTooLong", {
+          maximum: MAX_TEMPLATE_NAME_LENGTH,
+        }),
       );
     if (folder.length > MAX_TEMPLATE_FOLDER_LENGTH)
       throw invalid(
         `A folder name can have at most ${MAX_TEMPLATE_FOLDER_LENGTH} characters`,
+        message("error.template.folderTooLong", {
+          maximum: MAX_TEMPLATE_FOLDER_LENGTH,
+        }),
       );
-    if (body.trim().length === 0) throw invalid("A template needs some text");
+    if (body.trim().length === 0)
+      throw invalid(
+        "A template needs some text",
+        message("error.template.noText"),
+      );
     if (body.length > MAX_TEMPLATE_BODY_LENGTH)
       throw invalid(
         `A template can have at most ${MAX_TEMPLATE_BODY_LENGTH} characters`,
+        message("error.template.tooLong", {
+          maximum: MAX_TEMPLATE_BODY_LENGTH,
+        }),
       );
     return withAccountLock(accountId, async () => {
       await this.#requireAccount(accountId, guard);
@@ -124,6 +158,7 @@ export class TemplateService {
         throw new ExtensionError(
           "StorageError",
           "That template was deleted meanwhile",
+          { display: message("error.template.deleted") },
         );
       const timestamp = this.now();
       const template: MessageTemplate = {
@@ -156,11 +191,13 @@ export class TemplateService {
       throw new ExtensionError(
         "IdentityMismatch",
         "That account no longer exists",
+        { display: message("error.account.gone") },
       );
     if (guard && (await guard.activeAccountId()) !== accountId)
       throw new ExtensionError(
         "IdentityMismatch",
         "The active account changed",
+        { display: message("error.account.changed") },
       );
   }
 }

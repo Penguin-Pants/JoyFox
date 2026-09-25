@@ -184,6 +184,38 @@ describe("M10 composer template picker", () => {
     expect(toggle().getAttribute("aria-expanded")).toBe("false");
   });
 
+  it("merges a folder named General with templates without one, in name order", async () => {
+    const view = new TemplatePicker(
+      document,
+      client({
+        accountId: "account-a",
+        // The background's order: no folder ("") first, then by folder.
+        templates: [
+          { id: "template:3", name: "Zebra", folder: "", body: "Z" },
+          { id: "template:4", name: "Apfel", folder: "General", body: "A" },
+          { id: "template:5", name: "Mitte", folder: "Event", body: "M" },
+        ],
+      }),
+    );
+    view.update();
+    toggle().click();
+    await settle(() => items().length === 3);
+    const groups = Array.from(
+      document.querySelectorAll(".joyfox-template-picker__group"),
+      (group) => [
+        group.getAttribute("aria-label"),
+        Array.from(
+          group.querySelectorAll(".joyfox-template-picker__item"),
+          (item) => item.textContent,
+        ),
+      ],
+    );
+    expect(groups).toEqual([
+      ["Event", ["Mitte"]],
+      ["General", ["Apfel", "Zebra"]],
+    ]);
+  });
+
   it("reads the list fresh on every opening", async () => {
     const api = client();
     const view = new TemplatePicker(document, api);

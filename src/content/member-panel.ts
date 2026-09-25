@@ -1,4 +1,7 @@
 import { extractConversation, extractProfile } from "../extraction/joyclub";
+import type { PlainKey } from "../i18n/catalog/en";
+import { message } from "../i18n/message";
+import { t } from "../i18n/translator";
 import { resolveMemberIdentity } from "../identity/member-identity";
 import type { ProfileFacts } from "../qualification/facts";
 import { selectorRegistry } from "../selectors/registry";
@@ -17,6 +20,8 @@ import { isPlaced, placeInStrip, removeEmptyStrip } from "./member-strip";
 import {
   element,
   memberBar,
+  openSections,
+  reopenSections,
   UI_ATTRIBUTE,
   unknownProfileFactsText,
 } from "./triage-ui";
@@ -81,10 +86,9 @@ interface Target {
   profileUrl?: string;
 }
 
-const RULE_OFF_TEXT: Record<string, string> = {
-  "no-rule": "No contact rule is set, so JoyFox does not place this sender.",
-  "rule-disabled":
-    "Your contact rule is turned off, so JoyFox does not place this sender.",
+const RULE_OFF_TEXT: Partial<Record<TriageResponse["status"], PlainKey>> = {
+  "no-rule": "panel.ruleOff.no-rule",
+  "rule-disabled": "panel.ruleOff.rule-disabled",
 };
 
 /**
@@ -110,7 +114,8 @@ export class MemberPanel {
    */
   #captureQueue: Promise<void> = Promise.resolve();
   #writeQueue: Promise<void> = Promise.resolve();
-  #error?: string;
+  /** Set when the last write failed. The text is drawn in the language shown. */
+  #error = false;
   #page?: MemberPage;
   /** Whether "Why and move" is open; kept across redraws of the bar. */
   #drawerOpen = false;
@@ -274,6 +279,12 @@ export class MemberPanel {
       });
   }
 
+  /** The language changed: draw the panel again, in place. */
+  localeChanged(): void {
+    this.#rendered = "";
+    if (this.#page) this.update(this.#page);
+  }
+
   #render(target: Target, data: PanelData): void {
     const key = JSON.stringify([target.key, data, this.#error]);
     const existing = this.document.querySelector(
@@ -285,6 +296,11 @@ export class MemberPanel {
       this.teardown();
       return;
     }
+    // A redraw for the same member keeps its open sections.
+    const open =
+      existing?.getAttribute("data-member") === target.memberId
+        ? openSections(existing)
+        : new Set<string>();
     existing?.remove();
     this.#rendered = key;
     // Any path to another member (a route, a failed load, the inbox between
@@ -300,6 +316,7 @@ export class MemberPanel {
     );
     panel.setAttribute(UI_ATTRIBUTE, MEMBER_PANEL);
     panel.setAttribute("data-member", target.memberId);
+    // A brand name: the same in every language.
     panel.setAttribute("aria-label", "JoyFox");
     const memberId = target.memberId;
     const accountId = data.accountId;
@@ -343,8 +360,7 @@ export class MemberPanel {
     else
       panel.append(
         ...memberBar(this.document, {
-          ruleOff:
-            RULE_OFF_TEXT[data.rule] ?? "JoyFox does not place this sender.",
+          ruleOff: message(RULE_OFF_TEXT[data.rule] ?? "panel.ruleOff.other"),
           ...(data.trust.status === "ok" ? { trust: data.trust.trust } : {}),
           actions: {
             ...trustActions,
@@ -357,7 +373,10 @@ export class MemberPanel {
         }),
       );
     if (this.#error)
-      panel.append(element(this.document, "p", "joyfox-error", this.#error));
+      panel.append(
+        element(this.document, "p", "joyfox-error", t("common.saveFailed")),
+      );
+    reopenSections(panel, open);
     placeInStrip(this.document, target.anchor, panel);
   }
 
@@ -371,13 +390,12 @@ export class MemberPanel {
    * would remove the earlier outcome instead of the one just logged.
    */
   #write(action: () => Promise<void>): void {
-    this.#error = undefined;
+    this.#error = false;
     this.#writeQueue = this.#writeQueue.then(() =>
       action()
         .then(() => this.invalidate())
         .catch(() => {
-          this.#error =
-            "JoyFox could not save that change. Nothing was changed.";
+          this.#error = true;
           this.#rendered = "";
           if (this.#page) this.update(this.#page);
         }),

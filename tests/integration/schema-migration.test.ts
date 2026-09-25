@@ -1,6 +1,7 @@
 import "../setup-indexeddb";
 import { beforeEach, describe, expect, it } from "vitest";
 import type { MessageObservation } from "../../src/domain/types";
+import { setLocale } from "../../src/i18n/translator";
 import {
   DATABASE_NAME,
   DATABASE_VERSION,
@@ -13,6 +14,7 @@ import {
   MESSAGE_OBSERVATION_RETENTION_DAYS,
   repositories,
 } from "../../src/storage/repositories";
+import { texts } from "../i18n-text";
 import { freshDatabase } from "../setup-indexeddb";
 
 const ACCOUNT = "account-a";
@@ -120,7 +122,7 @@ describe("schema version 2", () => {
   it("upgrades a version 2 database by adding only the phrase match store", async () => {
     await createOlderDatabase(2, VERSION_2_STORES);
     const db = await openDatabase();
-    expect(db.version).toBe(3);
+    expect(db.version).toBe(DATABASE_VERSION);
     expect(Array.from(db.objectStoreNames).sort()).toEqual(
       [...VERSION_2_STORES, "messagePhraseMatches"].sort(),
     );
@@ -230,5 +232,163 @@ describe("schema version 2", () => {
     expect(
       await repositories.messageObservations.list("account-b"),
     ).toHaveLength(1);
+  });
+});
+
+/**
+ * An older install (version 2, or version 3 with the phrase match store) with
+ * manual placements in their English form.
+ */
+async function createDatabaseWithReasons(
+  version: 2 | 3,
+  classifications: Array<Record<string, unknown>>,
+): Promise<void> {
+  await resetDatabaseConnectionForTests();
+  await new Promise<void>((resolve, reject) => {
+    const request = indexedDB.deleteDatabase(DATABASE_NAME);
+    request.onsuccess = () => resolve();
+    request.onerror = () => reject(request.error);
+  });
+  const db = await new Promise<IDBDatabase>((resolve, reject) => {
+    const request = indexedDB.open(DATABASE_NAME, version);
+    request.onupgradeneeded = () => {
+      for (const name of version === 2
+        ? VERSION_2_STORES
+        : [...VERSION_2_STORES, "messagePhraseMatches"]) {
+        const store = request.result.createObjectStore(name, {
+          keyPath: "storageKey",
+        });
+        store.createIndex("accountId", "accountId", { unique: false });
+        store.createIndex("updatedAt", "updatedAt", { unique: false });
+      }
+    };
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error);
+  });
+  const transaction = db.transaction(
+    "conversationClassifications",
+    "readwrite",
+  );
+  for (const record of classifications)
+    transaction.objectStore("conversationClassifications").put({
+      storageKey: `${ACCOUNT}:${String(record.id)}`,
+      accountId: ACCOUNT,
+      source: "user",
+      decidedAt: "2026-09-20T00:00:00.000Z",
+      createdAt: "2026-09-20T00:00:00.000Z",
+      updatedAt: "2026-09-20T00:00:00.000Z",
+      ...record,
+    });
+  await new Promise<void>((resolve, reject) => {
+    transaction.oncomplete = () => resolve();
+    transaction.onerror = () => reject(transaction.error);
+  });
+  db.close();
+}
+
+describe("schema version 4", () => {
+  beforeEach(async () => {
+    await freshDatabase();
+  });
+
+  it.each([2, 3] as const)(
+    "rewrites version %i reasons as messages and keeps every override",
+    async (version) => {
+      await createDatabaseWithReasons(version, [
+        {
+          id: "classification:1",
+          memberId: "1",
+          placement: "needs-review",
+          reasons: ["You moved this sender to Needs Review."],
+        },
+        {
+          id: "classification:2",
+          memberId: "2",
+          placement: "quarantined",
+          reasons: [
+            "You moved this sender to Quarantined.",
+            "A reason from an older build.",
+          ],
+        },
+      ]);
+      const db = await openDatabase();
+      expect(db.version).toBe(4);
+      expect(db.objectStoreNames.contains("messagePhraseMatches")).toBe(true);
+      const stored =
+        await repositories.conversationClassifications.list(ACCOUNT);
+      expect(
+        stored
+          .sort((a, b) => a.id.localeCompare(b.id))
+          .map(({ memberId, placement, reasons }) => ({
+            memberId,
+            placement,
+            reasons,
+          })),
+      ).toEqual([
+        {
+          memberId: "1",
+          placement: "needs-review",
+          reasons: [
+            {
+              key: "triage.reason.userMoved",
+              params: { placement: { key: "placement.needs-review" } },
+            },
+          ],
+        },
+        {
+          memberId: "2",
+          placement: "quarantined",
+          reasons: [
+            {
+              key: "triage.reason.userMoved",
+              params: { placement: { key: "placement.quarantined" } },
+            },
+            {
+              key: "legacy.text",
+              params: { text: "A reason from an older build." },
+            },
+          ],
+        },
+      ]);
+      // The migrated reasons read in both languages; old text stays verbatim.
+      const reasons = stored.flatMap((record) => record.reasons);
+      expect(texts(reasons)).toEqual([
+        "You moved this sender to Needs Review.",
+        "You moved this sender to Quarantined.",
+        "A reason from an older build.",
+      ]);
+      setLocale("de");
+      expect(texts(reasons)).toEqual([
+        "Du hast diese Person nach „Zu prüfen“ verschoben.",
+        "Du hast diese Person nach „Quarantäne“ verschoben.",
+        "A reason from an older build.",
+      ]);
+      setLocale("en");
+    },
+  );
+
+  it("upgrades a version 1 database through every version", async () => {
+    await createOlderDatabase(1, VERSION_1_STORES);
+    const db = await openDatabase();
+    expect(db.version).toBe(4);
+    expect((await repositories.userNotes.get(ACCOUNT, "note-1"))?.body).toBe(
+      "Note written before the upgrade",
+    );
+  });
+
+  it("refuses to store a reason that is not a catalog message", async () => {
+    await expect(
+      repositories.conversationClassifications.put(ACCOUNT, {
+        id: "classification:3",
+        accountId: ACCOUNT,
+        memberId: "3",
+        placement: "qualified",
+        source: "user",
+        decidedAt: "2026-09-20T00:00:00.000Z",
+        reasons: ["Plain English" as never],
+        createdAt: "2026-09-20T00:00:00.000Z",
+        updatedAt: "2026-09-20T00:00:00.000Z",
+      }),
+    ).rejects.toThrow("catalog messages");
   });
 });

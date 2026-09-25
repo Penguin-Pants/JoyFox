@@ -9,10 +9,13 @@ import {
 } from "../data/data-service";
 import { MAX_IMPORT_BYTES, type ImportPlan } from "../data/import";
 import type { EntityName, ExtensionAccount } from "../domain/types";
-import { ExtensionError, isExtensionError } from "../errors";
+import { ExtensionError } from "../errors";
+import { message, type Message } from "../i18n/message";
+import { errorDisplay, formatDate, formatNumber, t } from "../i18n/translator";
 import { ENTITY_NAMES } from "../storage/database";
 import type { EntityCounts } from "../storage/repositories";
 import { confirmAllowed, confirmTiming } from "./confirm";
+import { StatusLine } from "./status-line";
 
 function element<K extends keyof HTMLElementTagNameMap>(
   document: Document,
@@ -84,14 +87,16 @@ const samePending = (a: Pending | undefined, b: Pending) =>
  * browser: an export is a file the user saves.
  */
 export class DataPanel {
-  readonly #status: HTMLParagraphElement;
+  readonly #status: StatusLine;
   /** Import's own status line, beside it when it has its own place. */
-  readonly #importStatus: HTMLParagraphElement;
+  readonly #importStatus: StatusLine;
   #generation = 0;
   /** The account being inspected; not necessarily the active one. */
   #selected: string | undefined;
   #shown: EntityName | undefined;
   #shownLimit = RECORD_PAGE_SIZE;
+  /** The records expanded when the panel was last drawn. */
+  #openRecords = new Set<string>();
   #pending: Pending | undefined;
   #armedAt = 0;
   /** What the last import changed, shown until the next file choice. */
@@ -114,14 +119,10 @@ export class DataPanel {
      */
     private readonly importRoot?: HTMLElement,
   ) {
-    const status = () => {
-      const node = root.ownerDocument.createElement("p");
-      node.className = "joyfox-panel__status";
-      node.setAttribute("aria-live", "polite");
-      return node;
-    };
-    this.#status = status();
-    this.#importStatus = importRoot ? status() : this.#status;
+    this.#status = new StatusLine(root.ownerDocument);
+    this.#importStatus = importRoot
+      ? new StatusLine(root.ownerDocument)
+      : this.#status;
   }
 
   async render(): Promise<void> {
@@ -144,13 +145,13 @@ export class DataPanel {
       }
     } catch {
       if (generation === this.#generation) {
-        this.root.textContent =
-          "JoyFox could not read its stored data. Nothing was changed.";
+        this.root.textContent = t("data.readFailed");
         // Import needs none of these reads. Redraw it, so a chooser that a
         // file choice disabled is enabled again.
+        this.#importStatus.redraw();
         this.importRoot?.replaceChildren(
           this.#renderImport(document),
-          this.#importStatus,
+          this.#importStatus.node,
         );
       }
       return;
@@ -163,23 +164,29 @@ export class DataPanel {
     }
     this.#selected = selected;
 
+    // A redraw (a language change, a delete elsewhere) keeps the records the
+    // user expanded. Read after the storage reads, just before the redraw.
+    this.#openRecords = new Set(
+      Array.from(
+        this.root.querySelectorAll<HTMLElement>(".joyfox-data__record"),
+      )
+        .filter((item) => item.querySelector("details")?.open)
+        .map((item) => item.dataset.recordId ?? ""),
+    );
     this.root.replaceChildren();
+    this.#status.redraw();
+    this.#importStatus.redraw();
     const heading = element(
       document,
       "h2",
       "joyfox-panel__heading",
-      "Your data",
+      t("options.tabs.data"),
     );
     heading.id = "joyfox-data-heading";
     this.root.setAttribute("aria-labelledby", heading.id);
     this.root.append(
       heading,
-      element(
-        document,
-        "p",
-        "joyfox-panel__hint",
-        "Everything JoyFox stores stays in this browser profile. You can inspect it, save it as a JSON file and delete it here. Deleting here never changes anything on JoyClub.",
-      ),
+      element(document, "p", "joyfox-panel__hint", t("data.hint")),
     );
     if (accounts.length > 0 && selected && counts) {
       this.root.append(
@@ -191,13 +198,13 @@ export class DataPanel {
       this.root.append(this.#renderAccountActions(document));
     } else {
       this.root.append(
-        element(document, "p", "joyfox-panel__empty", "No accounts yet."),
+        element(document, "p", "joyfox-panel__empty", t("data.noAccounts")),
       );
     }
-    this.root.append(this.#renderGlobalActions(document), this.#status);
+    this.root.append(this.#renderGlobalActions(document), this.#status.node);
     this.importRoot?.replaceChildren(
       this.#renderImport(document),
-      this.#importStatus,
+      this.#importStatus.node,
     );
   }
 
@@ -211,7 +218,7 @@ export class DataPanel {
       document,
       "label",
       "joyfox-panel__field-label",
-      "Account to inspect",
+      t("data.accountPicker"),
     );
     label.htmlFor = "joyfox-data-account";
     const select = element(document, "select", "joyfox-data__account");
@@ -227,7 +234,7 @@ export class DataPanel {
       this.#selected = select.value;
       this.#shown = undefined;
       this.#pending = undefined;
-      this.#setStatus("", "info");
+      this.#status.clear();
       void this.render();
     });
     wrapper.append(label, select);
@@ -240,11 +247,15 @@ export class DataPanel {
       document,
       "caption",
       "joyfox-data__caption",
-      "Stored records for this account",
+      t("data.caption"),
     );
     const head = document.createElement("thead");
     const headRow = document.createElement("tr");
-    for (const title of ["Data type", "Records", "Actions"]) {
+    for (const title of [
+      t("data.col.type"),
+      t("data.col.records"),
+      t("data.col.actions"),
+    ]) {
       const cell = element(document, "th", "", title);
       cell.scope = "col";
       headRow.append(cell);
@@ -254,28 +265,28 @@ export class DataPanel {
     for (const name of ENTITY_NAMES) {
       const row = document.createElement("tr");
       row.dataset.entity = name;
-      const title = element(document, "th", "", ENTITY_LABELS[name]);
+      const title = element(document, "th", "", t(ENTITY_LABELS[name]));
       title.scope = "row";
       const count = element(
         document,
         "td",
         "joyfox-data__count",
-        String(counts[name]),
+        formatNumber(counts[name]),
       );
       // The buttons sit in a flex box inside the cell: a flex cell is no
       // longer a table cell and falls out of line with its row.
       const cell = document.createElement("td");
       const actions = element(document, "div", "joyfox-data__actions");
       cell.append(actions);
-      const label = ENTITY_LABELS[name];
+      const label = message(ENTITY_LABELS[name]);
       if (counts[name] > 0) {
         const showing = this.#shown === name;
         actions.append(
           this.#button(
             document,
             "joyfox-data__show",
-            showing ? "Hide" : "Show",
-            showing ? `Hide ${label}` : `Show ${label}`,
+            t(showing ? "data.hide" : "data.show"),
+            t(showing ? "data.hideLabel" : "data.showLabel", { label }),
             () => {
               this.#pending = undefined;
               this.#shown = showing ? undefined : name;
@@ -289,11 +300,11 @@ export class DataPanel {
             this.#confirmButton(
               document,
               { kind: "entity", entity: name },
-              "Delete all",
-              `Delete all ${label}`,
-              `Click "Confirm" to delete all ${counts[name]} ${label} records of this account.`,
+              t("data.deleteAll"),
+              message("data.deleteAllLabel", { label }),
+              message("data.deleteAllPrompt", { count: counts[name], label }),
               (accountId) => this.data.deleteEntity(accountId, name),
-              `Deleted all ${label} of this account.`,
+              message("data.deletedAll", { label }),
             ),
           );
       }
@@ -314,7 +325,10 @@ export class DataPanel {
       document,
       "h3",
       "joyfox-data__records-title",
-      `${ENTITY_LABELS[name]} (${records.length})`,
+      t("data.recordsTitle", {
+        label: message(ENTITY_LABELS[name]),
+        count: records.length,
+      }),
     );
     section.append(title);
     if (!isDeletableEntity(name))
@@ -323,7 +337,7 @@ export class DataPanel {
           document,
           "p",
           "joyfox-panel__hint",
-          "The account record is removed only with the whole account, in Accounts above.",
+          t("data.accountRecordHint"),
         ),
       );
     const list = element(document, "ul", "joyfox-data__record-list");
@@ -331,12 +345,16 @@ export class DataPanel {
       const item = element(document, "li", "joyfox-data__record");
       item.dataset.recordId = record.id;
       const details = element(document, "details", "joyfox-data__details");
+      details.open = this.#openRecords.has(record.id);
       details.append(
         element(
           document,
           "summary",
           "",
-          `${record.id} (updated ${record.updatedAt})`,
+          t("data.recordSummary", {
+            id: record.id,
+            updated: formatDate(record.updatedAt),
+          }),
         ),
         element(
           document,
@@ -351,11 +369,11 @@ export class DataPanel {
           this.#confirmButton(
             document,
             { kind: "record", entity: name, id: record.id },
-            "Delete",
-            `Delete record ${record.id}`,
-            `Click "Confirm" to delete record ${record.id}.`,
+            t("data.delete"),
+            message("data.deleteRecordLabel", { id: record.id }),
+            message("data.deleteRecordPrompt", { id: record.id }),
             (accountId) => this.data.deleteRecord(accountId, name, record.id),
-            `Deleted record ${record.id}.`,
+            message("data.deletedRecord", { id: record.id }),
           ),
         );
       list.append(item);
@@ -366,7 +384,12 @@ export class DataPanel {
         this.#button(
           document,
           "joyfox-data__more",
-          `Show ${Math.min(RECORD_PAGE_SIZE, records.length - this.#shownLimit)} more`,
+          t("data.showMore", {
+            count: Math.min(
+              RECORD_PAGE_SIZE,
+              records.length - this.#shownLimit,
+            ),
+          }),
           undefined,
           () => {
             this.#pending = undefined;
@@ -384,7 +407,7 @@ export class DataPanel {
       this.#button(
         document,
         "joyfox-data__export",
-        "Export this account (JSON)",
+        t("data.exportAccount"),
         undefined,
         () =>
           void this.#guard(async () => {
@@ -393,18 +416,18 @@ export class DataPanel {
             const accountId = this.#requireSelected();
             const exported = await this.data.exportAccount(accountId);
             this.saveFile(exportFileName(exported), serializeExport(exported));
-            this.#setStatus("Export of this account created.", "info");
+            this.#setStatus(message("data.exportedAccount"), "info");
           }),
       ),
       document.createTextNode(" "),
       this.#confirmButton(
         document,
         { kind: "account" },
-        "Delete this account's data",
-        "Delete all data of this account",
-        'Click "Confirm" to delete every record of this account. The account itself stays in Accounts.',
+        t("data.deleteAccountData"),
+        message("data.deleteAccountDataLabel"),
+        message("data.deleteAccountDataPrompt"),
         (accountId) => this.data.clearAccountData(accountId),
-        "Deleted all data of this account. The account itself is kept.",
+        message("data.deletedAccountData"),
       ),
     );
     return actions;
@@ -413,11 +436,16 @@ export class DataPanel {
   #renderGlobalActions(document: Document): HTMLElement {
     const section = element(document, "div", "joyfox-data__global");
     section.append(
-      element(document, "h3", "joyfox-data__global-title", "All accounts"),
+      element(
+        document,
+        "h3",
+        "joyfox-data__global-title",
+        t("data.allAccounts"),
+      ),
       this.#button(
         document,
         "joyfox-data__export-all",
-        "Export all JoyFox data (JSON)",
+        t("data.exportAll"),
         undefined,
         () =>
           void this.#guard(async () => {
@@ -425,18 +453,18 @@ export class DataPanel {
             this.#pending = undefined;
             const exported = await this.data.exportAll();
             this.saveFile(exportFileName(exported), serializeExport(exported));
-            this.#setStatus("Export of all JoyFox data created.", "info");
+            this.#setStatus(message("data.exportedAll"), "info");
           }),
       ),
       document.createTextNode(" "),
       this.#confirmButton(
         document,
         { kind: "all" },
-        "Delete all JoyFox data",
-        "Delete all JoyFox data in this browser",
-        'Click "Confirm" to delete every account, every record and every JoyFox setting in this browser. This cannot be undone.',
+        t("data.deleteEverything"),
+        message("data.deleteEverythingLabel"),
+        message("data.deleteEverythingPrompt"),
         () => this.data.deleteEverything(),
-        "Deleted all JoyFox data in this browser.",
+        message("data.deletedEverything"),
       ),
       ...(this.importRoot ? [] : [this.#renderImport(document)]),
     );
@@ -451,20 +479,20 @@ export class DataPanel {
   #renderImport(document: Document): HTMLElement {
     const section = element(document, "div", "joyfox-data__import");
     section.append(
-      element(document, "h3", "joyfox-data__import-title", "Import"),
       element(
         document,
-        "p",
-        "joyfox-panel__hint",
-        "Import a JoyFox export file: everything, or one account. It is merged into what is stored here. An account with the same JoyClub identifier is merged into the existing one. For the same note, rule or placement the newer version wins; existing tags and corrections are kept. The import starts when you choose the file, and you then see what changed.",
+        "h3",
+        "joyfox-data__import-title",
+        t("data.import.title"),
       ),
+      element(document, "p", "joyfox-panel__hint", t("data.import.hint")),
     );
     const field = element(document, "p", "joyfox-panel__field");
     const label = element(
       document,
       "label",
       "joyfox-panel__field-label",
-      "JoyFox export file (JSON)",
+      t("data.import.fileLabel"),
     );
     label.htmlFor = "joyfox-data-import";
     const input = element(document, "input", "joyfox-data__import-file");
@@ -497,7 +525,12 @@ export class DataPanel {
         document,
         "p",
         "",
-        `This ${plan.scope === "all" ? "full" : "single-account"} export holds ${matched + added} account(s): ${matched} merged into an existing account, ${added} added as new.`,
+        t(
+          plan.scope === "all"
+            ? "data.import.summary.all"
+            : "data.import.summary.account",
+          { matched, added, total: matched + added },
+        ),
       ),
     );
     const table = element(document, "table", "joyfox-data__counts");
@@ -506,16 +539,16 @@ export class DataPanel {
         document,
         "caption",
         "joyfox-data__caption",
-        "What the import changed",
+        t("data.import.caption"),
       ),
     );
     const head = document.createElement("tr");
     for (const title of [
-      "Data type",
-      "Added",
-      "Replaced (newer)",
-      "Kept",
-      "Skipped duplicates",
+      t("data.col.type"),
+      t("data.import.col.added"),
+      t("data.import.col.replaced"),
+      t("data.import.col.kept"),
+      t("data.import.col.duplicates"),
     ]) {
       const cell = element(document, "th", "", title);
       cell.scope = "col";
@@ -532,7 +565,7 @@ export class DataPanel {
       rows += 1;
       const row = document.createElement("tr");
       row.dataset.importEntity = name;
-      const title = element(document, "th", "", ENTITY_LABELS[name]);
+      const title = element(document, "th", "", t(ENTITY_LABELS[name]));
       title.scope = "row";
       row.append(title);
       for (const value of [
@@ -541,22 +574,23 @@ export class DataPanel {
         count.kept,
         count.duplicates,
       ])
-        row.append(element(document, "td", "", String(value)));
+        row.append(element(document, "td", "", formatNumber(value)));
       body.append(row);
     }
     table.append(thead, body);
     preview.append(
-      rows > 0
-        ? table
-        : element(document, "p", "", "The file holds no records."),
+      rows > 0 ? table : element(document, "p", "", t("data.import.noRecords")),
     );
+    // Setting names are technical keys, the same in every language.
     if (plan.settingsSkipped.length > 0)
       preview.append(
         element(
           document,
           "p",
           "",
-          `Settings in the file that are never imported (they switch features on): ${plan.settingsSkipped.join(", ")}.`,
+          t("data.import.settingsSkipped", {
+            keys: plan.settingsSkipped.join(", "),
+          }),
         ),
       );
     if (plan.settingsAdded.length > 0)
@@ -565,9 +599,12 @@ export class DataPanel {
           document,
           "p",
           "",
-          plan.settingsSaved === false
-            ? `Settings that could not be saved: ${plan.settingsAdded.join(", ")}.`
-            : `Settings added (only those not set here): ${plan.settingsAdded.join(", ")}.`,
+          t(
+            plan.settingsSaved === false
+              ? "data.import.settingsNotSaved"
+              : "data.import.settingsAdded",
+            { keys: plan.settingsAdded.join(", ") },
+          ),
         ),
       );
     return preview;
@@ -578,7 +615,7 @@ export class DataPanel {
     this.#pending = undefined;
     // Clear the last result at once: it belongs to another file.
     this.#importResult = undefined;
-    this.#setImportStatus("Importing the file.", "info");
+    this.#setImportStatus(message("data.import.running"), "info");
     void this.render();
     let checked = false;
     try {
@@ -586,6 +623,7 @@ export class DataPanel {
         throw new ExtensionError(
           "ExtractionInvalid",
           "The file is too large to be a JoyFox export",
+          { display: message("error.import.tooLarge") },
         );
       const text = await readText(file);
       const preview = await this.data.previewImport(text);
@@ -595,10 +633,7 @@ export class DataPanel {
       const plan = await this.data.applyImport(text, preview.signature);
       this.#importResult = plan;
       if (plan.writes.length === 0 && plan.settingsAdded.length === 0) {
-        this.#setImportStatus(
-          "Everything in this file is already stored. Nothing was changed.",
-          "info",
-        );
+        this.#setImportStatus(message("data.import.nothing"), "info");
       } else {
         const totals = ENTITY_NAMES.reduce(
           (sum, name) => ({
@@ -608,22 +643,24 @@ export class DataPanel {
           { added: 0, replaced: 0 },
         );
         this.#setImportStatus(
-          `Import complete: ${totals.added} record(s) added, ${totals.replaced} replaced by a newer version.${
+          message(
             plan.settingsSaved
-              ? ""
-              : " Some settings could not be saved; check the active account."
-          }`,
+              ? "data.import.complete"
+              : "data.import.completeSettingsFailed",
+            totals,
+          ),
           plan.settingsSaved ? "info" : "error",
         );
         this.onChange();
       }
     } catch (error) {
+      const display = errorDisplay(error);
       this.#setImportStatus(
-        isExtensionError(error)
-          ? `${error.message}. Nothing was imported.`
-          : checked
-            ? "The import could not be completed. The counts shown now are what is stored."
-            : "JoyFox could not read that file. Nothing was imported.",
+        display
+          ? message("error.withSuffix.nothingImported", { error: display })
+          : message(
+              checked ? "data.import.incomplete" : "data.import.unreadable",
+            ),
         "error",
       );
     } finally {
@@ -655,10 +692,10 @@ export class DataPanel {
     document: Document,
     pending: Pending,
     text: string,
-    ariaLabel: string,
-    prompt: string,
+    ariaLabel: Message,
+    prompt: Message,
     action: (accountId: string) => Promise<void>,
-    done: string,
+    done: Message,
   ): HTMLButtonElement {
     // Whether this node was drawn armed, fixed at draw time: a click on a
     // node drawn unarmed can only arm, never confirm.
@@ -666,8 +703,8 @@ export class DataPanel {
     const node = this.#button(
       document,
       "joyfox-panel__remove",
-      armed ? "Confirm" : text,
-      armed ? `Confirm: ${ariaLabel}` : ariaLabel,
+      armed ? t("data.confirm") : text,
+      armed ? t("data.confirmLabel", { label: ariaLabel }) : t(ariaLabel),
       (event) => {
         if (!armed) {
           if (event.detail > 1) return;
@@ -695,12 +732,12 @@ export class DataPanel {
     return this.#selected ?? "";
   }
 
-  #setStatus(message: string, kind: "info" | "error"): void {
-    setStatusLine(this.#status, message, kind);
+  #setStatus(message: Message, kind: "info" | "error"): void {
+    this.#status.set(message, kind);
   }
 
-  #setImportStatus(message: string, kind: "info" | "error"): void {
-    setStatusLine(this.#importStatus, message, kind);
+  #setImportStatus(message: Message, kind: "info" | "error"): void {
+    this.#importStatus.set(message, kind);
   }
 
   /**
@@ -714,23 +751,14 @@ export class DataPanel {
       await action();
     } catch (error) {
       this.#pending = undefined;
+      const display = errorDisplay(error);
       this.#setStatus(
-        isExtensionError(error)
-          ? `${error.message}. Nothing was deleted.`
-          : "That action could not be completed. The counts shown now are what is stored.",
+        display
+          ? message("error.withSuffix.nothingDeleted", { error: display })
+          : message("data.actionFailed"),
         "error",
       );
     }
     await this.render();
   }
-}
-
-function setStatusLine(
-  line: HTMLParagraphElement,
-  message: string,
-  kind: "info" | "error",
-): void {
-  line.dataset.kind = kind;
-  line.setAttribute("role", kind === "error" ? "alert" : "status");
-  line.textContent = message;
 }

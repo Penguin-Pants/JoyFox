@@ -11,6 +11,8 @@ import {
   type ActionTarget,
   type OperationReport,
 } from "../actions/ignore-delete";
+import { message, type Message } from "../i18n/message";
+import { t } from "../i18n/translator";
 import type {
   ExtensionMessage,
   ExtensionResponse,
@@ -106,34 +108,29 @@ export function liveQuickActionDriver(): QuickActionDriver | undefined {
   return new JoyClubQuickActionDriver(document);
 }
 
-const PROGRESS_TEXT: Partial<Record<ActionState, string>> = {
-  Started: "Ignore and Delete is running. Checking the page.",
-  DeleteRequested: "Moving the conversation to the trash.",
-  DeleteConfirmed:
-    "Delete done. Opening the member's profile to ignore them there.",
-  IgnoreRequested: "Ignoring the member on JoyClub.",
+const PROGRESS_TEXT: Partial<Record<ActionState, Message>> = {
+  Started: message("quick.progress.Started"),
+  DeleteRequested: message("quick.progress.DeleteRequested"),
+  DeleteConfirmed: message("quick.progress.DeleteConfirmed"),
+  IgnoreRequested: message("quick.progress.IgnoreRequested"),
 };
 
 /** How long a resumed run waits for the profile menu before it tries. */
 export const RESUME_WAIT_MS = 10_000;
 
+/** The notice's own lines, as catalog messages translated when shown. */
 export const QUICK_ACTION_TEXT = {
-  button: "Ignore and Delete",
-  scope:
-    "Experimental. One click moves this conversation to JoyClub's trash, then opens the member's profile and ignores them there. JoyFox stops at the first problem and tells you what was done. It never sends a message.",
-  handedOff: "Delete done. Opening the member's profile to ignore them there.",
-  noProfile:
-    "JoyFox cannot find this member's profile address, where Ignore is, so it did nothing.",
-  resumed: "Ignore and Delete, continued from the conversation:",
-  previous: "Your last Ignore and Delete for this member:",
-  previousOther:
-    "Your last Ignore and Delete for this member, in another conversation:",
-  otherResult: "Your last Ignore and Delete, for another conversation:",
-  otherRunning:
-    "Ignore and Delete is still running for another conversation. Wait until it ends.",
-  busy: "Another Ignore and Delete for this member is still running, for example in another tab. Nothing was done here.",
-  unexpected:
-    "Ignore and Delete stopped because of an unexpected error. JoyFox may have completed a step: check the member's profile and the conversation yourself.",
+  button: message("quick.button"),
+  scope: message("quick.scope"),
+  handedOff: message("quick.progress.DeleteConfirmed"),
+  noProfile: message("quick.noProfile"),
+  resumed: message("quick.resumed"),
+  previous: message("quick.previous"),
+  previousOther: message("quick.previousOther"),
+  otherResult: message("quick.otherResult"),
+  otherRunning: message("quick.otherRunning"),
+  busy: message("quick.busy"),
+  unexpected: message("quick.unexpected"),
 } as const;
 
 /** The hand-off this profile page resumes, once read (one-shot). */
@@ -179,8 +176,8 @@ export class QuickIgnoreDelete {
   #inFlight?: string;
   #generation = 0;
   #drawn?: Drawn;
-  #running?: { key: string; progress: string };
-  #result?: { key: string; lines: readonly string[] };
+  #running?: { key: string; progress: Message };
+  #result?: { key: string; lines: readonly Message[] };
   /** Set when the run must stop before its next click. */
   #stop?: ActionFailure;
   #busy = false;
@@ -194,6 +191,7 @@ export class QuickIgnoreDelete {
   /** Failed reads of the hand-off marker on this page; retried a few times. */
   #pendingFailures = 0;
   #profileDrawn?: { section: HTMLElement; status: HTMLElement; lines: string };
+  #profileAnchor?: Element;
 
   constructor(
     private readonly document: Document,
@@ -320,8 +318,26 @@ export class QuickIgnoreDelete {
       });
   }
 
+  /**
+   * The language changed: the button, its note and the notice are drawn
+   * again. A run in progress is not touched.
+   */
+  localeChanged(): void {
+    if (this.#drawn) {
+      const focused = this.#drawn.section.contains(this.document.activeElement);
+      this.teardown();
+      if (this.#shown) this.update();
+      if (focused) this.#drawn?.button.focus({ preventScroll: true });
+    }
+    if (this.#profileDrawn) {
+      this.#removeProfileSection();
+      this.#renderProfile(this.#profileAnchor);
+    }
+  }
+
   /** The profile page shows only a resumed run's progress and result. */
   #renderProfile(anchor: Element | undefined): void {
+    this.#profileAnchor = anchor;
     const lines = this.#running
       ? [QUICK_ACTION_TEXT.resumed, this.#running.progress]
       : this.#result
@@ -340,7 +356,7 @@ export class QuickIgnoreDelete {
       this.#removeProfileSection();
       const section = element(this.document, "section", "joyfox-panel");
       section.setAttribute(UI_ATTRIBUTE, QUICK_ACTION);
-      section.setAttribute("aria-label", "JoyFox Ignore and Delete");
+      section.setAttribute("aria-label", t("quick.region"));
       const status = element(
         this.document,
         "div",
@@ -358,7 +374,7 @@ export class QuickIgnoreDelete {
     drawn.lines = text;
     const list = element(this.document, "ul", "joyfox-explain__list");
     for (const line of lines)
-      list.append(element(this.document, "li", "", line));
+      list.append(element(this.document, "li", "", t(line)));
     drawn.status.replaceChildren(list);
   }
 
@@ -513,7 +529,7 @@ export class QuickIgnoreDelete {
     shown: Shown,
     previous?: OperationReport,
     previousHere = true,
-  ): readonly string[] {
+  ): readonly Message[] {
     const running = this.#running;
     if (running)
       return running.key === shown.key
@@ -580,7 +596,7 @@ export class QuickIgnoreDelete {
       else {
         const list = element(this.document, "ul", "joyfox-explain__list");
         for (const line of lines)
-          list.append(element(this.document, "li", "", line));
+          list.append(element(this.document, "li", "", t(line)));
         drawn.status.replaceChildren(list);
       }
     }
@@ -608,11 +624,11 @@ export class QuickIgnoreDelete {
     const section = element(document, "section", "joyfox-panel");
     section.setAttribute(UI_ATTRIBUTE, QUICK_ACTION);
     section.setAttribute("data-member", shown.target.memberId);
-    section.setAttribute("aria-label", "JoyFox Ignore and Delete");
+    section.setAttribute("aria-label", t("quick.region"));
     const run = button(
       document,
       "joyfox-button",
-      QUICK_ACTION_TEXT.button,
+      t(QUICK_ACTION_TEXT.button),
       () => {
         if (!this.#busy) this.#run(shown, accountId);
       },
@@ -622,7 +638,7 @@ export class QuickIgnoreDelete {
     status.setAttribute("aria-live", "polite");
     section.append(
       run,
-      element(document, "p", "joyfox-note", QUICK_ACTION_TEXT.scope),
+      element(document, "p", "joyfox-note", t(QUICK_ACTION_TEXT.scope)),
       status,
     );
     return { key: shown.key, section, button: run, status, lines: "" };

@@ -6,6 +6,7 @@ import type {
   OperationReport,
 } from "../actions/ignore-delete";
 import type { ActionLog, TriagePlacement } from "../domain/types";
+import type { Message } from "../i18n/message";
 import type { ProfileFacts } from "../qualification/facts";
 import type {
   TriageRequestMember,
@@ -18,6 +19,7 @@ import type { TrustOutcomeKind } from "../trust/trust-service";
 export interface TemplateSummary {
   id: string;
   name: string;
+  /** "" for a template without a folder, shown as "General". */
   folder: string;
   body: string;
 }
@@ -191,7 +193,7 @@ export interface MessageContract {
     response:
       | { status: "none" }
       /** The account changed after Delete; the run was closed as such. */
-      | { status: "stopped"; lines: string[] }
+      | { status: "stopped"; lines: Message[] }
       | {
           status: "ok";
           accountId: string;

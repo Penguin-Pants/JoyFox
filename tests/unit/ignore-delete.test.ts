@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { texts } from "../i18n-text";
 import {
   ACTION_STATES,
   canTransition,
@@ -118,7 +119,7 @@ describe("M9 report", () => {
       ignore: "done",
       delete: "done",
     });
-    expect(result.lines[0]).toBe("Ignore and Delete finished.");
+    expect(texts(result.lines)[0]).toBe("Ignore and Delete finished.");
   });
 
   it("says nothing changed when Delete's control was missing", () => {
@@ -129,7 +130,7 @@ describe("M9 report", () => {
       delete: "not-done",
       failure: "control-missing",
     });
-    expect(result.lines).toEqual([
+    expect(texts(result.lines)).toEqual([
       "Ignore and Delete stopped.",
       "JoyFox could not find JoyClub's Delete control.",
       "Delete: not done.",
@@ -148,12 +149,12 @@ describe("M9 report", () => {
       ]),
     );
     expect(result).toMatchObject({ delete: "done", ignore: "not-done" });
-    expect(result.lines).toContain(
+    expect(texts(result.lines)).toContain(
       "JoyFox could not find JoyClub's Ignore control.",
     );
-    expect(result.lines).toContain("JoyFox did not undo anything.");
-    expect(result.lines.join(" ")).not.toMatch(/move it there yourself/);
-    expect(result.lines.join(" ")).toMatch(/member's profile/);
+    expect(texts(result.lines)).toContain("JoyFox did not undo anything.");
+    expect(texts(result.lines).join(" ")).not.toMatch(/move it there yourself/);
+    expect(texts(result.lines).join(" ")).toMatch(/member's profile/);
   });
 
   it("reports a requested but unconfirmed step as not confirmed, never as not done", () => {
@@ -161,10 +162,10 @@ describe("M9 report", () => {
       steps("Started", "DeleteRequested", ["Failed", "confirmation-missing"]),
     );
     expect(result.delete).toBe("unknown");
-    expect(result.lines).toContain(
+    expect(texts(result.lines)).toContain(
       "Delete: not confirmed. JoyFox started it but did not see JoyClub confirm it.",
     );
-    expect(result.lines).toContain("JoyFox did not undo anything.");
+    expect(texts(result.lines)).toContain("JoyFox did not undo anything.");
   });
 
   it("reads a stalled run as interrupted, and a recent one as running", () => {
@@ -173,19 +174,19 @@ describe("M9 report", () => {
     const stale = report(logged, T0 + STALE_AFTER_MS + 1);
     expect(stale.status).toBe("interrupted");
     expect(stale.delete).toBe("unknown");
-    expect(stale.lines[0]).toMatch(/interrupted/);
+    expect(texts(stale.lines)[0]).toMatch(/interrupted/);
   });
 
   it("never says a started step was not attempted when the log fails", () => {
     const lost = report(
       steps("Started", "DeleteRequested", ["Failed", "log-unavailable"]),
     );
-    expect(lost.lines).toContain(
+    expect(texts(lost.lines)).toContain(
       "JoyFox could not write to its action log, so it stopped during Delete.",
     );
-    expect(lost.lines.join(" ")).not.toMatch(/did not attempt/);
+    expect(texts(lost.lines).join(" ")).not.toMatch(/did not attempt/);
     const before = report(steps("Started", ["Failed", "log-unavailable"]));
-    expect(before.lines).toContain(
+    expect(texts(before.lines)).toContain(
       "JoyFox could not write to its action log, so it stopped before Delete.",
     );
   });
@@ -198,16 +199,21 @@ describe("M9 report", () => {
       "member-mismatch",
     ])
       for (const lines of [
-        report(steps("Started", "DeleteRequested", ["Failed", failure])).lines,
-        report(
-          steps(
-            "Started",
-            "DeleteRequested",
-            "DeleteConfirmed",
-            "IgnoreRequested",
-            ["Failed", failure],
-          ),
-        ).lines,
+        texts(
+          report(steps("Started", "DeleteRequested", ["Failed", failure]))
+            .lines,
+        ),
+        texts(
+          report(
+            steps(
+              "Started",
+              "DeleteRequested",
+              "DeleteConfirmed",
+              "IgnoreRequested",
+              ["Failed", failure],
+            ),
+          ).lines,
+        ),
       ])
         expect(lines.join(" ")).not.toMatch(/rolled back|restored|reverted/i);
   });

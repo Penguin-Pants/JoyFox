@@ -11,6 +11,10 @@ import type {
   MessageTemplate,
   UserNote,
 } from "../../src/domain/types";
+import { ExtensionError } from "../../src/errors";
+import { LOCALE_KEY } from "../../src/i18n/locale";
+import { isMessage } from "../../src/i18n/message";
+import { setLocale, t } from "../../src/i18n/translator";
 import { DATABASE_VERSION, ENTITY_NAMES } from "../../src/storage/database";
 import { repositories } from "../../src/storage/repositories";
 import { MemorySettingsArea } from "../memory-settings";
@@ -688,5 +692,129 @@ describe("M8 import: restoring and merging", () => {
       entities: { extensionAccounts: [account("a", "me")] },
     });
     expect(parseImportFile(text).schemaVersion).toBe(1);
+  });
+});
+
+describe("M8 import: language and schema version 4", () => {
+  const classification = (reasons: unknown[]) => ({
+    id: "classification:1234567",
+    accountId: "a",
+    memberId: "1234567",
+    placement: "quarantined",
+    source: "user",
+    decidedAt: t1,
+    reasons,
+    createdAt: t1,
+    updatedAt: t1,
+  });
+  const fileOf = (
+    version: number,
+    reasons: unknown[],
+    fileSettings: Record<string, unknown> = {},
+  ) =>
+    JSON.stringify({
+      ...JSON.parse(
+        fullFile(
+          {
+            extensionAccounts: [account("a", "me")],
+            conversationClassifications: [classification(reasons)],
+          },
+          fileSettings,
+        ),
+      ),
+      schemaVersion: version,
+    });
+
+  it.each([2, 3])(
+    "imports a version %i export with English reasons as messages",
+    async (version) => {
+      await importText(
+        fileOf(version, [
+          "You moved this sender to Quarantined.",
+          "Something an older build wrote.",
+        ]),
+      );
+      const [stored] = await repositories.conversationClassifications.list("a");
+      expect(stored?.reasons).toEqual([
+        {
+          key: "triage.reason.userMoved",
+          params: { placement: { key: "placement.quarantined" } },
+        },
+        {
+          key: "legacy.text",
+          params: { text: "Something an older build wrote." },
+        },
+      ]);
+    },
+  );
+
+  it("refuses English reasons in a version 4 file, with a display message", () => {
+    let refusal: unknown;
+    try {
+      parseImportFile(fileOf(4, ["You moved this sender to Quarantined."]));
+    } catch (error) {
+      refusal = error;
+    }
+    expect(refusal).toBeInstanceOf(ExtensionError);
+    const display = (refusal as ExtensionError).display;
+    expect(display).toEqual({
+      key: "error.import.invalid",
+      params: {
+        index: 1,
+        entity: { key: "entity.conversationClassifications" },
+      },
+    });
+    setLocale("de");
+    expect(t(display!)).toBe("Eintrag 1 in „Eigene Einordnungen“ ist ungültig");
+    setLocale("en");
+  });
+
+  it("gives every refusal a display message", () => {
+    for (const text of [
+      "{",
+      JSON.stringify({ schemaVersion: 3, scope: "all" }),
+      JSON.stringify({ schemaVersion: 9, scope: "all", entities: {} }),
+      JSON.stringify({ schemaVersion: 3, scope: "x", entities: {} }),
+      JSON.stringify({ schemaVersion: 3, scope: "all", entities: { x: [] } }),
+      fullFile({ userNotes: [note("a", "x".repeat(5000), t0)] }),
+      fullFile({ userNotes: [{ ...note("a", "x", t0), html: "<b>" }] }),
+    ]) {
+      let refusal: unknown;
+      try {
+        parseImportFile(text);
+      } catch (error) {
+        refusal = error;
+      }
+      expect(isMessage((refusal as ExtensionError).display), text).toBe(true);
+    }
+  });
+
+  it("imports the language only when it is valid and none is stored", async () => {
+    const plan = await importText(
+      fullFile(
+        { extensionAccounts: [account("a", "me")] },
+        { [LOCALE_KEY]: "de" },
+      ),
+    );
+    expect(plan.settingsAdded).toContain(LOCALE_KEY);
+    expect(settings.items.get(LOCALE_KEY)).toBe("de");
+
+    // A stored choice is never overwritten.
+    await settings.set({ [LOCALE_KEY]: "en" });
+    await importText(fullFile({}, { [LOCALE_KEY]: "de" }));
+    expect(settings.items.get(LOCALE_KEY)).toBe("en");
+
+    // An invalid value is never imported.
+    settings.items.delete(LOCALE_KEY);
+    const invalid = await importText(fullFile({}, { [LOCALE_KEY]: "fr" }));
+    expect(invalid.settingsAdded).not.toContain(LOCALE_KEY);
+    expect(settings.items.has(LOCALE_KEY)).toBe(false);
+  });
+
+  it("exports the language with the other settings", async () => {
+    await settings.set({ [LOCALE_KEY]: "de" });
+    const exported = await data.exportAll();
+    expect(exported.schemaVersion).toBe(4);
+    expect(exported.settings[LOCALE_KEY]).toBe("de");
   });
 });

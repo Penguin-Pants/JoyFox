@@ -1,4 +1,7 @@
 import type { TriagePlacement } from "../domain/types";
+import type { PlainKey } from "../i18n/catalog/en";
+import { message, type Message } from "../i18n/message";
+import { formatDate, t } from "../i18n/translator";
 import {
   CONDITION_TEXT,
   PLACEMENT_TEXT,
@@ -19,11 +22,15 @@ import type { TrustOutcomeKind } from "../trust/trust-service";
 /** Marks every element JoyFox injects, so cleanup can find them all. */
 export const UI_ATTRIBUTE = "data-joyfox-ui";
 
-const OUTCOME_TEXT: Record<EvaluatedCondition["outcome"], string> = {
-  met: "Met",
-  "not-met": "Not met",
-  "needs-review": "Needs review",
+const OUTCOME_TEXT: Record<EvaluatedCondition["outcome"], PlainKey> = {
+  met: "triage.outcome.met",
+  "not-met": "triage.outcome.not-met",
+  "needs-review": "triage.outcome.needs-review",
 };
+
+/** The text of a placement, in the current language. */
+export const placementText = (placement: TriagePlacement): string =>
+  t(PLACEMENT_TEXT[placement]);
 
 export function element<K extends keyof HTMLElementTagNameMap>(
   document: Document,
@@ -57,6 +64,26 @@ export function button(
   return node;
 }
 
+/**
+ * The classes of the `<details>` sections open under `root`, so a redraw
+ * (for example after a language change) can open the same sections again.
+ */
+export function openSections(root: Element | null | undefined): Set<string> {
+  return new Set(
+    Array.from(root?.querySelectorAll<HTMLDetailsElement>("details") ?? [])
+      .filter((node) => node.open && node.className)
+      .map((node) => node.className),
+  );
+}
+
+/** Open the sections under `root` that `openSections` found open before. */
+export function reopenSections(root: Element, open: Set<string>): void {
+  for (const node of Array.from(
+    root.querySelectorAll<HTMLDetailsElement>("details"),
+  ))
+    if (open.has(node.className)) node.open = true;
+}
+
 export interface ExplanationActions {
   onOverride(placement: TriagePlacement | null): void;
   /** Present where the user can log outcomes (conversation, profile). */
@@ -74,7 +101,7 @@ function conditionList(
       document,
       "summary",
       "",
-      `All conditions checked (${conditions.length})`,
+      t("triage.conditions.summary", { count: conditions.length }),
     ),
   );
   const list = element(document, "ul", "joyfox-explain__list");
@@ -86,9 +113,17 @@ function conditionList(
         document,
         "strong",
         "",
-        `${OUTCOME_TEXT[condition.outcome]}: ${condition.negate ? "not " : ""}${CONDITION_TEXT[condition.kind]}. `,
+        t(
+          condition.negate
+            ? "triage.condition.lineNegated"
+            : "triage.condition.line",
+          {
+            outcome: message(OUTCOME_TEXT[condition.outcome]),
+            condition: message(CONDITION_TEXT[condition.kind]),
+          },
+        ),
       ),
-      document.createTextNode(condition.reason),
+      document.createTextNode(t(condition.reason)),
     );
     list.append(item);
   }
@@ -103,18 +138,13 @@ export function trustSection(
 ): HTMLElement {
   const section = element(document, "div", "joyfox-trust");
   section.append(
-    element(
-      document,
-      "p",
-      "joyfox-trust__score",
-      trust === "unknown"
-        ? "Local trust score: no history yet."
-        : `Local trust score: ${trust.score}.`,
-    ),
+    element(document, "p", "joyfox-trust__score", trustScoreText(trust)),
   );
   if (trust !== "unknown") {
     const details = element(document, "details", "joyfox-trust__details");
-    details.append(element(document, "summary", "", "How the score adds up"));
+    details.append(
+      element(document, "summary", "", t("trust.details.summary")),
+    );
     const list = element(document, "ul", "joyfox-explain__list");
     for (const item of trust.contributions)
       list.append(
@@ -122,32 +152,35 @@ export function trustSection(
           document,
           "li",
           "",
-          `${item.points > 0 ? "+" : ""}${item.points}: ${item.reason}`,
+          t("trust.contribution", {
+            points: item.points,
+            reason: item.reason,
+          }),
         ),
       );
     details.append(list);
     section.append(details);
   }
-  section.append(element(document, "p", "joyfox-note", TRUST_SCOPE_NOTE));
+  section.append(element(document, "p", "joyfox-note", t(TRUST_SCOPE_NOTE)));
   const { onTrust, onUndoTrust } = actions;
   if (onTrust) {
     const row = element(document, "div", "joyfox-actions");
     row.setAttribute("role", "group");
-    row.setAttribute("aria-label", "Log an outcome with this member");
+    row.setAttribute("aria-label", t("trust.log.group"));
     row.append(
-      button(document, "joyfox-button", "Log positive", () =>
+      button(document, "joyfox-button", t("trust.log.positive"), () =>
         onTrust("positive"),
       ),
-      button(document, "joyfox-button", "Log neutral", () =>
+      button(document, "joyfox-button", t("trust.log.neutral"), () =>
         onTrust("neutral"),
       ),
-      button(document, "joyfox-button", "Log negative", () =>
+      button(document, "joyfox-button", t("trust.log.negative"), () =>
         onTrust("negative"),
       ),
     );
     if (onUndoTrust && trust !== "unknown" && trust.logged > 0)
       row.append(
-        button(document, "joyfox-button", "Undo last outcome", onUndoTrust),
+        button(document, "joyfox-button", t("trust.log.undo"), onUndoTrust),
       );
     section.append(row);
   }
@@ -166,11 +199,14 @@ export function explanation(
       document,
       "p",
       "joyfox-explain__placement",
-      `Placement: ${PLACEMENT_TEXT[result.placement]} (${
-        result.source === "override"
-          ? "your manual choice"
-          : "your contact rule"
-      }).`,
+      t("triage.placementLine", {
+        placement: message(PLACEMENT_TEXT[result.placement]),
+        source: message(
+          result.source === "override"
+            ? "triage.source.override"
+            : "triage.source.rule",
+        ),
+      }),
     ),
   );
   if (result.override)
@@ -179,19 +215,22 @@ export function explanation(
         document,
         "p",
         "",
-        `You moved this sender on ${result.override.decidedAt.slice(0, 10)}. Your rule alone would place it in ${PLACEMENT_TEXT[result.automatic.placement]}.`,
+        t("triage.movedOn", {
+          date: formatDate(result.override.decidedAt),
+          placement: message(PLACEMENT_TEXT[result.automatic.placement]),
+        }),
       ),
     );
   const reasons = element(document, "ul", "joyfox-explain__list");
   for (const reason of result.automatic.reasons)
-    reasons.append(element(document, "li", "", reason));
+    reasons.append(element(document, "li", "", t(reason)));
   root.append(reasons);
   if (result.automatic.evaluatedConditions.length > 0)
     root.append(conditionList(document, result.automatic.evaluatedConditions));
 
   const controls = element(document, "div", "joyfox-actions");
   controls.setAttribute("role", "group");
-  controls.setAttribute("aria-label", "Move this sender");
+  controls.setAttribute("aria-label", t("triage.move.group"));
   for (const placement of [
     "qualified",
     "needs-review",
@@ -200,7 +239,7 @@ export function explanation(
     const control = button(
       document,
       "joyfox-button",
-      `Move to ${PLACEMENT_TEXT[placement]}`,
+      t("triage.move.to", { placement: message(PLACEMENT_TEXT[placement]) }),
       () => actions.onOverride(placement),
     );
     // Disabled rather than hidden, so the control set stays predictable.
@@ -210,7 +249,7 @@ export function explanation(
   }
   if (result.source === "override")
     controls.append(
-      button(document, "joyfox-button", "Use my rule again", () =>
+      button(document, "joyfox-button", t("triage.move.useRule"), () =>
         actions.onOverride(null),
       ),
     );
@@ -220,37 +259,39 @@ export function explanation(
 }
 
 /** Rule conditions whose facts only the profile page shows. */
-const PROFILE_FACT_TEXT: Partial<Record<ConditionKind, string>> = {
-  minimumPhotos: "photo count",
-  minimumProfileWords: "profile word count",
-  minimumAccountAgeDays: "account age",
+const PROFILE_FACT_TEXT: Partial<Record<ConditionKind, PlainKey>> = {
+  minimumPhotos: "triage.profileFact.minimumPhotos",
+  minimumProfileWords: "triage.profileFact.minimumProfileWords",
+  minimumAccountAgeDays: "triage.profileFact.minimumAccountAgeDays",
 };
 
 /**
- * Which profile facts the rule needed but does not know, in words, or
+ * Which profile facts the rule needed but does not know, as a message, or
  * `undefined` when none is unknown. Only the profile page shows these facts,
  * and JoyFox never opens it by itself (build plan Section 12), so the user
  * opens it and JoyFox reads them then.
  */
 export function unknownProfileFactsText(
   conditions: readonly EvaluatedCondition[],
-): string | undefined {
-  const names = [
+): Message | undefined {
+  const [first, second, third] = [
     ...new Set(
       conditions
         .filter((condition) => condition.state === "unknown")
         .map((condition) => PROFILE_FACT_TEXT[condition.kind])
-        .filter((name): name is string => name !== undefined),
+        .filter((name): name is PlainKey => name !== undefined),
     ),
-  ];
-  if (names.length === 0) return undefined;
-  const list =
-    names.length === 1
-      ? names[0]
-      : `${names.slice(0, -1).join(", ")} and ${names[names.length - 1]}`;
-  return names.length === 1
-    ? `The ${list} is unknown. Open the profile and JoyFox reads it.`
-    : `The ${list} are unknown. Open the profile and JoyFox reads them.`;
+  ].map((key) => message(key));
+  if (!first) return undefined;
+  if (!second) return message("triage.unknownFacts.one", { fact: first });
+  if (!third) return message("triage.unknownFacts.two", { first, second });
+  return message("triage.unknownFacts.three", { first, second, third });
+}
+
+function trustScoreText(trust: TrustScore | "unknown"): string {
+  return trust === "unknown"
+    ? t("trust.score.none")
+    : t("trust.score.value", { score: trust.score });
 }
 
 let drawerIds = 0;
@@ -259,13 +300,13 @@ export interface MemberBarInput {
   /** The placement, when a contact rule placed this member. */
   result?: MemberTriage;
   /** Why no placement is shown, when there is none. */
-  ruleOff?: string;
+  ruleOff?: Message;
   trust?: TrustScore | "unknown";
   /**
    * A link to the member's profile, shown when the rule needs facts only
    * the profile shows. A plain link the user clicks; JoyFox never follows it.
    */
-  openProfile?: { href: string; text: string };
+  openProfile?: { href: string; text: Message };
   actions: Partial<ExplanationActions> & { onOpenOptions?(): void };
   drawerOpen: boolean;
   onToggle(open: boolean): void;
@@ -288,49 +329,47 @@ export function memberBar(
     const pill = element(document, "span", "joyfox-pill");
     pill.dataset.placement = result.placement;
     pill.append(
-      element(document, "span", "joyfox-visually-hidden", "Placement: "),
-      document.createTextNode(PLACEMENT_TEXT[result.placement]),
+      element(
+        document,
+        "span",
+        "joyfox-visually-hidden",
+        t("bar.placementPrefix"),
+      ),
+      document.createTextNode(placementText(result.placement)),
     );
     bar.append(pill);
     if (result.source === "override")
-      bar.append(element(document, "span", "joyfox-note", "(your choice)"));
+      bar.append(element(document, "span", "joyfox-note", t("bar.yourChoice")));
     if (input.openProfile) {
       const group = element(document, "span", "joyfox-bar__group");
       const link = element(
         document,
         "a",
         "joyfox-button joyfox-bar__profile",
-        "Open profile",
+        t("bar.openProfile"),
       );
       link.href = input.openProfile.href;
       group.append(
-        element(document, "span", "joyfox-note", input.openProfile.text),
+        element(document, "span", "joyfox-note", t(input.openProfile.text)),
         link,
       );
       bar.append(group);
     }
   } else if (input.ruleOff) {
-    bar.append(element(document, "span", "joyfox-note", input.ruleOff));
+    bar.append(element(document, "span", "joyfox-note", t(input.ruleOff)));
     if (actions.onOpenOptions)
       bar.append(
         button(
           document,
           "joyfox-button",
-          "Open JoyFox options",
+          t("common.openOptions"),
           actions.onOpenOptions,
         ),
       );
   }
   if (trust !== undefined)
     bar.append(
-      element(
-        document,
-        "span",
-        "joyfox-bar__trust",
-        trust === "unknown"
-          ? "Local trust score: no history yet."
-          : `Local trust score: ${trust.score}.`,
-      ),
+      element(document, "span", "joyfox-bar__trust", trustScoreText(trust)),
     );
   if (actions.onTrust) {
     const onTrust = actions.onTrust;
@@ -343,15 +382,23 @@ export function memberBar(
     };
     const row = element(document, "span", "joyfox-bar__group");
     row.setAttribute("role", "group");
-    row.setAttribute("aria-label", "Log an outcome with this member");
+    row.setAttribute("aria-label", t("trust.log.group"));
     row.append(
-      element(document, "span", "joyfox-note", "Log:"),
-      labelled("Positive", "Log positive", () => onTrust("positive")),
-      labelled("Neutral", "Log neutral", () => onTrust("neutral")),
-      labelled("Negative", "Log negative", () => onTrust("negative")),
+      element(document, "span", "joyfox-note", t("bar.log")),
+      labelled(t("bar.positive"), t("trust.log.positive"), () =>
+        onTrust("positive"),
+      ),
+      labelled(t("bar.neutral"), t("trust.log.neutral"), () =>
+        onTrust("neutral"),
+      ),
+      labelled(t("bar.negative"), t("trust.log.negative"), () =>
+        onTrust("negative"),
+      ),
     );
     if (actions.onUndoTrust && trust && trust !== "unknown" && trust.logged > 0)
-      row.append(labelled("Undo", "Undo last outcome", actions.onUndoTrust));
+      row.append(
+        labelled(t("bar.undo"), t("trust.log.undo"), actions.onUndoTrust),
+      );
     bar.append(row);
   }
 
@@ -373,7 +420,7 @@ export function memberBar(
   const toggle = button(
     document,
     "joyfox-button joyfox-bar__toggle",
-    result ? "Why and move" : "Score details",
+    t(result ? "bar.whyAndMove" : "bar.scoreDetails"),
     () => {
       const open = drawer.hidden;
       drawer.hidden = !open;

@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import "../setup-indexeddb";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { t } from "../../src/i18n/translator";
 import { registerNotesHandlers } from "../../src/background/notes-handlers";
 import {
   MemberNotes,
@@ -100,8 +101,8 @@ describe("M5 note and tag editor", () => {
     expect(header.contains(editor())).toBe(false);
     expect(editor()?.querySelector("details")?.open).toBe(false);
     expect(editor()?.textContent).toContain("Your notes and tags (none yet)");
-    expect(editor()?.textContent).toContain(NOTES_TEXT.scope);
-    expect(NOTES_TEXT.scope).not.toMatch(/never see/);
+    expect(editor()?.textContent).toContain(t(NOTES_TEXT.scope));
+    expect(t(NOTES_TEXT.scope)).not.toMatch(/never see/);
     const label = editor()?.querySelector(`label[for="${noteBox()?.id}"]`);
     expect(label?.textContent).toBe("Private note");
     expect(
@@ -155,7 +156,7 @@ describe("M5 note and tag editor", () => {
     await openProfile();
     type(noteBox()!, "Invented note text");
     buttonNamed("Save note").click();
-    await vi.waitFor(() => expect(status()).toBe(NOTES_TEXT.saved));
+    await vi.waitFor(() => expect(status()).toBe(t(NOTES_TEXT.saved)));
     expect(await storedNote()).toEqual(["Invented note text"]);
 
     // A restart: a new content script on a changed page with the same ID.
@@ -179,7 +180,7 @@ describe("M5 note and tag editor", () => {
     await openProfile();
     type(noteBox()!, "Invented note text");
     buttonNamed("Save note").click();
-    await vi.waitFor(() => expect(status()).toBe(NOTES_TEXT.saved));
+    await vi.waitFor(() => expect(status()).toBe(t(NOTES_TEXT.saved)));
     setPage(CONVERSATION, conversationHtml);
     const notes = new MemberNotes(document, client);
     notes.update("conversation");
@@ -198,7 +199,7 @@ describe("M5 note and tag editor", () => {
     tagInput()!.dispatchEvent(
       new KeyboardEvent("keydown", { key: "Enter", bubbles: true }),
     );
-    await vi.waitFor(() => expect(status()).toBe(NOTES_TEXT.tagAdded));
+    await vi.waitFor(() => expect(status()).toBe(t(NOTES_TEXT.tagAdded)));
     await vi.waitFor(() =>
       expect(editor()?.textContent).toContain("Your notes and tags (1 tag)"),
     );
@@ -209,7 +210,7 @@ describe("M5 note and tag editor", () => {
     expect(remove?.textContent).toBe("Remove");
     remove!.focus();
     remove!.click();
-    await vi.waitFor(() => expect(status()).toBe(NOTES_TEXT.tagRemoved));
+    await vi.waitFor(() => expect(status()).toBe(t(NOTES_TEXT.tagRemoved)));
     await vi.waitFor(() => expect(document.activeElement).toBe(tagInput()));
     await vi.waitFor(() =>
       expect(editor()?.textContent).toContain("No tags yet."),
@@ -221,15 +222,15 @@ describe("M5 note and tag editor", () => {
     await openProfile();
     type(tagInput()!, "   ");
     buttonNamed("Add tag").click();
-    expect(status()).toBe(NOTES_TEXT.emptyTag);
+    expect(status()).toBe(t(NOTES_TEXT.emptyTag));
     expect(await repositories.userTags.list("account-a")).toEqual([]);
     type(noteBox()!, "  ");
     buttonNamed("Save note").click();
-    expect(status()).toBe(NOTES_TEXT.emptyNote);
+    expect(status()).toBe(t(NOTES_TEXT.emptyNote));
     // The refusal does not block a later save.
     type(noteBox()!, "Invented");
     buttonNamed("Save note").click();
-    await vi.waitFor(() => expect(status()).toBe(NOTES_TEXT.saved));
+    await vi.waitFor(() => expect(status()).toBe(t(NOTES_TEXT.saved)));
     expect(await storedNote()).toEqual(["Invented"]);
   });
 
@@ -264,7 +265,7 @@ describe("M5 note and tag editor", () => {
     // Another tab saves first.
     await client.saveNote("account-a", MEMBER, "Text from another tab", null);
     buttonNamed("Save note").click();
-    await vi.waitFor(() => expect(status()).toBe(NOTES_TEXT.conflict));
+    await vi.waitFor(() => expect(status()).toBe(t(NOTES_TEXT.conflict)));
     expect(await storedNote()).toEqual(["Text from another tab"]);
     await vi.waitFor(() =>
       expect(editor()?.textContent).toContain("Your notes and tags (a note)"),
@@ -272,7 +273,7 @@ describe("M5 note and tag editor", () => {
     expect(noteBox()?.value).toBe("Text from this tab");
     // Saving again, after the warning, replaces the stored note.
     buttonNamed("Save note").click();
-    await vi.waitFor(() => expect(status()).toBe(NOTES_TEXT.saved));
+    await vi.waitFor(() => expect(status()).toBe(t(NOTES_TEXT.saved)));
     expect(await storedNote()).toEqual(["Text from this tab"]);
   });
 
@@ -288,7 +289,7 @@ describe("M5 note and tag editor", () => {
     );
     expect(noteBox()?.value).toBe("Text typed over no note");
     buttonNamed("Save note").click();
-    await vi.waitFor(() => expect(status()).toBe(NOTES_TEXT.conflict));
+    await vi.waitFor(() => expect(status()).toBe(t(NOTES_TEXT.conflict)));
     expect(await storedNote()).toEqual(["Text from another tab"]);
   });
 
@@ -297,7 +298,7 @@ describe("M5 note and tag editor", () => {
     await openEditor();
     type(noteBox()!, "Stored invented note");
     buttonNamed("Save note").click();
-    await vi.waitFor(() => expect(status()).toBe(NOTES_TEXT.saved));
+    await vi.waitFor(() => expect(status()).toBe(t(NOTES_TEXT.saved)));
     await vi.waitFor(() =>
       expect(buttonNamed("Discard my changes").disabled).toBe(true),
     );
@@ -317,10 +318,10 @@ describe("M5 note and tag editor", () => {
     await openProfile();
     type(noteBox()!, "Invented");
     buttonNamed("Save note").click();
-    await vi.waitFor(() => expect(status()).toBe(NOTES_TEXT.saved));
+    await vi.waitFor(() => expect(status()).toBe(t(NOTES_TEXT.saved)));
     type(noteBox()!, "  ");
     buttonNamed("Save note").click();
-    await vi.waitFor(() => expect(status()).toBe(NOTES_TEXT.removed));
+    await vi.waitFor(() => expect(status()).toBe(t(NOTES_TEXT.removed)));
     expect(await storedNote()).toEqual([]);
   });
 
@@ -367,9 +368,9 @@ describe("M5 note and tag editor", () => {
     type(noteBox()!, "Invented note text");
     buttonNamed("Save note").click();
     buttonNamed("Save note").click();
-    await vi.waitFor(() => expect(status()).toBe(NOTES_TEXT.saved));
+    await vi.waitFor(() => expect(status()).toBe(t(NOTES_TEXT.saved)));
     await new Promise((resolve) => setTimeout(resolve, 20));
-    expect(status()).toBe(NOTES_TEXT.saved);
+    expect(status()).toBe(t(NOTES_TEXT.saved));
     expect(await storedNote()).toEqual(["Invented note text"]);
   });
 
@@ -378,7 +379,7 @@ describe("M5 note and tag editor", () => {
     type(noteBox()!, "Late text");
     active = "account-b";
     buttonNamed("Save note").click();
-    await vi.waitFor(() => expect(status()).toBe(NOTES_TEXT.refused));
+    await vi.waitFor(() => expect(status()).toBe(t(NOTES_TEXT.refused)));
     expect(await storedNote("account-a")).toEqual([]);
     expect(await storedNote("account-b")).toEqual([]);
   });
@@ -389,7 +390,7 @@ describe("M5 note and tag editor", () => {
     // The switch happens in the options page; this tab has not heard yet.
     active = "account-b";
     buttonNamed("Save note").click();
-    await vi.waitFor(() => expect(status()).toBe(NOTES_TEXT.refused));
+    await vi.waitFor(() => expect(status()).toBe(t(NOTES_TEXT.refused)));
     await vi.waitFor(() => expect(noteBox()?.value).toBe(""));
     expect(await storedNote("account-a")).toEqual([]);
     expect(await storedNote("account-b")).toEqual([]);
@@ -401,7 +402,7 @@ describe("M5 note and tag editor", () => {
     active = "account-b";
     notes.invalidate();
     await vi.waitFor(() => expect(noteBox()?.value).toBe(""));
-    expect(status()).toBe(NOTES_TEXT.refused);
+    expect(status()).toBe(t(NOTES_TEXT.refused));
     expect(buttonNamed("Discard my changes").disabled).toBe(true);
     expect(await storedNote("account-b")).toEqual([]);
   });
@@ -410,14 +411,14 @@ describe("M5 note and tag editor", () => {
     const notes = await openProfile();
     type(noteBox()!, "Note for account A");
     buttonNamed("Save note").click();
-    await vi.waitFor(() => expect(status()).toBe(NOTES_TEXT.saved));
+    await vi.waitFor(() => expect(status()).toBe(t(NOTES_TEXT.saved)));
     active = "account-b";
     notes.accountChanged();
     await vi.waitFor(() => expect(editor()).not.toBeNull());
     expect(noteBox()?.value).toBe("");
     type(noteBox()!, "Note for account B");
     buttonNamed("Save note").click();
-    await vi.waitFor(() => expect(status()).toBe(NOTES_TEXT.saved));
+    await vi.waitFor(() => expect(status()).toBe(t(NOTES_TEXT.saved)));
     active = "account-a";
     notes.accountChanged();
     await vi.waitFor(() => expect(noteBox()?.value).toBe("Note for account A"));
@@ -479,7 +480,7 @@ describe("M5 note and tag editor", () => {
     buttonNamed("Save note").click();
     answerFirst();
     await vi.waitFor(() => expect(saved).toEqual([MEMBER, "5550001"]));
-    await vi.waitFor(() => expect(status()).toBe(NOTES_TEXT.saved));
+    await vi.waitFor(() => expect(status()).toBe(t(NOTES_TEXT.saved)));
   });
 
   it("goes at once when the route switches to another member", async () => {

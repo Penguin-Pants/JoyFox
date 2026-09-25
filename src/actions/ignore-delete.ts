@@ -1,4 +1,5 @@
 import type { ActionLog } from "../domain/types";
+import { message, type Message } from "../i18n/message";
 
 /**
  * M9 Quick Ignore and Delete as an explicit state machine (build plan Section
@@ -180,7 +181,7 @@ export interface OperationReport {
   delete: StepOutcome;
   failure?: ActionFailure;
   /** Plain sentences for the on-screen notice, in reading order. */
-  lines: string[];
+  lines: Message[];
 }
 
 type LoggedStep = ActionLog["steps"][number];
@@ -193,11 +194,6 @@ function outcome(steps: readonly LoggedStep[], step: ActionStep): StepOutcome {
   return "not-done";
 }
 
-const STEP_NAME: Record<ActionStep, string> = {
-  ignore: "Ignore",
-  delete: "Delete",
-};
-
 /**
  * Why it stopped, naming the step that did not complete. `outcome` says
  * whether that step was started, so the text never claims it was not.
@@ -206,62 +202,27 @@ function failureText(
   failure: ActionFailure,
   step: ActionStep,
   outcome: StepOutcome,
-): string {
-  const name = STEP_NAME[step];
-  const where = outcome === "not-done" ? `before ${name}` : `during ${name}`;
+): Message {
+  const name = message(`action.step.${step}`);
+  const where = message(
+    outcome === "not-done" ? "action.where.before" : "action.where.during",
+    { step: name },
+  );
   switch (failure) {
     case "control-missing":
-      return `JoyFox could not find JoyClub's ${name} control.`;
     case "confirmation-missing":
-      return `JoyClub's confirmation for ${name} did not appear.`;
     case "not-verified":
-      return `JoyClub did not show that ${name} succeeded.`;
-    case "unverifiable":
-      return `JoyFox cannot see JoyClub's result for ${name} on this page, so it stopped ${where}.`;
-    case "member-mismatch":
-      return `The page showed another member, so JoyFox stopped ${where}.`;
-    case "conversation-mismatch":
-      return `The page showed another conversation, so JoyFox stopped ${where}.`;
-    case "identity-unavailable":
-      return `JoyFox could not confirm which member or conversation the page shows, so it stopped ${where}.`;
-    case "account-changed":
-      return `The active JoyFox account changed, so JoyFox stopped ${where}.`;
-    case "turned-off":
-      return `Ignore and Delete was turned off, so JoyFox stopped ${where}.`;
-    case "superseded":
-      return `A newer Ignore and Delete for this member started, so JoyFox stopped ${where}.`;
-    case "log-unavailable":
-      return `JoyFox could not write to its action log, so it stopped ${where}.`;
-    case "handoff-failed":
-      return `JoyFox could not move on to the member's profile, so it stopped ${where}.`;
     case "timeout":
-      return `JoyClub did not respond in time during ${name}.`;
-    case "step-error":
-      return `An unexpected error stopped JoyFox ${where}.`;
+      return message(`action.failure.${failure}`, { step: name });
+    case "unverifiable":
+      return message("action.failure.unverifiable", { step: name, where });
+    default:
+      return message(`action.failure.${failure}`, { where });
   }
 }
 
-const STEP_TEXT: Record<ActionStep, Record<StepOutcome, string>> = {
-  ignore: {
-    done: "Ignore: done. JoyClub ignores this member.",
-    "not-done": "Ignore: not done.",
-    unknown:
-      "Ignore: not confirmed. JoyFox started it but did not see JoyClub confirm it.",
-  },
-  delete: {
-    done: "Delete: done. JoyClub moved the conversation to the trash.",
-    "not-done": "Delete: not done.",
-    unknown:
-      "Delete: not confirmed. JoyFox started it but did not see JoyClub confirm it.",
-  },
-};
-
-const NEXT_ACTION: Record<ActionStep, string> = {
-  ignore:
-    "Next: open the member's profile and check whether they are ignored. If not, ignore them there yourself.",
-  delete:
-    "Next: open the conversation and check whether it is in the trash. If not, move it there yourself with JoyClub's trash button.",
-};
+const stepText = (step: ActionStep, outcome: StepOutcome): Message =>
+  message(`action.stepText.${step}.${outcome}`);
 
 /**
  * The notice for one operation, from its ActionLog steps alone (PRD Section
@@ -291,34 +252,38 @@ export function reportOperation(
         : !Number.isFinite(lastAt) || now - lastAt > STALE_AFTER_MS
           ? "interrupted"
           : "running";
-  const lines: string[] = [];
+  const lines: Message[] = [];
   if (status === "completed") {
-    lines.push("Ignore and Delete finished.", STEP_TEXT.delete.done);
-    lines.push(STEP_TEXT.ignore.done);
+    lines.push(message("action.report.finished"), stepText("delete", "done"));
+    lines.push(stepText("ignore", "done"));
     return { status, ignore, delete: remove, lines };
   }
   if (status === "running") {
-    lines.push("Ignore and Delete is running.");
+    lines.push(message("action.report.running"));
     return { status, ignore, delete: remove, lines };
   }
   lines.push(
-    status === "failed"
-      ? "Ignore and Delete stopped."
-      : "Ignore and Delete was interrupted, for example because the tab closed.",
+    message(
+      status === "failed"
+        ? "action.report.stopped"
+        : "action.report.interrupted",
+    ),
   );
   if (failure) {
     // The step that did not complete: Delete runs first.
     const step = remove === "done" ? "ignore" : "delete";
     lines.push(failureText(failure, step, step === "ignore" ? ignore : remove));
   }
-  lines.push(STEP_TEXT.delete[remove], STEP_TEXT.ignore[ignore]);
+  lines.push(stepText("delete", remove), stepText("ignore", ignore));
   lines.push(
-    ignore === "not-done" && remove === "not-done"
-      ? "Nothing was changed on JoyClub."
-      : "JoyFox did not undo anything.",
+    message(
+      ignore === "not-done" && remove === "not-done"
+        ? "action.report.nothingChanged"
+        : "action.report.notUndone",
+    ),
   );
-  if (remove !== "done") lines.push(NEXT_ACTION.delete);
-  if (ignore !== "done") lines.push(NEXT_ACTION.ignore);
+  if (remove !== "done") lines.push(message("action.next.delete"));
+  if (ignore !== "done") lines.push(message("action.next.ignore"));
   return {
     status,
     ignore,
