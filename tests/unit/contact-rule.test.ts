@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   contactRuleProblem,
   evaluateContactRule,
+  schemaVersionFor,
   type ContactRuleDefinition,
   type RuleCondition,
   type RuleInput,
@@ -280,7 +281,18 @@ describe("contactRuleProblem", () => {
       "qualified as default placement",
       { ...prdRule, defaultPlacement: "qualified" },
     ],
-    ["a future schema", { ...prdRule, schemaVersion: 2 }],
+    ["a future schema", { ...prdRule, schemaVersion: 3 }],
+    [
+      "negate in schema version 1",
+      rule([condition("verified", { negate: true })]),
+    ],
+    [
+      "negate set to false",
+      {
+        ...rule([condition("verified", { negate: false as never })]),
+        schemaVersion: 2,
+      },
+    ],
     ["an unknown audience", { ...prdRule, audience: "everyone" }],
     ["a missing threshold", rule([condition("minimumPhotos")])],
     [
@@ -327,5 +339,128 @@ describe("contactRuleProblem", () => {
         rule(Array.from({ length: 33 }, () => condition("verified"))),
       ),
     ).toMatch(/too many/);
+  });
+});
+
+/** The owner's rule: personally known, or verified with 3 photos and 180 days. */
+const advanced = (
+  negate = false,
+  match: "all" | "any" = "any",
+): ContactRuleDefinition => ({
+  schemaVersion: negate ? 2 : 1,
+  audience: "all",
+  enabled: true,
+  defaultPlacement: "quarantined",
+  root: {
+    type: "group",
+    match,
+    children: [
+      { type: "group", match: "all", children: [condition("personallyKnown")] },
+      {
+        type: "group",
+        match: "all",
+        children: [
+          condition("verified"),
+          condition("minimumPhotos", {
+            value: 3,
+            ...(negate ? { negate: true } : {}),
+          }),
+          condition("minimumAccountAgeDays", { value: 180 }),
+        ],
+      },
+    ],
+  },
+});
+
+const known = (value: boolean, photos: number | "unknown") =>
+  input({
+    facts: {
+      ...UNKNOWN_FACTS,
+      personallyKnown: value,
+      verification: true,
+      photoCount: photos,
+      joinedAt: "2025-01-01T00:00:00.000Z",
+    },
+  });
+
+describe("rule groups and not (ADR 0012)", () => {
+  it("qualifies an unverified sender who is personally known, naming the rule", () => {
+    const result = evaluateContactRule(
+      advanced(),
+      input({ facts: { ...UNKNOWN_FACTS, personallyKnown: true } }),
+    );
+    expect(result.placement).toBe("qualified");
+    expect(result.reasons[1]).toMatch(/^Rule 1: /);
+  });
+
+  it("qualifies a verified sender with enough photos and days by rule 2", () => {
+    const result = evaluateContactRule(advanced(), known(false, 3));
+    expect(result.placement).toBe("qualified");
+    expect(result.reasons.slice(1).every((r) => r.startsWith("Rule 2: "))).toBe(
+      true,
+    );
+  });
+
+  it("names every rule that failed", () => {
+    const result = evaluateContactRule(advanced(), known(false, 2));
+    expect(result.placement).toBe("quarantined");
+    expect(result.reasons.slice(1).map((r) => r.slice(0, 7))).toEqual([
+      "Rule 1:",
+      "Rule 2:",
+    ]);
+  });
+
+  it("combines rules with ALL", () => {
+    expect(
+      evaluateContactRule(advanced(false, "all"), known(false, 3)).placement,
+    ).toBe("quarantined");
+    expect(
+      evaluateContactRule(advanced(false, "all"), known(true, 3)).placement,
+    ).toBe("qualified");
+  });
+
+  it("turns a number condition into fewer than", () => {
+    const rule = advanced(true);
+    expect(contactRuleProblem(rule)).toBeUndefined();
+    expect(evaluateContactRule(rule, known(false, 2)).placement).toBe(
+      "qualified",
+    );
+    const result = evaluateContactRule(rule, known(false, 3));
+    expect(result.placement).toBe("quarantined");
+    const photos = result.evaluatedConditions.find(
+      (c) => c.kind === "minimumPhotos",
+    );
+    expect(photos).toMatchObject({
+      negate: true,
+      state: "pass",
+      outcome: "not-met",
+    });
+    expect(photos?.reason).toContain('"not Minimum photos"');
+  });
+
+  it("keeps the unknown choice for a turned-around condition", () => {
+    const rule = advanced(true);
+    const result = evaluateContactRule(rule, known(false, "unknown"));
+    const photos = result.evaluatedConditions.find(
+      (c) => c.kind === "minimumPhotos",
+    );
+    expect(photos).toMatchObject({ state: "unknown", outcome: "needs-review" });
+    expect(result.placement).toBe("needs-review");
+  });
+
+  it("does not number the two-box shape", () => {
+    const result = evaluateContactRule(
+      prdRule,
+      input({ facts: { ...UNKNOWN_FACTS, verification: false } }),
+    );
+    expect(result.reasons.some((r) => r.startsWith("Rule "))).toBe(false);
+  });
+
+  it("writes version 2 only when a rule uses not", () => {
+    expect(schemaVersionFor(advanced().root)).toBe(1);
+    expect(schemaVersionFor(advanced(true).root)).toBe(2);
+    expect(
+      contactRuleProblem({ ...advanced(), schemaVersion: 2 }),
+    ).toBeUndefined();
   });
 });

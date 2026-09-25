@@ -12,7 +12,14 @@ import type { TrustScore } from "../trust/trust-score";
  * global rule with audience `all`, and its builder edits the two-box shape
  * PRD Section 11.5 describes.
  */
-export const CONTACT_RULE_SCHEMA_VERSION = 1;
+export const CONTACT_RULE_SCHEMA_VERSION = 2;
+
+/**
+ * The versions JoyFox reads. Version 2 adds `negate` (ADR 0012). A rule that
+ * does not use it is still written as version 1, so a JoyFox build from
+ * before version 2 can read it back.
+ */
+export type ContactRuleSchemaVersion = 1 | typeof CONTACT_RULE_SCHEMA_VERSION;
 
 /** What a condition counts as when JoyFox cannot see its fact. */
 export type UnknownHandling = "needs-review" | "met" | "not-met";
@@ -61,6 +68,12 @@ export interface RuleCondition {
   /** The threshold, for numeric kinds only. */
   value?: number;
   whenUnknown: UnknownHandling;
+  /**
+   * "not": the condition is met when its fact fails. For a number this means
+   * "fewer than". An unknown fact still counts as `whenUnknown`, never the
+   * opposite. Schema version 2 only.
+   */
+  negate?: true;
 }
 
 export interface ConditionGroup {
@@ -79,7 +92,7 @@ export type RuleAudience = "all" | "man" | "woman" | "couple";
 export type FailPlacement = Exclude<TriagePlacement, "qualified">;
 
 export interface ContactRuleDefinition {
-  schemaVersion: typeof CONTACT_RULE_SCHEMA_VERSION;
+  schemaVersion: ContactRuleSchemaVersion;
   audience: RuleAudience;
   /** Off means JoyFox shows no triage UI and changes nothing on the page. */
   enabled: boolean;
@@ -107,7 +120,7 @@ export const RULE_LIMITS = Object.freeze({
 export function contactRuleProblem(value: unknown): string | undefined {
   if (!value || typeof value !== "object") return "The rule must be an object";
   const rule = value as Record<string, unknown>;
-  if (rule.schemaVersion !== CONTACT_RULE_SCHEMA_VERSION)
+  if (rule.schemaVersion !== 1 && rule.schemaVersion !== 2)
     return "Unsupported rule schema version";
   if (!["all", "man", "woman", "couple"].includes(rule.audience as string))
     return "Unsupported rule audience";
@@ -116,12 +129,22 @@ export function contactRuleProblem(value: unknown): string | undefined {
     !["needs-review", "quarantined"].includes(rule.defaultPlacement as string)
   )
     return "defaultPlacement must be needs-review or quarantined";
-  return nodeProblem(rule.root, 1, true);
+  return nodeProblem(rule.root, 1, rule.schemaVersion, true);
+}
+
+/** The lowest schema version that can hold `root`. */
+export function schemaVersionFor(
+  root: ConditionGroup,
+): ContactRuleSchemaVersion {
+  const negates = (node: RuleNode): boolean =>
+    node.type === "group" ? node.children.some(negates) : node.negate === true;
+  return negates(root) ? 2 : 1;
 }
 
 function nodeProblem(
   value: unknown,
   depth: number,
+  version: unknown,
   mustBeGroup = false,
 ): string | undefined {
   if (!value || typeof value !== "object")
@@ -135,7 +158,7 @@ function nodeProblem(
     if (node.children.length > RULE_LIMITS.maxChildren)
       return "A group has too many conditions";
     for (const child of node.children) {
-      const problem = nodeProblem(child, depth + 1);
+      const problem = nodeProblem(child, depth + 1, version);
       if (problem) return problem;
     }
     return undefined;
@@ -146,6 +169,8 @@ function nodeProblem(
     return "Unknown condition kind";
   if (!["needs-review", "met", "not-met"].includes(node.whenUnknown as string))
     return "whenUnknown has an unsupported value";
+  if (node.negate !== undefined && (node.negate !== true || version === 1))
+    return "negate must be true, and needs rule schema version 2";
   const kind = node.kind as ConditionKind;
   if (NUMERIC_CONDITION_KINDS.has(kind)) {
     const minimum =
@@ -172,6 +197,8 @@ export type ConditionOutcome = "met" | "not-met" | "needs-review";
 
 export interface EvaluatedCondition {
   kind: ConditionKind;
+  /** Set when the rule turns this condition around ("not"). */
+  negate?: true;
   /** What the fact showed, before the unknown handling applied. */
   state: CriterionState;
   /** What the condition counted as in the rule. */
@@ -294,16 +321,22 @@ function evaluateCondition(
   now: Date,
 ): EvaluatedCondition {
   const read = readCondition(condition, input, now);
-  if (read.state !== "unknown")
+  const negate = condition.negate === true;
+  const base = { kind: condition.kind, ...(negate ? { negate } : {}) };
+  if (read.state !== "unknown") {
+    const met = (read.state === "pass") !== negate;
     return {
-      kind: condition.kind,
+      ...base,
       state: read.state,
-      outcome: read.state === "pass" ? "met" : "not-met",
-      reason: read.reason,
+      outcome: met ? "met" : "not-met",
+      reason: negate
+        ? `${read.reason} Your rule says "not ${CONDITION_TEXT[condition.kind]}", so this counts as ${met ? "met" : "not met"}.`
+        : read.reason,
       source: read.source,
     };
+  }
   return {
-    kind: condition.kind,
+    ...base,
     state: "unknown",
     outcome: condition.whenUnknown,
     reason: read.reason + UNKNOWN_SUFFIX[condition.whenUnknown],
@@ -333,11 +366,18 @@ function evaluateGroup(
   input: RuleInput,
   now: Date,
   collected: EvaluatedCondition[],
+  numberRules = false,
 ): GroupResult {
   if (group.children.length === 0) return { outcome: "met", reasons: [] };
-  const results = group.children.map((child): GroupResult => {
-    if (child.type === "group")
-      return evaluateGroup(child, input, now, collected);
+  const results = group.children.map((child, index): GroupResult => {
+    if (child.type === "group") {
+      const result = evaluateGroup(child, input, now, collected);
+      if (!numberRules) return result;
+      return {
+        ...result,
+        reasons: result.reasons.map((reason) => `Rule ${index + 1}: ${reason}`),
+      };
+    }
     const evaluated = evaluateCondition(child, input, now);
     collected.push(evaluated);
     return { outcome: evaluated.outcome, reasons: [evaluated.reason] };
@@ -374,11 +414,17 @@ export function evaluateContactRule(
 ): RuleEvaluation {
   const now = input.now ?? new Date();
   const evaluatedConditions: EvaluatedCondition[] = [];
+  // The advanced editor's rules are the root's groups, numbered as the
+  // options page shows them, so a reason can name the rule that decided.
+  const { children } = rule.root;
+  const numberRules =
+    children.length > 1 && children.every((child) => child.type === "group");
   const { outcome, reasons } = evaluateGroup(
     rule.root,
     input,
     now,
     evaluatedConditions,
+    numberRules,
   );
   const placement: TriagePlacement =
     outcome === "met"

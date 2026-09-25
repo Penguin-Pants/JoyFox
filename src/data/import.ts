@@ -177,7 +177,7 @@ function hasForbiddenKey(value: unknown, depth = 0): boolean {
 
 const STEP_FIELDS = ["name", "ok", "at", "errorCode"];
 const GROUP_FIELDS = ["type", "match", "children"];
-const CONDITION_FIELDS = ["type", "kind", "value", "whenUnknown"];
+const CONDITION_FIELDS = ["type", "kind", "value", "whenUnknown", "negate"];
 
 const extraKey = (value: Record<string, unknown>, allowed: string[]) =>
   Object.keys(value).find((key) => !allowed.includes(key));

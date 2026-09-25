@@ -85,7 +85,7 @@ function conditionList(
         document,
         "strong",
         "",
-        `${OUTCOME_TEXT[condition.outcome]}: ${CONDITION_TEXT[condition.kind]}. `,
+        `${OUTCOME_TEXT[condition.outcome]}: ${condition.negate ? "not " : ""}${CONDITION_TEXT[condition.kind]}. `,
       ),
       document.createTextNode(condition.reason),
     );

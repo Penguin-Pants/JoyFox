@@ -5,12 +5,21 @@ import {
   NUMERIC_CONDITION_KINDS,
   RULE_LIMITS,
   type ConditionKind,
+  type ContactRuleDefinition,
   type FailPlacement,
   type UnknownHandling,
 } from "../rules/contact-rule";
 import {
+  advancedToBuilder,
+  builderToAdvanced,
+  fromAdvancedForm,
   fromBuilderForm,
+  MAX_ADVANCED_RULES,
+  toAdvancedForm,
   toBuilderForm,
+  type AdvancedEntry,
+  type AdvancedForm,
+  type AdvancedRule,
   type BoxEntry,
   type BuilderForm,
 } from "../rules/rule-builder";
@@ -18,6 +27,16 @@ import { RuleService } from "../rules/rule-service";
 import { withAccountLock } from "../storage/account-lock";
 
 type BoxName = "all" | "any";
+
+type EditorView = "simple" | "advanced";
+
+/** A form read for saving: the rule, and a note on what it means. */
+interface ReadRule {
+  definition: ContactRuleDefinition;
+  notice?: string;
+}
+
+const MATCH_TEXT: Record<"all" | "any", string> = { all: "ALL", any: "ANY" };
 
 /** The stored-rule version a click acted on, and this panel's write count. */
 interface FormVersion {
@@ -66,6 +85,80 @@ interface ConditionControls {
   unknown: HTMLSelectElement;
 }
 
+function numberInput(
+  document: Document,
+  kind: ConditionKind,
+  value: number | undefined,
+): HTMLInputElement {
+  const input = document.createElement("input");
+  input.type = "number";
+  input.step = "1";
+  input.min = String(
+    kind === "minimumTrustScore" ? RULE_LIMITS.minTrustValue : 0,
+  );
+  input.max = String(RULE_LIMITS.maxValue);
+  input.value = String(value ?? "");
+  input.setAttribute("aria-label", `${CONDITION_TEXT[kind]} value`);
+  return input;
+}
+
+function unknownSelect(
+  document: Document,
+  selected: UnknownHandling = "needs-review",
+): HTMLSelectElement {
+  const select = document.createElement("select");
+  for (const handling of Object.keys(UNKNOWN_TEXT) as UnknownHandling[])
+    select.append(
+      new Option(
+        UNKNOWN_TEXT[handling],
+        handling,
+        false,
+        handling === selected,
+      ),
+    );
+  return select;
+}
+
+function matchSelect(
+  document: Document,
+  selected: "all" | "any",
+  label: string,
+): HTMLSelectElement {
+  const select = document.createElement("select");
+  select.setAttribute("aria-label", label);
+  for (const match of ["any", "all"] as const)
+    select.append(
+      new Option(MATCH_TEXT[match], match, false, match === selected),
+    );
+  return select;
+}
+
+/** The number in a field, or the problem in words. */
+function readNumber(
+  input: HTMLInputElement,
+  kind: ConditionKind,
+): number | string {
+  const raw = input.value.trim();
+  const minimum = kind === "minimumTrustScore" ? RULE_LIMITS.minTrustValue : 0;
+  const value = Number(raw);
+  if (
+    raw === "" ||
+    !Number.isSafeInteger(value) ||
+    value < minimum ||
+    value > RULE_LIMITS.maxValue
+  )
+    return `Enter a whole number from ${minimum} to ${RULE_LIMITS.maxValue} for "${CONDITION_TEXT[kind]}".`;
+  return value;
+}
+
+/** A default threshold for a condition just added in the advanced editor. */
+const NEW_VALUE: Partial<Record<ConditionKind, number>> = {
+  minimumPhotos: 3,
+  minimumProfileWords: 50,
+  minimumAccountAgeDays: 180,
+  minimumTrustScore: 1,
+};
+
 /**
  * The M4 rule builder: one global contact rule for the active account, shown
  * as PRD Section 11.5's two boxes in plain language, never as logic
@@ -76,6 +169,15 @@ interface ConditionControls {
 export class RulePanel {
   readonly #status: HTMLParagraphElement;
   #controls = new Map<string, ConditionControls>();
+  /** The editor this panel shows, once the owner picked one. */
+  #view?: EditorView;
+  #editor?: HTMLElement;
+  /** The advanced editor's rule list, read in order when saving. */
+  #rules?: HTMLElement;
+  #topMatch?: HTMLSelectElement;
+  #simpleButton?: HTMLButtonElement;
+  #simpleReason?: HTMLSpanElement;
+  #advancedButton?: HTMLButtonElement;
   #enabled?: HTMLInputElement;
   #placement?: HTMLSelectElement;
   /** The line saying whether a rule is saved, updated after an autosave. */
@@ -161,14 +263,17 @@ export class RulePanel {
       );
       return;
     }
-    const form = stored ? toBuilderForm(stored) : EMPTY_FORM;
-    if (!form) {
+    const simple = stored ? toBuilderForm(stored) : EMPTY_FORM;
+    const advanced = stored
+      ? toAdvancedForm(stored)
+      : builderToAdvanced(EMPTY_FORM);
+    if (!simple && !advanced) {
       this.root.append(
         element(
           document,
           "p",
           "joyfox-panel__empty",
-          "This rule was made in a newer version of JoyFox and cannot be edited here. Remove it to start a new one.",
+          "This rule was made in a newer version of JoyFox and cannot be edited here. Delete it to start a new one.",
         ),
         this.#removeButton(document, account.id),
         this.#status,
@@ -176,10 +281,19 @@ export class RulePanel {
       return;
     }
     this.#note = element(document, "p", "", noteText(stored !== undefined));
+    // The simple editor when the rule fits it, unless the owner chose the
+    // advanced one. A rule saved from the advanced editor with several
+    // rules does not read as two boxes, so it opens there again.
+    const view: EditorView =
+      simple && (this.#view !== "advanced" || !advanced)
+        ? "simple"
+        : "advanced";
     this.#form = this.#renderForm(
       document,
       account.id,
-      form,
+      view === "simple" && simple
+        ? { view, form: simple }
+        : { view: "advanced", form: advanced! },
       stored !== undefined,
     );
     this.root.append(this.#note, this.#form, this.#status);
@@ -188,9 +302,12 @@ export class RulePanel {
   #renderForm(
     document: Document,
     accountId: string,
-    form: BuilderForm,
+    shown:
+      | { view: "simple"; form: BuilderForm }
+      | { view: "advanced"; form: AdvancedForm },
     saved: boolean,
   ): HTMLFormElement {
+    const { form } = shown;
     const node = element(document, "form", "joyfox-panel__form");
     node.setAttribute("aria-label", "Contact rule");
 
@@ -225,11 +342,12 @@ export class RulePanel {
     placementWrapper.append(placementLabel, placement);
     this.#placement = placement;
 
+    this.#editor = element(document, "div", "joyfox-rule__editor");
     node.append(
       enabledLabel,
       placementWrapper,
-      this.#renderBox(document, "all", form.all),
-      this.#renderBox(document, "any", form.any),
+      this.#renderSwitch(document),
+      this.#editor,
       element(
         document,
         "p",
@@ -248,18 +366,336 @@ export class RulePanel {
     if (saved) node.append(this.#removeButton(document, accountId));
     // Autosave: checkboxes and choices report `change` at once, a number
     // field when it loses focus or on Enter. Submitting (Enter) saves too.
-    const autosave = () => {
+    this.#autosave = () => {
       // Read the form now, at change time, then queue the write.
       const form = this.#readForm();
       const version = this.#version();
       void this.#serial(() => this.#save(accountId, form, version));
     };
-    node.addEventListener("change", autosave);
+    node.addEventListener("change", (event) => {
+      // Adding a condition is a change of its own, handled by its select.
+      if ((event.target as Element).matches(".joyfox-rule__add-condition"))
+        return;
+      this.#updateSimpleReason();
+      this.#autosave();
+    });
     node.addEventListener("submit", (event) => {
       event.preventDefault();
-      autosave();
+      this.#autosave();
     });
+    if (shown.view === "simple") this.#showSimple(document, shown.form);
+    else this.#showAdvanced(document, shown.form);
     return node;
+  }
+
+  #autosave: () => void = () => undefined;
+
+  /** The Simple / Advanced switch, and why Simple is not available. */
+  #renderSwitch(document: Document): HTMLElement {
+    const row = element(document, "div", "joyfox-rule__switch-row");
+    const label = element(document, "span", "", "Editor:");
+    label.id = "joyfox-rule-editor-label";
+    const group = element(document, "div", "joyfox-rule__switch");
+    group.setAttribute("role", "group");
+    group.setAttribute("aria-labelledby", label.id);
+    const button = (text: string, view: EditorView) => {
+      const node = element(document, "button", "", text);
+      node.type = "button";
+      node.dataset.view = view;
+      node.addEventListener("click", () => this.#switchTo(document, view));
+      group.append(node);
+      return node;
+    };
+    this.#simpleButton = button("Simple", "simple");
+    this.#advancedButton = button("Advanced", "advanced");
+    this.#simpleReason = element(document, "span", "joyfox-rule__simple-why");
+    this.#simpleReason.id = "joyfox-rule-simple-why";
+    this.#simpleButton.setAttribute("aria-describedby", this.#simpleReason.id);
+    row.append(label, group, this.#simpleReason);
+    return row;
+  }
+
+  #switchTo(document: Document, view: EditorView): void {
+    const current = this.#rules ? "advanced" : "simple";
+    if (view === current) return;
+    if (view === "advanced") {
+      const form = this.#readSimple();
+      if (typeof form === "string") return this.#setStatus(form, "error");
+      this.#view = "advanced";
+      this.#showAdvanced(document, builderToAdvanced(form));
+      return;
+    }
+    const advanced = this.#readAdvanced();
+    if (typeof advanced === "string") return this.#setStatus(advanced, "error");
+    const form = advancedToBuilder(advanced);
+    if (typeof form === "string") return this.#setStatus(form, "error");
+    this.#view = "simple";
+    this.#showSimple(document, form);
+  }
+
+  #markView(view: EditorView): void {
+    this.#simpleButton?.setAttribute("aria-pressed", String(view === "simple"));
+    this.#advancedButton?.setAttribute(
+      "aria-pressed",
+      String(view === "advanced"),
+    );
+    if (view === "simple") this.#setSimpleReason(undefined);
+  }
+
+  /** Simple stays offered only while the advanced rule fits two boxes. */
+  #setSimpleReason(reason: string | undefined): void {
+    if (this.#simpleButton) this.#simpleButton.disabled = reason !== undefined;
+    if (this.#simpleReason) this.#simpleReason.textContent = reason ?? "";
+  }
+
+  #showSimple(document: Document, form: BuilderForm): void {
+    this.#controls = new Map();
+    this.#rules = undefined;
+    this.#topMatch = undefined;
+    this.#editor?.replaceChildren(
+      this.#renderBox(document, "all", form.all),
+      this.#renderBox(document, "any", form.any),
+    );
+    this.#markView("simple");
+  }
+
+  #showAdvanced(document: Document, form: AdvancedForm): void {
+    this.#controls = new Map();
+    const intro = element(document, "p", "joyfox-rule__combine");
+    const top = matchSelect(document, form.match, "How the rules combine");
+    top.id = "joyfox-rule-top-match";
+    top.addEventListener("change", () => this.#renumber());
+    this.#topMatch = top;
+    intro.append(
+      element(document, "strong", "", "A sender is qualified if "),
+      top,
+      element(document, "strong", "", " of these rules match."),
+    );
+    const hint = element(
+      document,
+      "p",
+      "joyfox-panel__hint",
+      'Each rule is met when ALL or ANY of its conditions are met, as you choose. Tick "not" to turn a condition around: "not Minimum photos 3" means fewer than 3 photos. A rule without conditions is not saved.',
+    );
+    const rules = element(document, "div", "joyfox-rule__rules");
+    this.#rules = rules;
+    for (const rule of form.rules.length > 0
+      ? form.rules
+      : [{ match: "all" as const, conditions: {} }])
+      rules.append(this.#renderRule(document, rule));
+    const add = element(
+      document,
+      "button",
+      "joyfox-rule__add-rule",
+      "+ Add rule",
+    );
+    add.type = "button";
+    add.addEventListener("click", () => {
+      rules.append(
+        this.#renderRule(document, { match: "all", conditions: {} }),
+      );
+      this.#renumber();
+      rules.lastElementChild
+        ?.querySelector<HTMLSelectElement>(".joyfox-rule__add-condition")
+        ?.focus();
+    });
+    const count = element(document, "span", "joyfox-rule__rule-count");
+    const addRow = element(document, "div", "joyfox-rule__add-row");
+    addRow.append(add, count);
+    this.#editor?.replaceChildren(intro, hint, rules, addRow);
+    this.#markView("advanced");
+    this.#renumber();
+  }
+
+  #renderRule(document: Document, rule: AdvancedRule): HTMLElement {
+    const fieldset = element(document, "fieldset", "joyfox-rule__box");
+    fieldset.dataset.rule = "";
+    const head = element(document, "legend", "joyfox-rule__rule-head");
+    const title = element(document, "strong", "joyfox-rule__rule-title");
+    const match = matchSelect(document, rule.match, "");
+    match.className = "joyfox-rule__rule-match";
+    const remove = element(
+      document,
+      "button",
+      "joyfox-panel__remove joyfox-rule__remove-rule",
+      "Remove rule",
+    );
+    remove.type = "button";
+    remove.addEventListener("click", () => {
+      fieldset.remove();
+      this.#renumber();
+      this.#autosave();
+    });
+    head.append(
+      title,
+      match,
+      element(document, "strong", "", " of these are met"),
+      remove,
+    );
+    const list = element(document, "div", "joyfox-rule__conditions");
+    const empty = element(
+      document,
+      "p",
+      "joyfox-panel__hint joyfox-rule__empty",
+      "No conditions yet. Add one below.",
+    );
+    for (const kind of CONDITION_KINDS) {
+      const entry = rule.conditions[kind];
+      if (entry) list.append(this.#renderCondition(document, kind, entry));
+    }
+    const add = document.createElement("select");
+    add.className = "joyfox-rule__add-condition";
+    add.addEventListener("change", () => {
+      const kind = add.value as ConditionKind;
+      add.value = "";
+      if (!CONDITION_KINDS.includes(kind)) return;
+      const row = this.#renderCondition(document, kind, {
+        whenUnknown: "needs-review",
+        ...(NUMERIC_CONDITION_KINDS.has(kind)
+          ? { value: NEW_VALUE[kind] }
+          : {}),
+      });
+      list.append(row);
+      this.#renumber();
+      row.querySelector<HTMLElement>("input[type=number], select")?.focus();
+      this.#autosave();
+    });
+    fieldset.append(head, list, empty, add);
+    return fieldset;
+  }
+
+  #renderCondition(
+    document: Document,
+    kind: ConditionKind,
+    entry: AdvancedEntry,
+  ): HTMLElement {
+    const row = element(
+      document,
+      "div",
+      "joyfox-rule__condition joyfox-rule__condition--advanced",
+    );
+    row.dataset.kind = kind;
+    const remove = element(
+      document,
+      "button",
+      "joyfox-panel__remove joyfox-rule__remove-condition",
+      "✕",
+    );
+    remove.type = "button";
+    remove.title = "Remove condition";
+    remove.setAttribute("aria-label", `Remove ${CONDITION_TEXT[kind]}`);
+    remove.addEventListener("click", () => {
+      row.remove();
+      this.#renumber();
+      this.#autosave();
+    });
+    // "not" is quiet until ticked, then marked in the danger colour and in
+    // bold, so a turned-around condition stands out.
+    const notLabel = element(document, "label", "joyfox-rule__not");
+    const not = document.createElement("input");
+    not.type = "checkbox";
+    not.className = "joyfox-rule__negate";
+    not.checked = entry.negate === true;
+    not.setAttribute(
+      "aria-label",
+      `not: turn "${CONDITION_TEXT[kind]}" around`,
+    );
+    notLabel.title = "Turn this condition around";
+    notLabel.append(not, document.createTextNode("not"));
+    const mark = () =>
+      notLabel.classList.toggle("joyfox-rule__not--on", not.checked);
+    not.addEventListener("change", mark);
+    mark();
+    row.append(
+      remove,
+      notLabel,
+      element(document, "span", "joyfox-rule__name", CONDITION_TEXT[kind]),
+    );
+    if (NUMERIC_CONDITION_KINDS.has(kind))
+      row.append(numberInput(document, kind, entry.value));
+    else row.append(element(document, "span", "joyfox-rule__no-value"));
+    const unknown = unknownSelect(document, entry.whenUnknown);
+    unknown.className = "joyfox-rule__unknown";
+    unknown.setAttribute(
+      "aria-label",
+      `${CONDITION_TEXT[kind]}: if JoyFox cannot see this`,
+    );
+    row.append(
+      element(
+        document,
+        "span",
+        "joyfox-rule__unknown-label",
+        "If JoyFox cannot see this:",
+      ),
+      unknown,
+    );
+    return row;
+  }
+
+  /**
+   * After a rule or condition is added or removed: number the rules, show
+   * AND or OR between them, and offer only the conditions a rule lacks.
+   */
+  #renumber(): void {
+    const rules = this.#rules;
+    if (!rules) return;
+    const document = rules.ownerDocument;
+    const fieldsets = Array.from(
+      rules.querySelectorAll<HTMLElement>(":scope > [data-rule]"),
+    );
+    rules
+      .querySelectorAll(":scope > .joyfox-rule__joiner")
+      .forEach((node) => node.remove());
+    const joiner = this.#topMatch?.value === "all" ? "AND" : "OR";
+    fieldsets.forEach((fieldset, index) => {
+      const number = index + 1;
+      if (index > 0)
+        fieldset.before(element(document, "p", "joyfox-rule__joiner", joiner));
+      fieldset.querySelector(".joyfox-rule__rule-title")!.textContent =
+        `Rule ${number}: met if `;
+      fieldset
+        .querySelector(".joyfox-rule__rule-match")!
+        .setAttribute(
+          "aria-label",
+          `How rule ${number} combines its conditions`,
+        );
+      const remove = fieldset.querySelector<HTMLButtonElement>(
+        ".joyfox-rule__remove-rule",
+      )!;
+      remove.disabled = fieldsets.length === 1;
+      remove.setAttribute("aria-label", `Remove rule ${number}`);
+      const used = new Set(
+        Array.from(
+          fieldset.querySelectorAll<HTMLElement>("[data-kind]"),
+          (row) => row.dataset.kind,
+        ),
+      );
+      (fieldset.querySelector(".joyfox-rule__empty") as HTMLElement).hidden =
+        used.size > 0;
+      const add = fieldset.querySelector<HTMLSelectElement>(
+        ".joyfox-rule__add-condition",
+      )!;
+      add.setAttribute("aria-label", `Add a condition to rule ${number}`);
+      add.replaceChildren(new Option("+ Add condition…", "", true, true));
+      for (const kind of CONDITION_KINDS)
+        if (!used.has(kind)) add.append(new Option(CONDITION_TEXT[kind], kind));
+      add.hidden = used.size === CONDITION_KINDS.length;
+    });
+    const button = this.#editor?.querySelector<HTMLButtonElement>(
+      ".joyfox-rule__add-rule",
+    );
+    if (button) button.disabled = fieldsets.length >= MAX_ADVANCED_RULES;
+    const count = this.#editor?.querySelector(".joyfox-rule__rule-count");
+    if (count)
+      count.textContent = `${fieldsets.length} of ${MAX_ADVANCED_RULES} rules`;
+    this.#updateSimpleReason();
+  }
+
+  #updateSimpleReason(): void {
+    const form = this.#readAdvanced();
+    if (typeof form === "string") return;
+    const simple = advancedToBuilder(form);
+    this.#setSimpleReason(typeof simple === "string" ? simple : undefined);
   }
 
   #renderBox(
@@ -327,8 +763,38 @@ export class RulePanel {
     return fieldset;
   }
 
-  /** Read the form, or return the first problem in words. */
-  #readForm(): BuilderForm | string {
+  /** Read the shown editor, or return the first problem in words. */
+  #readForm(): ReadRule | string {
+    if (this.#rules) {
+      const form = this.#readAdvanced();
+      if (typeof form === "string") return form;
+      const definition = fromAdvancedForm(form);
+      return {
+        definition,
+        ...(definition.root.children.length === 0
+          ? {
+              notice:
+                "Rule saved. It has no conditions yet, so every sender qualifies.",
+            }
+          : {}),
+      };
+    }
+    const form = this.#readSimple();
+    if (typeof form === "string") return form;
+    const vacuous =
+      Object.keys(form.all).length === 0 && Object.keys(form.any).length > 0;
+    return {
+      definition: fromBuilderForm(form),
+      ...(vacuous
+        ? {
+            notice:
+              "Rule saved. With nothing in the ALL box, every sender qualifies, so the ANY box has no effect.",
+          }
+        : {}),
+    };
+  }
+
+  #readSimple(): BuilderForm | string {
     const form: BuilderForm = {
       enabled: this.#enabled?.checked ?? true,
       defaultPlacement: (this.#placement?.value ??
@@ -344,17 +810,8 @@ export class RulePanel {
           whenUnknown: controls.unknown.value as UnknownHandling,
         };
         if (controls.value) {
-          const raw = controls.value.value.trim();
-          const minimum =
-            kind === "minimumTrustScore" ? RULE_LIMITS.minTrustValue : 0;
-          const value = Number(raw);
-          if (
-            raw === "" ||
-            !Number.isSafeInteger(value) ||
-            value < minimum ||
-            value > RULE_LIMITS.maxValue
-          )
-            return `Enter a whole number from ${minimum} to ${RULE_LIMITS.maxValue} for "${CONDITION_TEXT[kind]}".`;
+          const value = readNumber(controls.value, kind);
+          if (typeof value === "string") return value;
           entry.value = value;
         }
         form[box][kind] = entry;
@@ -362,9 +819,56 @@ export class RulePanel {
     return form;
   }
 
+  #readAdvanced(): AdvancedForm | string {
+    const form: AdvancedForm = {
+      enabled: this.#enabled?.checked ?? true,
+      defaultPlacement: (this.#placement?.value ??
+        "quarantined") as FailPlacement,
+      match: this.#topMatch?.value === "all" ? "all" : "any",
+      rules: [],
+    };
+    const fieldsets = this.#rules
+      ? Array.from(
+          this.#rules.querySelectorAll<HTMLElement>(":scope > [data-rule]"),
+        )
+      : [];
+    for (const fieldset of fieldsets) {
+      const match = fieldset.querySelector<HTMLSelectElement>(
+        ".joyfox-rule__rule-match",
+      )?.value;
+      const rule: AdvancedRule = {
+        match: match === "any" ? "any" : "all",
+        conditions: {},
+      };
+      for (const row of Array.from(
+        fieldset.querySelectorAll<HTMLElement>("[data-kind]"),
+      )) {
+        const kind = row.dataset.kind as ConditionKind;
+        const entry: AdvancedEntry = {
+          whenUnknown: row.querySelector<HTMLSelectElement>(
+            ".joyfox-rule__unknown",
+          )!.value as UnknownHandling,
+        };
+        if (
+          row.querySelector<HTMLInputElement>(".joyfox-rule__negate")?.checked
+        )
+          entry.negate = true;
+        const input = row.querySelector<HTMLInputElement>("input[type=number]");
+        if (input) {
+          const value = readNumber(input, kind);
+          if (typeof value === "string") return value;
+          entry.value = value;
+        }
+        rule.conditions[kind] = entry;
+      }
+      form.rules.push(rule);
+    }
+    return form;
+  }
+
   async #save(
     accountId: string,
-    form: BuilderForm | string,
+    form: ReadRule | string,
     version: FormVersion,
   ): Promise<void> {
     if (typeof form === "string") {
@@ -379,7 +883,7 @@ export class RulePanel {
         if (!(await this.#isCurrent(accountId, version))) return "rule";
         const rule = await this.rules.saveGlobalRule(
           accountId,
-          fromBuilderForm(form),
+          form.definition,
         );
         this.#recordOwnWrite(rule.updatedAt);
         // The form already shows what was saved, so it is not redrawn: a
@@ -389,12 +893,8 @@ export class RulePanel {
       });
       if (saved !== "saved") return this.#reportStale("saved", saved);
       this.#markSaved(accountId);
-      const vacuous =
-        Object.keys(form.all).length === 0 && Object.keys(form.any).length > 0;
       this.#setStatus(
-        vacuous
-          ? "Rule saved. With nothing in the ALL box, every sender qualifies, so the ANY box has no effect."
-          : "Rule saved. Open JoyClub tabs update at once.",
+        form.notice ?? "Rule saved. Open JoyClub tabs update at once.",
         "info",
       );
     } catch {
@@ -405,10 +905,10 @@ export class RulePanel {
     }
   }
 
-  /** After the first save, say so and offer "Remove rule", in place. */
+  /** After the first save, say so and offer to delete the rule, in place. */
   #markSaved(accountId: string): void {
     if (this.#note) this.#note.textContent = noteText(true);
-    if (this.#form && !this.#form.querySelector(".joyfox-panel__remove"))
+    if (this.#form && !this.#form.querySelector(".joyfox-rule__delete-all"))
       this.#form.append(this.#removeButton(this.root.ownerDocument, accountId));
   }
 
@@ -416,8 +916,8 @@ export class RulePanel {
     const button = element(
       document,
       "button",
-      "joyfox-panel__remove",
-      "Remove rule",
+      "joyfox-panel__remove joyfox-rule__delete-all",
+      "Delete whole contact rule",
     );
     button.type = "button";
     button.addEventListener("click", () => {

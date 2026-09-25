@@ -112,10 +112,10 @@ describe("M4 rule builder panel", () => {
     expect(kindsOf((await rules.getGlobalRule(account.id))?.root)).toEqual([
       "personallyKnown",
     ]);
-    // Saved in place: the same form stays, and "Remove rule" appears.
+    // Saved in place: the same form stays, and the delete button appears.
     expect(input("joyfox-rule-all-personallyKnown-on")).toBe(box);
     expect(root.textContent).toContain("A rule is saved");
-    expect(root.querySelector(".joyfox-panel__remove")).not.toBeNull();
+    expect(root.querySelector(".joyfox-rule__delete-all")).not.toBeNull();
   });
 
   it("autosaves a number when its field reports a change", async () => {
@@ -144,7 +144,7 @@ describe("M4 rule builder panel", () => {
     change(second);
     await settle(
       () =>
-        root.querySelector(".joyfox-panel__remove") !== null &&
+        root.querySelector(".joyfox-rule__delete-all") !== null &&
         (status()?.textContent?.startsWith("Rule saved") ?? false),
     );
     await new Promise((resolve) => setTimeout(resolve, 20));
@@ -180,7 +180,7 @@ describe("M4 rule builder panel", () => {
       enabled: false,
       defaultPlacement: "needs-review",
     });
-    root.querySelector<HTMLButtonElement>(".joyfox-panel__remove")!.click();
+    root.querySelector<HTMLButtonElement>(".joyfox-rule__delete-all")!.click();
     await settle(
       () => status()?.textContent?.startsWith("Rule removed") ?? false,
     );
@@ -260,7 +260,7 @@ describe("M4 rule builder panel", () => {
     });
     await panel.render();
     await accounts.setActiveAccount(b.id);
-    root.querySelector<HTMLButtonElement>(".joyfox-panel__remove")!.click();
+    root.querySelector<HTMLButtonElement>(".joyfox-rule__delete-all")!.click();
     await settle(() => status()?.getAttribute("data-kind") === "error");
     expect(status()?.textContent).toContain("The rule was not removed");
     expect(await rules.getGlobalRule(a.id)).toBeDefined();
@@ -277,7 +277,7 @@ describe("M4 rule builder panel", () => {
     });
     await panel.render();
     submit();
-    root.querySelector<HTMLButtonElement>(".joyfox-panel__remove")!.click();
+    root.querySelector<HTMLButtonElement>(".joyfox-rule__delete-all")!.click();
     await settle(
       () => status()?.textContent?.startsWith("Rule removed") ?? false,
     );
@@ -302,7 +302,7 @@ describe("M4 rule builder panel", () => {
     await other.render();
     // The other tab removes the rule and finishes.
     otherRoot
-      .querySelector<HTMLButtonElement>(".joyfox-panel__remove")!
+      .querySelector<HTMLButtonElement>(".joyfox-rule__delete-all")!
       .click();
     await settle(
       () =>
@@ -401,5 +401,186 @@ describe("M4 rule builder panel", () => {
     await panel.render();
     expect(root.querySelector("form")).toBeNull();
     expect(root.textContent).toContain("cannot be edited here");
+  });
+});
+
+describe("advanced rule editor (ADR 0012)", () => {
+  const button = (view: string) =>
+    root.querySelector<HTMLButtonElement>(`[data-view="${view}"]`)!;
+  const ruleSets = () =>
+    Array.from(root.querySelectorAll<HTMLElement>("[data-rule]"));
+  const saved = () => status()?.textContent?.startsWith("Rule saved") ?? false;
+  async function addCondition(rule: HTMLElement, kind: string) {
+    status()!.textContent = "";
+    const add = rule.querySelector<HTMLSelectElement>(
+      ".joyfox-rule__add-condition",
+    )!;
+    add.value = kind;
+    change(add);
+    await settle(saved);
+  }
+
+  it("builds the owner's rule: personally known, or verified with photos and days", async () => {
+    const account = await accounts.createAccount({ joyClubAccountId: "a" });
+    await panel.render();
+    expect(button("simple").getAttribute("aria-pressed")).toBe("true");
+    button("advanced").click();
+    expect(button("advanced").getAttribute("aria-pressed")).toBe("true");
+    expect(ruleSets()).toHaveLength(1);
+    await addCondition(ruleSets()[0]!, "personallyKnown");
+    root.querySelector<HTMLButtonElement>(".joyfox-rule__add-rule")!.click();
+    expect(ruleSets()).toHaveLength(2);
+    expect(root.querySelector(".joyfox-rule__joiner")?.textContent).toBe("OR");
+    expect(ruleSets()[1]!.textContent).toContain("Rule 2: met if");
+    await addCondition(ruleSets()[1]!, "verified");
+    await addCondition(ruleSets()[1]!, "minimumAccountAgeDays");
+    await addCondition(ruleSets()[1]!, "minimumPhotos");
+    const photos = ruleSets()[1]!.querySelector<HTMLInputElement>(
+      '[data-kind="minimumPhotos"] input[type=number]',
+    )!;
+    expect(photos.value).toBe("3");
+    // A condition already in the rule is not offered again.
+    const offered = Array.from(
+      ruleSets()[1]!.querySelectorAll<HTMLOptionElement>(
+        ".joyfox-rule__add-condition option",
+      ),
+      (option) => option.value,
+    );
+    expect(offered).not.toContain("verified");
+    const stored = await rules.getGlobalRule(account.id);
+    expect(stored?.schemaVersion).toBe(1);
+    expect(stored?.root).toEqual({
+      type: "group",
+      match: "any",
+      children: [
+        {
+          type: "group",
+          match: "all",
+          children: [
+            {
+              type: "condition",
+              kind: "personallyKnown",
+              whenUnknown: "needs-review",
+            },
+          ],
+        },
+        {
+          type: "group",
+          match: "all",
+          children: [
+            {
+              type: "condition",
+              kind: "verified",
+              whenUnknown: "needs-review",
+            },
+            {
+              type: "condition",
+              kind: "minimumPhotos",
+              value: 3,
+              whenUnknown: "needs-review",
+            },
+            {
+              type: "condition",
+              kind: "minimumAccountAgeDays",
+              value: 180,
+              whenUnknown: "needs-review",
+            },
+          ],
+        },
+      ],
+    });
+    // The rule fits two boxes, so Simple stays offered.
+    expect(button("simple").disabled).toBe(false);
+    // A new page opens it in the advanced editor again.
+    const again = new RulePanel(root, rules, accounts);
+    await again.render();
+    expect(button("advanced").getAttribute("aria-pressed")).toBe("true");
+    expect(ruleSets()).toHaveLength(2);
+  });
+
+  it("saves not as version 2 and then offers no Simple view", async () => {
+    const account = await accounts.createAccount({ joyClubAccountId: "a" });
+    await panel.render();
+    button("advanced").click();
+    await addCondition(ruleSets()[0]!, "minimumPhotos");
+    status()!.textContent = "";
+    const not = root.querySelector<HTMLInputElement>(".joyfox-rule__negate")!;
+    not.checked = true;
+    change(not);
+    await settle(saved);
+    expect(not.parentElement?.classList).toContain("joyfox-rule__not--on");
+    const stored = await rules.getGlobalRule(account.id);
+    expect(stored?.schemaVersion).toBe(2);
+    expect(JSON.stringify(stored?.root)).toContain('"negate":true');
+    expect(button("simple").disabled).toBe(true);
+    expect(root.querySelector("#joyfox-rule-simple-why")?.textContent).toMatch(
+      /not/,
+    );
+  });
+
+  it("combines rules with ALL and removes a rule", async () => {
+    const account = await accounts.createAccount({ joyClubAccountId: "a" });
+    await panel.render();
+    button("advanced").click();
+    await addCondition(ruleSets()[0]!, "verified");
+    root.querySelector<HTMLButtonElement>(".joyfox-rule__add-rule")!.click();
+    await addCondition(ruleSets()[1]!, "personallyKnown");
+    status()!.textContent = "";
+    const top = select("joyfox-rule-top-match");
+    top.value = "all";
+    change(top);
+    await settle(saved);
+    expect(root.querySelector(".joyfox-rule__joiner")?.textContent).toBe("AND");
+    expect((await rules.getGlobalRule(account.id))?.root.match).toBe("all");
+    expect(button("simple").disabled).toBe(true);
+    status()!.textContent = "";
+    ruleSets()[0]!
+      .querySelector<HTMLButtonElement>(".joyfox-rule__remove-rule")!
+      .click();
+    await settle(saved);
+    expect(ruleSets()).toHaveLength(1);
+    expect(ruleSets()[0]!.textContent).toContain("Rule 1: met if");
+    expect(kindsOf((await rules.getGlobalRule(account.id))?.root)).toEqual([
+      "personallyKnown",
+    ]);
+    // The last rule cannot be removed.
+    expect(
+      root.querySelector<HTMLButtonElement>(".joyfox-rule__remove-rule")!
+        .disabled,
+    ).toBe(true);
+    expect(button("simple").disabled).toBe(false);
+  });
+
+  it("switches back to two boxes with the same meaning", async () => {
+    await accounts.createAccount({ joyClubAccountId: "a" });
+    await panel.render();
+    input("joyfox-rule-all-verified-on").checked = true;
+    input("joyfox-rule-any-personallyKnown-on").checked = true;
+    button("advanced").click();
+    expect(ruleSets()).toHaveLength(2);
+    button("simple").click();
+    expect(input("joyfox-rule-all-verified-on").checked).toBe(true);
+    expect(input("joyfox-rule-any-personallyKnown-on").checked).toBe(true);
+  });
+
+  it("offers to delete the whole rule after the first save from Advanced", async () => {
+    await accounts.createAccount({ joyClubAccountId: "a" });
+    await panel.render();
+    button("advanced").click();
+    expect(root.querySelector(".joyfox-rule__delete-all")).toBeNull();
+    await addCondition(ruleSets()[0]!, "verified");
+    expect(root.querySelector(".joyfox-rule__delete-all")).not.toBeNull();
+  });
+
+  it("stops at ten rules", async () => {
+    await accounts.createAccount({ joyClubAccountId: "a" });
+    await panel.render();
+    button("advanced").click();
+    const add = root.querySelector<HTMLButtonElement>(
+      ".joyfox-rule__add-rule",
+    )!;
+    for (let i = 1; i < 10; i += 1) add.click();
+    expect(ruleSets()).toHaveLength(10);
+    expect(add.disabled).toBe(true);
   });
 });
