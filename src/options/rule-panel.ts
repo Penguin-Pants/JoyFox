@@ -908,7 +908,7 @@ export class RulePanel {
   /** After the first save, say so and offer to delete the rule, in place. */
   #markSaved(accountId: string): void {
     if (this.#note) this.#note.textContent = noteText(true);
-    if (this.#form && !this.#form.querySelector(".joyfox-panel__remove"))
+    if (this.#form && !this.#form.querySelector(".joyfox-rule__delete-all"))
       this.#form.append(this.#removeButton(this.root.ownerDocument, accountId));
   }
 
@@ -916,7 +916,7 @@ export class RulePanel {
     const button = element(
       document,
       "button",
-      "joyfox-panel__remove",
+      "joyfox-panel__remove joyfox-rule__delete-all",
       "Delete whole contact rule",
     );
     button.type = "button";

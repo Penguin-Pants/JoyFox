@@ -115,7 +115,7 @@ describe("M4 rule builder panel", () => {
     // Saved in place: the same form stays, and the delete button appears.
     expect(input("joyfox-rule-all-personallyKnown-on")).toBe(box);
     expect(root.textContent).toContain("A rule is saved");
-    expect(root.querySelector(".joyfox-panel__remove")).not.toBeNull();
+    expect(root.querySelector(".joyfox-rule__delete-all")).not.toBeNull();
   });
 
   it("autosaves a number when its field reports a change", async () => {
@@ -144,7 +144,7 @@ describe("M4 rule builder panel", () => {
     change(second);
     await settle(
       () =>
-        root.querySelector(".joyfox-panel__remove") !== null &&
+        root.querySelector(".joyfox-rule__delete-all") !== null &&
         (status()?.textContent?.startsWith("Rule saved") ?? false),
     );
     await new Promise((resolve) => setTimeout(resolve, 20));
@@ -180,7 +180,7 @@ describe("M4 rule builder panel", () => {
       enabled: false,
       defaultPlacement: "needs-review",
     });
-    root.querySelector<HTMLButtonElement>(".joyfox-panel__remove")!.click();
+    root.querySelector<HTMLButtonElement>(".joyfox-rule__delete-all")!.click();
     await settle(
       () => status()?.textContent?.startsWith("Rule removed") ?? false,
     );
@@ -260,7 +260,7 @@ describe("M4 rule builder panel", () => {
     });
     await panel.render();
     await accounts.setActiveAccount(b.id);
-    root.querySelector<HTMLButtonElement>(".joyfox-panel__remove")!.click();
+    root.querySelector<HTMLButtonElement>(".joyfox-rule__delete-all")!.click();
     await settle(() => status()?.getAttribute("data-kind") === "error");
     expect(status()?.textContent).toContain("The rule was not removed");
     expect(await rules.getGlobalRule(a.id)).toBeDefined();
@@ -277,7 +277,7 @@ describe("M4 rule builder panel", () => {
     });
     await panel.render();
     submit();
-    root.querySelector<HTMLButtonElement>(".joyfox-panel__remove")!.click();
+    root.querySelector<HTMLButtonElement>(".joyfox-rule__delete-all")!.click();
     await settle(
       () => status()?.textContent?.startsWith("Rule removed") ?? false,
     );
@@ -302,7 +302,7 @@ describe("M4 rule builder panel", () => {
     await other.render();
     // The other tab removes the rule and finishes.
     otherRoot
-      .querySelector<HTMLButtonElement>(".joyfox-panel__remove")!
+      .querySelector<HTMLButtonElement>(".joyfox-rule__delete-all")!
       .click();
     await settle(
       () =>
@@ -561,6 +561,15 @@ describe("advanced rule editor (ADR 0012)", () => {
     button("simple").click();
     expect(input("joyfox-rule-all-verified-on").checked).toBe(true);
     expect(input("joyfox-rule-any-personallyKnown-on").checked).toBe(true);
+  });
+
+  it("offers to delete the whole rule after the first save from Advanced", async () => {
+    await accounts.createAccount({ joyClubAccountId: "a" });
+    await panel.render();
+    button("advanced").click();
+    expect(root.querySelector(".joyfox-rule__delete-all")).toBeNull();
+    await addCondition(ruleSets()[0]!, "verified");
+    expect(root.querySelector(".joyfox-rule__delete-all")).not.toBeNull();
   });
 
   it("stops at ten rules", async () => {

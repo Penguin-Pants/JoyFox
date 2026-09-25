@@ -114,6 +114,11 @@
   margin-bottom: var(--joyfox-space-2);
 }
 
+/* Before the narrow-screen override below, so that override wins there. */
+.joyfox-rule__condition--advanced {
+  grid-template-columns: 2.2rem 3.2rem 15rem 6rem auto minmax(0, 1fr);
+}
+
 .joyfox-rule__condition input[type="number"] {
   width: 100%;
   box-sizing: border-box;
@@ -222,10 +227,6 @@
   flex-wrap: wrap;
   gap: var(--joyfox-space-2);
   align-items: center;
-}
-
-.joyfox-rule__condition--advanced {
-  grid-template-columns: 2.2rem 3.2rem 15rem 6rem auto minmax(0, 1fr);
 }
 
 /* "not" is quiet until ticked: grey and small, then bold in the danger colour. */
