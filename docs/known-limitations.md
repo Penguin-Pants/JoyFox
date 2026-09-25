@@ -78,7 +78,8 @@
 - Nothing writes a message observation yet. The detector is wired to storage but
   not to any page, because reading a message needs verified selectors. The
   user-facing toggle PRD Section 19.5 requires for message caching must exist
-  before the first live caller is added.
+  before the first live caller is added. The owner deferred it to that caller
+  (ADR 0015).
 - A very short known phrase matches almost every message, because phrase
   matching includes substring containment. The phrase list is user-authored and
   no minimum length is documented, so none is enforced.
@@ -145,7 +146,10 @@
   row, so a member with two conversations in the list can mislead it. Matching
   the own row needs evidence that an inbox row names its conversation.
 - The PRD's guided alternative for M9 (navigate and stage, the user clicks) is
-  not built. It needs the same F7 evidence.
+  not built. The owner dropped it on 2026-09-25 (ADR 0015); Mode A behind the
+  experimental flag is the only mode.
+- A sender is "trusted" (PRD Section 7.4) by a manual Qualified placement, not
+  by a tag (ADR 0015).
 - Database version 1 supplies a migration boundary. No historical schema yet
   exists to migrate.
 - Cached profile facts do not expire (ADR 0005). A fact that changed on JoyClub
