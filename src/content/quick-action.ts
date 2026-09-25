@@ -5,6 +5,7 @@ import {
 } from "../actions/executor";
 import {
   STALE_AFTER_MS,
+  STEP_TIMEOUT_MS,
   type ActionFailure,
   type ActionState,
   type ActionStep,
@@ -42,6 +43,9 @@ export type LatestAnswer =
 export type PendingAnswer =
   MessageContract["action.ignoreDelete.pending"]["response"];
 
+export type WithdrawAnswer =
+  MessageContract["action.ignoreDelete.withdraw"]["response"];
+
 export interface QuickActionClient {
   latest(memberId: string): Promise<LatestAnswer>;
   /** Stores transitions under the account the page's data came from. */
@@ -55,6 +59,8 @@ export interface QuickActionClient {
   ): Promise<void>;
   /** This tab's hand-off marker, read once. */
   pending(): Promise<PendingAnswer>;
+  /** Remove this tab's marker for the run, if it is still there. */
+  withdraw(accountId: string, operationId: string): Promise<WithdrawAnswer>;
 }
 
 export function messageQuickActionClient(
@@ -74,6 +80,11 @@ export function messageQuickActionClient(
         throw new Error("The hand-off was refused");
     },
     pending: () => request(sender, "action.ignoreDelete.pending", {}),
+    withdraw: (accountId, operationId) =>
+      request(sender, "action.ignoreDelete.withdraw", {
+        accountId,
+        operationId,
+      }),
     recorder: (accountId) => ({
       begin: (target) =>
         request(sender, "action.ignoreDelete.start", {
@@ -117,6 +128,14 @@ const PROGRESS_TEXT: Partial<Record<ActionState, Message>> = {
 
 /** How long a resumed run waits for the profile menu before it tries. */
 export const RESUME_WAIT_MS = 10_000;
+
+/**
+ * How long the conversation page waits to be replaced by the profile after
+ * a hand-off. The move counts as one more step, so it has the step timeout.
+ * A page still here after that was not left (the navigation was cancelled
+ * or never finished), and it withdraws the hand-off.
+ */
+export const HANDOFF_WAIT_MS = STEP_TIMEOUT_MS;
 
 /** The notice's own lines, as catalog messages translated when shown. */
 export const QUICK_ACTION_TEXT = {
@@ -200,6 +219,7 @@ export class QuickIgnoreDelete {
     private readonly navigate: (url: string) => void = (url) =>
       document.defaultView?.location.assign(url),
     private readonly clock: () => number = () => Date.now(),
+    private readonly handOffWaitMs: number = HANDOFF_WAIT_MS,
   ) {}
 
   /**
@@ -681,7 +701,10 @@ export class QuickIgnoreDelete {
       },
     })
       .then((result) => {
-        if (result.status === "handed-off") this.navigate(profile);
+        if (result.status === "handed-off") {
+          this.navigate(profile);
+          this.#awaitDeparture(shown.key, accountId, result.operationId);
+        }
         this.#result = {
           key: shown.key,
           lines:
@@ -705,6 +728,36 @@ export class QuickIgnoreDelete {
         // Read the ActionLog again, so the notice matches what is stored.
         if (this.#shown) this.invalidate();
       });
+  }
+
+  /**
+   * The hand-off loads a new page, so this page goes. If it is still here
+   * after `handOffWaitMs`, the navigation was cancelled or never finished:
+   * the marker is withdrawn, so a later visit to the profile in this tab
+   * never continues the run, and the notice shows what the run did.
+   */
+  #awaitDeparture(
+    key: string,
+    accountId: string,
+    operationId: string | undefined,
+  ): void {
+    const view = this.document.defaultView;
+    if (!operationId || !view) return;
+    const timer = setTimeout(() => {
+      view.removeEventListener("pagehide", left);
+      this.client
+        .withdraw(accountId, operationId)
+        .then((answer) => {
+          if (answer.status === "withdrawn")
+            this.#result = { key, lines: answer.lines };
+        })
+        .catch(() => undefined)
+        .finally(() => this.invalidate());
+    }, this.handOffWaitMs);
+    // Left for the profile (or put in the back-forward cache on the way):
+    // the profile page owns the marker now.
+    const left = () => clearTimeout(timer);
+    view.addEventListener("pagehide", left, { once: true });
   }
 }
 

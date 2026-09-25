@@ -53,7 +53,7 @@ Matches the PRD's Section 19.1 scope exactly. Nothing here is not in that list, 
 | M7 | Partial | Explicit active account, account-scoped repositories, options switcher, and the Section 14 isolation test. Automatic account detection waits on F1 and F9. |
 | M8 | Done | Account selector, counts, per-entity inspection, delete record, data type, account data and everything, account and full JSON export with the schema version. Export completeness is tested item by item against every entity (`milestone-d-audit.md`). Live acceptance passed on 2026-09-23 (`manual-acceptance.md`, items 27 to 30 and 35). |
 | M10 | Partial | Create, edit, delete, folders and exact insertion at the cursor are complete, tested and accepted live on the standard composer (items 31 to 34, 2026-09-23). The picker is on by default (ADR 0007). The event ClubMail composer is unverified, so "every compose context" stays open. |
-| M9 | Partial | Live driver built (ADR 0011, owner choice "conversation first", 2026-09-24): Delete through the conversation's three-dot menu, a tab-bound hand-off in `storage.session`, then Ignore on the profile page. Off by default. Item 43 (both steps succeed) passed live on 2026-09-24. Items 44 to 54 were accepted on 2026-09-25: 48, 49 and 51 to 54 passed live; 44, 45, 47 and 50 cannot be caused by hand and are covered by synthetic tests; 46 ends in the correct state but does not say the member was already ignored; the owner keeps it as is. The guided mode is not built. |
+| M9 | Partial | Live driver built (ADR 0011, owner choice "conversation first", 2026-09-24): Delete through the conversation's three-dot menu, a tab-bound hand-off in `storage.session`, then Ignore on the profile page. Off by default. Item 43 (both steps succeed) passed live on 2026-09-24. Items 44 to 54 were accepted on 2026-09-25: 48, 49 and 51 to 54 passed live; 44, 45, 47 and 50 cannot be caused by hand and are covered by synthetic tests; 46 ends in the correct state but does not say the member was already ignored; the owner keeps it as is. The guided mode is not built. Review follow-ups built on 2026-09-25 (ADR 0011): the hand-off is refused from any page but the run's conversation, and a cancelled move to the profile withdraws the marker; live check pending (item 98). |
 
 ### MVP release gate (build plan Section 28)
 
@@ -181,9 +181,18 @@ accepted by hand on 2026-09-25 (ADR 0011, `manual-acceptance.md`).
 - Done (ADR 0011): the live `QuickActionDriver`, the `storage.session`
   hand-off and the resume on the profile page. The manual matrix (items 43 to
   54) was accepted on 2026-09-25.
-- M9 review follow-ups (ADR 0011, "Deferred from the review"): match the
-  deleted conversation's own row, if inbox rows carry its link; drop the marker when the navigation is cancelled;
-  check the sender page in `action.ignoreDelete.handOff` too.
+- M9 review follow-ups (ADR 0011, "Deferred from the review"):
+  - Done (2026-09-25): check the sender page in `action.ignoreDelete.handOff`
+    too.
+  - Done (2026-09-25): drop the marker when the navigation is cancelled. The
+    conversation page withdraws it when it is still there 15 seconds after the
+    hand-off. Live check pending (`manual-acceptance.md`, item 98).
+  - Blocked: match the deleted conversation's own row. `01-inbox.md` shows no
+    conversation link or ID on an inbox row. Needs that evidence first.
+  - New (2026-09-25): a cancel followed by another page within the 15-second
+    wait still leaves the marker for up to 2 minutes (ADR 0011, "Limits of the
+    withdrawal"). Closing it would need every JoyClub page in the tab to read
+    and drop the marker on load.
 - The PRD's settings toggle for the guided alternative (navigate and stage, the
   user clicks).
 - Confirm or tune the step timeout (15 seconds) and the interrupted threshold

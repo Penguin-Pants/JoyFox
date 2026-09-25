@@ -494,3 +494,22 @@ automatically.
 **Result (2026-09-25): passed.** The project owner confirmed items 91 to 97 on
 the build of commit 1f1f5f7, with the upgrade in item 94 from the build of main
 at dbba25a (database version 3).
+
+## M9 review follow-ups (ADR 0011, 2026-09-25)
+
+Set up as for the M9 matrix above: the flag on, the split view, a test
+conversation you mean to trash, with a member you are willing to ignore.
+
+98. Click "Ignore and Delete", and press `Esc` (or the Stop button) as soon as
+    the conversation leaves the list, before the profile opens. Wait 15 seconds.
+    Confirm the JoyFox notice on the conversation page says "JoyFox could not
+    move on to the member's profile, so it stopped before Ignore." and "Delete:
+    done.", and the ActionLog ends `DeleteConfirmed`, `Failed:handoff-failed`.
+    Then open the member's profile in the same tab. Confirm JoyFox shows no
+    notice there and the member is not ignored. If the profile opens too quickly
+    to cancel, record the item as not reproducible live; the synthetic test
+    "withdraws the hand-off when the page is not left for the profile" covers
+    it.
+99. Repeat item 43 on another test conversation. Confirm the run still finishes
+    on the profile ("Ignore and Delete finished."), so the new check of the
+    sending page does not refuse the normal hand-off.

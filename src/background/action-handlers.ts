@@ -57,6 +57,10 @@ function profilePath(value: unknown): string {
   return value;
 }
 
+/** The conversation page's path (`02-conversation.md`). */
+const CONVERSATION_PATH =
+  /^\/clubmail\/conversation\/conversation-wrapper-(personal-\d{1,20}-\d{1,20})\/?$/;
+
 /** The sending page's path, as the browser reports it. */
 function senderPath(context: RouteContext): string | undefined {
   try {
@@ -196,8 +200,14 @@ export function registerActionHandlers(
       { status: "refused" },
       async (accountId) => {
         const log = await handOffReady(accountId, id, next);
-        // The path must be the run's own member's profile.
-        if (!log || PROFILE_PATH.exec(path)?.[1] !== log.memberId)
+        // The path must be the run's own member's profile, and the sender,
+        // as the browser reports it, the run's own conversation page.
+        if (
+          !log ||
+          PROFILE_PATH.exec(path)?.[1] !== log.memberId ||
+          CONVERSATION_PATH.exec(senderPath(context) ?? "")?.[1] !==
+            log.conversationId
+        )
           return { status: "refused" };
         const marker: HandOffMarker = {
           accountId,
@@ -210,6 +220,40 @@ export function registerActionHandlers(
         return { status: "stored" };
       },
     );
+  });
+  /**
+   * The tab did not leave for the profile in time: the navigation was
+   * cancelled, or never finished. The marker goes, so a later visit to the
+   * profile in this tab never continues the run, and the run is closed as
+   * not handed off, so its notice says at once what was and was not done.
+   */
+  router.register("action.ignoreDelete.withdraw", async (payload, context) => {
+    const key = `${HANDOFF_PREFIX}${tabId(context)}`;
+    const id = operationId(payload?.operationId);
+    const session = deps.session;
+    if (!session) return { status: "none" };
+    const answer = await lockedWrite<
+      MessageContract["action.ignoreDelete.withdraw"]["response"]
+    >(deps, payload?.accountId, { status: "none" }, async (accountId) => {
+      const stored = (await session.get([key]))[key];
+      // Only this run's own marker; a newer run's marker in the tab stays.
+      if (
+        !isMarker(stored) ||
+        stored.accountId !== accountId ||
+        stored.operationId !== id
+      )
+        return { status: "none" };
+      await session.remove([key]);
+      if (!(await handOffReady(accountId, id, stored.next)))
+        return { status: "none" };
+      await deps.actions.record(accountId, id, "Failed", "handoff-failed");
+      const closed = await deps.actions.find(accountId, id);
+      return closed
+        ? { status: "withdrawn", lines: reportOperation(closed, now()).lines }
+        : { status: "none" };
+    });
+    if (answer.status === "withdrawn") await bumpActionRevision(deps.settings);
+    return answer;
   });
   router.register("action.ignoreDelete.pending", async (_payload, context) => {
     const key = `${HANDOFF_PREFIX}${tabId(context)}`;

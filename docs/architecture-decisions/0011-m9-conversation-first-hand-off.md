@@ -100,3 +100,42 @@ flows: conversation first, profile first, or two separate buttons.
   so a member with two conversations in the list can mislead it; if the
   navigation to the profile is cancelled, the marker stays for up to 2 minutes
   and a visit to that member's profile in the tab would continue the run.
+
+## Review follow-ups (2026-09-25)
+
+Built on the owner's choice of "M9 review follow-ups" as the next phase:
+
+- **The sender page is checked on hand-off.** `action.ignoreDelete.handOff` is
+  refused unless the sending page, as the browser reports it, is the run's own
+  conversation page (`/clubmail/conversation/conversation-wrapper-<ID>/`, from
+  `02-conversation.md`). Before, only the profile path in the request was
+  checked. This relies on the address staying the same after Delete, as
+  `10-ignore.md` records. If JoyClub moves it, the hand-off is refused and the
+  run stops with `handoff-failed`, with Delete reported as done.
+- **A cancelled navigation withdraws the marker.** After a hand-off, the
+  conversation page waits `HANDOFF_WAIT_MS` (the 15-second step timeout; the
+  move to the profile counts as one more step) for `pagehide`. If the page is
+  still there, the navigation was cancelled or never finished. The page sends
+  `action.ignoreDelete.withdraw`, which removes the tab's marker only when it
+  names this run, and closes the run as `Failed:handoff-failed`. The notice then
+  shows at once that Delete was done and Ignore was not, with the next manual
+  action. A later visit to the member's profile in the tab continues nothing.
+  The withdrawal runs under the account lock and is refused after an account
+  switch; the profile page then closes the run as `account-changed`, as before.
+
+Not done:
+
+- **Match the deleted conversation's own row.** Blocked on evidence:
+  `01-inbox.md` shows only the avatar's profile link on a row, and no link or
+  attribute that names the conversation. Capture whether a row carries its
+  conversation ID (`manual-verification-needed.md`) before this can be built.
+
+Limits of the withdrawal, recorded as known limitations:
+
+- If the user cancels the navigation and then opens the member's profile in the
+  same tab within the 15-second wait, the old page has gone, its timer with it,
+  and the profile continues the run. The user had asked for the Ignore.
+- If the user cancels and goes to another JoyClub page within the wait, the old
+  page goes with its timer, and the marker stays for up to 2 minutes as before.
+- A move to the profile that takes longer than 15 seconds is withdrawn: the run
+  stops before Ignore, and the profile page shows no JoyFox notice.

@@ -184,6 +184,15 @@ export interface MessageContract {
     response: { status: "stored" | "refused" };
   };
   /**
+   * The sending tab did not reach the profile in time (ADR 0011). Removes
+   * the tab's marker when it names this run, and closes the run as not
+   * handed off. `none` when there was nothing of this run's to withdraw.
+   */
+  "action.ignoreDelete.withdraw": {
+    request: { accountId: string; operationId: string };
+    response: { status: "none" } | { status: "withdrawn"; lines: Message[] };
+  };
+  /**
    * The hand-off marker for the sending tab, if one is waiting. It is
    * removed as it is read, and answered only while the run is still the
    * member's newest, has not moved and is not stale.
