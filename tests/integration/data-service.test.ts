@@ -367,3 +367,80 @@ describe("M8 inspection and delete", () => {
     expect(await accounts.listAccounts()).toEqual([]);
   });
 });
+
+describe("M8 account-wide delete under failure", () => {
+  /**
+   * Make one store's delete throw, as a storage error would, after every
+   * store before it already queued its deletes in the same transaction.
+   */
+  function failDeletesIn(store: EntityName): () => void {
+    const original = IDBObjectStore.prototype.delete;
+    IDBObjectStore.prototype.delete = function (
+      this: IDBObjectStore,
+      key: IDBValidKey | IDBKeyRange,
+    ) {
+      if (this.name === store) throw new Error("injected storage failure");
+      return original.call(this, key);
+    };
+    return () => {
+      IDBObjectStore.prototype.delete = original;
+    };
+  }
+
+  const allCounts = async (accountId: string) =>
+    Object.values(await data.counts(accountId));
+
+  it("rolls back every store when clearing an account's data fails", async () => {
+    // The last store in the sweep, so every other store was already swept.
+    const restore = failDeletesIn(ENTITY_NAMES.at(-1)!);
+    try {
+      await expect(data.clearAccountData("account-a")).rejects.toThrow(
+        "injected storage failure",
+      );
+    } finally {
+      restore();
+    }
+    for (const count of await allCounts("account-a")) expect(count).toBe(1);
+    for (const count of await allCounts("account-b")) expect(count).toBe(1);
+  });
+
+  it("keeps the account and all its data when removing it fails", async () => {
+    const restore = failDeletesIn(ENTITY_NAMES.at(-1)!);
+    try {
+      await expect(accounts.deleteAccount("account-a")).rejects.toThrow(
+        "injected storage failure",
+      );
+    } finally {
+      restore();
+    }
+    for (const count of await allCounts("account-a")) expect(count).toBe(1);
+    expect((await accounts.listAccounts()).map((a) => a.id)).toContain(
+      "account-a",
+    );
+    // The pointer went first, so no page acts on the account meanwhile;
+    // the account can be activated again.
+    expect(await accounts.getActiveAccount()).toBeUndefined();
+    await accounts.setActiveAccount("account-a");
+    expect((await accounts.getActiveAccount())?.id).toBe("account-a");
+  });
+
+  it("rolls back when one store's key read fails", async () => {
+    const original = IDBIndex.prototype.getAllKeys;
+    IDBIndex.prototype.getAllKeys = function (
+      this: IDBIndex,
+      ...args: Parameters<IDBIndex["getAllKeys"]>
+    ) {
+      if (this.objectStore.name === ENTITY_NAMES.at(-1))
+        throw new Error("injected read failure");
+      return original.apply(this, args);
+    };
+    try {
+      await expect(data.clearAccountData("account-a")).rejects.toThrow(
+        "injected read failure",
+      );
+    } finally {
+      IDBIndex.prototype.getAllKeys = original;
+    }
+    for (const count of await allCounts("account-a")) expect(count).toBe(1);
+  });
+});

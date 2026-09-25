@@ -164,6 +164,7 @@ counts words rather than characters, and has no phrase-adding service.
 - Two concurrent `createAccount` calls could both pass the duplicate check, as
   the check and the write are separate transactions. The options page is
   single-user and serializes clicks, so this is recorded rather than fixed.
+  Fixed on 2026-09-25 (see "Hardening" below).
 
 ### Possible risks
 
@@ -316,3 +317,15 @@ permission was added and the schema version is unchanged.
 
 The editor is complete and tested. Live acceptance is `manual-acceptance.md`,
 items 36 to 42, and is pending.
+
+## Hardening (2026-09-25)
+
+- **Atomic account creation.** `ExtensionAccountRepository.addIfIdentifierFree`
+  checks the identifier and stores the account in one readwrite transaction.
+  IndexedDB runs readwrite transactions on one store one at a time, across every
+  extension context, so two options tabs or a double click register an
+  identifier once. A duplicate stores nothing and activates nothing. Test:
+  "registers an identifier once when two creates run at once"
+  (`tests/unit/account-service.test.ts`), which fails on the old code.
+- No schema version, permission or UI string changed. The error for a duplicate
+  is the same approved text.

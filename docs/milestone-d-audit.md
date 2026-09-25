@@ -117,7 +117,8 @@ Each fix has a regression test confirmed to fail without it.
   best made with its first real caller.
 - No test proves that an account-wide delete rolls back when one store fails.
   The code uses one transaction; a failure-injection test needs a storage fake
-  that can fail one store.
+  that can fail one store. Done on 2026-09-25, and it found a real gap (see
+  "Hardening" below).
 
 ### Possible risks
 
@@ -157,3 +158,25 @@ permission was added.
 M8 is complete and accepted live. M10 is complete and accepted live on the
 standard composer; only the event ClubMail composer remains, blocked on
 evidence. Milestone D is complete except for that one compose context.
+
+## Hardening (2026-09-25)
+
+- **Failure injection.** Tests replace one store's `delete`, `put`, `clear` or
+  index `getAllKeys` with a function that throws, then check that nothing
+  changed: account data cleared from the data panel, an account removed, "delete
+  all", an import write, and a snapshot write with its retention purge.
+- **Found and fixed.** IndexedDB aborts a transaction on a failed request, but
+  not when code between requests throws. The deletes already queued for other
+  stores then committed: clearing an account could leave it half emptied. All
+  seven new tests failed on the old code. `commitAll`
+  (`src/storage/database.ts`) now aborts the transaction on any throw and
+  rethrows the original error. It wraps every multi-step write: account-wide
+  deletes, `clearAllData`, `putRecords` (import) and a repository write with its
+  retention purge.
+- **Account removal.** The active pointer is still cleared before the data. If
+  the delete fails, the account and all its data stay, and the account is not
+  active until it is chosen again.
+
+Validation: `npm test` (659 tests), `npm run lint`, `npm run typecheck`,
+`npm run format:check` and `npm run build:firefox` pass. No permission, schema
+version or UI string was added.
