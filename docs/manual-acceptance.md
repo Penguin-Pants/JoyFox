@@ -376,6 +376,8 @@ Import now sits under the account list on the Accounts tab.
     once and the rules are numbered again. Confirm "+ Add rule" turns off at 10
     rules.
 
+**Result (2026-09-25): passed.** The project owner confirmed items 75 to 80.
+
 Live selector and action acceptance must wait for the evidence checklist in
 `manual-verification-needed.md`. Never perform destructive action testing
 automatically.
