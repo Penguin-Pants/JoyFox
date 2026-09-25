@@ -33,6 +33,12 @@ verified from it. Still open:
   (`.cm-conversation-list-item__text`) after a number of characters, or only
   hides the overflow with CSS. A cut preview can hide a phrase at the end of a
   long first message (ADR 0013).
+- **Inbox row conversation link (M9, ADR 0011):** whether an inbox row carries
+  its own conversation ID, for example a link to
+  `/clubmail/conversation/conversation-wrapper-personal-…` on the row root or
+  its `button-delete-conversation` control (sanitized as `X` in `01-inbox.md`).
+  If it does, M9 can check that the deleted conversation's own row left the
+  list, not only one of the member's rows.
 - **Empty inbox:** how the inbox renders with no conversations, for example an
   empty-state element. This decides how a feature tells "empty" from "loading".
 - **Item 7 (F7), done (2026-09-24):** Ignore is only on the profile page

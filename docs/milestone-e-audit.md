@@ -126,3 +126,24 @@ unchanged.
 M9 is not complete. Its F7-free core is complete and tested; the live path is
 blocked on F7, and M9's acceptance needs the live matrix. The rest of the MVP
 does not depend on it (build plan Section 27).
+
+## Review follow-ups (2026-09-25)
+
+The owner chose the M9 review follow-ups from ADR 0011 as the next phase.
+
+- **Done: sender page on hand-off.** The background refuses
+  `action.ignoreDelete.handOff` unless the browser reports the sender as the
+  run's own conversation page.
+- **Done: cancelled navigation.** The conversation page withdraws the hand-off
+  (`action.ignoreDelete.withdraw`) when it is still there 15 seconds after it
+  navigated; `pagehide` cancels the wait. The run is closed as
+  `Failed:handoff-failed` and the notice says Delete was done and Ignore was
+  not.
+- **Blocked: own-row match.** No evidence shows a conversation link or ID on an
+  inbox row (`01-inbox.md`).
+- **Deferred:** the gaps listed in ADR 0011, "Limits of the withdrawal".
+
+Validation: `npm test` (650 tests), `npm run lint`, `npm run typecheck`,
+`npm run format:check` and `npm run build:firefox` pass. No permission, schema
+version or UI string was added; the notice reuses the approved `handoff-failed`
+text. Live check: `manual-acceptance.md`, items 98 and 99, pending.

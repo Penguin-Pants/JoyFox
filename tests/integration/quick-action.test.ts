@@ -66,6 +66,15 @@ const tabClient = (tabId = TAB, via = () => router) =>
     via().route(message, { tabId, url: window.location.href }),
   );
 
+/** The run's conversation page, where a hand-off starts. */
+const CONVERSATION_URL = `${window.location.origin}/clubmail/conversation/conversation-wrapper-${CONVERSATION}/`;
+
+/** The same tab's client while it shows the run's conversation. */
+const fromConversation = (tabId = TAB) =>
+  messageQuickActionClient((message) =>
+    router.route(message, { tabId, url: CONVERSATION_URL }),
+  );
+
 /** The run's member's profile, where a hand-off goes. */
 const PROFILE_PATH = "/profile/1234567.synthetic_one.html";
 const onProfilePage = () => window.history.replaceState(null, "", PROFILE_PATH);
@@ -691,7 +700,7 @@ describe("M9 hand-off messages (ADR 0011)", () => {
 
   it("gives the marker to the same tab once, with the stored steps", async () => {
     const id = await afterDelete();
-    await client.handOff("account-a", id, "ignore", PROFILE_PATH);
+    await fromConversation().handOff("account-a", id, "ignore", PROFILE_PATH);
     // Another tab gets nothing.
     expect(await tabClient(8).pending()).toEqual({ status: "none" });
     const answer = await client.pending();
@@ -715,7 +724,7 @@ describe("M9 hand-off messages (ADR 0011)", () => {
 
   it("survives a background restart, since the marker is in storage.session", async () => {
     const id = await afterDelete();
-    await client.handOff("account-a", id, "ignore", PROFILE_PATH);
+    await fromConversation().handOff("account-a", id, "ignore", PROFILE_PATH);
     const restarted = backgroundRouter();
     expect(await tabClient(TAB, () => restarted).pending()).toMatchObject({
       status: "ok",
@@ -725,7 +734,7 @@ describe("M9 hand-off messages (ADR 0011)", () => {
 
   it("keeps the marker when a read fails, so a retry still finds it", async () => {
     const id = await afterDelete();
-    await client.handOff("account-a", id, "ignore", PROFILE_PATH);
+    await fromConversation().handOff("account-a", id, "ignore", PROFILE_PATH);
     // A background whose database read fails once, as during a restart.
     let fail = true;
     const actions = new ActionLogService(undefined, undefined, () =>
@@ -760,34 +769,54 @@ describe("M9 hand-off messages (ADR 0011)", () => {
     if (begun.status !== "started") throw new Error("not started");
     await recorder.record(begun.operationId, "DeleteRequested");
     await expect(
-      client.handOff("account-a", begun.operationId, "ignore", PROFILE_PATH),
+      fromConversation().handOff(
+        "account-a",
+        begun.operationId,
+        "ignore",
+        PROFILE_PATH,
+      ),
     ).rejects.toThrow();
     await recorder.record(begun.operationId, "DeleteConfirmed");
     // A newer run for the member replaces this one.
     clock += STALE_AFTER_MS + 60_000;
     await recorder.begin(TARGET);
     await expect(
-      client.handOff("account-a", begun.operationId, "ignore", PROFILE_PATH),
+      fromConversation().handOff(
+        "account-a",
+        begun.operationId,
+        "ignore",
+        PROFILE_PATH,
+      ),
     ).rejects.toThrow();
     expect(session.items.size).toBe(0);
   });
 
   it("drops a marker that is stale, moved, or from another account", async () => {
     const id = await afterDelete();
-    await client.handOff("account-a", id, "ignore", PROFILE_PATH);
+    await fromConversation().handOff("account-a", id, "ignore", PROFILE_PATH);
     clock += STALE_AFTER_MS + 1;
     expect(await client.pending()).toEqual({ status: "none" });
 
     clock = Date.now();
     await freshDatabase();
     const moved = await afterDelete();
-    await client.handOff("account-a", moved, "ignore", PROFILE_PATH);
+    await fromConversation().handOff(
+      "account-a",
+      moved,
+      "ignore",
+      PROFILE_PATH,
+    );
     await client.recorder("account-a").record(moved, "IgnoreRequested");
     expect(await client.pending()).toEqual({ status: "none" });
 
     await freshDatabase();
     const switched = await afterDelete();
-    await client.handOff("account-a", switched, "ignore", PROFILE_PATH);
+    await fromConversation().handOff(
+      "account-a",
+      switched,
+      "ignore",
+      PROFILE_PATH,
+    );
     active = "account-b";
     // Closed under account A, and said, never left as still going.
     const stopped = await client.pending();
@@ -805,6 +834,93 @@ describe("M9 hand-off messages (ADR 0011)", () => {
     expect(await logged("account-b")).toEqual([]);
   });
 
+  it("hands off only from the run's own conversation page", async () => {
+    const id = await afterDelete();
+    const at = (url: string) =>
+      messageQuickActionClient((message) =>
+        router.route(message, { tabId: TAB, url }),
+      ).handOff("account-a", id, "ignore", PROFILE_PATH);
+    const origin = window.location.origin;
+    // The profile itself, the inbox, another conversation, no address.
+    await expect(at(`${origin}${PROFILE_PATH}`)).rejects.toThrow();
+    await expect(at(`${origin}/clubmail/`)).rejects.toThrow();
+    await expect(
+      at(
+        `${origin}/clubmail/conversation/conversation-wrapper-personal-1234567-5550001/`,
+      ),
+    ).rejects.toThrow();
+    await expect(
+      messageQuickActionClient((message) =>
+        router.route(message, { tabId: TAB }),
+      ).handOff("account-a", id, "ignore", PROFILE_PATH),
+    ).rejects.toThrow();
+    expect(session.items.size).toBe(0);
+    // The run's own conversation, with or without the closing slash.
+    await at(
+      `${origin}/clubmail/conversation/conversation-wrapper-${CONVERSATION}`,
+    );
+    expect(session.items.size).toBe(1);
+  });
+
+  it("withdraws only this run's marker in this tab, and closes the run", async () => {
+    const id = await afterDelete();
+    await fromConversation().handOff("account-a", id, "ignore", PROFILE_PATH);
+    // Another tab, or another run, withdraws nothing.
+    expect(await fromConversation(8).withdraw("account-a", id)).toEqual({
+      status: "none",
+    });
+    expect(
+      await fromConversation().withdraw("account-a", "action:other"),
+    ).toEqual({ status: "none" });
+    expect(session.items.size).toBe(1);
+    const answer = await fromConversation().withdraw("account-a", id);
+    expect(answer.status).toBe("withdrawn");
+    if (answer.status !== "withdrawn") throw new Error("not withdrawn");
+    expect(texts(answer.lines)).toContain(
+      "JoyFox could not move on to the member's profile, so it stopped before Ignore.",
+    );
+    expect(texts(answer.lines)).toContain(
+      "Delete: done. JoyClub moved the conversation to the trash.",
+    );
+    expect(await logged()).toEqual([
+      [
+        "Started",
+        "DeleteRequested",
+        "DeleteConfirmed",
+        "Failed:handoff-failed",
+      ],
+    ]);
+    // The profile, visited later in the tab, continues nothing.
+    expect(session.items.size).toBe(0);
+    expect(await client.pending()).toEqual({ status: "none" });
+  });
+
+  it("withdraws nothing once the profile has read the marker", async () => {
+    const id = await afterDelete();
+    await fromConversation().handOff("account-a", id, "ignore", PROFILE_PATH);
+    expect(await client.pending()).toMatchObject({ status: "ok" });
+    expect(await fromConversation().withdraw("account-a", id)).toEqual({
+      status: "none",
+    });
+    expect(await logged()).toEqual([
+      ["Started", "DeleteRequested", "DeleteConfirmed"],
+    ]);
+  });
+
+  it("leaves the marker to the profile after an account switch", async () => {
+    const id = await afterDelete();
+    await fromConversation().handOff("account-a", id, "ignore", PROFILE_PATH);
+    active = "account-b";
+    expect(await fromConversation().withdraw("account-a", id)).toEqual({
+      status: "none",
+    });
+    // The profile closes the run as an account change, as before.
+    expect(await client.pending()).toMatchObject({ status: "stopped" });
+    expect((await logged("account-a")).at(-1)?.at(-1)).toBe(
+      "Failed:account-changed",
+    );
+  });
+
   it("refuses a message without a tab, and a first step as the next", async () => {
     const id = await afterDelete();
     const noTab = messageQuickActionClient((message) => router.route(message));
@@ -813,7 +929,7 @@ describe("M9 hand-off messages (ADR 0011)", () => {
     ).rejects.toThrow();
     await expect(noTab.pending()).rejects.toThrow();
     await expect(
-      client.handOff("account-a", id, "delete", PROFILE_PATH),
+      fromConversation().handOff("account-a", id, "delete", PROFILE_PATH),
     ).rejects.toThrow();
   });
 });
@@ -994,7 +1110,9 @@ describe("M9 button and notice", () => {
     ]);
     expect(driver.clicks).toEqual(["request:delete", "confirm:delete"]);
 
-    // The tab loads the profile; a new content script starts there.
+    // The tab loads the profile; the conversation page goes, and a new
+    // content script starts there.
+    window.dispatchEvent(new Event("pagehide"));
     window.history.replaceState(
       null,
       "",
@@ -1020,6 +1138,79 @@ describe("M9 button and notice", () => {
     expect(again.clicks).toEqual([]);
   });
 
+  /** A conversation page whose navigation to the profile is a stub. */
+  function conversationPage(driver: QuickActionDriver, visited: string[]) {
+    window.history.replaceState(
+      null,
+      "",
+      `/clubmail/conversation/conversation-wrapper-${CONVERSATION}`,
+    );
+    document.body.innerHTML = conversationHtml;
+    const quick = new QuickIgnoreDelete(
+      document,
+      client,
+      () => driver,
+      (url) => visited.push(url),
+      () => Date.now(),
+      60,
+    );
+    quick.update();
+    return quick;
+  }
+
+  it("withdraws the hand-off when the page is not left for the profile", async () => {
+    const driver = new FakeDriver();
+    driver.current = () => HERE;
+    const visited: string[] = [];
+    conversationPage(driver, visited);
+    await vi.waitFor(() => expect(runButton()).toBeDefined());
+    runButton()!.click();
+    await vi.waitFor(() => expect(visited).toHaveLength(1));
+    // The navigation is cancelled: this page stays, and says what was done.
+    await vi.waitFor(() =>
+      expect(notice()).toContain(
+        "JoyFox could not move on to the member's profile, so it stopped before Ignore.",
+      ),
+    );
+    expect(notice()).toContain(
+      "Delete: done. JoyClub moved the conversation to the trash.",
+    );
+    expect((await logged())[0]?.at(-1)).toBe("Failed:handoff-failed");
+    expect(session.items.size).toBe(0);
+    // A later visit to the profile in this tab continues nothing.
+    onProfilePage();
+    document.body.innerHTML = profileHtml;
+    const later = new FakeDriver();
+    later.current = () => PROFILE;
+    new QuickIgnoreDelete(document, client, () => later).updateProfile();
+    await new Promise((resolve) => setTimeout(resolve, 30));
+    expect(later.clicks).toEqual([]);
+  });
+
+  it("keeps the hand-off once the page is left for the profile", async () => {
+    const driver = new FakeDriver();
+    driver.current = () => HERE;
+    const visited: string[] = [];
+    conversationPage(driver, visited);
+    await vi.waitFor(() => expect(runButton()).toBeDefined());
+    runButton()!.click();
+    await vi.waitFor(() => expect(visited).toHaveLength(1));
+    // The browser unloads the page on its way to the profile.
+    window.dispatchEvent(new Event("pagehide"));
+    await new Promise((resolve) => setTimeout(resolve, 120));
+    expect(session.items.size).toBe(1);
+    expect((await logged())[0]?.at(-1)).toBe("DeleteConfirmed");
+    onProfilePage();
+    document.body.innerHTML = profileHtml;
+    const onProfile = new FakeDriver();
+    onProfile.current = () => PROFILE;
+    new QuickIgnoreDelete(document, client, () => onProfile).updateProfile();
+    await vi.waitFor(async () =>
+      expect((await logged())[0]?.at(-1)).toBe("Completed"),
+    );
+    expect(onProfile.clicks).toEqual(["request:ignore", "confirm:ignore"]);
+  });
+
   it("starts nothing when the member's profile address is unknown", async () => {
     const driver = new FakeDriver();
     openConversation(driver);
@@ -1042,7 +1233,7 @@ describe("M9 button and notice", () => {
     if (begun.status !== "started") throw new Error("not started");
     await recorder.record(begun.operationId, "DeleteRequested");
     await recorder.record(begun.operationId, "DeleteConfirmed");
-    await client.handOff(
+    await fromConversation().handOff(
       "account-a",
       begun.operationId,
       "ignore",
@@ -1071,7 +1262,7 @@ describe("M9 button and notice", () => {
     if (begun.status !== "started") throw new Error("not started");
     await recorder.record(begun.operationId, "DeleteRequested");
     await recorder.record(begun.operationId, "DeleteConfirmed");
-    await client.handOff(
+    await fromConversation().handOff(
       "account-a",
       begun.operationId,
       "ignore",
@@ -1101,7 +1292,7 @@ describe("M9 button and notice", () => {
     if (begun.status !== "started") throw new Error("not started");
     await recorder.record(begun.operationId, "DeleteRequested");
     await recorder.record(begun.operationId, "DeleteConfirmed");
-    await client.handOff(
+    await fromConversation().handOff(
       "account-a",
       begun.operationId,
       "ignore",
@@ -1136,7 +1327,7 @@ describe("M9 button and notice", () => {
     if (begun.status !== "started") throw new Error("not started");
     await recorder.record(begun.operationId, "DeleteRequested");
     await recorder.record(begun.operationId, "DeleteConfirmed");
-    await client.handOff(
+    await fromConversation().handOff(
       "account-a",
       begun.operationId,
       "ignore",
@@ -1160,7 +1351,7 @@ describe("M9 button and notice", () => {
     if (begun.status !== "started") throw new Error("not started");
     await recorder.record(begun.operationId, "DeleteRequested");
     await recorder.record(begun.operationId, "DeleteConfirmed");
-    await client.handOff(
+    await fromConversation().handOff(
       "account-a",
       begun.operationId,
       "ignore",
@@ -1176,7 +1367,7 @@ describe("M9 button and notice", () => {
     if (begun.status !== "started") throw new Error("not started");
     await recorder.record(begun.operationId, "DeleteRequested");
     await recorder.record(begun.operationId, "DeleteConfirmed");
-    await client.handOff(
+    await fromConversation().handOff(
       "account-a",
       begun.operationId,
       "ignore",

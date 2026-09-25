@@ -490,6 +490,7 @@ describe("content surfaces (docs/i18n-spec.md, Sections 3.7 and 6)", () => {
       recorder: () => ({}) as never,
       handOff: () => Promise.resolve(),
       pending: () => Promise.resolve({ status: "none" }),
+      withdraw: () => Promise.resolve({ status: "none" }),
     } as QuickActionClient;
     const quick = new QuickIgnoreDelete(
       document,

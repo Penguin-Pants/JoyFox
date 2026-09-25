@@ -133,7 +133,17 @@
   profile. The conversation can still be restored from JoyClub's trash.
 - The M9 step timeout (15 seconds), the interrupted threshold (2 minutes) and
   the profile page's wait for its menu (10 seconds) are provisional; no document
-  sets them.
+  sets them. The conversation page also waits 15 seconds (the step timeout) for
+  the move to the profile; if it is still there, it withdraws the hand-off and
+  the run stops before Ignore (ADR 0011, review follow-ups).
+- A cancelled move to the profile leaves a gap of up to 15 seconds: opening the
+  member's profile in the same tab within it still continues the run, and going
+  to another JoyClub page within it leaves the hand-off for up to 2 minutes. A
+  move that takes longer than 15 seconds stops before Ignore, and the profile
+  page then shows no JoyFox notice.
+- M9 Delete counts the member's rows in the list, not the conversation's own
+  row, so a member with two conversations in the list can mislead it. Matching
+  the own row needs evidence that an inbox row names its conversation.
 - The PRD's guided alternative for M9 (navigate and stage, the user clicks) is
   not built. It needs the same F7 evidence.
 - Database version 1 supplies a migration boundary. No historical schema yet
