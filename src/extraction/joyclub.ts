@@ -299,7 +299,10 @@ export interface ProfileExtraction {
   verificationCode: ExtractionResult<number>;
   genderCode: ExtractionResult<number>;
   photoCount: ExtractionResult<number>;
-  /** Words in the motto and the main text together. */
+  /**
+   * Words in the main profile text only. The motto and every other text on
+   * the page are not counted.
+   */
   profileWordCount: ExtractionResult<number>;
   /** No exact join date has been found on any page. */
   joinedAt: ExtractionResult<string>;
@@ -397,13 +400,10 @@ export function extractProfile(
     ? (root.querySelector(photoSelector)?.getAttribute("aria-label") ?? null)
     : null;
   const photoMatch = photoLabel === null ? null : PHOTO_LABEL.exec(photoLabel);
-  const textSelectors = [
-    verifiedSelector("profile", "profileMotto"),
-    verifiedSelector("profile", "profileMainText"),
-  ].filter((selector): selector is string => selector !== undefined);
-  const textBlocks = textSelectors
-    .map((selector) => root.querySelector(selector))
-    .filter((element): element is Element => element !== null);
+  const mainTextSelector = verifiedSelector("profile", "profileMainText");
+  const mainText = mainTextSelector
+    ? root.querySelector(mainTextSelector)
+    : null;
   return {
     memberId:
       memberField === FROM_URL
@@ -427,18 +427,11 @@ export function extractProfile(
         : photoMatch?.[1]
           ? found(Number(photoMatch[1]), "profile.photoCount")
           : invalid("profile.photoCount", "Unexpected photo badge label"),
-    // No text block at all is "not rendered", which is not the same as a
+    // No main text block is "not rendered", which is not the same as a
     // profile with zero words, so it stays missing.
-    profileWordCount:
-      textBlocks.length === 0
-        ? missing("profile.text")
-        : found(
-            textBlocks.reduce(
-              (total, element) => total + countWords(element.textContent ?? ""),
-              0,
-            ),
-            "profile.text",
-          ),
+    profileWordCount: mainText
+      ? found(countWords(mainText.textContent ?? ""), "profile.mainText")
+      : missing("profile.mainText"),
     joinedAt: missing("profile.joinedAt:no-exact-date-on-site"),
     joinedWindow: memberSinceWindow(root, now),
   };

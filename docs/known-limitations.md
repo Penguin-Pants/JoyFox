@@ -47,8 +47,11 @@
   empty inbox. No loading-complete or empty-state signal is verified yet. An
   inbox feature must not wait indefinitely on zero rows; it needs such a signal,
   or a bounded wait, before it treats the inbox as empty.
-- The profile word count adds the motto and the main text. The conversation
-  header's short description is counted separately and is not used for M1.
+- The profile word count counts only the main text
+  (`.profile-description-maintext__text`). The motto and all other page text are
+  not counted. A profile with no main text block reads as unknown, not zero. The
+  conversation header's short description is counted separately and is not used
+  for M1.
 - The extension cannot detect which JoyClub login a tab uses. The active account
   is whichever one the user selected on the options page, and the identifier
   recorded for it is user-declared, not verified. Switching JoyClub logins in

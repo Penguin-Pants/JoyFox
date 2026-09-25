@@ -66,7 +66,7 @@ app (`09-navigation.md`) and the inbox list can stay in the DOM.
 | Profile      | Member ID         | URL path                                                                           | Digits before the first `.`                          |
 | Profile      | Verification code | `[data-e2e="profile-header-base-info"] j-veri-icon[…]`                             | Numeric code                                         |
 | Profile      | Photo count       | `.amount-badge[aria-label]`                                                        | `"<n> Fotos"` or `"1 Foto"`                          |
-| Profile      | Profile text      | `.profile-description-motto__text`, `.profile-description-maintext__text`          | Word count of both blocks together                   |
+| Profile      | Profile text      | `.profile-description-maintext__text`                                              | Word count of the main text only (motto not counted) |
 | Profile      | Account age       | `.profile-sidebar-container__badge-list j-list-item` with text "Angemeldet seit …" | Join window from a rounded duration                  |
 
 ## Layout dependency (ADR 0010)

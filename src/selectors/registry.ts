@@ -90,7 +90,7 @@ export const selectorRegistry: Readonly<
       // One badge in this list reads "Angemeldet seit <n> <unit>"; the
       // extractor picks it by that text, as the badges share one structure.
       memberSinceBadge: ".profile-sidebar-container__badge-list j-list-item",
-      profileMotto: ".profile-description-motto__text",
+      // Only the main text is counted; the motto above it is not.
       profileMainText: ".profile-description-maintext__text",
     },
   },
