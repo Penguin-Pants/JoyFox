@@ -440,7 +440,7 @@ automatically.
 85. Choose a file that is not a JoyFox export. Confirm the error says nothing
     was imported.
 
-**Result:** not yet run.
+**Result (2026-09-25): passed.** The project owner confirmed items 83 to 85.
 
 ## First message contains (ADR 0013)
 
