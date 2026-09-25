@@ -170,7 +170,7 @@ export class SpamPhraseRepository extends IndexedDbRepository<"spamPhrases"> {
   }
 }
 /**
- * PRD Section 19.5 sets a default auto-purge window of 12 months for cached
+ * PRD Section 13.3 sets a default auto-purge window of 12 months for cached
  * message text. Observations older than this are dropped on the next write, so
  * the cache cannot grow without bound or keep message content indefinitely.
  */

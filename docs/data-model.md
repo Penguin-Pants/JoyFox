@@ -123,7 +123,7 @@ collapses whitespace, which is what the detector compares. The field list is
 closed by validation, so a field carrying the original text cannot be added to a
 record by accident.
 
-Retention follows PRD Section 19.5's default auto-purge window of 12 months. The
+Retention follows PRD Section 13.3's default auto-purge window of 12 months. The
 window is measured from the write, using `updatedAt`, not from the record's own
 `observedAt`, so backdating one message cannot drag the cutoff back and keep
 expired records alive. The record being written is never purged by its own
