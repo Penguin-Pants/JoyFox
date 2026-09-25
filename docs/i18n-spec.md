@@ -97,22 +97,34 @@ export async function readLocale(area: SettingsArea): Promise<Locale>;
 
 - Flat dotted keys grouped by surface: `options.tabs.start`,
   `triage.reason.belowMinimum`, `error.import.notJson`.
-- A value is a string, or a function of typed params for plurals and grammar:
+- A value is a string, or a function of typed params for plurals and grammar. A
+  function gets a second argument, `f: Format`, for numbers and plurals.
 
 ```ts
 // en.ts
 export const en = {
   "options.tabs.start": "Get started",
   "field.accountAge": "Account age",
-  "triage.reason.belowMinimum": (p: { field: Translated; value: number; minimum: number }) =>
-    `${p.field} is ${p.value}, below the required ${p.minimum}.`,
+  "triage.reason.belowMinimum": (
+    p: { field: Translated; value: number; minimum: number },
+    f: Format,
+  ) => `${p.field} is ${f.number(p.value)}, below the required ${f.number(p.minimum)}.`,
 } as const;
+
+/** Locale-aware helpers that t() passes to every catalog function. */
+export interface Format {
+  number(value: number): string; // de: 1.234,5 en: 1,234.5
+  plural(value: number, forms: { one: string; other: string }): string;
+}
 export type MessageKey = keyof typeof en;
 
 /** A param that the translator fills with an already translated string. */
 export type Translated = string & { readonly __translated: true };
 /** The params a key's function takes, or undefined for a plain string. */
-export type ArgsOf<K extends MessageKey> = (typeof en)[K] extends (p: infer A) => string
+export type ArgsOf<K extends MessageKey> = (typeof en)[K] extends (
+  p: infer A,
+  f: Format,
+) => string
   ? A
   : undefined;
 
@@ -125,6 +137,8 @@ export const de: { [K in MessageKey]: (typeof en)[K] extends string
 - A param that must be translated (for example the field "Account age") has the
   type `Translated` in the catalog. In a `Message` it is a nested `Message`,
   never a string (see 3.5).
+- A catalog function must print every `number` param through `f.number()`, never
+  with plain `${p.value}`. A catalog test enforces this (Section 6).
 - A plain `string` param is always literal. The translator never looks it up in
   the catalog, even when its text is equal to a key. This keeps `legacy.text`
   and user text verbatim.
@@ -168,8 +182,24 @@ export const MESSAGE_PARAMS: {
   exactly the listed param names, each of the listed kind, nested messages
   checked the same way.
 
-- `reasons: string[]` becomes `reasons: Message[]` in the engine result, the
-  rule result, the trust result and `ConversationClassification`.
+- Every field that the UI shows and that code (not the user) writes becomes a
+  `Message`. Today these are:
+
+| Field                                                  | File                          | New type    |
+| ------------------------------------------------------ | ----------------------------- | ----------- |
+| `EvaluatedCriterion.reason`                            | `src/qualification/engine.ts` | `Message`   |
+| Engine result `reasons`                                | `src/qualification/engine.ts` | `Message[]` |
+| `EvaluatedCondition.reason`                            | `src/rules/contact-rule.ts`   | `Message`   |
+| Rule result `reasons` (headline included)              | `src/rules/contact-rule.ts`   | `Message[]` |
+| `TrustContribution.reason`                             | `src/trust/trust-score.ts`    | `Message`   |
+| `SpamFinding.detail`                                   | `src/spam/detector.ts`        | `Message`   |
+| `SpamDetectionResult.explanation`                      | `src/spam/detector.ts`        | `Message[]` |
+| `ConversationClassification.reasons` (stored, see 4.1) | `src/domain/types.ts`         | `Message[]` |
+
+- Before the build closes, search `src/` for other `string` fields whose doc
+  comment says "plain-language" or "for display", and convert them the same way.
+  Only `ConversationClassification.reasons` is stored. The others exist only at
+  runtime and need no migration.
 - The content script calls `t(message)` at render time. The background never
   produces display text.
 
@@ -189,10 +219,15 @@ export function onLocaleChange(listener: (locale: Locale) => void): () => void;
 
 - Use `Intl.DateTimeFormat` (`de-DE` or `en-US`, `dateStyle: "medium"`) and
   `Intl.NumberFormat` with the same locale tags.
-- Replace every `.slice(0, 10)` date shown to the user, for example in
-  `src/content/triage-ui.ts:181` and `src/content/observed-facts.ts:56`.
+- Replace every `.slice(0, 10)` date that is shown to the user, for example in
+  `src/content/triage-ui.ts:181`, with `formatDate()`.
+- Do not change dates used as internal keys or stored values. Example:
+  `factsKey()` in `src/content/observed-facts.ts:56` slices dates to build a
+  cache key. A locale-dependent key would change on each language switch and
+  discard cached triage results.
 - `t()` resolves each nested `Message` param first, then calls the catalog
-  function. It passes `string` and `number` params unchanged.
+  function with `f` for the current locale. It passes `string` and `number`
+  params unchanged, and the catalog function formats numbers through `f`.
 - A value that fails `isMessage` at render time shows its key (or "?" if it has
   none) and logs once. It never throws.
 
@@ -296,8 +331,10 @@ export function onLocaleChange(listener: (locale: Locale) => void): () => void;
 
 - Locale: `resolveDefaultLocale` for `de`, `de-AT`, `de-CH`, `en-US`, `fr` and
   an empty string. `readLocale` with a stored, missing and invalid value.
-- Catalog: no empty value in either language. For string values, the set of
-  `${...}`-style placeholders is the same in `en` and `de`.
+- Catalog: no empty value in either language. Call each function that takes a
+  `number` param with `1234.5` in both locales. The output must contain
+  `1.234,5` (de) or `1,234.5` (en) and never `1234.5`. For string values, the
+  set of `${...}`-style placeholders is the same in `en` and `de`.
 - Types: a `// @ts-expect-error` test for a missing param, a misspelled param
   and a string where a nested `Message` is required.
 - `isMessage`: accepts valid nested messages. Refuses an unknown key, a missing
