@@ -138,7 +138,13 @@ export interface MessageContract {
    * the steps; the background stores each transition in ActionLog.
    */
   "action.ignoreDelete.start": {
-    request: { accountId: string; memberId: string; conversationId: string };
+    request: {
+      accountId: string;
+      memberId: string;
+      conversationId: string;
+      /** Epoch milliseconds; nothing is stored after it. */
+      deadline?: number;
+    };
     response: BeginAnswer;
   };
   /** Store one transition; answered only once it is stored. */
@@ -164,6 +170,8 @@ export interface MessageContract {
           conversationId?: string;
           /** When the run last moved: its last stored step. */
           updatedAt: string;
+          /** How long it may stay still while running (`staleAfterMs`). */
+          staleAfterMs: number;
           report: OperationReport;
         };
   };

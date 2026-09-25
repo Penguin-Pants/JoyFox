@@ -204,8 +204,12 @@ accepted by hand on 2026-09-25 (ADR 0011, `manual-acceptance.md`).
     reproducible by hand; synthetic tests cover it.
 - Dropped (owner, 2026-09-25, ADR 0015): the PRD's settings toggle for the
   guided alternative (navigate and stage, the user clicks).
-- Confirm or tune the step timeout (15 seconds) and the interrupted threshold
-  (2 minutes) against the live site.
+- Done (2026-09-25): a start stored after its tab stopped waiting no longer
+  reads as running for 2 minutes. The background refuses a start past the
+  tab's deadline, and a run still at `Started` reads as interrupted after 30
+  seconds (`milestone-e-audit.md`, "Late start").
+- Confirm or tune the step timeout (15 seconds) and the interrupted thresholds
+  (2 minutes; 30 seconds at `Started`) against the live site.
 
 M9 is the largest and riskiest MVP task, both in size and in its need to resume across a page navigation, since F7 answered the in-page-versus-navigation question with navigation (Path B). If F1 through F7 push MVP's timeline out meaningfully, M9 is the one task worth reconsidering for a fast-follow release rather than the rest of MVP slipping with it. That is a scope call, not a technical one, and stays with the person running this project.
 

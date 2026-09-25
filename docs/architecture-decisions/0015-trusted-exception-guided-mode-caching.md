@@ -54,9 +54,10 @@ evidence:
   - provisional timings: the 15-second step timeout and wait, the 2-minute stale
     threshold and the 10-second profile wait (`known-limitations.md`);
   - deferred defects: a `start` stored after its timeout reads as running for 2
-    minutes, so a retry meanwhile answers "busy" (`milestone-e-audit.md`); and a
-    cancel followed by the same member's profile within the 15-second wait still
-    continues the run (ADR 0011).
+    minutes, so a retry meanwhile answers "busy" (`milestone-e-audit.md`; fixed
+    later on 2026-09-25, see "Late start" there); and a cancel followed by the
+    same member's profile within the 15-second wait still continues the run (ADR
+    0011).
 - The PRD text is unchanged. This record states where the build differs from it.
 - Earlier docs cited "PRD Section 19.5". On 2026-09-25 each citation was
   corrected: the 12-month retention now cites PRD Section 13.3, and the caching

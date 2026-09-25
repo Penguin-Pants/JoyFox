@@ -131,11 +131,12 @@
   clicking ("cannot see JoyClub's result").
 - JoyClub's own Undo notice for Delete disappears when JoyFox moves to the
   profile. The conversation can still be restored from JoyClub's trash.
-- The M9 step timeout (15 seconds), the interrupted threshold (2 minutes) and
-  the profile page's wait for its menu (10 seconds) are provisional; no document
-  sets them. The conversation page also waits 15 seconds (the step timeout) for
-  the move to the profile; if it is still there, it withdraws the hand-off and
-  the run stops before Ignore (ADR 0011, review follow-ups).
+- The M9 step timeout (15 seconds), the interrupted threshold (2 minutes; 30
+  seconds for a run still at its start) and the profile page's wait for its menu
+  (10 seconds) are provisional; no document sets them. The conversation page
+  also waits 15 seconds (the step timeout) for the move to the profile; if it is
+  still there, it withdraws the hand-off and the run stops before Ignore (ADR
+  0011, review follow-ups).
 - A cancelled move to the profile leaves a gap of up to 15 seconds: opening the
   same member's profile in the same tab within it still continues the run. Going
   to any other JoyClub page ends the hand-off at once (ADR 0011, "Stale hand-off

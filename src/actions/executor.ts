@@ -47,7 +47,9 @@ export type BeginAnswer =
   | { status: "started"; operationId: string }
   | { status: "busy"; report: OperationReport }
   /** The account the page's data came from is no longer active. */
-  | { status: "refused" };
+  | { status: "refused" }
+  /** The request reached the log after its deadline, so nothing was stored. */
+  | { status: "expired" };
 
 export type RecordAnswer =
   | "recorded"
@@ -58,7 +60,12 @@ export type RecordAnswer =
 
 /** Where transitions are stored: the background's ActionLog, in the page. */
 export interface ActionRecorder {
-  begin(target: ActionTarget): Promise<BeginAnswer>;
+  /**
+   * `deadline` (epoch milliseconds) is when the caller stops waiting. The
+   * log stores nothing after it, so a late answer never leaves a run that
+   * reads as running with no tab behind it.
+   */
+  begin(target: ActionTarget, deadline?: number): Promise<BeginAnswer>;
   record(
     operationId: string,
     state: ActionState,
@@ -173,7 +180,8 @@ export async function runQuickIgnoreDelete(
   else {
     let begun: BeginAnswer;
     try {
-      begun = await withTimeout(recorder.begin(target), timeout);
+      const deadline = Date.parse(now()) + timeout;
+      begun = await withTimeout(recorder.begin(target, deadline), timeout);
     } catch {
       note("Failed", "log-unavailable");
       return { status: "finished", report: report() };
@@ -182,6 +190,11 @@ export async function runQuickIgnoreDelete(
       return { status: "busy", report: begun.report };
     if (begun.status === "refused") {
       note("Failed", "account-changed");
+      return { status: "finished", report: report() };
+    }
+    if (begun.status === "expired") {
+      // As a timeout: the log could not store the start in time.
+      note("Failed", "log-unavailable");
       return { status: "finished", report: report() };
     }
     operationId = begun.operationId;

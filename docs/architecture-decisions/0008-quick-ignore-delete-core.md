@@ -44,7 +44,10 @@ Several details were open:
    screen.
 3. **A run that has not moved for 2 minutes reads as interrupted.** Each driver
    call waits at most 15 seconds, so a live run always moves sooner. Both values
-   are provisional; no document sets them.
+   are provisional; no document sets them. (Amended 2026-09-25: a run still at
+   `Started` reads as interrupted after 30 seconds, twice the step timeout, and
+   a start is not stored after the tab's deadline. See `milestone-e-audit.md`,
+   "Late start".)
 4. **Member ID always; conversation ID on a conversation page.** Delete acts on
    the conversation, so it needs the conversation page. The check runs before
    the step's control is clicked and again before JoyClub's confirmation is

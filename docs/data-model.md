@@ -249,12 +249,12 @@ reached, in order, each with `name`, `ok`, `at` and, for `Failed`, the reason in
 The service appends a step only when the state machine allows it (ADR 0008), so
 a log never shows an impossible sequence. `…Requested` is stored before JoyFox
 clicks, so a crash leaves "not confirmed", never "not done". A run whose last
-step is not terminal and is older than 2 minutes reads as interrupted. The log
-holds IDs, state names and times only, never message text. Starting a run also
-registers the JoyClubMember record. Every stored transition sets
-`joyfox.actionRevision` in `storage.local`, so another open tab follows the run.
-`conversationId` is an optional field on the existing store, so no database
-version change was needed.
+step is not terminal and is older than 2 minutes reads as interrupted; a run
+still at `Started` does so after 30 seconds (ADR 0008). The log holds IDs, state
+names and times only, never message text. Starting a run also registers the
+JoyClubMember record. Every stored transition sets `joyfox.actionRevision` in
+`storage.local`, so another open tab follows the run. `conversationId` is an
+optional field on the existing store, so no database version change was needed.
 
 ## Import (owner request, ADR 0009)
 
