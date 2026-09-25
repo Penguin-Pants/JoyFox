@@ -5,7 +5,11 @@ import {
 } from "../qualification/engine";
 import type { FactSource, ProfileFacts } from "../qualification/facts";
 import type { TrustScore } from "../trust/trust-score";
-import { MAX_PHRASE_LENGTH, normalizePhrase } from "./message-phrase";
+import {
+  MAX_NORMALIZED_PHRASE_LENGTH,
+  MAX_PHRASE_LENGTH,
+  normalizePhrase,
+} from "./message-phrase";
 
 /**
  * The contact rule (M4), in the schema V1 will use, so per-audience rules and
@@ -213,11 +217,15 @@ function nodeProblem(
     if (version === 1 || version === 2)
       return "This condition needs rule schema version 3";
     const text = node.text;
+    const phrase = typeof text === "string" ? normalizePhrase(text) : "";
     if (
       typeof text !== "string" ||
       text !== text.trim() ||
       text.length > RULE_LIMITS.maxTextLength ||
-      normalizePhrase(text).length === 0
+      phrase.length === 0 ||
+      // Every phrase a rule accepts must also fit a stored match, or an
+      // export would hold a match that import refuses.
+      phrase.length > MAX_NORMALIZED_PHRASE_LENGTH
     )
       return `A condition text must be 1 to ${RULE_LIMITS.maxTextLength} characters, with no space at either end`;
   } else if (node.text !== undefined) return "This condition takes no text";

@@ -33,9 +33,11 @@ rejected too: it fails in the same case.
    characters, trimmed). It is offered in both editors, supports "not" and has
    the usual "If JoyFox cannot see this" choice.
 2. **Matching.** Anywhere in the message. Upper and lower case and extra spaces
-   do not matter. NFKC normalization, and the emoji variation selectors
-   U+FE0E/U+FE0F are ignored, so "❤" matches "❤️". Punctuation and skin tone
-   modifiers must match.
+   do not matter; case is folded so "Straße" matches "STRASSE". NFKC
+   normalization, and the emoji variation selectors U+FE0E/U+FE0F are ignored,
+   so "❤" matches "❤️". Punctuation and skin tone modifiers must match. A
+   phrase must fit 400 characters after normalization too, so every stored match
+   can be exported and imported again.
 3. **Outcome** (owner's choice):
    - The preview contains the text: met.
    - A preview JoyFox saw earlier contained it: met (stored match).

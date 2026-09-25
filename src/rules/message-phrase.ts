@@ -9,12 +9,21 @@
  * "❤" and "❤️" match. Every other character, including skin tone modifiers,
  * must match exactly. Punctuation is kept, so a phrase such as "Hi!" needs
  * its "!".
+ *
+ * Case is folded by upper-casing and then lower-casing, so a letter whose
+ * upper case is two letters matches them: "Straße" matches "STRASSE". The
+ * sharp s (ß, ẞ) becomes "ss" and the Greek final sigma becomes σ, so the
+ * result does not depend on where a word ends. The result is stable: it
+ * normalizes to itself.
  */
 export function normalizePhrase(text: string): string {
   return text
     .normalize("NFKC")
-    .replace(/[︎️]/gu, "")
+    .replace(/[\uFE0E\uFE0F]/gu, "")
+    .toUpperCase()
     .toLowerCase()
+    .replace(/\u00DF/gu, "ss")
+    .replace(/\u03C2/gu, "\u03C3")
     .replace(/\s+/gu, " ")
     .trim();
 }
@@ -23,9 +32,9 @@ export function normalizePhrase(text: string): string {
 export const MAX_PHRASE_LENGTH = 100;
 
 /**
- * The longest normalized phrase stored with a match. NFKC can lengthen a
- * phrase (a ligature becomes several letters), so this is larger than
- * `MAX_PHRASE_LENGTH`.
+ * The longest normalized phrase a rule may hold and a match may store. NFKC
+ * can lengthen a phrase (one Arabic ligature becomes 18 characters), so a
+ * rule phrase must also fit this after normalization.
  */
 export const MAX_NORMALIZED_PHRASE_LENGTH = 400;
 

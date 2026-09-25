@@ -1,6 +1,7 @@
 import { isStrictIsoDate } from "../domain/iso-date";
 import type { AccountScopedEntity, EntityName } from "../domain/types";
 import { contactRuleProblem } from "../rules/contact-rule";
+import { MAX_NORMALIZED_PHRASE_LENGTH } from "../rules/message-phrase";
 
 export class ValidationError extends Error {}
 
@@ -304,7 +305,8 @@ export function validateEntity(
         "MessagePhraseMatch",
       );
       requireString(record, "memberId");
-      requireString(record, "phrase");
+      if (requireString(record, "phrase").length > MAX_NORMALIZED_PHRASE_LENGTH)
+        throw new ValidationError("phrase is too long");
       requireDate(record, "matchedAt");
       break;
     case "actionLogs":

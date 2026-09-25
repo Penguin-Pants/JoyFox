@@ -6,6 +6,32 @@ describe("normalizePhrase", () => {
     expect(normalizePhrase("  Blue   HERON \n")).toBe("blue heron");
   });
 
+  it("folds case where the upper case is two letters", () => {
+    expect(normalizePhrase("Straße")).toBe(normalizePhrase("STRASSE"));
+    expect(normalizePhrase("\u1E9E")).toBe("ss");
+  });
+
+  it("treats the Greek final sigma as sigma", () => {
+    expect(phrasesIn("ΑΣΤΡΟ", new Set([normalizePhrase("ΑΣ")]))).toEqual(
+      new Set([normalizePhrase("ΑΣ")]),
+    );
+  });
+
+  it("normalizes to itself, as import requires", () => {
+    for (const text of [
+      "Straße",
+      "\u1E9E",
+      "ΑΣ",
+      "İstanbul",
+      "\uFDFA",
+      "ﬀ",
+      "👋🏽",
+    ]) {
+      const once = normalizePhrase(text);
+      expect(normalizePhrase(once)).toBe(once);
+    }
+  });
+
   it("keeps punctuation", () => {
     expect(normalizePhrase("Hi!")).toBe("hi!");
   });

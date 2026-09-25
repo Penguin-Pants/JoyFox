@@ -567,6 +567,10 @@ describe("First message contains (ADR 0013)", () => {
     ["text with spaces at an end", phraseRule({ text: " heron" })],
     ["text that is too long", phraseRule({ text: "x".repeat(101) })],
     [
+      "text that grows too long when normalized",
+      phraseRule({ text: "\uFDFA".repeat(23) }),
+    ],
+    [
       "text on another condition",
       {
         ...rule([condition("verified", { text: "heron" })]),

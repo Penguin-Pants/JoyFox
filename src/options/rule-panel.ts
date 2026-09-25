@@ -24,7 +24,10 @@ import {
   type BoxEntry,
   type BuilderForm,
 } from "../rules/rule-builder";
-import { normalizePhrase } from "../rules/message-phrase";
+import {
+  MAX_NORMALIZED_PHRASE_LENGTH,
+  normalizePhrase,
+} from "../rules/message-phrase";
 import { RuleService } from "../rules/rule-service";
 import { withAccountLock } from "../storage/account-lock";
 
@@ -181,8 +184,10 @@ function readText(
   kind: ConditionKind,
 ): { text: string } | string {
   const text = input.value.trim();
+  const phrase = normalizePhrase(text);
   if (
-    normalizePhrase(text).length === 0 ||
+    phrase.length === 0 ||
+    phrase.length > MAX_NORMALIZED_PHRASE_LENGTH ||
     text.length > RULE_LIMITS.maxTextLength
   )
     return `Enter a word, phrase or emoji of up to ${RULE_LIMITS.maxTextLength} characters for "${CONDITION_TEXT[kind]}".`;
