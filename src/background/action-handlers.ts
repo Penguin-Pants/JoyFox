@@ -280,22 +280,22 @@ export function registerActionHandlers(
         const current = (await session.get([key]))[key];
         if (!isMarker(current) || current.operationId !== stored.operationId)
           return false;
-        await session.remove([key]);
-        if (
-          !(await handOffReady(
-            stored.accountId,
-            stored.operationId,
-            stored.next,
-          ))
-        )
-          return false;
-        await deps.actions.record(
+        // Close the run first. If a read or the write fails, the marker
+        // stays, so the next page load in the tab tries again.
+        const ready = await handOffReady(
           stored.accountId,
           stored.operationId,
-          "Failed",
-          "handoff-failed",
+          stored.next,
         );
-        return true;
+        if (ready)
+          await deps.actions.record(
+            stored.accountId,
+            stored.operationId,
+            "Failed",
+            "handoff-failed",
+          );
+        await session.remove([key]);
+        return ready !== undefined;
       });
       if (!closed) return { status: "none" };
       await bumpActionRevision(deps.settings);

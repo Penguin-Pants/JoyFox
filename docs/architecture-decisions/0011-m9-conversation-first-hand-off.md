@@ -154,7 +154,9 @@ the page). The background:
 - otherwise removes the marker, and closes its run as `Failed:handoff-failed`
   under the run's own account, whichever account is active now. The marker is
   read again under that account's lock, so a newer marker stored meanwhile for
-  another run stays;
+  another run stays. The run is closed before the marker is removed, so if a
+  read or the log write fails, the marker stays and the next page load in the
+  tab tries again (Codex review on PR 43);
 - removes a stale or malformed marker without writing to the log.
 
 This covers every full page load: a cancelled move followed by the inbox, search

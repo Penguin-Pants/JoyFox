@@ -986,6 +986,42 @@ describe("M9 hand-off messages (ADR 0011)", () => {
     expect(await logged("account-b")).toEqual([]);
   });
 
+  it("keeps the marker when closing the run fails, so a later page retries", async () => {
+    const id = await afterDelete();
+    await fromConversation().handOff("account-a", id, "ignore", PROFILE_PATH);
+    // A background whose log write fails once, as during a restart.
+    let fail = true;
+    const actions = new ActionLogService(undefined, undefined, () =>
+      new Date(clock).toISOString(),
+    );
+    const record = actions.record.bind(actions);
+    actions.record = (...args: Parameters<typeof record>) => {
+      if (fail) {
+        fail = false;
+        return Promise.reject(new Error("database closing"));
+      }
+      return record(...args);
+    };
+    const flaky = new MessageRouter();
+    registerActionHandlers(flaky, {
+      actions,
+      activeAccountId: () => Promise.resolve(active),
+      now: () => clock,
+      session,
+    });
+    const inbox = messageQuickActionClient((message) =>
+      flaky.route(message, {
+        tabId: TAB,
+        url: `${window.location.origin}/clubmail/`,
+      }),
+    );
+    await expect(inbox.dropStale()).rejects.toThrow();
+    expect(session.items.size).toBe(1);
+    expect(await inbox.dropStale()).toEqual({ status: "dropped" });
+    expect(session.items.size).toBe(0);
+    expect((await logged()).at(-1)?.at(-1)).toBe("Failed:handoff-failed");
+  });
+
   it("removes a stale marker without writing to the log", async () => {
     const id = await afterDelete();
     await fromConversation().handOff("account-a", id, "ignore", PROFILE_PATH);
