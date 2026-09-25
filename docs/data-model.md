@@ -1,11 +1,12 @@
 # Data model
 
-Database schema version 2 stores the 16 PRD entities plus two entities the
-template spam detector requires, in IndexedDB. Every record, including an
-account record, has an account scope, stable local ID, and creation and update
-timestamps. Physical keys combine the account and record IDs, each
-percent-encoded so a value containing the separator cannot collide with another
-account's key. Account indexes make scoped listing and deletion explicit.
+Database schema version 3 stores the 16 PRD entities plus two entities the
+template spam detector requires and one for the "First message contains" rule
+condition, in IndexedDB. Every record, including an account record, has an
+account scope, stable local ID, and creation and update timestamps. Physical
+keys combine the account and record IDs, each percent-encoded so a value
+containing the separator cannot collide with another account's key. Account
+indexes make scoped listing and deletion explicit.
 
 The PRD Section 12.1 entities are ExtensionAccount, JoyClubMember,
 ProfileSnapshot, UserNote, UserTag, TrustSignal, ContactRule,
@@ -16,6 +17,9 @@ Version 2 adds MessageObservation and SenderSpamOverride. PRD Section 12.1
 defines neither, but M3 needs both: it compares against previous local messages
 and remembers a per-sender correction. This is recorded here rather than
 inferred from the code.
+
+Version 3 adds MessagePhraseMatch, for the "First message contains" rule
+condition (ADR 0013).
 
 One named repository exists per entity and exposes get, list, put, and delete.
 Cross-account writes are rejected. Export includes the schema version and every
@@ -70,9 +74,11 @@ from the triage revision, so a note does not make open inboxes re-evaluate.
 ## Schema versions
 
 Version 1 created the 16 PRD entities. Version 2 adds `messageObservations` and
-`senderSpamOverrides`. Each version's upgrade branch creates only its own
-stores, so a fresh install runs both branches in order without any store being
-created twice. An upgrade from version 1 keeps every existing record.
+`senderSpamOverrides`. Version 3 adds `messagePhraseMatches`. Each version's
+upgrade branch creates only its own stores, so a fresh install runs every branch
+in order without any store being created twice. An upgrade from version 1 or 2
+keeps every existing record. An export names the database version; import
+accepts a file from this version or an earlier one.
 
 ## MessageObservation
 
@@ -96,6 +102,18 @@ records the decision, when it was made and an optional user reason, so the
 explanation shown for an unflagged message can name the user's own earlier
 correction rather than appearing to be a silent exemption.
 
+## MessagePhraseMatch
+
+Records that a message from a sender contained a phrase from the user's own
+contact rule, keyed `phrase-match:<member>:<phrase>`. It holds `memberId`, the
+normalized `phrase` (`normalizePhrase`, at most 400 characters) and `matchedAt`.
+It never holds message text: the inbox preview is compared in memory and
+dropped. The field list is closed by validation, and import refuses a phrase
+that is not in normalized form. A record keeps the condition met after the
+sender's later messages hide the one that held the phrase. A record for a phrase
+the rule no longer uses has no effect. No retention window applies: a record is
+small and holds no message text.
+
 ## Join window
 
 A ProfileSnapshot may carry `joinedEarliest` and `joinedLatest`, two ISO dates
@@ -114,16 +132,19 @@ change, so it is read from the current page each time and never cached.
 ## ContactRule (Milestone C)
 
 The ContactRule entity now holds the V1-compatible rule schema from
-`src/rules/contact-rule.ts`: `schemaVersion` (1 or 2), `audience` (`all`, `man`,
-`woman` or `couple`), `enabled`, `defaultPlacement` (`needs-review` or
+`src/rules/contact-rule.ts`: `schemaVersion` (1, 2 or 3), `audience` (`all`,
+`man`, `woman` or `couple`), `enabled`, `defaultPlacement` (`needs-review` or
 `quarantined`, for a sender who does not meet the rule) and `root`, a tree of
 All/Any groups (at most 4 levels, 32 children each) whose conditions each carry
 a kind, an optional whole-number threshold, a `whenUnknown` handling and, from
-schema version 2, an optional `negate: true` ("not", ADR 0012). A rule without
-`negate` is still written as version 1. The earlier placeholder field
-`conditions` is gone; no record with it could exist, as nothing wrote rules
-before. No database version change was needed. The MVP keeps one rule per
-account, with ID `rule:global`.
+schema version 2, an optional `negate: true` ("not", ADR 0012). Schema version 3
+adds the `firstMessageContains` kind, whose `text` holds the word, phrase or
+emoji as typed (1 to 100 characters, trimmed; ADR 0013). A rule is written with
+the lowest version that holds it, so a rule without `negate` or a text condition
+is still written as version 1. The earlier placeholder field `conditions` is
+gone; no record with it could exist, as nothing wrote rules before. No database
+version change was needed. The MVP keeps one rule per account, with ID
+`rule:global`.
 
 ## ConversationClassification (Milestone C)
 

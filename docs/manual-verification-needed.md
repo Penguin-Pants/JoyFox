@@ -24,7 +24,15 @@ verified from it. Still open:
 - **Read-status icon (from the F2 check):** a read state was extracted from 9 of
   25 rows. Check how many rows show the icon at all, which modifier classes
   appear (for example `--received`, `--read`), and whether the rows with the
-  icon are those where you sent the last message.
+  icon are those where you sent the last message. If so, "First message
+  contains" can count a preview you wrote as met, as the owner chose (ADR 0013).
+  The owner reported on 2026-09-25 that an unread row is brighter and has a red
+  dot on its right; a read row is lighter and has no dot. No unread count was
+  reported.
+- **Message preview length:** whether JoyClub cuts the inbox preview text
+  (`.cm-conversation-list-item__text`) after a number of characters, or only
+  hides the overflow with CSS. A cut preview can hide a phrase at the end of a
+  long first message (ADR 0013).
 - **Empty inbox:** how the inbox renders with no conversations, for example an
   empty-state element. This decides how a feature tells "empty" from "loading".
 - **Item 7 (F7), done (2026-09-24):** Ignore is only on the profile page

@@ -287,6 +287,26 @@ export function validateEntity(
       requireDate(record, "decidedAt");
       optionalString(record, "reason");
       break;
+    case "messagePhraseMatches":
+      // Closed like messageObservations: only the result is stored, so a
+      // field carrying message text cannot be added by accident.
+      allowOnly(
+        record,
+        [
+          "id",
+          "accountId",
+          "createdAt",
+          "updatedAt",
+          "memberId",
+          "phrase",
+          "matchedAt",
+        ],
+        "MessagePhraseMatch",
+      );
+      requireString(record, "memberId");
+      requireString(record, "phrase");
+      requireDate(record, "matchedAt");
+      break;
     case "actionLogs":
       requireString(record, "action");
       optionalString(record, "memberId");

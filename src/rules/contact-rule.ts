@@ -5,6 +5,7 @@ import {
 } from "../qualification/engine";
 import type { FactSource, ProfileFacts } from "../qualification/facts";
 import type { TrustScore } from "../trust/trust-score";
+import { MAX_PHRASE_LENGTH, normalizePhrase } from "./message-phrase";
 
 /**
  * The contact rule (M4), in the schema V1 will use, so per-audience rules and
@@ -12,14 +13,18 @@ import type { TrustScore } from "../trust/trust-score";
  * global rule with audience `all`, and its builder edits the two-box shape
  * PRD Section 11.5 describes.
  */
-export const CONTACT_RULE_SCHEMA_VERSION = 2;
+export const CONTACT_RULE_SCHEMA_VERSION = 3;
 
 /**
- * The versions JoyFox reads. Version 2 adds `negate` (ADR 0012). A rule that
- * does not use it is still written as version 1, so a JoyFox build from
- * before version 2 can read it back.
+ * The versions JoyFox reads. Version 2 adds `negate` (ADR 0012). Version 3
+ * adds the "First message contains" condition and its `text` (ADR 0013). A
+ * rule is written with the lowest version that holds it, so a JoyFox build
+ * from before a version can still read a rule that does not use it.
  */
-export type ContactRuleSchemaVersion = 1 | typeof CONTACT_RULE_SCHEMA_VERSION;
+export type ContactRuleSchemaVersion =
+  | 1
+  | 2
+  | typeof CONTACT_RULE_SCHEMA_VERSION;
 
 /** What a condition counts as when JoyFox cannot see its fact. */
 export type UnknownHandling = "needs-review" | "met" | "not-met";
@@ -31,7 +36,8 @@ export type ConditionKind =
   | "minimumProfileWords"
   | "minimumAccountAgeDays"
   | "notTemplateSpam"
-  | "minimumTrustScore";
+  | "minimumTrustScore"
+  | "firstMessageContains";
 
 /** Kinds that take a numeric threshold in `value`. */
 export const NUMERIC_CONDITION_KINDS: ReadonlySet<ConditionKind> = new Set([
@@ -39,6 +45,11 @@ export const NUMERIC_CONDITION_KINDS: ReadonlySet<ConditionKind> = new Set([
   "minimumProfileWords",
   "minimumAccountAgeDays",
   "minimumTrustScore",
+]);
+
+/** Kinds that take a word, phrase or emoji in `text`. */
+export const TEXT_CONDITION_KINDS: ReadonlySet<ConditionKind> = new Set([
+  "firstMessageContains",
 ]);
 
 export const CONDITION_KINDS: readonly ConditionKind[] = [
@@ -49,6 +60,7 @@ export const CONDITION_KINDS: readonly ConditionKind[] = [
   "minimumAccountAgeDays",
   "notTemplateSpam",
   "minimumTrustScore",
+  "firstMessageContains",
 ];
 
 /** Plain-language names, shared by the page UI and the rule builder. */
@@ -60,6 +72,7 @@ export const CONDITION_TEXT: Record<ConditionKind, string> = {
   minimumAccountAgeDays: "Minimum account age in days",
   notTemplateSpam: "Not flagged as template spam",
   minimumTrustScore: "Minimum local trust score",
+  firstMessageContains: "First message contains",
 };
 
 export interface RuleCondition {
@@ -67,6 +80,11 @@ export interface RuleCondition {
   kind: ConditionKind;
   /** The threshold, for numeric kinds only. */
   value?: number;
+  /**
+   * The word, phrase or emoji, for text kinds only, as the user typed it
+   * (trimmed). Matching normalizes it (`normalizePhrase`). Schema version 3.
+   */
+  text?: string;
   whenUnknown: UnknownHandling;
   /**
    * "not": the condition is met when its fact fails. For a number this means
@@ -110,6 +128,7 @@ export const RULE_LIMITS = Object.freeze({
   maxChildren: 32,
   maxValue: 100_000,
   minTrustValue: -1_000,
+  maxTextLength: MAX_PHRASE_LENGTH,
 });
 
 /**
@@ -120,7 +139,7 @@ export const RULE_LIMITS = Object.freeze({
 export function contactRuleProblem(value: unknown): string | undefined {
   if (!value || typeof value !== "object") return "The rule must be an object";
   const rule = value as Record<string, unknown>;
-  if (rule.schemaVersion !== 1 && rule.schemaVersion !== 2)
+  if (![1, 2, 3].includes(rule.schemaVersion as number))
     return "Unsupported rule schema version";
   if (!["all", "man", "woman", "couple"].includes(rule.audience as string))
     return "Unsupported rule audience";
@@ -136,9 +155,27 @@ export function contactRuleProblem(value: unknown): string | undefined {
 export function schemaVersionFor(
   root: ConditionGroup,
 ): ContactRuleSchemaVersion {
-  const negates = (node: RuleNode): boolean =>
-    node.type === "group" ? node.children.some(negates) : node.negate === true;
-  return negates(root) ? 2 : 1;
+  const uses = (test: (condition: RuleCondition) => boolean) => {
+    const walk = (node: RuleNode): boolean =>
+      node.type === "group" ? node.children.some(walk) : test(node);
+    return walk(root);
+  };
+  if (uses((condition) => TEXT_CONDITION_KINDS.has(condition.kind))) return 3;
+  return uses((condition) => condition.negate === true) ? 2 : 1;
+}
+
+/** The normalized phrases a rule's text conditions look for. */
+export function rulePhrases(root: ConditionGroup): Set<string> {
+  const phrases = new Set<string>();
+  const walk = (node: RuleNode): void => {
+    if (node.type === "group") node.children.forEach(walk);
+    else if (TEXT_CONDITION_KINDS.has(node.kind) && node.text !== undefined) {
+      const phrase = normalizePhrase(node.text);
+      if (phrase.length > 0) phrases.add(phrase);
+    }
+  };
+  walk(root);
+  return phrases;
 }
 
 function nodeProblem(
@@ -172,6 +209,18 @@ function nodeProblem(
   if (node.negate !== undefined && (node.negate !== true || version === 1))
     return "negate must be true, and needs rule schema version 2";
   const kind = node.kind as ConditionKind;
+  if (TEXT_CONDITION_KINDS.has(kind)) {
+    if (version === 1 || version === 2)
+      return "This condition needs rule schema version 3";
+    const text = node.text;
+    if (
+      typeof text !== "string" ||
+      text !== text.trim() ||
+      text.length > RULE_LIMITS.maxTextLength ||
+      normalizePhrase(text).length === 0
+    )
+      return `A condition text must be 1 to ${RULE_LIMITS.maxTextLength} characters, with no space at either end`;
+  } else if (node.text !== undefined) return "This condition takes no text";
   if (NUMERIC_CONDITION_KINDS.has(kind)) {
     const minimum =
       kind === "minimumTrustScore" ? RULE_LIMITS.minTrustValue : 0;
@@ -214,12 +263,27 @@ export interface RuleEvaluation {
   evaluatedConditions: EvaluatedCondition[];
 }
 
+/**
+ * What JoyFox saw of this sender's messages, for "First message contains".
+ * Only the inbox shows a message, and only the latest one (ADR 0013).
+ */
+export interface MessageEvidence {
+  /** Whether the page shows this sender's latest message now. */
+  previewShown: boolean;
+  /** Normalized rule phrases the message on screen contains. */
+  seenNow: ReadonlySet<string>;
+  /** Normalized rule phrases an earlier message was seen to contain. */
+  seenBefore: ReadonlySet<string>;
+}
+
 export interface RuleInput {
   facts: ProfileFacts;
   sources?: Partial<Record<keyof ProfileFacts, FactSource>>;
   spam: SpamStatus;
   /** `unknown` when the user logged nothing about this member. */
   trust: TrustScore | "unknown";
+  /** Left out when no message from this sender is known. */
+  messages?: MessageEvidence;
   now?: Date;
 }
 
@@ -287,6 +351,8 @@ function readCondition(
           source: "none",
         };
     }
+  if (condition.kind === "firstMessageContains")
+    return readMessagePhrase(condition.text ?? "", input.messages);
   // minimumTrustScore
   const minimum = condition.value ?? 0;
   if (input.trust === "unknown")
@@ -307,6 +373,41 @@ function readCondition(
         reason: `Your local trust score is ${input.trust.score}, below the required ${minimum}.`,
         source: "cached",
       };
+}
+
+/**
+ * A phrase seen in a message is met. A message without it is unknown, never
+ * failed: the inbox shows only the latest message, so the first one may
+ * still have held it. The condition's unknown choice then decides.
+ */
+function readMessagePhrase(
+  text: string,
+  messages: MessageEvidence | undefined,
+): { state: CriterionState; reason: string; source: FactSource } {
+  const phrase = normalizePhrase(text);
+  if (messages?.seenNow.has(phrase))
+    return {
+      state: "pass",
+      reason: `The latest message from this sender contains "${text}".`,
+      source: "observed",
+    };
+  if (messages?.seenBefore.has(phrase))
+    return {
+      state: "pass",
+      reason: `An earlier message from this sender, seen in your inbox, contains "${text}".`,
+      source: "cached",
+    };
+  if (messages?.previewShown)
+    return {
+      state: "unknown",
+      reason: `The latest message from this sender does not contain "${text}". The inbox shows only the latest message, so JoyFox cannot see if the first message contained it.`,
+      source: "observed",
+    };
+  return {
+    state: "unknown",
+    reason: `JoyFox has not seen a message from this sender that contains "${text}". Only the inbox shows messages to JoyFox.`,
+    source: "none",
+  };
 }
 
 const UNKNOWN_SUFFIX: Record<UnknownHandling, string> = {

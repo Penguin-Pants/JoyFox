@@ -107,6 +107,11 @@ const sample: {
     action: "synthetic.action",
     steps: [{ name: "started", ok: true, at: now }],
   },
+  messagePhraseMatches: {
+    memberId: "1234567",
+    phrase: "blue heron",
+    matchedAt: now,
+  },
 };
 
 function record<N extends EntityName>(

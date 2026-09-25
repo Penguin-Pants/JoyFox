@@ -187,6 +187,11 @@ export class ActionLogRepository extends IndexedDbRepository<"actionLogs"> {
     super("actionLogs");
   }
 }
+export class MessagePhraseMatchRepository extends IndexedDbRepository<"messagePhraseMatches"> {
+  constructor() {
+    super("messagePhraseMatches");
+  }
+}
 
 export const repositories = {
   extensionAccounts: new ExtensionAccountRepository(),
@@ -207,6 +212,7 @@ export const repositories = {
   messageObservations: new MessageObservationRepository(),
   senderSpamOverrides: new SenderSpamOverrideRepository(),
   actionLogs: new ActionLogRepository(),
+  messagePhraseMatches: new MessagePhraseMatchRepository(),
 };
 
 export interface DataExport {

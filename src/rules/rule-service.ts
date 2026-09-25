@@ -76,6 +76,7 @@ function copyNode(node: RuleNode): RuleNode {
     type: "condition",
     kind: node.kind,
     ...(node.value !== undefined ? { value: node.value } : {}),
+    ...(node.text !== undefined ? { text: node.text } : {}),
     whenUnknown: node.whenUnknown,
     ...(node.negate ? { negate: true } : {}),
   };

@@ -82,6 +82,11 @@ const entityData: {
     decidedAt: now,
   },
   actionLogs: { action: "synthetic.action", steps: [] },
+  messagePhraseMatches: {
+    memberId: "member-1",
+    phrase: "blue heron",
+    matchedAt: now,
+  },
 };
 
 function entity<N extends EntityName>(

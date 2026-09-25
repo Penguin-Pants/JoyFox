@@ -92,8 +92,15 @@
 - The inbox shows only the verification shield. Photos, profile words and
   account age come from snapshots of profiles the user opened before, so a
   sender whose profile was never opened reads those facts as unknown.
-- Spam status is unknown on every page, because no page reads message text yet.
-  Only the user's own "not spam" correction counts.
+- Spam status is unknown on every page, because no page checks messages for
+  templates yet. Only the user's own "not spam" correction counts.
+- "First message contains" (ADR 0013) reads the inbox row's message preview,
+  which is the sender's latest message, not necessarily the first. A preview
+  without the phrase counts as the condition's "If JoyFox cannot see this"
+  choice, never as a plain failure. The condition is met when any message JoyFox
+  saw from the sender held the phrase, even a later one, and it stays met. A
+  preview JoyClub cut short, or a preview of the user's own reply, can hide the
+  phrase. On conversation and profile pages, only a stored match counts.
 - An existing conversation does not bypass triage (PRD Section 7.4), because
   JoyFox cannot yet tell whether the user replied. The per-sender manual
   placement is the workaround.

@@ -275,6 +275,12 @@ export function onLocaleChange(listener: (locale: Locale) => void): () => void;
 
 ### 4.1 Schema v3 migration
 
+Note (2026-09-25): ADR 0013 used database version 3 for the
+`messagePhraseMatches` store, and ADR 0012 is the rule-groups decision. Build
+this migration as version 4 (`oldVersion < 4`) and record it as the next free
+ADR number. The "First message contains" texts from ADR 0013 also need catalog
+keys.
+
 - `DATABASE_VERSION` goes from 2 to 3 in `src/storage/database.ts`. No store is
   added.
 - In `onupgradeneeded`, when `oldVersion < 3` and the store exists, open a

@@ -6,10 +6,12 @@ import {
 import { resolveMemberIdentity } from "../identity/member-identity";
 import type { ProfileFacts } from "../qualification/facts";
 import { PLACEMENT_TEXT } from "../rules/contact-rule";
+import { MAX_PREVIEW_LENGTH } from "../rules/message-phrase";
 import { selectorRegistry, verifiedSelector } from "../selectors/registry";
 import {
   MAX_MEMBERS_PER_REQUEST,
   type MemberTriage,
+  type TriageRequestMember,
 } from "../triage/triage-service";
 import { factsKey, observedFromInboxRow } from "./observed-facts";
 import type { TriageClient } from "./triage-client";
@@ -103,6 +105,11 @@ interface RowState {
   key?: string;
   memberId?: string;
   observed?: Partial<ProfileFacts>;
+  /**
+   * The latest message's preview, sent only to check the rule's phrases
+   * (ADR 0013). Never stored or logged.
+   */
+  preview?: string;
   /** Display only: shown in the details panel, never stored or logged. */
   name?: string;
 }
@@ -296,12 +303,19 @@ export class InboxTriage {
         if (identity.status !== "resolved") return { row: row.row, name };
         const memberId = identity.memberId;
         const observed = observedFromInboxRow(row);
+        const preview =
+          row.messagePreview.status === "found"
+            ? row.messagePreview.value.slice(0, MAX_PREVIEW_LENGTH)
+            : undefined;
         return {
           row: row.row,
           memberId,
           observed,
+          ...(preview !== undefined ? { preview } : {}),
           name,
-          key: `${memberId}|${factsKey(observed)}`,
+          // A new message changes the preview, so the row is asked about
+          // again.
+          key: JSON.stringify([memberId, factsKey(observed), preview ?? null]),
         };
       },
     );
@@ -309,15 +323,13 @@ export class InboxTriage {
 
   #requestMissing(rows: readonly RowState[]): void {
     if (this.#inFlight) return;
-    const pending = new Map<
-      string,
-      { memberId: string; observed: Partial<ProfileFacts> }
-    >();
+    const pending = new Map<string, TriageRequestMember>();
     for (const state of rows)
       if (state.key && state.memberId && !this.#results.has(state.key))
         pending.set(state.key, {
           memberId: state.memberId,
           observed: state.observed ?? {},
+          ...(state.preview !== undefined ? { preview: state.preview } : {}),
         });
     if (pending.size === 0) {
       // With no row to ask about (an empty or still-loading list, or only
@@ -341,10 +353,7 @@ export class InboxTriage {
     this.#send([], []);
   }
 
-  #send(
-    members: Array<{ memberId: string; observed: Partial<ProfileFacts> }>,
-    keys: string[],
-  ): void {
+  #send(members: TriageRequestMember[], keys: string[]): void {
     const generation = this.#generation;
     this.#inFlight = true;
     this.client
