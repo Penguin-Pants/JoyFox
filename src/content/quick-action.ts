@@ -61,6 +61,8 @@ export interface QuickActionClient {
   pending(): Promise<PendingAnswer>;
   /** Remove this tab's marker for the run, if it is still there. */
   withdraw(accountId: string, operationId: string): Promise<WithdrawAnswer>;
+  /** This page loaded: drop a marker that waits for another page. */
+  dropStale(): Promise<unknown>;
 }
 
 export function messageQuickActionClient(
@@ -80,6 +82,7 @@ export function messageQuickActionClient(
         throw new Error("The hand-off was refused");
     },
     pending: () => request(sender, "action.ignoreDelete.pending", {}),
+    dropStale: () => request(sender, "action.ignoreDelete.dropStale", {}),
     withdraw: (accountId, operationId) =>
       request(sender, "action.ignoreDelete.withdraw", {
         accountId,
@@ -207,6 +210,8 @@ export class QuickIgnoreDelete {
   /** The hand-off this profile page resumes, once read (one-shot). */
   #resume?: ResumeState;
   #discarded = false;
+  /** Set once this page has asked to drop a hand-off meant for another. */
+  #pageSeen = false;
   /** Failed reads of the hand-off marker on this page; retried a few times. */
   #pendingFailures = 0;
   #profileDrawn?: { section: HTMLElement; status: HTMLElement; lines: string };
@@ -464,6 +469,20 @@ export class QuickIgnoreDelete {
     // another page type while it loads. Its section is drawn again later.
     this.#profileDrawn = undefined;
     this.teardown();
+  }
+
+  /**
+   * Called on every page event while the flag is on; acts once per page
+   * load. A hand-off waits in this tab only for the profile it names, and
+   * the move there always loads a new page. So a page that loads anywhere
+   * else in the tab shows the move did not happen, and the background
+   * drops the marker (ADR 0011). The background compares the address the
+   * browser reports, so a profile still loading keeps its own marker.
+   */
+  pageSeen(): void {
+    if (this.#pageSeen || !this.driver()) return;
+    this.#pageSeen = true;
+    this.client.dropStale().catch(() => undefined);
   }
 
   /** The flag was turned off: stop a run before its next click, show nothing. */

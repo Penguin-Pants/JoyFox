@@ -193,6 +193,16 @@ export interface MessageContract {
     response: { status: "none" } | { status: "withdrawn"; lines: Message[] };
   };
   /**
+   * A new page loaded in the sending tab. A hand-off marker waiting there
+   * for another page is removed and its run closed as not handed off, so
+   * the profile, visited later in the tab, never continues it. A marker
+   * for this very page stays for `pending` to read.
+   */
+  "action.ignoreDelete.dropStale": {
+    request: Record<string, never>;
+    response: { status: "none" | "dropped" };
+  };
+  /**
    * The hand-off marker for the sending tab, if one is waiting. It is
    * removed as it is read, and answered only while the run is still the
    * member's newest, has not moved and is not stale.

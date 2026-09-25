@@ -3,7 +3,12 @@ import type {
   EntityMap,
   EntityName,
 } from "../domain/types";
-import { openDatabase, requestResult, transactionDone } from "./database";
+import {
+  commitAll,
+  openDatabase,
+  requestResult,
+  transactionDone,
+} from "./database";
 import { validateEntity, ValidationError } from "./validation";
 
 export type Stored<T> = T & { storageKey: string };
@@ -67,9 +72,10 @@ export class IndexedDbRepository<N extends EntityName>
     const db = await openDatabase();
     const transaction = db.transaction(this.entityName, "readwrite");
     const store = transaction.objectStore(this.entityName);
-    store.put({ ...entity, storageKey: key(accountId, entity.id) });
-    await this.applyRetention?.(store, accountId, entity);
-    await transactionDone(transaction);
+    await commitAll(transaction, async () => {
+      store.put({ ...entity, storageKey: key(accountId, entity.id) });
+      await this.applyRetention?.(store, accountId, entity);
+    });
   }
   async delete(accountId: string, id: string): Promise<void> {
     const db = await openDatabase();

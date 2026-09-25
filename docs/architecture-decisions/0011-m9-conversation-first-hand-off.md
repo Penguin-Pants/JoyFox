@@ -137,5 +137,36 @@ Limits of the withdrawal, recorded as known limitations:
   and the profile continues the run. The user had asked for the Ignore.
 - If the user cancels and goes to another JoyClub page within the wait, the old
   page goes with its timer, and the marker stays for up to 2 minutes as before.
+  Closed on 2026-09-25 (see "Stale hand-off on page load" below).
 - A move to the profile that takes longer than 15 seconds is withdrawn: the run
   stops before Ignore, and the profile page shows no JoyFox notice.
+
+## Stale hand-off on page load (2026-09-25)
+
+Closes the second limit above. With the flag on, every JoyClub page that loads
+in a tab sends `action.ignoreDelete.dropStale` once
+(`QuickIgnoreDelete.pageSeen`, called by the content script before it updates
+the page). The background:
+
+- keeps a marker when the page, as the browser reports it, is the profile the
+  marker names, so the normal hand-off still resumes there, even while the
+  profile page still reads as another page type;
+- otherwise removes the marker, and closes its run as `Failed:handoff-failed`
+  under the run's own account, whichever account is active now. The marker is
+  read again under that account's lock, so a newer marker stored meanwhile for
+  another run stays. The run is closed before the marker is removed, so if a
+  read or the log write fails, the marker stays and the next page load in the
+  tab tries again (Codex review on PR 43);
+- removes a stale or malformed marker without writing to the log.
+
+This covers every full page load: a cancelled move followed by the inbox, search
+or another member's profile, and a reload of the conversation during the wait.
+Moves inside one page (JoyClub's client-side routes) do not load a page; there
+the conversation page's own 15-second wait withdraws the marker.
+
+Still open: a cancel followed, within the 15-second wait, by the same member's
+profile in the same tab still continues the run. That page is the one the marker
+names, so it cannot be told apart from the hand-off itself.
+
+The cost is one message per JoyClub page load while the flag is on. No
+permission, schema version or UI string changed.

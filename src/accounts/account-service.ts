@@ -53,15 +53,6 @@ export class AccountService {
         "An account needs a non-empty identifier",
         { display: message("error.account.emptyIdentifier") },
       );
-    const existing = await this.listAccounts();
-    if (
-      existing.some((account) => account.joyClubAccountId === joyClubAccountId)
-    )
-      throw new ExtensionError(
-        "IdentityMismatch",
-        "That account identifier is already registered",
-        { display: message("error.account.duplicate") },
-      );
     const timestamp = this.now();
     const id = this.newId();
     const label = input.label?.trim();
@@ -77,9 +68,16 @@ export class AccountService {
       updatedAt: timestamp,
     };
     // Under the new account's lock (and so the shared data lock), so
-    // "delete all" cannot run between this write and the activation.
+    // "delete all" cannot run between this write and the activation. The
+    // duplicate check and the write are one transaction, so two creates at
+    // once (two options tabs, a double click) cannot both register it.
     await withAccountLock(id, async () => {
-      await this.accounts.put(id, account);
+      if (!(await this.accounts.addIfIdentifierFree(account)))
+        throw new ExtensionError(
+          "IdentityMismatch",
+          "That account identifier is already registered",
+          { display: message("error.account.duplicate") },
+        );
       if ((await this.getActiveAccount()) === undefined)
         await this.settings.set({ [ACTIVE_ACCOUNT_SETTING_KEY]: id });
     });

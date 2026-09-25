@@ -218,10 +218,15 @@ the repository layer (`src/storage/repositories.ts`) and `DataService`
   The account record is removed only with the whole account (Accounts panel).
   **Delete all** clears every store and every `storage.local` key. See ADR 0007.
 - Each export reads in one transaction. Account-wide deletes run in one
-  transaction, so a failure leaves all records in place rather than some. Every
-  delete holds the account lock (and so the shared data lock; "delete all" holds
-  it exclusively) and sets the triage revision, so open pages re-evaluate at
-  once.
+  transaction, so a failure leaves all records in place rather than some. A
+  throw between requests aborts the transaction (`commitAll` in
+  `src/storage/database.ts`); so do import writes, "delete all" and a write with
+  its retention purge. Failure-injection tests prove each rollback.
+- An account's JoyClub identifier is unique. The check and the write share one
+  readwrite transaction (`addIfIdentifierFree`), which IndexedDB runs one at a
+  time per store in every extension context. Every delete holds the account lock
+  (and so the shared data lock; "delete all" holds it exclusively) and sets the
+  triage revision, so open pages re-evaluate at once.
 
 ## MessageTemplate (Milestone D, M10)
 

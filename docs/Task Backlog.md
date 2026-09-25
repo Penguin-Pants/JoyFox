@@ -98,8 +98,9 @@ accepted by hand on 2026-09-25 (ADR 0011, `manual-acceptance.md`).
   requires, before anything writes a message observation from a live page.
 - Tune the spam thresholds against a real inbox and record the outcome, since
   build plan Section 30 keeps the acceptable false-positive threshold open.
-- Make account creation atomic, so two concurrent creates cannot both pass the
-  duplicate identifier check.
+- Done (2026-09-25): account creation is atomic. The duplicate check and the
+  write share one IndexedDB transaction, so two creates at once cannot both
+  register an identifier (`milestone-b-audit.md`, hardening).
 - Replace the user-declared account identifier with a verified one once F1 and
   F9 establish where the JoyClub account identity appears.
 
@@ -164,7 +165,10 @@ accepted by hand on 2026-09-25 (ADR 0011, `manual-acceptance.md`).
   needs a database version change best made with its first real caller.
 - Done (commit 7caf140): the double-click guard (`src/options/confirm.ts`) on
   the Accounts panel's "Remove".
-- Add a failure-injection test that an account-wide delete rolls back.
+- Done (2026-09-25): failure-injection tests for account-wide deletes. They
+  found a real gap: a store that threw between requests left the deletes
+  already queued for other stores to commit. Every multi-step write now aborts
+  its transaction on a throw (`commitAll`, `milestone-d-audit.md`, hardening).
 - Template variables, once plain insertion is accepted live (build plan
   Section 17).
 
@@ -189,10 +193,11 @@ accepted by hand on 2026-09-25 (ADR 0011, `manual-acceptance.md`).
     hand-off. Live check pending (`manual-acceptance.md`, item 98).
   - Blocked: match the deleted conversation's own row. `01-inbox.md` shows no
     conversation link or ID on an inbox row. Needs that evidence first.
-  - New (2026-09-25): a cancel followed by another page within the 15-second
-    wait still leaves the marker for up to 2 minutes (ADR 0011, "Limits of the
-    withdrawal"). Closing it would need every JoyClub page in the tab to read
-    and drop the marker on load.
+  - Done (2026-09-25): a cancel followed by another page within the
+    15-second wait no longer leaves the marker. Every JoyClub page that loads
+    in the tab drops a marker meant for another page and closes its run (ADR
+    0011, "Stale hand-off on page load"). Live check pending
+    (`manual-acceptance.md`, item 100).
 - The PRD's settings toggle for the guided alternative (navigate and stage, the
   user clicks).
 - Confirm or tune the step timeout (15 seconds) and the interrupted threshold

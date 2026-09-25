@@ -255,6 +255,53 @@ export function registerActionHandlers(
     if (answer.status === "withdrawn") await bumpActionRevision(deps.settings);
     return answer;
   });
+  /**
+   * Any JoyClub page other than the marker's profile that loads in the tab
+   * means the move to the profile did not happen (it was cancelled, or the
+   * user went elsewhere). The marker goes, and the run is closed under its
+   * own account, whichever account is active now.
+   */
+  router.register(
+    "action.ignoreDelete.dropStale",
+    async (_payload, context) => {
+      const key = `${HANDOFF_PREFIX}${tabId(context)}`;
+      const session = deps.session;
+      if (!session) return { status: "none" };
+      const stored = (await session.get([key]))[key];
+      if (stored === undefined) return { status: "none" };
+      if (!isMarker(stored)) {
+        await session.remove([key]);
+        return { status: "none" };
+      }
+      if (senderPath(context) === stored.profilePath) return { status: "none" };
+      const closed = await withAccountLock(stored.accountId, async () => {
+        // Read again under the lock: only this marker goes, never a newer
+        // one stored for another run meanwhile.
+        const current = (await session.get([key]))[key];
+        if (!isMarker(current) || current.operationId !== stored.operationId)
+          return false;
+        // Close the run first. If a read or the write fails, the marker
+        // stays, so the next page load in the tab tries again.
+        const ready = await handOffReady(
+          stored.accountId,
+          stored.operationId,
+          stored.next,
+        );
+        if (ready)
+          await deps.actions.record(
+            stored.accountId,
+            stored.operationId,
+            "Failed",
+            "handoff-failed",
+          );
+        await session.remove([key]);
+        return ready !== undefined;
+      });
+      if (!closed) return { status: "none" };
+      await bumpActionRevision(deps.settings);
+      return { status: "dropped" };
+    },
+  );
   router.register("action.ignoreDelete.pending", async (_payload, context) => {
     const key = `${HANDOFF_PREFIX}${tabId(context)}`;
     const session = deps.session;
