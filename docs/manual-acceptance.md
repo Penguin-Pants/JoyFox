@@ -378,6 +378,16 @@ Import now sits under the account list on the Accounts tab.
 
 **Result (2026-09-25): passed.** The project owner confirmed items 75 to 80.
 
+## Open-profile link for unknown profile facts
+
+81. Set a contact rule with "Minimum photos" and "Minimum profile words". Open a
+    ClubMail conversation with a sender whose profile you have not opened.
+    Confirm the strip says "The photo count and profile word count are unknown.
+    Open the profile and JoyFox reads them." with an "Open profile" button.
+82. Click "Open profile". Confirm JoyClub opens the sender's profile in the same
+    tab. Go back to the conversation and confirm the link is gone and the
+    placement uses the photo and word counts.
+
 Live selector and action acceptance must wait for the evidence checklist in
 `manual-verification-needed.md`. Never perform destructive action testing
 automatically.

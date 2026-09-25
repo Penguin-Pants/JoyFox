@@ -47,6 +47,11 @@
   empty inbox. No loading-complete or empty-state signal is verified yet. An
   inbox feature must not wait indefinitely on zero rows; it needs such a signal,
   or a bounded wait, before it treats the inbox as empty.
+- The photo count, the profile word count and the account age come only from the
+  profile page. JoyFox never opens a profile by itself (build plan Section 12),
+  so they are unknown until the user opens it. On a conversation, a rule that
+  needs one of them shows an "Open profile" link; the facts are captured when
+  the user opens the profile and used from then on.
 - The profile word count counts only the main text
   (`.profile-description-maintext__text`). The motto and all other page text are
   not counted. A profile with no main text block reads as unknown, not zero. The

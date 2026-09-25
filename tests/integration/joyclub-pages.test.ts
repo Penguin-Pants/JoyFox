@@ -204,6 +204,11 @@ describe("F1 extraction from the verified conversation", () => {
           value: 4,
           source: "conversation.profileDescription",
         },
+        profileUrl: {
+          status: "found",
+          value: "https://www.joyclub.de/profile/1234567.synthetic_one.html",
+          source: "conversation.profileUrl",
+        },
       },
     );
   });
@@ -224,11 +229,27 @@ describe("F1 extraction from the verified conversation", () => {
       result.verificationCode,
       result.genderCode,
       result.descriptionWordCount,
+      result.profileUrl,
     ])
       expect(field).toMatchObject({
         status: "missing",
         source: expect.stringContaining("header-not-matched-to-url"),
       });
+  });
+
+  it("links to a profile only on the conversation's own site", () => {
+    const page = load("conversation");
+    page
+      .querySelector(".cm-conversation-header")
+      ?.setAttribute(
+        "href",
+        "https://example.invalid/profile/1234567.synthetic_one.html",
+      );
+    expect(extractConversation(page, CONVERSATION_URL).profileUrl).toEqual({
+      status: "invalid",
+      source: "conversation.profileUrl",
+      reason: "Profile link is not on this site",
+    });
   });
 
   it("reports missing fields on an unrendered page", () => {

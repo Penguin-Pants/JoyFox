@@ -14,7 +14,12 @@ import {
 } from "./observed-facts";
 import type { TriageClient } from "./triage-client";
 import { isPlaced, placeInStrip, removeEmptyStrip } from "./member-strip";
-import { element, memberBar, UI_ATTRIBUTE } from "./triage-ui";
+import {
+  element,
+  memberBar,
+  UI_ATTRIBUTE,
+  unknownProfileFactsText,
+} from "./triage-ui";
 
 export type MemberPage = "conversation" | "profile";
 
@@ -72,6 +77,8 @@ interface Target {
   observed: Partial<ProfileFacts>;
   anchor: Element;
   key: string;
+  /** The member's profile page, on a conversation page only. */
+  profileUrl?: string;
 }
 
 const RULE_OFF_TEXT: Record<string, string> = {
@@ -192,12 +199,18 @@ export class MemberPanel {
       member.page === "conversation"
         ? observedFromConversation(member.extraction)
         : observedFromProfile(member.extraction);
+    const profileUrl =
+      member.page === "conversation" &&
+      member.extraction.profileUrl.status === "found"
+        ? member.extraction.profileUrl.value
+        : undefined;
     return {
       page,
       memberId: member.memberId,
       observed,
       anchor: member.anchor,
       key: `${page}|${member.memberId}|${factsKey(observed)}`,
+      ...(profileUrl ? { profileUrl } : {}),
     };
   }
 
@@ -301,11 +314,21 @@ export class MemberPanel {
     const onToggle = (open: boolean) => {
       this.#drawerOpen = open;
     };
+    // On a conversation, a rule that needs profile-only facts JoyFox does
+    // not know gets a link to the profile. The user opens it; the facts are
+    // captured there and used here on the way back.
+    const unknownText =
+      data.kind === "triage" && target.profileUrl
+        ? unknownProfileFactsText(data.result.automatic.evaluatedConditions)
+        : undefined;
     if (data.kind === "triage")
       panel.append(
         ...memberBar(this.document, {
           result: data.result,
           trust: data.result.trust,
+          ...(unknownText && target.profileUrl
+            ? { openProfile: { href: target.profileUrl, text: unknownText } }
+            : {}),
           actions: {
             onOverride: (placement) =>
               this.#write(() =>
