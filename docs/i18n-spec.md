@@ -3,9 +3,9 @@
 Status: approved by the owner on 2026-09-25. Built on 2026-09-25, after the M9
 manual matrix (`manual-acceptance.md`, items 43 to 54) passed. The decision
 record is ADR 0014 (Section 7 names it 0012; 0012 and 0013 were already taken).
-The migration is database version 4, as the note in Section 4.1 asks. The German
-copy waits for the owner's review of `docs/i18n-strings.md`. Manual acceptance:
-items 91 to 97.
+The migration is database version 4, as the note in Section 4.1 asks. The owner
+approved every string in `docs/i18n-strings.md` on 2026-09-25. Manual
+acceptance: items 91 to 97.
 
 Most JoyClub members are native German speakers. JoyFox must show all of its own
 text in German or English, and the user must be able to switch between them.
