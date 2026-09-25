@@ -282,8 +282,23 @@ left the list), `IgnoreRequested` (1.7 s, after the move to the profile),
 `IgnoreConfirmed` (2.6 s) and `Completed`, one operation with the matching
 member and conversation. The first attempt had stopped before any click with
 "could not find JoyClub's Delete control"; Delete moved to the conversation's
-three-dot menu (`live-evidence/10-ignore.md`, eighth report). Items 44 to 54
-remain.
+three-dot menu (`live-evidence/10-ignore.md`, eighth report).
+
+**Result, items 44 to 54 (2026-09-25): accepted.** The project owner ran the
+matrix by hand:
+
+- **44 and 45: not reproducible live.** JoyClub always shows the Delete control
+  and the list row, so these cases cannot be caused by hand. The synthetic tests
+  (cases 2 and 3) cover them.
+- **46: accepted, with a known gap.** The conversation went to the trash and the
+  member stayed ignored, so the end state is correct. No notice said the member
+  was already ignored. This is the deferred review item in ADR 0011 ("report an
+  already ignored member as such").
+- **47 and 50: not reproducible live.** JoyFox clicks Ignore too quickly to
+  press "Abbrechen" or to open another profile first. The owner accepts this as
+  is: an unwanted Ignore can be undone by hand. The synthetic tests (cases 5
+  and 8) cover them.
+- **48, 49 and 51 to 54: passed.**
 
 ## Rule autosave (2026-09-24)
 

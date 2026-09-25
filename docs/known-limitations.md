@@ -112,11 +112,12 @@
   "Get started" tracks the account and the rule. JoyFox cannot see whether the
   inbox was opened, so the third step has no state. A temporary install from
   `about:debugging` counts as a fresh install each time it is loaded.
-- Quick Ignore and Delete (M9) has a live driver (ADR 0011) but is off by
-  default (`joyfox.quickIgnoreDelete`) and not yet accepted live
-  (`manual-acceptance.md`, items 43 to 54). It deletes first, on the
-  conversation page, then opens the member's profile in the same tab to ignore
-  them there.
+- Quick Ignore and Delete (M9) has a live driver (ADR 0011) and was accepted
+  live on 2026-09-25 (`manual-acceptance.md`, items 43 to 54). It is still off
+  by default (`joyfox.quickIgnoreDelete`). Items 44, 45, 47 and 50 could not be
+  caused by hand and rest on synthetic tests. A member who is already ignored is
+  not reported as such (item 46). It deletes first, on the conversation page,
+  then opens the member's profile in the same tab to ignore them there.
 - M9 Delete is checked by the conversation's row leaving the list, so it runs
   only in the split view with the member's row loaded. Otherwise it stops before
   clicking ("cannot see JoyClub's result").
