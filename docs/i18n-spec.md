@@ -8,17 +8,19 @@ text in German or English, and the user must be able to switch between them.
 
 ## 1. Owner decisions
 
-| Topic               | Decision                                                                                                       |
-| ------------------- | -------------------------------------------------------------------------------------------------------------- |
-| Default language    | Follow Firefox: German if `browser.i18n.getUILanguage()` starts with `de`, else English.                       |
-| Toggle location     | One control in the options page header, visible on every tab.                                                  |
-| When a change shows | At once, in the options page and in every open JoyClub tab. No reload.                                         |
-| Stored reason text  | Store a message code plus values. Translate when shown. Database schema v3 migrates v2 records.                |
-| Form of address     | Informal "du". Example: "Speichere eine Kontaktregel".                                                         |
-| People nouns        | Neutral wording ("Mitglied", "Person", "Kontakt"). No gender symbols. No generic masculine.                    |
-| Also translated     | Error messages shown in the UI, dates and numbers, default labels (for example the "General" template folder). |
-| Not translated      | Manifest name and description (no `_locales/`).                                                                |
-| German copy         | Claude drafts all German strings. The owner reviews an EN/DE table in the PR before merge.                     |
+| Topic               | Decision                                                                                                        |
+| ------------------- | --------------------------------------------------------------------------------------------------------------- |
+| Default language    | Follow Firefox: German if `browser.i18n.getUILanguage()` starts with `de`, else English.                        |
+| Toggle location     | One control in the options page header, visible on every tab.                                                   |
+| When a change shows | At once, in the options page and in every open JoyClub tab. No reload.                                          |
+| Stored reason text  | Store a message code plus values. Translate when shown. Database schema v3 migrates v2 records.                 |
+| Form of address     | Informal "du". Example: "Speichere eine Kontaktregel".                                                          |
+| People nouns        | Neutral wording ("Mitglied", "Person", "Kontakt"). No gender symbols. No generic masculine.                     |
+| Also translated     | Error messages shown in the UI, dates and numbers, default labels (for example the "General" template folder).  |
+| Not translated      | Manifest name and description (no `_locales/`).                                                                 |
+| German copy         | Claude drafts all German strings. The owner reviews an EN/DE table in the PR before merge.                      |
+| Export and import   | `joyfox.locale` is exported. Import sets it only when valid and no value is stored (4.2). Confirmed 2026-09-25. |
+| Toggle label        | "Sprache / Language", with "Deutsch" and "English" as choices, never translated (3.9). Confirmed 2026-09-25.    |
 
 ## 2. Scope
 
@@ -272,7 +274,7 @@ export function onLocaleChange(listener: (locale: Locale) => void): () => void;
 - When the text names a JoyClub control or area, use the exact German label from
   `docs/live-evidence/` (for example the Ignore and Delete controls).
 - Keep "JoyFox", "JoyClub", "JOYCE" and "ClubMail" as they are.
-- Draft glossary for owner review:
+- Glossary (confirmed by the owner on 2026-09-25):
 
 | English             | German         |
 | ------------------- | -------------- |
