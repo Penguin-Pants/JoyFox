@@ -42,16 +42,23 @@ owner has chosen a channel.
 2. On AMO's "Manage API Keys" page, create API credentials: a JWT issuer and a
    JWT secret. Keep them out of the repository.
 3. Fix the manifest gaps below.
-4. Build: `npm ci`, then `npm run build:firefox`, which writes `dist/firefox`.
-5. Sign from `dist/firefox`:
-   `web-ext sign --channel=unlisted --api-key=<issuer> --api-secret=<secret>`.
-   The signed `.xpi` is downloaded when signing finishes. **Verify** the flags
-   with `web-ext sign --help` for the installed `web-ext` version, and confirm
-   that `--channel=unlisted` never creates a public listing: `web-ext` 8
-   reportedly changed the default for new add-ons to create a listing (Extension
-   Workshop, "web-ext command reference"; `mozilla/web-ext` releases).
-6. Upload the source (see "Source code") if AMO asks for it.
-7. Publish the signed `.xpi` on the GitHub release (V1-9).
+4. Install `web-ext` at a pinned version, so every release signs the same way:
+   `npm install --save-dev --save-exact web-ext@<version>`, with the version
+   chosen in checklist item 3. The repository does not include `web-ext` yet,
+   because no version has been checked against its changelog from here.
+5. Build: `npm ci`, then `npm run build:firefox`, which writes `dist/firefox`.
+6. Make the source package (see "Source code"). Every build is bundled by
+   esbuild, so every submission needs it, not only when AMO asks.
+7. Sign from `dist/firefox`:
+   `npx web-ext sign --channel=unlisted --api-key=<issuer> --api-secret=<secret>`,
+   and upload the source package with the submission. The signed `.xpi` is
+   downloaded when signing finishes. **Verify** the flags with
+   `npx web-ext sign --help`, including how the installed version uploads source
+   code, and confirm that `--channel=unlisted` never creates a public listing:
+   `web-ext` 8 reportedly changed the default for new add-ons to create a
+   listing (Extension Workshop, "web-ext command reference"; `mozilla/web-ext`
+   releases).
+8. Publish the signed `.xpi` on the GitHub release (V1-9).
 
 ## Manifest gaps (`manifests/firefox.json`)
 
@@ -122,8 +129,9 @@ Do this with network access to the Mozilla hosts, or by hand:
    consent for data collection and transmission": the exact
    `data_collection_permissions` format and whether it is now required of all
    extensions.
-3. `web-ext sign --help` and the `web-ext` changelog: current flags, and that
-   `--channel=unlisted` creates no public listing.
+3. `web-ext sign --help` and the `web-ext` changelog: the version to pin, its
+   current flags, how it uploads source code, and that `--channel=unlisted`
+   creates no public listing.
 4. MDN, `browser_specific_settings`: the ID rules for Manifest V3.
 5. Extension Workshop, "Source code submission": what to upload.
 6. MDN, "Updates": the `updates.json` field names.
