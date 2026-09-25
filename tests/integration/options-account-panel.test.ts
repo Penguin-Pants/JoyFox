@@ -224,3 +224,25 @@ describe("M7 options account switcher", () => {
       expect(root.querySelector(`label[for="${input.id}"]`)).not.toBeNull();
   });
 });
+
+describe("account panel redraw", () => {
+  it("keeps text typed into the add form while a redraw reads storage", async () => {
+    const panel = await mountAccountPanel(root, service);
+    const identifier = () =>
+      root.querySelector<HTMLInputElement>("#joyfox-account-identifier")!;
+    identifier().value = "typed";
+    // Hold the redraw's first read until the user has typed more.
+    let release!: () => void;
+    const held = new Promise<void>((resolve) => (release = resolve));
+    const list = service.listAccounts.bind(service);
+    service.listAccounts = async () => {
+      await held;
+      return list();
+    };
+    const redraw = panel.render();
+    identifier().value = "typed-login";
+    release();
+    await redraw;
+    expect(identifier().value).toBe("typed-login");
+  });
+});

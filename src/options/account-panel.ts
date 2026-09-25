@@ -56,12 +56,6 @@ export class AccountPanel {
 
   async render(): Promise<void> {
     const document = this.root.ownerDocument;
-    // A redraw (a language change, another tab's change) keeps what the
-    // user is typing into the add form.
-    const typed = Array.from(
-      this.root.querySelectorAll<HTMLInputElement>(".joyfox-panel__form input"),
-      (input) => [input.id, input.value] as const,
-    );
     const accounts = await this.service.listAccounts();
     const activeId = (await this.service.getActiveAccount())?.id;
     if (
@@ -69,6 +63,13 @@ export class AccountPanel {
       !accounts.some((a) => a.id === this.#pendingRemoval)
     )
       this.#pendingRemoval = undefined;
+    // A redraw (a language change, another tab's change) keeps what the
+    // user is typing into the add form. Read after the storage reads, so
+    // text typed while they ran is kept too.
+    const typed = Array.from(
+      this.root.querySelectorAll<HTMLInputElement>(".joyfox-panel__form input"),
+      (input) => [input.id, input.value] as const,
+    );
     this.root.replaceChildren();
 
     const heading = element(
