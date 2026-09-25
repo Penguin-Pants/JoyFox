@@ -1,5 +1,6 @@
 import "../setup-indexeddb";
 import { beforeEach, describe, expect, it } from "vitest";
+import { text, texts } from "../i18n-text";
 import { AccountService } from "../../src/accounts/account-service";
 import { registerTriageHandlers } from "../../src/background/triage-handlers";
 import { MessageRouter } from "../../src/messaging/router";
@@ -107,7 +108,7 @@ describe("TriageService.evaluate", () => {
     );
     expect(result?.placement).toBe("quarantined");
     expect(result?.source).toBe("rule");
-    expect(result?.automatic.reasons).toContain(
+    expect(texts(result?.automatic.reasons ?? [])).toContain(
       "Photo count is 1, below the required 3.",
     );
     expect(result?.automatic.evaluatedConditions[0]?.source).toBe("cached");
@@ -178,8 +179,17 @@ describe("TriageService.evaluate", () => {
     expect(result?.trust).toEqual({
       score: 1,
       logged: 1,
-      contributions: [{ points: 1, reason: "You logged 1 positive outcome." }],
+      contributions: [
+        {
+          points: 1,
+          reason: { key: "trust.reason.positive", params: { count: 1 } },
+        },
+      ],
     });
+    const score = result?.trust;
+    expect(score !== "unknown" && text(score?.contributions[0]?.reason)).toBe(
+      "You logged 1 positive outcome.",
+    );
   });
 
   it("keeps each account's rule, overrides and history apart", async () => {

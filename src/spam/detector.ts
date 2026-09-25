@@ -1,3 +1,4 @@
+import { message, type Message } from "../i18n/message";
 import {
   hasLetterOrDigit,
   normalizeMessage,
@@ -52,7 +53,7 @@ export type SpamFindingKind =
 export interface SpamFinding {
   kind: SpamFindingKind;
   /** Plain-language explanation, with no message text in it. */
-  detail: string;
+  detail: Message;
   similarity?: number;
   priorMessageId?: string;
   priorMemberId?: string;
@@ -63,7 +64,7 @@ export interface SpamDetectionResult {
   flagged: boolean;
   findings: SpamFinding[];
   /** The `detail` lines, in order, for direct display. */
-  explanation: string[];
+  explanation: Message[];
   engine: string;
 }
 
@@ -106,8 +107,7 @@ export function detectTemplateSpam(input: {
       [
         {
           kind: "sender-override",
-          detail:
-            "You marked this sender as not spam, so their messages are never flagged.",
+          detail: message("spam.detail.override"),
         },
       ],
       engine.name,
@@ -121,7 +121,10 @@ export function detectTemplateSpam(input: {
       [
         {
           kind: "below-minimum-length",
-          detail: `The message has ${words} words, below the ${options.minimumWordCount} needed before template matching runs.`,
+          detail: message("spam.detail.belowMinimum", {
+            words,
+            minimum: options.minimumWordCount,
+          }),
         },
       ],
       engine.name,
@@ -141,7 +144,9 @@ export function detectTemplateSpam(input: {
   if (best)
     findings.push({
       kind: "duplicate-message",
-      detail: `This message closely matches an earlier message you received (${Math.round(best.similarity * 100)}% similar).`,
+      detail: message("spam.detail.duplicate", {
+        percent: Math.round(best.similarity * 100),
+      }),
       similarity: best.similarity,
       priorMessageId: best.prior.id,
       priorMemberId: best.prior.memberId,
@@ -155,7 +160,7 @@ export function detectTemplateSpam(input: {
     if (normalized.includes(phrase)) {
       findings.push({
         kind: "known-phrase",
-        detail: "The message contains a phrase from your known-template list.",
+        detail: message("spam.detail.knownPhrase"),
         similarity: 1,
         phraseId: known.id,
       });
@@ -165,7 +170,9 @@ export function detectTemplateSpam(input: {
     if (similarity >= options.phraseThreshold)
       findings.push({
         kind: "known-phrase",
-        detail: `The message closely matches a phrase from your known-template list (${Math.round(similarity * 100)}% similar).`,
+        detail: message("spam.detail.phraseSimilar", {
+          percent: Math.round(similarity * 100),
+        }),
         similarity,
         phraseId: known.id,
       });
@@ -178,8 +185,7 @@ export function detectTemplateSpam(input: {
         [
           {
             kind: "no-match",
-            detail:
-              "The message matched no earlier message and no known template phrase.",
+            detail: message("spam.detail.noMatch"),
           },
         ],
         engine.name,

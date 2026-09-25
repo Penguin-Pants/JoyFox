@@ -4,6 +4,8 @@ import {
 } from "../accounts/account-service";
 import type { EntityMap, EntityName } from "../domain/types";
 import { ExtensionError } from "../errors";
+import type { PlainKey } from "../i18n/catalog/en";
+import { message } from "../i18n/message";
 import {
   withAccountLock,
   withExclusiveDataLock,
@@ -34,27 +36,14 @@ import {
   type StoredSnapshot,
 } from "./import";
 
-/** Plain-language names for the inspector (PRD Section 13.5). */
-export const ENTITY_LABELS: Readonly<Record<EntityName, string>> = {
-  extensionAccounts: "Account record",
-  joyClubMembers: "Members",
-  profileSnapshots: "Profile snapshots",
-  userNotes: "Notes",
-  userTags: "Tags",
-  trustSignals: "Trust outcomes",
-  contactRules: "Contact rules",
-  conversationClassifications: "Manual placements",
-  savedSearches: "Saved searches",
-  eventMetadata: "Event notes",
-  spendLogEntries: "Spending log",
-  syncConfigs: "Sync settings",
-  extensionPreferences: "Preferences",
-  messageTemplates: "Message templates",
-  spamPhrases: "Spam phrases",
-  messageObservations: "Cached message text (normalized)",
-  senderSpamOverrides: "Not-spam corrections",
-  actionLogs: "Action log",
-};
+/**
+ * Catalog keys of the plain-language names for the inspector (PRD Section
+ * 13.5): `entity.<name>`.
+ */
+export const ENTITY_LABELS: Readonly<Record<EntityName, PlainKey>> =
+  Object.fromEntries(
+    ENTITY_NAMES.map((name) => [name, `entity.${name}` as const]),
+  ) as Record<EntityName, `entity.${EntityName}`>;
 
 /**
  * The account record is removed only with the whole account, from the
@@ -190,6 +179,7 @@ export class DataService {
         throw new ExtensionError(
           "StorageError",
           "Stored data changed while the file was checked. Choose the file again",
+          { display: message("error.data.changedDuringCheck") },
         );
       await putRecords(current.writes);
       // After the records committed, settings are best effort: a failure
@@ -225,11 +215,14 @@ export class DataService {
 
   #requireDeletable(name: EntityName): void {
     if (!ENTITY_NAMES.includes(name))
-      throw new ExtensionError("StorageError", "Unknown data type");
+      throw new ExtensionError("StorageError", "Unknown data type", {
+        display: message("error.data.unknownType"),
+      });
     if (!isDeletableEntity(name))
       throw new ExtensionError(
         "StorageError",
         "The account record is removed only with the whole account",
+        { display: message("error.data.accountRecord") },
       );
   }
 
@@ -244,6 +237,7 @@ export class DataService {
         throw new ExtensionError(
           "IdentityMismatch",
           "That account no longer exists",
+          { display: message("error.account.gone") },
         );
       await action();
     });

@@ -1,5 +1,6 @@
 import { isStrictIsoDate } from "../domain/iso-date";
 import type { AccountScopedEntity, EntityName } from "../domain/types";
+import { isMessage } from "../i18n/message";
 import { contactRuleProblem } from "../rules/contact-rule";
 
 export class ValidationError extends Error {}
@@ -59,6 +60,15 @@ function requireStringArray(
 ): void {
   if (!requireArray(record, field).every((value) => typeof value === "string"))
     throw new ValidationError(`${field} must contain only strings`);
+}
+
+/** Every item is a catalog message (docs/i18n-spec.md, Section 3.5). */
+function requireMessageArray(
+  record: Record<string, unknown>,
+  field: string,
+): void {
+  if (!requireArray(record, field).every((value) => isMessage(value)))
+    throw new ValidationError(`${field} must contain only catalog messages`);
 }
 
 function optionalString(record: Record<string, unknown>, field: string): void {
@@ -217,7 +227,7 @@ export function validateEntity(
       ]);
       requireEnum(record, "source", ["user"]);
       requireDate(record, "decidedAt");
-      requireStringArray(record, "reasons");
+      requireMessageArray(record, "reasons");
       optionalString(record, "ruleId");
       break;
     case "savedSearches":

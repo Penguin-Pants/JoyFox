@@ -4,6 +4,7 @@ import type {
   TriagePlacement,
 } from "../domain/types";
 import { ExtensionError } from "../errors";
+import { message } from "../i18n/message";
 import {
   mergeProfileFacts,
   newestSnapshot,
@@ -247,7 +248,11 @@ export class TriageService {
         source: "user",
         decidedAt: timestamp,
         ruleId: GLOBAL_RULE_ID,
-        reasons: [`You moved this sender to ${PLACEMENT_TEXT[placement]}.`],
+        reasons: [
+          message("triage.reason.userMoved", {
+            placement: message(PLACEMENT_TEXT[placement]),
+          }),
+        ],
         createdAt: existing?.createdAt ?? timestamp,
         updatedAt: timestamp,
       };

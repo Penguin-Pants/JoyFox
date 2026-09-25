@@ -1,7 +1,9 @@
 import type { ExtensionAccount } from "../domain/types";
 import { AccountService } from "../accounts/account-service";
-import { isExtensionError } from "../errors";
+import { message, type Message } from "../i18n/message";
+import { errorDisplay, t } from "../i18n/translator";
 import { confirmAllowed, confirmTiming } from "./confirm";
+import { StatusLine } from "./status-line";
 
 export const PANEL_CLASS = "joyfox-account-panel";
 const MOUNTED = "data-joyfox-account-panel";
@@ -37,12 +39,8 @@ export class AccountPanel {
   #pendingRemoval: string | undefined;
   /** When the pending removal was armed, for the confirm grace period. */
   #armedAt = 0;
-  /**
-   * Created once and re-attached on every render. Replacing a live region on
-   * each render can leave its announcement unread, so the node itself stays
-   * the same and only its text changes.
-   */
-  readonly #status: HTMLParagraphElement;
+  /** Created once and re-attached on every render (see `StatusLine`). */
+  readonly #status: StatusLine;
 
   constructor(
     private readonly root: HTMLElement,
@@ -52,14 +50,18 @@ export class AccountPanel {
   ) {
     this.root.classList.add(PANEL_CLASS);
     this.root.setAttribute(MOUNTED, "true");
-    this.#status = this.root.ownerDocument.createElement("p");
-    this.#status.className = "joyfox-panel__status";
-    this.#status.setAttribute("aria-live", "polite");
-    this.#setStatus("", "info");
+    this.#status = new StatusLine(this.root.ownerDocument);
+    this.#status.clear();
   }
 
   async render(): Promise<void> {
     const document = this.root.ownerDocument;
+    // A redraw (a language change, another tab's change) keeps what the
+    // user is typing into the add form.
+    const typed = Array.from(
+      this.root.querySelectorAll<HTMLInputElement>(".joyfox-panel__form input"),
+      (input) => [input.id, input.value] as const,
+    );
     const accounts = await this.service.listAccounts();
     const activeId = (await this.service.getActiveAccount())?.id;
     if (
@@ -73,7 +75,7 @@ export class AccountPanel {
       document,
       "h2",
       "joyfox-panel__heading",
-      "Accounts",
+      t("options.tabs.accounts"),
     );
     heading.id = "joyfox-accounts-heading";
     this.root.append(heading);
@@ -83,14 +85,14 @@ export class AccountPanel {
     this.root.append(this.#renderList(document, accounts, activeId));
     this.root.append(this.#renderAddForm(document));
     this.root.append(
-      element(
-        document,
-        "p",
-        "joyfox-panel__hint",
-        "JoyFox cannot read which JoyClub login a tab uses. The active account is the one selected here, and all notes, tags and rules are stored under it.",
-      ),
+      element(document, "p", "joyfox-panel__hint", t("accounts.hint")),
     );
-    this.root.append(this.#status);
+    this.#status.redraw();
+    this.root.append(this.#status.node);
+    for (const [id, value] of typed) {
+      const input = this.root.querySelector<HTMLInputElement>(`#${id}`);
+      if (input) input.value = value;
+    }
   }
 
   #renderActiveSummary(
@@ -104,7 +106,7 @@ export class AccountPanel {
       document,
       "span",
       "joyfox-panel__active-label",
-      "Active account:",
+      t("accounts.activeLabel"),
     );
     // The state is carried by words, never by color alone.
     const value = element(
@@ -113,7 +115,7 @@ export class AccountPanel {
       active
         ? "joyfox-panel__active-value"
         : "joyfox-panel__active-value joyfox-panel__active-value--none",
-      active ? accountName(active) : "None selected",
+      active ? accountName(active) : t("accounts.noneSelected"),
     );
     summary.append(label, document.createTextNode(" "), value);
     return summary;
@@ -125,14 +127,9 @@ export class AccountPanel {
     activeId: string | undefined,
   ): HTMLElement {
     if (accounts.length === 0)
-      return element(
-        document,
-        "p",
-        "joyfox-panel__empty",
-        "No accounts yet. Add one below to start storing notes and tags.",
-      );
+      return element(document, "p", "joyfox-panel__empty", t("accounts.empty"));
     const list = element(document, "ul", "joyfox-panel__list");
-    list.setAttribute("aria-label", "Stored accounts");
+    list.setAttribute("aria-label", t("accounts.list"));
     for (const account of accounts) {
       const item = element(document, "li", "joyfox-panel__item");
       item.dataset.accountId = account.id;
@@ -153,7 +150,7 @@ export class AccountPanel {
           document,
           "span",
           "joyfox-panel__item-state",
-          isActive ? "Active" : "Not active",
+          t(isActive ? "accounts.active" : "accounts.inactive"),
         ),
       );
       if (!isActive) item.append(this.#activateButton(document, account));
@@ -171,16 +168,19 @@ export class AccountPanel {
       document,
       "button",
       "joyfox-panel__activate",
-      "Use this account",
+      t("accounts.use"),
     );
     button.type = "button";
-    button.setAttribute("aria-label", `Use account ${accountName(account)}`);
+    button.setAttribute(
+      "aria-label",
+      t("accounts.useLabel", { name: accountName(account) }),
+    );
     button.addEventListener("click", () => {
       void this.#run(async () => {
         this.#pendingRemoval = undefined;
         await this.service.setActiveAccount(account.id);
         this.#setStatus(
-          `Active account is now ${accountName(account)}.`,
+          message("accounts.nowActive", { name: accountName(account) }),
           "info",
         );
       });
@@ -203,14 +203,14 @@ export class AccountPanel {
       document,
       "button",
       "joyfox-panel__remove",
-      confirming ? "Confirm removal" : "Remove",
+      t(confirming ? "accounts.confirmRemove" : "accounts.remove"),
     );
     button.type = "button";
     button.setAttribute(
       "aria-label",
-      confirming
-        ? `Confirm removal of account ${accountName(account)} and all of its data`
-        : `Remove account ${accountName(account)}`,
+      t(confirming ? "accounts.confirmRemoveLabel" : "accounts.removeLabel", {
+        name: accountName(account),
+      }),
     );
     button.addEventListener("click", (event) => {
       if (!confirming) {
@@ -219,7 +219,7 @@ export class AccountPanel {
           this.#pendingRemoval = account.id;
           this.#armedAt = confirmTiming.now();
           this.#setStatus(
-            `Removing ${accountName(account)} also deletes its notes, tags and rules. Click again to confirm.`,
+            message("accounts.removePrompt", { name: accountName(account) }),
             "info",
           );
         });
@@ -231,7 +231,7 @@ export class AccountPanel {
       void this.#run(async () => {
         await this.service.deleteAccount(account.id);
         this.#setStatus(
-          `Removed ${accountName(account)} and its stored data.`,
+          message("accounts.removed", { name: accountName(account) }),
           "info",
         );
       });
@@ -241,24 +241,24 @@ export class AccountPanel {
 
   #renderAddForm(document: Document): HTMLFormElement {
     const form = element(document, "form", "joyfox-panel__form");
-    form.setAttribute("aria-label", "Add an account");
+    form.setAttribute("aria-label", t("accounts.addForm"));
     const identifier = this.#field(
       document,
       "joyfox-account-identifier",
-      "JoyClub account identifier",
+      t("accounts.identifier"),
       true,
     );
     const label = this.#field(
       document,
       "joyfox-account-label",
-      "Display label (optional)",
+      t("accounts.label"),
       false,
     );
     const submit = element(
       document,
       "button",
       "joyfox-panel__submit",
-      "Add account",
+      t("accounts.add"),
     );
     submit.type = "submit";
     form.append(identifier.wrapper, label.wrapper, submit);
@@ -270,7 +270,13 @@ export class AccountPanel {
           joyClubAccountId: identifier.input.value,
           label: label.input.value,
         });
-        this.#setStatus(`Added ${accountName(account)}.`, "info");
+        this.#setStatus(
+          message("accounts.added", { name: accountName(account) }),
+          "info",
+        );
+        // Added: the next render starts from an empty form.
+        identifier.input.value = "";
+        label.input.value = "";
       });
     });
     return form;
@@ -300,14 +306,8 @@ export class AccountPanel {
     return { wrapper, input };
   }
 
-  /**
-   * The class list stays constant and the state rides on `data-kind`, so
-   * styling and tests key off an attribute rather than a mutated class.
-   */
-  #setStatus(message: string, kind: "info" | "error"): void {
-    this.#status.dataset.kind = kind;
-    this.#status.setAttribute("role", kind === "error" ? "alert" : "status");
-    this.#status.textContent = message;
+  #setStatus(message: Message, kind: "info" | "error"): void {
+    this.#status.set(message, kind);
   }
 
   /**
@@ -320,10 +320,11 @@ export class AccountPanel {
     } catch (error) {
       // A failed action must never leave a destructive one armed.
       this.#pendingRemoval = undefined;
+      const display = errorDisplay(error);
       this.#setStatus(
-        isExtensionError(error)
-          ? `${error.message}. Nothing was changed.`
-          : "That change could not be saved. Nothing was changed.",
+        display
+          ? message("error.withSuffix.nothingChanged", { error: display })
+          : message("accounts.saveFailed"),
         "error",
       );
     }

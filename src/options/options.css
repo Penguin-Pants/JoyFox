@@ -311,6 +311,22 @@
   margin-bottom: var(--joyfox-space-1);
 }
 
+/* The language choice sits beside the title and wraps below it when narrow. */
+.joyfox-options__title-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--joyfox-space-2);
+}
+
+.joyfox-options__language {
+  display: flex;
+  align-items: center;
+  gap: var(--joyfox-space-2);
+  margin: 0;
+}
+
 .joyfox-tabs {
   display: flex;
   flex-wrap: wrap;

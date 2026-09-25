@@ -1,3 +1,4 @@
+import { message, type Message } from "../i18n/message";
 import {
   CONDITION_KINDS,
   NUMERIC_CONDITION_KINDS,
@@ -222,6 +223,10 @@ export function builderToAdvanced(form: BuilderForm): AdvancedForm {
   };
 }
 
+/** Whether `advancedToBuilder` answered with a reason, not a form. */
+export const isProblem = (value: BuilderForm | Message): value is Message =>
+  "key" in value;
+
 /**
  * The advanced form as the two boxes, or why it cannot be shown there. The
  * boxes mean "ALL of the first box, or ANY of the second", so they fit when
@@ -229,25 +234,24 @@ export function builderToAdvanced(form: BuilderForm): AdvancedForm {
  * ALL of several conditions. Rules with one condition, and rules met by ANY
  * condition, become entries in the ANY box. Both forms mean the same thing.
  */
-export function advancedToBuilder(form: AdvancedForm): BuilderForm | string {
+export function advancedToBuilder(form: AdvancedForm): BuilderForm | Message {
   const rules = form.rules.filter(
     (rule) => Object.keys(rule.conditions).length > 0,
   );
   if (rules.length > 1 && form.match === "all")
-    return "Simple view is not available: the rules combine with ALL.";
+    return message("rule.simpleUnavailable.all");
   if (
     rules.some((rule) =>
       Object.values(rule.conditions).some((entry) => entry?.negate),
     )
   )
-    return 'Simple view is not available: the rule uses "not".';
+    return message("rule.simpleUnavailable.not");
   const several = (rule: AdvancedRule) =>
     Object.keys(rule.conditions).length > 1;
   const allRules = rules.filter(
     (rule) => rule.match === "all" && several(rule),
   );
-  if (allRules.length > 1)
-    return "Simple view is not available: more than one rule needs ALL of several conditions.";
+  if (allRules.length > 1) return message("rule.simpleUnavailable.severalAll");
   const plain = (entry: AdvancedEntry): BoxEntry => ({
     ...(entry.value !== undefined ? { value: entry.value } : {}),
     whenUnknown: entry.whenUnknown,
@@ -288,8 +292,7 @@ export function advancedToBuilder(form: AdvancedForm): BuilderForm | string {
       conditions: { [kind]: entry },
     })),
   );
-  if (!all || !any)
-    return "Simple view is not available: a condition appears in more than one rule.";
+  if (!all || !any) return message("rule.simpleUnavailable.duplicate");
   return {
     enabled: form.enabled,
     defaultPlacement: form.defaultPlacement,

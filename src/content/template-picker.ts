@@ -1,3 +1,5 @@
+import type { PlainKey } from "../i18n/catalog/en";
+import { t } from "../i18n/translator";
 import type {
   ExtensionMessage,
   ExtensionResponse,
@@ -40,22 +42,22 @@ export function runtimeTemplateClient(): TemplateClient {
   );
 }
 
-const RESULT_TEXT: Record<string, string> = {
-  inserted:
-    "Template inserted. Check the text, then click JoyClub's Send button yourself.",
-  "not-editable":
-    "The message field cannot be edited right now. Nothing was inserted.",
-  "too-long":
-    "The template does not fit in the message field. Nothing was inserted; the template was not shortened.",
-  altered:
-    "JoyClub changed the text after insertion. Check the message field before you send.",
+const RESULT_TEXT: Record<string, PlainKey> = {
+  inserted: "picker.result.inserted",
+  "not-editable": "picker.result.not-editable",
+  "too-long": "picker.result.too-long",
+  altered: "picker.result.altered",
 };
 
-function resultText(result: InsertionResult): string {
+function resultText(result: InsertionResult): PlainKey {
   return RESULT_TEXT[
     result.status === "refused" ? result.reason : result.status
   ]!;
 }
+
+/** The folder a template is listed under, in the language shown. */
+const folderName = (template: TemplateSummary) =>
+  template.folder || t("templates.folder.general");
 
 /**
  * M10: a template picker beside JoyClub's composer on a conversation page.
@@ -73,6 +75,8 @@ export class TemplatePicker {
   #list?: HTMLElement;
   #toggle?: HTMLButtonElement;
   #status?: HTMLElement;
+  /** The notice shown, kept as a key so a language change can redraw it. */
+  #statusKey?: PlainKey;
   /** Bumped on every open and teardown, so a late answer is dropped. */
   #generation = 0;
 
@@ -112,6 +116,17 @@ export class TemplatePicker {
     this.#close();
   }
 
+  /**
+   * The language changed: relabel the button and the notice. An open list
+   * is read again, so its folder names follow too.
+   */
+  localeChanged(): void {
+    if (!this.#root) return;
+    if (this.#toggle) this.#toggle.textContent = t("picker.toggle");
+    this.#setStatus(this.#statusKey);
+    if (this.#list) void this.#open();
+  }
+
   #mount(composer: HTMLTextAreaElement): void {
     const document = this.document;
     const root = element(document, "div", "joyfox-template-picker");
@@ -119,7 +134,7 @@ export class TemplatePicker {
     const toggle = button(
       document,
       "joyfox-template-picker__toggle",
-      "JoyFox templates",
+      t("picker.toggle"),
       () => (this.#list ? this.#close() : void this.#open()),
     );
     toggle.setAttribute("aria-expanded", "false");
@@ -143,19 +158,16 @@ export class TemplatePicker {
   async #open(): Promise<void> {
     this.#close();
     const generation = this.#generation;
-    this.#setStatus("Loading templates…");
+    this.#setStatus("picker.loading");
     let answer: Awaited<ReturnType<TemplateClient["listTemplates"]>>;
     try {
       answer = await this.client.listTemplates();
     } catch {
-      if (generation === this.#generation)
-        this.#setStatus(
-          "JoyFox could not read your templates. Nothing was inserted.",
-        );
+      if (generation === this.#generation) this.#setStatus("picker.readFailed");
       return;
     }
     if (generation !== this.#generation || !this.#root) return;
-    this.#setStatus("");
+    this.#setStatus(undefined);
     const list = element(this.document, "div", "joyfox-template-picker__list");
     list.id = "joyfox-template-picker-list";
     this.#toggle?.setAttribute("aria-controls", list.id);
@@ -165,14 +177,12 @@ export class TemplatePicker {
           this.document,
           "p",
           "joyfox-template-picker__empty",
-          answer.accountId
-            ? "No templates yet. Add them on the JoyFox options page."
-            : "No JoyFox account is active. Choose one on the JoyFox options page.",
+          t(answer.accountId ? "picker.empty" : "picker.noAccount"),
         ),
         button(
           this.document,
           "joyfox-template-picker__options",
-          "Open JoyFox options",
+          t("common.openOptions"),
           () => void this.client.openOptions().catch(() => undefined),
         ),
       );
@@ -212,19 +222,26 @@ export class TemplatePicker {
     this.#setStatus(resultText(insertAtCursor(composer, template.body)));
   }
 
-  #setStatus(text: string): void {
-    if (this.#status) this.#status.textContent = text;
+  #setStatus(key: PlainKey | undefined): void {
+    this.#statusKey = key;
+    if (this.#status) this.#status.textContent = key ? t(key) : "";
   }
 }
 
+/**
+ * Grouped and sorted by the shown folder name, so "General" is one group
+ * and sits where its name reads in the language shown. Within a group the
+ * background's order (by name) stays.
+ */
 function groupByFolder(
   templates: readonly TemplateSummary[],
-): Map<string, TemplateSummary[]> {
+): Array<[string, TemplateSummary[]]> {
   const groups = new Map<string, TemplateSummary[]>();
   for (const template of templates) {
-    const group = groups.get(template.folder) ?? [];
+    const folder = folderName(template);
+    const group = groups.get(folder) ?? [];
     group.push(template);
-    groups.set(template.folder, group);
+    groups.set(folder, group);
   }
-  return groups;
+  return Array.from(groups).sort(([a], [b]) => a.localeCompare(b));
 }

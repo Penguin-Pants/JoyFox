@@ -45,7 +45,9 @@ const entityData: {
     placement: "needs-review",
     source: "user",
     decidedAt: now,
-    reasons: ["Unknown synthetic input"],
+    reasons: [
+      { key: "legacy.text", params: { text: "Unknown synthetic input" } },
+    ],
   },
   savedSearches: {
     name: "Synthetic search",

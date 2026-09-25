@@ -100,7 +100,7 @@ describe("schema version 2", () => {
   it("upgrades a version 1 database without losing its records", async () => {
     await createVersion1Database();
     const db = await openDatabase();
-    expect(db.version).toBe(2);
+    expect(db.version).toBe(DATABASE_VERSION);
     expect(db.objectStoreNames.contains("messageObservations")).toBe(true);
     expect(db.objectStoreNames.contains("senderSpamOverrides")).toBe(true);
     const note = await repositories.userNotes.get(ACCOUNT, "note-1");

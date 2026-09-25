@@ -1,5 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { computeTrustScore } from "../../src/trust/trust-score";
+import { t } from "../../src/i18n/translator";
+import {
+  computeTrustScore,
+  type TrustContribution,
+} from "../../src/trust/trust-score";
+
+const readable = (contributions: readonly TrustContribution[]) =>
+  contributions.map(({ points, reason }) => ({ points, reason: t(reason) }));
 
 const signals = (...kinds: Array<"positive" | "negative" | "neutral">) =>
   kinds.map((kind) => ({ kind }));
@@ -25,7 +32,7 @@ describe("computeTrustScore", () => {
     if (score === "unknown") return;
     expect(score.score).toBe(1);
     expect(score.logged).toBe(4);
-    expect(score.contributions).toEqual([
+    expect(readable(score.contributions)).toEqual([
       { points: 2, reason: "You logged 2 positive outcomes." },
       { points: -1, reason: "You logged 1 negative outcome." },
       { points: 0, reason: "You logged 1 neutral outcome, which count 0." },
@@ -38,17 +45,14 @@ describe("computeTrustScore", () => {
       spam: "flagged",
       personallyKnown: true,
     });
-    expect(score).toEqual({
-      score: 0,
-      logged: 0,
-      contributions: [
-        { points: 1, reason: "You marked this member as personally known." },
-        {
-          points: -1,
-          reason: "A message from this member looks like a copied template.",
-        },
-      ],
-    });
+    expect(score).toMatchObject({ score: 0, logged: 0 });
+    expect(score !== "unknown" && readable(score.contributions)).toEqual([
+      { points: 1, reason: "You marked this member as personally known." },
+      {
+        points: -1,
+        reason: "A message from this member looks like a copied template.",
+      },
+    ]);
   });
 
   it("drops the spam point once the user marks the sender not spam", () => {

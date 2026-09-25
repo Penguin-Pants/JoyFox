@@ -1,4 +1,7 @@
 import type { TriagePlacement } from "../domain/types";
+import type { PlainKey } from "../i18n/catalog/en";
+import { message } from "../i18n/message";
+import { t } from "../i18n/translator";
 import {
   extractInboxRows,
   type InboxRowExtraction,
@@ -90,12 +93,12 @@ export function rowSlot(row: Element, list: Element): Element {
   return slot;
 }
 
-const VIEW_TEXT: Record<TriageView, string> = {
-  default: "Inbox",
-  qualified: "Qualified",
-  "needs-review": "Needs Review",
-  quarantined: "Quarantined",
-  all: "Show all",
+const VIEW_TEXT: Record<TriageView, PlainKey> = {
+  default: "inbox.view.default",
+  qualified: PLACEMENT_TEXT.qualified,
+  "needs-review": PLACEMENT_TEXT["needs-review"],
+  quarantined: PLACEMENT_TEXT.quarantined,
+  all: "inbox.view.all",
 };
 
 interface RowState {
@@ -106,9 +109,6 @@ interface RowState {
   /** Display only: shown in the details panel, never stored or logged. */
   name?: string;
 }
-
-const UNIDENTIFIED_REASON =
-  "JoyFox could not read this sender's profile number, so it could not check your rule. The row stays visible.";
 
 /**
  * M2 inbox triage. Rows are grouped by filtering in place: a JoyFox view
@@ -271,6 +271,17 @@ export class InboxTriage {
     this.#selected = undefined;
   }
 
+  /**
+   * The language changed: the bar is drawn again and every badge and the
+   * details panel take the new text on the next refresh. The chosen view
+   * and the open details stay.
+   */
+  localeChanged(): void {
+    this.document.querySelector(`[${UI_ATTRIBUTE}="triage-bar"]`)?.remove();
+    this.#detailsKey = "";
+    this.#refresh();
+  }
+
   setView(view: TriageView): void {
     this.#view = view;
     this.#refresh();
@@ -388,15 +399,15 @@ export class InboxTriage {
     const bar = element(this.document, "div", "joyfox-triage");
     bar.setAttribute(UI_ATTRIBUTE, "triage-bar");
     bar.setAttribute("role", "region");
-    bar.setAttribute("aria-label", "JoyFox triage");
+    bar.setAttribute("aria-label", t("inbox.region"));
     const group = element(this.document, "div", "joyfox-triage__views");
     group.setAttribute("role", "group");
-    group.setAttribute("aria-label", "Show messages");
+    group.setAttribute("aria-label", t("inbox.views"));
     for (const view of Object.keys(VIEW_TEXT) as TriageView[]) {
       const tab = button(
         this.document,
         "joyfox-button joyfox-triage__view",
-        VIEW_TEXT[view],
+        t(VIEW_TEXT[view]),
         () => this.setView(view),
       );
       tab.dataset.view = view;
@@ -405,16 +416,11 @@ export class InboxTriage {
     // The explanation sits behind a small "?" so the bar stays one line.
     const about = element(this.document, "details", "joyfox-triage__about");
     const summary = element(this.document, "summary", "joyfox-button", "?");
-    summary.setAttribute("aria-label", "About these views");
-    summary.title = "About these views";
+    summary.setAttribute("aria-label", t("inbox.about"));
+    summary.title = t("inbox.about");
     about.append(
       summary,
-      element(
-        this.document,
-        "p",
-        "joyfox-note",
-        "Inbox hides Quarantined rows from this view only. Nothing is deleted, and JoyFox changes nothing on JoyClub.",
-      ),
+      element(this.document, "p", "joyfox-note", t("inbox.aboutText")),
     );
     group.append(about);
     bar.append(group);
@@ -433,15 +439,19 @@ export class InboxTriage {
       const view = tab.dataset.view as TriageView;
       const label =
         view === "default" || view === "all"
-          ? VIEW_TEXT[view]
-          : `${VIEW_TEXT[view]} (${counts[view]})`;
+          ? t(VIEW_TEXT[view])
+          : t("inbox.viewCount", {
+              view: message(VIEW_TEXT[view]),
+              count: counts[view],
+            });
       setText(tab, label);
       setAttribute(tab, "aria-pressed", String(view === this.#view));
     }
   }
 
   #ensureBadge(state: RowState, placement: TriagePlacement | undefined): void {
-    const text = placement ? PLACEMENT_TEXT[placement] : "Checking";
+    const key = placement ? PLACEMENT_TEXT[placement] : "inbox.checking";
+    const text = t(key);
     let badge = state.row.querySelector<HTMLButtonElement>(
       `[${UI_ATTRIBUTE}="badge"]`,
     );
@@ -471,7 +481,7 @@ export class InboxTriage {
     }
     setText(badge, text);
     setAttribute(badge, "data-placement", placement ?? "pending");
-    setAttribute(badge, "aria-label", `JoyFox: ${text}. Show why.`);
+    setAttribute(badge, "aria-label", t("inbox.badge", { text: message(key) }));
     // The member the badge opens, read on click from the row's current state.
     setAttribute(badge, "data-member", state.memberId ?? "");
   }
@@ -493,18 +503,23 @@ export class InboxTriage {
       "h2",
       "joyfox-triage__heading",
       // The name is shown as JoyClub shows it, never stored or logged.
-      state?.name ? `Why: ${state.name}` : "Why this placement",
+      state?.name ? t("inbox.whyNamed", { name: state.name }) : t("inbox.why"),
     );
-    const close = button(this.document, "joyfox-button", "Close", () => {
-      this.#selected = undefined;
-      this.#detailsKey = "";
-      details.hidden = true;
-      details.replaceChildren();
-    });
+    const close = button(
+      this.document,
+      "joyfox-button",
+      t("common.close"),
+      () => {
+        this.#selected = undefined;
+        this.#detailsKey = "";
+        details.hidden = true;
+        details.replaceChildren();
+      },
+    );
     if (!state) {
       details.replaceChildren(
         heading,
-        element(this.document, "p", "", "This row is no longer shown."),
+        element(this.document, "p", "", t("inbox.rowGone")),
         close,
       );
       return;
@@ -512,7 +527,7 @@ export class InboxTriage {
     if (!state.memberId) {
       details.replaceChildren(
         heading,
-        element(this.document, "p", "", UNIDENTIFIED_REASON),
+        element(this.document, "p", "", t("inbox.unidentified")),
         close,
       );
       return;
@@ -520,12 +535,7 @@ export class InboxTriage {
     if (!result) {
       details.replaceChildren(
         heading,
-        element(
-          this.document,
-          "p",
-          "",
-          "JoyFox is still checking this sender.",
-        ),
+        element(this.document, "p", "", t("inbox.stillChecking")),
         close,
       );
       return;
@@ -552,12 +562,7 @@ export class InboxTriage {
 
   #showError(details: HTMLElement): void {
     details.append(
-      element(
-        this.document,
-        "p",
-        "joyfox-error",
-        "JoyFox could not save that change. Nothing was changed.",
-      ),
+      element(this.document, "p", "joyfox-error", t("common.saveFailed")),
     );
   }
 }

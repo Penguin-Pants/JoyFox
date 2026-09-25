@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import "../setup-indexeddb";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { text } from "../i18n-text";
 import {
   InboxTriage,
   inboxListShown,
@@ -572,7 +573,7 @@ describe("conversation and profile panel", () => {
 
   it("offers no details toggle when there are no details to show", () => {
     const [bar, ...rest] = memberBar(document, {
-      ruleOff: "No contact rule is set.",
+      ruleOff: { key: "panel.ruleOff.no-rule" },
       actions: {},
       drawerOpen: false,
       onToggle: () => undefined,
@@ -878,21 +879,23 @@ describe("conversation and profile panel", () => {
       kind,
       state: "unknown",
       outcome: "needs-review",
-      reason: "",
+      reason: { key: "triage.reason.spamUnknown" },
       source: "none",
     });
     expect(
-      unknownProfileFactsText([
-        unknown("minimumPhotos"),
-        unknown("minimumProfileWords"),
-        unknown("minimumAccountAgeDays"),
-        // Not a profile fact: opening the profile does not help.
-        unknown("minimumTrustScore"),
-      ]),
+      text(
+        unknownProfileFactsText([
+          unknown("minimumPhotos"),
+          unknown("minimumProfileWords"),
+          unknown("minimumAccountAgeDays"),
+          // Not a profile fact: opening the profile does not help.
+          unknown("minimumTrustScore"),
+        ]),
+      ),
     ).toBe(
       "The photo count, profile word count and account age are unknown. Open the profile and JoyFox reads them.",
     );
-    expect(unknownProfileFactsText([unknown("minimumPhotos")])).toBe(
+    expect(text(unknownProfileFactsText([unknown("minimumPhotos")]))).toBe(
       "The photo count is unknown. Open the profile and JoyFox reads it.",
     );
     expect(

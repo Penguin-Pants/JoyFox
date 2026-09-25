@@ -1,6 +1,8 @@
 // @vitest-environment jsdom
 import "../setup-indexeddb";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { texts } from "../i18n-text";
+import { t } from "../../src/i18n/translator";
 import { ActionLogService } from "../../src/actions/action-log-service";
 import {
   runQuickIgnoreDelete,
@@ -172,7 +174,7 @@ describe("M9 manual test matrix, synthetic (build plan Section 24)", () => {
       ignore: "done",
       delete: "done",
     });
-    expect(result.report.lines).toEqual([
+    expect(texts(result.report.lines)).toEqual([
       "Ignore and Delete finished.",
       "Delete: done. JoyClub moved the conversation to the trash.",
       "Ignore: done. JoyClub ignores this member.",
@@ -195,7 +197,9 @@ describe("M9 manual test matrix, synthetic (build plan Section 24)", () => {
     const result = await run(driver);
     expect(driver.clicks).toEqual([]);
     expect(await logged()).toEqual([["Started", "Failed:control-missing"]]);
-    expect(result.report.lines).toContain("Nothing was changed on JoyClub.");
+    expect(texts(result.report.lines)).toContain(
+      "Nothing was changed on JoyClub.",
+    );
   });
 
   it("case 3: Delete confirmation missing stops before any Ignore", async () => {
@@ -210,7 +214,7 @@ describe("M9 manual test matrix, synthetic (build plan Section 24)", () => {
       delete: "unknown",
       ignore: "not-done",
     });
-    expect(result.report.lines).toContain(
+    expect(texts(result.report.lines)).toContain(
       "JoyClub's confirmation for Delete did not appear.",
     );
   });
@@ -229,7 +233,7 @@ describe("M9 manual test matrix, synthetic (build plan Section 24)", () => {
       ],
     ]);
     expect(result.report).toMatchObject({ delete: "done", ignore: "not-done" });
-    expect(result.report.lines).toEqual(
+    expect(texts(result.report.lines)).toEqual(
       expect.arrayContaining([
         "Delete: done. JoyClub moved the conversation to the trash.",
         "Ignore: not done.",
@@ -242,14 +246,14 @@ describe("M9 manual test matrix, synthetic (build plan Section 24)", () => {
   it("case 5: Ignore confirmation fails, or JoyClub does not show success", async () => {
     const missing = new FakeDriver();
     missing.confirmation.ignore = "missing";
-    expect((await run(missing)).report.lines).toContain(
+    expect(texts((await run(missing)).report.lines)).toContain(
       "JoyClub's confirmation for Ignore did not appear.",
     );
     const unverified = new FakeDriver();
     unverified.verified.ignore = false;
     const report = (await run(unverified)).report;
     expect(report).toMatchObject({ delete: "done", ignore: "unknown" });
-    expect(report.lines).toContain(
+    expect(texts(report.lines)).toContain(
       "JoyClub did not show that Ignore succeeded.",
     );
     expect(await logged()).toEqual(
@@ -395,7 +399,9 @@ describe("M9 manual test matrix, synthetic (build plan Section 24)", () => {
     });
     expect(driver.clicks).toEqual([]);
     expect(result.report.failure).toBe("log-unavailable");
-    expect(result.report.lines).toContain("Nothing was changed on JoyClub.");
+    expect(texts(result.report.lines)).toContain(
+      "Nothing was changed on JoyClub.",
+    );
   });
 
   it("checks identity again after storing, right before the click", async () => {
@@ -481,14 +487,14 @@ describe("M9 manual test matrix, synthetic (build plan Section 24)", () => {
       },
     });
     expect(result.report).toMatchObject({ delete: "done", ignore: "not-done" });
-    expect(result.report.lines).toContain(
+    expect(texts(result.report.lines)).toContain(
       "JoyFox could not write to its action log, so it stopped before Ignore.",
     );
     // The stored log reads "not confirmed", never "not done".
     const stored = await client.latest(MEMBER);
     expect(stored).toMatchObject({ report: { delete: "unknown" } });
     if (stored.status !== "ok") throw new Error("no report");
-    expect(stored.report.lines).toContain(
+    expect(texts(stored.report.lines)).toContain(
       "JoyFox could not write to its action log, so it stopped during Delete.",
     );
   });
@@ -520,7 +526,7 @@ describe("M9 manual test matrix, synthetic (build plan Section 24)", () => {
     // The stalled run finishes the click it was in, then may not go on.
     expect(driver.clicks).toEqual(["request:delete", "confirm:delete"]);
     expect(result.report.failure).toBe("superseded");
-    expect(result.report.lines).toContain(
+    expect(texts(result.report.lines)).toContain(
       "A newer Ignore and Delete for this member started, so JoyFox stopped before Ignore.",
     );
     const logs = await repositories.actionLogs.list("account-a");
@@ -583,7 +589,7 @@ describe("M9 hand-off to the profile page (ADR 0011)", () => {
       delete: "done",
       ignore: "not-done",
     });
-    expect(result.report.lines).toContain(
+    expect(texts(result.report.lines)).toContain(
       "JoyFox could not move on to the member's profile, so it stopped before Ignore.",
     );
     expect(await logged()).toEqual([
@@ -787,10 +793,10 @@ describe("M9 hand-off messages (ADR 0011)", () => {
     const stopped = await client.pending();
     expect(stopped).toMatchObject({ status: "stopped" });
     if (stopped.status !== "stopped") throw new Error("not stopped");
-    expect(stopped.lines).toContain(
+    expect(texts(stopped.lines)).toContain(
       "The active JoyFox account changed, so JoyFox stopped before Ignore.",
     );
-    expect(stopped.lines).toContain(
+    expect(texts(stopped.lines)).toContain(
       "Delete: done. JoyClub moved the conversation to the trash.",
     );
     expect((await logged("account-a")).at(-1)?.at(-1)).toBe(
@@ -935,7 +941,7 @@ describe("M9 button and notice", () => {
     document.querySelector<HTMLElement>('[data-joyfox-ui="quick-action"]');
   const runButton = () =>
     Array.from(section()?.querySelectorAll("button") ?? []).find(
-      (node) => node.textContent === QUICK_ACTION_TEXT.button,
+      (node) => node.textContent === t(QUICK_ACTION_TEXT.button),
     );
   const notice = () => section()?.textContent ?? "";
 
@@ -981,7 +987,7 @@ describe("M9 button and notice", () => {
     // The page moves only once the run returns "handed-off".
     await vi.waitFor(() => expect(visited).toHaveLength(1));
     await vi.waitFor(() =>
-      expect(notice()).toContain(QUICK_ACTION_TEXT.handedOff),
+      expect(notice()).toContain(t(QUICK_ACTION_TEXT.handedOff)),
     );
     expect(visited).toEqual([
       `${window.location.origin}/profile/1234567.synthetic_one.html`,
@@ -1002,7 +1008,7 @@ describe("M9 button and notice", () => {
     await vi.waitFor(() =>
       expect(notice()).toContain("Ignore and Delete finished."),
     );
-    expect(notice()).toContain(QUICK_ACTION_TEXT.resumed);
+    expect(notice()).toContain(t(QUICK_ACTION_TEXT.resumed));
     expect(onProfile.clicks).toEqual(["request:ignore", "confirm:ignore"]);
     expect(await logged()).toEqual([FULL]);
     // No button on the profile, and a reload does not run it again.
@@ -1024,7 +1030,7 @@ describe("M9 button and notice", () => {
       .setAttribute("href", "https://example.invalid/profile/1234567.x.html");
     runButton()!.click();
     await vi.waitFor(() =>
-      expect(notice()).toContain(QUICK_ACTION_TEXT.noProfile),
+      expect(notice()).toContain(t(QUICK_ACTION_TEXT.noProfile)),
     );
     expect(driver.clicks).toEqual([]);
     expect(await logged()).toEqual([]);
@@ -1246,7 +1252,7 @@ describe("M9 button and notice", () => {
     clock += STALE_AFTER_MS + 60_000;
     openConversation(new FakeDriver());
     await vi.waitFor(() =>
-      expect(notice()).toContain(QUICK_ACTION_TEXT.previous),
+      expect(notice()).toContain(t(QUICK_ACTION_TEXT.previous)),
     );
     expect(notice()).toContain("was interrupted");
     expect(notice()).toContain("Delete: not confirmed.");
@@ -1337,12 +1343,12 @@ describe("M9 button and notice", () => {
     });
     quick.update();
     await vi.waitFor(() =>
-      expect(notice()).toContain(QUICK_ACTION_TEXT.otherRunning),
+      expect(notice()).toContain(t(QUICK_ACTION_TEXT.otherRunning)),
     );
     expect(runButton()?.getAttribute("aria-disabled")).toBe("true");
     release();
     await vi.waitFor(() =>
-      expect(notice()).toContain(QUICK_ACTION_TEXT.otherResult),
+      expect(notice()).toContain(t(QUICK_ACTION_TEXT.otherResult)),
     );
     expect(notice()).toContain("The page showed another member");
     expect(notice()).toContain("Delete: not confirmed.");
@@ -1391,7 +1397,7 @@ describe("M9 button and notice", () => {
     await vi.waitFor(() =>
       expect(runButton()?.getAttribute("aria-disabled")).toBe("false"),
     );
-    expect(notice()).toContain(QUICK_ACTION_TEXT.previous);
+    expect(notice()).toContain(t(QUICK_ACTION_TEXT.previous));
   });
 
   it("labels an earlier run from another conversation with the member", async () => {
@@ -1404,9 +1410,9 @@ describe("M9 button and notice", () => {
       .record(begun.operationId, "Failed", "control-missing");
     openConversation(new FakeDriver());
     await vi.waitFor(() =>
-      expect(notice()).toContain(QUICK_ACTION_TEXT.previousOther),
+      expect(notice()).toContain(t(QUICK_ACTION_TEXT.previousOther)),
     );
-    expect(notice()).not.toContain(QUICK_ACTION_TEXT.previous);
+    expect(notice()).not.toContain(t(QUICK_ACTION_TEXT.previous));
   });
 
   it("sets the stale timer once, from when the other run last moved", async () => {

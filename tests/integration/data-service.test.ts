@@ -56,7 +56,7 @@ const sample: {
     placement: "quarantined",
     source: "user",
     decidedAt: now,
-    reasons: ["Invented reason"],
+    reasons: [{ key: "legacy.text", params: { text: "Invented reason" } }],
   },
   savedSearches: {
     name: "Synthetic search",

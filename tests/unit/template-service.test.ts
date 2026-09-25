@@ -1,8 +1,10 @@
 import "../setup-indexeddb";
 import { beforeEach, describe, expect, it } from "vitest";
 import type { ExtensionAccount } from "../../src/domain/types";
+import { t } from "../../src/i18n/translator";
 import { repositories } from "../../src/storage/repositories";
 import {
+  compareTemplates,
   DEFAULT_FOLDER,
   folderOf,
   MAX_TEMPLATE_BODY_LENGTH,
@@ -49,7 +51,9 @@ describe("M10 template service", () => {
     });
     expect(created).toMatchObject({ id: "template:1", name: "Greeting" });
     expect(created.folder).toBeUndefined();
-    expect(folderOf(created)).toBe(DEFAULT_FOLDER);
+    // The background names no folder; the page shows "General" for it.
+    expect(folderOf(created)).toBe("");
+    expect(folderOf(created, t(DEFAULT_FOLDER))).toBe("General");
 
     const edited = await service.save("account-a", {
       id: created.id,
@@ -86,10 +90,17 @@ describe("M10 template service", () => {
       folder: "Event cancellation",
     });
     await service.save("account-a", { name: "A", body: "x" });
-    const names = (await service.list("account-a")).map(
-      (t) => `${folderOf(t)}/${t.name}`,
-    );
-    expect(names).toEqual(["Event cancellation/A", "General/A", "General/B"]);
+    const listed = await service.list("account-a");
+    expect(listed.map((item) => `${folderOf(item)}/${item.name}`)).toEqual([
+      "/A",
+      "/B",
+      "Event cancellation/A",
+    ]);
+    // A page sorts by the folder name it shows.
+    const shown = [...listed]
+      .sort((a, b) => compareTemplates(a, b, "General"))
+      .map((item) => `${folderOf(item, "General")}/${item.name}`);
+    expect(shown).toEqual(["Event cancellation/A", "General/A", "General/B"]);
   });
 
   it("refuses invalid input without storing anything", async () => {

@@ -1,4 +1,6 @@
 import { describe, expect, it } from "vitest";
+import { t } from "../../src/i18n/translator";
+import { texts } from "../i18n-text";
 import type { ProfileSnapshot } from "../../src/domain/types";
 import {
   isStrictIsoDate,
@@ -107,7 +109,7 @@ describe("M1 qualification engine", () => {
     expect(result.outcome).toBe("partial-information");
     expect(result.placement).toBe("needs-review");
     expect(result.criteria.some((c) => c.state === "fail")).toBe(false);
-    expect(result.reasons).toEqual([
+    expect(texts(result.reasons)).toEqual([
       "Account age in days is unknown, so it was not counted for or against.",
     ]);
   });
@@ -120,7 +122,9 @@ describe("M1 qualification engine", () => {
     });
     expect(result.outcome).toBe("does-not-meet-rule");
     expect(result.placement).toBe("quarantined");
-    expect(result.reasons).toEqual(["Photo count is 1, below the required 3."]);
+    expect(texts(result.reasons)).toEqual([
+      "Photo count is 1, below the required 3.",
+    ]);
   });
 
   it("evaluates only the criteria that are configured", () => {
@@ -140,7 +144,7 @@ describe("M1 qualification engine", () => {
       now: NOW,
     });
     expect(result.outcome).toBe("qualified");
-    expect(result.reasons).toEqual([
+    expect(texts(result.reasons)).toEqual([
       "No qualification criteria are configured, so every sender qualifies.",
     ]);
   });
@@ -162,7 +166,7 @@ describe("M1 qualification engine", () => {
   });
 
   it("offers no numeric score, only the three documented states", () => {
-    expect(Object.values(OUTCOME_TEXT)).toEqual([
+    expect(Object.values(OUTCOME_TEXT).map((key) => t(key))).toEqual([
       "Qualified",
       "Partial information",
       "Does not meet rule",
@@ -242,12 +246,10 @@ describe("M1 qualification engine", () => {
         now: NOW,
       });
     expect(evaluate(true).outcome).toBe("qualified");
-    expect(evaluate(false)).toMatchObject({
-      outcome: "does-not-meet-rule",
-      reasons: [
-        "You have not marked this member as personally known, which the rule requires.",
-      ],
-    });
+    expect(evaluate(false).outcome).toBe("does-not-meet-rule");
+    expect(texts(evaluate(false).reasons)).toEqual([
+      "You have not marked this member as personally known, which the rule requires.",
+    ]);
     expect(evaluate("unknown").outcome).toBe("partial-information");
     // Verification alone does not satisfy the personally-known criterion.
     expect(

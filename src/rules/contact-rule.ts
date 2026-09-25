@@ -1,4 +1,6 @@
 import type { CriterionState, TriagePlacement } from "../domain/types";
+import type { PlainKey } from "../i18n/catalog/en";
+import { message, type Message } from "../i18n/message";
 import {
   evaluateCriterion,
   type SingleCriterion,
@@ -51,15 +53,18 @@ export const CONDITION_KINDS: readonly ConditionKind[] = [
   "minimumTrustScore",
 ];
 
-/** Plain-language names, shared by the page UI and the rule builder. */
-export const CONDITION_TEXT: Record<ConditionKind, string> = {
-  verified: "Verified by JoyClub",
-  personallyKnown: "Personally known",
-  minimumPhotos: "Minimum photos",
-  minimumProfileWords: "Minimum profile words",
-  minimumAccountAgeDays: "Minimum account age in days",
-  notTemplateSpam: "Not flagged as template spam",
-  minimumTrustScore: "Minimum local trust score",
+/**
+ * Catalog keys of the plain-language names, shared by the page UI and the
+ * rule builder.
+ */
+export const CONDITION_TEXT: Record<ConditionKind, PlainKey> = {
+  verified: "condition.verified",
+  personallyKnown: "condition.personallyKnown",
+  minimumPhotos: "condition.minimumPhotos",
+  minimumProfileWords: "condition.minimumProfileWords",
+  minimumAccountAgeDays: "condition.minimumAccountAgeDays",
+  notTemplateSpam: "condition.notTemplateSpam",
+  minimumTrustScore: "condition.minimumTrustScore",
 };
 
 export interface RuleCondition {
@@ -203,14 +208,15 @@ export interface EvaluatedCondition {
   state: CriterionState;
   /** What the condition counted as in the rule. */
   outcome: ConditionOutcome;
-  /** Plain-language reason, safe to show and safe to log. */
-  reason: string;
+  /** Plain-language reason, safe to log, translated when shown. */
+  reason: Message;
   source: FactSource;
 }
 
 export interface RuleEvaluation {
   placement: TriagePlacement;
-  reasons: string[];
+  /** The headline first, then the reasons that decided. */
+  reasons: Message[];
   evaluatedConditions: EvaluatedCondition[];
 }
 
@@ -223,10 +229,11 @@ export interface RuleInput {
   now?: Date;
 }
 
-export const PLACEMENT_TEXT: Record<TriagePlacement, string> = {
-  qualified: "Qualified",
-  "needs-review": "Needs Review",
-  quarantined: "Quarantined",
+/** Catalog keys of the placement names: `placement.<stored value>`. */
+export const PLACEMENT_TEXT: Record<TriagePlacement, PlainKey> = {
+  qualified: "placement.qualified",
+  "needs-review": "placement.needs-review",
+  quarantined: "placement.quarantined",
 };
 
 const CRITERION_FOR: Partial<
@@ -244,7 +251,7 @@ function readCondition(
   condition: RuleCondition,
   input: RuleInput,
   now: Date,
-): { state: CriterionState; reason: string; source: FactSource } {
+): { state: CriterionState; reason: Message; source: FactSource } {
   const criterion = CRITERION_FOR[condition.kind];
   if (criterion) {
     const result = evaluateCriterion(
@@ -264,26 +271,25 @@ function readCondition(
       case "flagged":
         return {
           state: "fail",
-          reason: "A message from this sender looks like a copied template.",
+          reason: message("triage.reason.spamFlagged"),
           source: "observed",
         };
       case "not-flagged":
         return {
           state: "pass",
-          reason: "No message from this sender looks like a copied template.",
+          reason: message("triage.reason.spamNotFlagged"),
           source: "observed",
         };
       case "overridden":
         return {
           state: "pass",
-          reason: "You marked this sender as not spam.",
+          reason: message("triage.reason.spamOverridden"),
           source: "cached",
         };
       case "unknown":
         return {
           state: "unknown",
-          reason:
-            "JoyFox has not checked this sender's messages for templates, so spam status is unknown.",
+          reason: message("triage.reason.spamUnknown"),
           source: "none",
         };
     }
@@ -292,28 +298,28 @@ function readCondition(
   if (input.trust === "unknown")
     return {
       state: "unknown",
-      reason:
-        "You have logged nothing about this member, so the local trust score is unknown.",
+      reason: message("triage.reason.trustUnknown"),
       source: "none",
     };
+  const score = { score: input.trust.score, minimum };
   return input.trust.score >= minimum
     ? {
         state: "pass",
-        reason: `Your local trust score is ${input.trust.score}, at or above the required ${minimum}.`,
+        reason: message("triage.reason.trustAtOrAbove", score),
         source: "cached",
       }
     : {
         state: "fail",
-        reason: `Your local trust score is ${input.trust.score}, below the required ${minimum}.`,
+        reason: message("triage.reason.trustBelow", score),
         source: "cached",
       };
 }
 
-const UNKNOWN_SUFFIX: Record<UnknownHandling, string> = {
-  "needs-review": " Your rule sends unknown values to Needs Review.",
-  met: " Your rule counts an unknown value as met.",
-  "not-met": " Your rule counts an unknown value as not met.",
-};
+const UNKNOWN_SUFFIX = {
+  "needs-review": "triage.reason.unknownNeedsReview",
+  met: "triage.reason.unknownMet",
+  "not-met": "triage.reason.unknownNotMet",
+} as const satisfies Record<UnknownHandling, string>;
 
 function evaluateCondition(
   condition: RuleCondition,
@@ -330,7 +336,13 @@ function evaluateCondition(
       state: read.state,
       outcome: met ? "met" : "not-met",
       reason: negate
-        ? `${read.reason} Your rule says "not ${CONDITION_TEXT[condition.kind]}", so this counts as ${met ? "met" : "not met"}.`
+        ? message(
+            met ? "triage.reason.negatedMet" : "triage.reason.negatedNotMet",
+            {
+              reason: read.reason,
+              condition: message(CONDITION_TEXT[condition.kind]),
+            },
+          )
         : read.reason,
       source: read.source,
     };
@@ -339,7 +351,9 @@ function evaluateCondition(
     ...base,
     state: "unknown",
     outcome: condition.whenUnknown,
-    reason: read.reason + UNKNOWN_SUFFIX[condition.whenUnknown],
+    reason: message(UNKNOWN_SUFFIX[condition.whenUnknown], {
+      reason: read.reason,
+    }),
     source: read.source,
   };
 }
@@ -347,7 +361,7 @@ function evaluateCondition(
 interface GroupResult {
   outcome: ConditionOutcome;
   /** Only the reasons that caused this outcome. */
-  reasons: string[];
+  reasons: Message[];
 }
 
 /**
@@ -375,7 +389,9 @@ function evaluateGroup(
       if (!numberRules) return result;
       return {
         ...result,
-        reasons: result.reasons.map((reason) => `Rule ${index + 1}: ${reason}`),
+        reasons: result.reasons.map((reason) =>
+          message("triage.reason.numbered", { number: index + 1, reason }),
+        ),
       };
     }
     const evaluated = evaluateCondition(child, input, now);
@@ -434,12 +450,16 @@ export function evaluateContactRule(
         : rule.defaultPlacement;
   const headline =
     outcome === "met"
-      ? reasons.length === 0
-        ? "Your contact rule has no required conditions, so every sender qualifies."
-        : "This sender meets your contact rule."
+      ? message(
+          reasons.length === 0
+            ? "triage.headline.noConditions"
+            : "triage.headline.meets",
+        )
       : outcome === "needs-review"
-        ? "JoyFox could not decide, because some information is unknown."
-        : `This sender does not meet your contact rule, so it goes to ${PLACEMENT_TEXT[rule.defaultPlacement]}.`;
+        ? message("triage.headline.undecided")
+        : message("triage.headline.doesNotMeet", {
+            placement: message(PLACEMENT_TEXT[rule.defaultPlacement]),
+          });
   return {
     placement,
     reasons: [headline, ...reasons],

@@ -1,3 +1,5 @@
+import type { Message } from "../i18n/message";
+
 export type CriterionState = "pass" | "fail" | "unknown";
 
 export type TriagePlacement = "qualified" | "needs-review" | "quarantined";
@@ -78,7 +80,11 @@ export interface ConversationClassification extends AccountScopedEntity {
   source: "user";
   decidedAt: string;
   ruleId?: string;
-  reasons: string[];
+  /**
+   * Why the sender is placed here, as catalog messages translated when
+   * shown. Schema version 3 migrated version 2's English strings.
+   */
+  reasons: Message[];
 }
 export interface SavedSearch extends AccountScopedEntity {
   name: string;

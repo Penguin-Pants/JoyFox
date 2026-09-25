@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { texts } from "../i18n-text";
 import {
   DEFAULT_SPAM_OPTIONS,
   detectTemplateSpam,
@@ -115,7 +116,7 @@ describe("M3 template spam detector", () => {
     expect(result.flagged).toBe(true);
     expect(result.findings[0]?.kind).toBe("duplicate-message");
     expect(result.findings[0]?.priorMemberId).toBe("member-2");
-    expect(result.explanation[0]).toContain(
+    expect(texts(result.explanation)[0]).toContain(
       "closely matches an earlier message",
     );
   });
@@ -170,7 +171,7 @@ describe("M3 template spam detector", () => {
     });
     expect(result.flagged).toBe(false);
     expect(result.findings[0]?.kind).toBe("below-minimum-length");
-    expect(result.explanation[0]).toContain("below the 8");
+    expect(texts(result.explanation)[0]).toContain("below the 8");
   });
 
   it("honors a raised minimum length", () => {
@@ -190,7 +191,9 @@ describe("M3 template spam detector", () => {
     });
     expect(result.flagged).toBe(false);
     expect(result.findings[0]?.kind).toBe("sender-override");
-    expect(result.explanation[0]).toContain("marked this sender as not spam");
+    expect(texts(result.explanation)[0]).toContain(
+      "marked this sender as not spam",
+    );
   });
 
   it("always explains its verdict and names the engine used", () => {
@@ -202,8 +205,10 @@ describe("M3 template spam detector", () => {
         priorMessages: [prior("p1", TEMPLATE)],
       }),
     ]) {
-      expect(result.explanation.length).toBeGreaterThan(0);
-      expect(result.explanation.every((line) => line.length > 0)).toBe(true);
+      expect(texts(result.explanation).length).toBeGreaterThan(0);
+      expect(texts(result.explanation).every((line) => line.length > 0)).toBe(
+        true,
+      );
       expect(result.engine).toBe("trigram-dice");
     }
   });
@@ -213,7 +218,9 @@ describe("M3 template spam detector", () => {
       text: TEMPLATE,
       priorMessages: [prior("p1", TEMPLATE)],
     });
-    expect(result.explanation.join(" ")).not.toContain("liked your profile");
+    expect(texts(result.explanation).join(" ")).not.toContain(
+      "liked your profile",
+    );
   });
 
   it("accepts a replacement similarity engine", () => {
