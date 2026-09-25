@@ -10,6 +10,10 @@ import { ExtensionError } from "../errors";
 import { isLocale, LOCALE_KEY } from "../i18n/locale";
 import { message, type Message } from "../i18n/message";
 import { MAX_NOTE_LENGTH, MAX_TAG_LENGTH } from "../notes/limits";
+import {
+  MAX_NORMALIZED_PHRASE_LENGTH,
+  normalizePhrase,
+} from "../rules/message-phrase";
 import { normalizeMessage } from "../spam/normalize";
 import {
   MAX_TEMPLATE_BODY_LENGTH,
@@ -73,8 +77,9 @@ export interface ImportPlan {
 /**
  * Records whose ID names one fact (a tag, a not-spam correction, a member
  * entry) or that never change once written (trust outcomes, snapshots,
- * cached messages, the action log, templates). On an ID clash the stored
- * one is kept. Every other entity keeps the newer version by `updatedAt`.
+ * cached messages, phrase matches, the action log, templates). On an ID
+ * clash the stored one is kept. Every other entity keeps the newer version
+ * by `updatedAt`.
  */
 const KEEP_EXISTING: ReadonlySet<EntityName> = new Set<EntityName>([
   "extensionAccounts",
@@ -84,6 +89,7 @@ const KEEP_EXISTING: ReadonlySet<EntityName> = new Set<EntityName>([
   "trustSignals",
   "profileSnapshots",
   "messageObservations",
+  "messagePhraseMatches",
   "actionLogs",
   "messageTemplates",
   // A file must never redirect an existing sync endpoint.
@@ -161,6 +167,7 @@ const ENTITY_FIELDS: Readonly<Record<EntityName, readonly string[]>> = {
   ],
   senderSpamOverrides: ["memberId", "decision", "decidedAt", "reason"],
   actionLogs: ["memberId", "conversationId", "action", "steps"],
+  messagePhraseMatches: ["memberId", "phrase", "matchedAt"],
 };
 
 /** Keys that could reach an object's prototype if a value were ever merged. */
@@ -184,7 +191,14 @@ function hasForbiddenKey(value: unknown, depth = 0): boolean {
 
 const STEP_FIELDS = ["name", "ok", "at", "errorCode"];
 const GROUP_FIELDS = ["type", "match", "children"];
-const CONDITION_FIELDS = ["type", "kind", "value", "whenUnknown", "negate"];
+const CONDITION_FIELDS = [
+  "type",
+  "kind",
+  "value",
+  "text",
+  "whenUnknown",
+  "negate",
+];
 
 const extraKey = (value: Record<string, unknown>, allowed: string[]) =>
   Object.keys(value).find((key) => !allowed.includes(key));
@@ -266,6 +280,11 @@ function domainProblem(
         normalizeMessage(record.normalizedText) !== record.normalizedText
         ? { text: "normalizedText is not in normalized form" }
         : undefined;
+    case "messagePhraseMatches":
+      return typeof record.phrase === "string" &&
+        normalizePhrase(record.phrase) !== record.phrase
+        ? { text: "phrase is not in normalized form" }
+        : tooLong("phrase", MAX_NORMALIZED_PHRASE_LENGTH);
     default:
       return undefined;
   }
@@ -286,6 +305,7 @@ const DATE_FIELDS: readonly string[] = [
   "occurredAt",
   "decidedAt",
   "observedAt",
+  "matchedAt",
   "lastSyncedAt",
   "joinedAt",
   "joinedEarliest",
@@ -408,9 +428,9 @@ export function parseImportFile(
           `Record ${index} of ${name} holds an unknown field (${extra})`,
           message("error.import.unknownField", { ...at, field: extra }),
         );
-      // Files from schema versions 1 and 2 hold English reason text. It is
+      // Files from schema versions 1 to 3 hold English reason text. It is
       // converted as the database upgrade converts it, then validated.
-      if (name === "conversationClassifications" && version < 3)
+      if (name === "conversationClassifications" && version < 4)
         record.reasons = migrateReasons(record.reasons, record.placement);
       const problem = domainProblem(name as EntityName, record);
       if (problem)

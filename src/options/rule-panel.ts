@@ -8,6 +8,7 @@ import {
   NUMERIC_CONDITION_KINDS,
   PLACEMENT_TEXT,
   RULE_LIMITS,
+  TEXT_CONDITION_KINDS,
   type ConditionKind,
   type ContactRuleDefinition,
   type FailPlacement,
@@ -28,6 +29,10 @@ import {
   type BoxEntry,
   type BuilderForm,
 } from "../rules/rule-builder";
+import {
+  MAX_NORMALIZED_PHRASE_LENGTH,
+  normalizePhrase,
+} from "../rules/message-phrase";
 import { RuleService } from "../rules/rule-service";
 import { withAccountLock } from "../storage/account-lock";
 import { StatusLine } from "./status-line";
@@ -96,6 +101,7 @@ function element<K extends keyof HTMLElementTagNameMap>(
 interface ConditionControls {
   on: HTMLInputElement;
   value?: HTMLInputElement;
+  text?: HTMLInputElement;
   unknown: HTMLSelectElement;
 }
 
@@ -115,6 +121,27 @@ function numberInput(
   input.setAttribute(
     "aria-label",
     t("rule.valueLabel", { condition: conditionName(kind) }),
+  );
+  return input;
+}
+
+/** The word, phrase or emoji field of a text condition. */
+function textInput(
+  document: Document,
+  kind: ConditionKind,
+  text: string | undefined,
+): HTMLInputElement {
+  const input = document.createElement("input");
+  input.type = "text";
+  input.className = "joyfox-rule__text";
+  input.maxLength = RULE_LIMITS.maxTextLength;
+  input.placeholder = t("rule.textPlaceholder");
+  input.autocomplete = "off";
+  input.spellcheck = false;
+  input.value = text ?? "";
+  input.setAttribute(
+    "aria-label",
+    t("rule.textLabel", { condition: conditionName(kind) }),
   );
   return input;
 }
@@ -178,6 +205,25 @@ function readNumber(
  */
 const numberOrNone = (value: number | Message) =>
   typeof value === "number" ? value : undefined;
+
+/** The trimmed text in a field, or the problem as a message. */
+function readText(
+  input: HTMLInputElement,
+  kind: ConditionKind,
+): { text: string } | Message {
+  const text = input.value.trim();
+  const phrase = normalizePhrase(text);
+  if (
+    phrase.length === 0 ||
+    phrase.length > MAX_NORMALIZED_PHRASE_LENGTH ||
+    text.length > RULE_LIMITS.maxTextLength
+  )
+    return message("rule.textProblem", {
+      maximum: RULE_LIMITS.maxTextLength,
+      condition: conditionName(kind),
+    });
+  return { text };
+}
 
 /** A default threshold for a condition just added in the advanced editor. */
 const NEW_VALUE: Partial<Record<ConditionKind, number>> = {
@@ -415,6 +461,7 @@ export class RulePanel {
       this.#renderSwitch(document),
       this.#editor,
       element(document, "p", "joyfox-panel__hint", t("rule.spamHint")),
+      element(document, "p", "joyfox-panel__hint", t("rule.firstMessageHint")),
     );
     node.append(
       element(document, "p", "joyfox-panel__hint", t("rule.autosaveHint")),
@@ -614,6 +661,12 @@ export class RulePanel {
       });
       list.append(row);
       this.#renumber();
+      // A text condition has no default: it is saved when its text is
+      // entered, so an empty field never shows as a save error.
+      if (TEXT_CONDITION_KINDS.has(kind)) {
+        row.querySelector<HTMLElement>(".joyfox-rule__text")?.focus();
+        return;
+      }
       row.querySelector<HTMLElement>("input[type=number], select")?.focus();
       this.#autosave();
     });
@@ -672,6 +725,10 @@ export class RulePanel {
     if (NUMERIC_CONDITION_KINDS.has(kind))
       row.append(numberInput(document, kind, entry.value));
     else row.append(element(document, "span", "joyfox-rule__no-value"));
+    if (TEXT_CONDITION_KINDS.has(kind)) {
+      row.classList.add("joyfox-rule__condition--text");
+      row.append(textInput(document, kind, entry.text));
+    }
     const unknown = unknownSelect(document, entry.whenUnknown);
     unknown.className = "joyfox-rule__unknown";
     unknown.setAttribute("aria-label", t("rule.unknownLabel", { condition }));
@@ -802,6 +859,14 @@ export class RulePanel {
         gap.className = "joyfox-rule__no-value";
         row.append(gap);
       }
+      if (TEXT_CONDITION_KINDS.has(kind)) {
+        // On a line of its own under the name, so a phrase has room.
+        row.classList.add("joyfox-rule__condition--text");
+        const text = textInput(document, kind, entry?.text);
+        text.id = `${id}-text`;
+        controls.text = text;
+        row.append(text);
+      }
       const unknownLabel = element(
         document,
         "label",
@@ -850,8 +915,9 @@ export class RulePanel {
   }
 
   /**
-   * Read the simple editor. `number` decides what a number field gives:
-   * by default the number, or the first problem, which ends the read.
+   * Read the simple editor. By default a field that is not valid ends the
+   * read with its problem. For a redraw, `number` decides what a number
+   * field gives, and text that is not valid yet is read as typed.
    */
   #readSimple(): BuilderForm | Message;
   #readSimple(
@@ -879,6 +945,14 @@ export class RulePanel {
           const value = number ? number(read) : read;
           if (typeof value === "object") return value;
           if (value !== undefined) entry.value = value;
+        }
+        if (controls.text) {
+          const text = readText(controls.text, kind);
+          // A redraw (`number` given) keeps text that is not valid yet.
+          if (failed(text)) {
+            if (!number) return text;
+            entry.text = controls.text.value;
+          } else entry.text = text.text;
         }
         form[box][kind] = entry;
       }
@@ -931,6 +1005,16 @@ export class RulePanel {
           const value = number ? number(read) : read;
           if (typeof value === "object") return value;
           if (value !== undefined) entry.value = value;
+        }
+        const textField =
+          row.querySelector<HTMLInputElement>(".joyfox-rule__text");
+        if (textField) {
+          const text = readText(textField, kind);
+          // A redraw (`number` given) keeps text that is not valid yet.
+          if (failed(text)) {
+            if (!number) return text;
+            entry.text = textField.value;
+          } else entry.text = text.text;
         }
         rule.conditions[kind] = entry;
       }

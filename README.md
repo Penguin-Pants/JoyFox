@@ -20,13 +20,13 @@ Load `dist/firefox/manifest.json` temporarily from `about:debugging` for local
 development. The extension safely does nothing on JoyClub until selectors have
 been manually verified and enabled in source.
 
-The database is at schema version 3. An existing version 1 or 2 installation
+The database is at schema version 4. An existing version 1, 2 or 3 installation
 upgrades in place and keeps its records.
 
 JoyFox shows its own text in German or English. It follows the Firefox language
 until you pick one with "Sprache / Language" at the top of the options page, and
-open JoyClub tabs switch at once (ADR 0013, `docs/manual-acceptance.md`, items
-86 to 92).
+open JoyClub tabs switch at once (ADR 0014, `docs/manual-acceptance.md`, items
+91 to 97).
 
 On a fresh install the options page opens once, and "Get started" at its top
 lists the three steps to a triaged inbox. The options page holds the account

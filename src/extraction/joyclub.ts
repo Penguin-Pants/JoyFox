@@ -158,6 +158,11 @@ export interface InboxRowExtraction {
   genderCode: ExtractionResult<number>;
   /** The BEM modifier, such as `received` or `read`. */
   readState: ExtractionResult<string>;
+  /**
+   * The latest message's preview text (ADR 0013). Only compared with the
+   * rule's phrases: never persist or log it.
+   */
+  messagePreview: ExtractionResult<string>;
 }
 
 export function extractInboxRows(
@@ -169,6 +174,7 @@ export function extractInboxRows(
   const linkSelector = verifiedSelector("inbox", "memberId");
   const readSelector = verifiedSelector("inbox", "readStatus");
   const nameSelector = verifiedSelector("inbox", "senderName");
+  const previewSelector = verifiedSelector("inbox", "messagePreview");
   return Array.from(root.querySelectorAll(rowSelector)).map((row) => {
     const readIcon = readSelector ? row.querySelector(readSelector) : null;
     const modifier = Array.from(readIcon?.classList ?? [])
@@ -176,6 +182,9 @@ export function extractInboxRows(
       .find((value) => value !== undefined);
     const name = nameSelector
       ? row.querySelector(nameSelector)?.textContent?.trim()
+      : undefined;
+    const preview = previewSelector
+      ? row.querySelector(previewSelector)?.textContent?.trim()
       : undefined;
     return {
       row,
@@ -204,6 +213,12 @@ export function extractInboxRows(
       readState: modifier
         ? found(modifier, "inbox.readStatus")
         : missing("inbox.readStatus"),
+      // An empty preview (an attachment only, for example) holds no phrase,
+      // so it counts as a preview without it.
+      messagePreview:
+        preview !== undefined
+          ? found(preview, "inbox.messagePreview")
+          : missing("inbox.messagePreview"),
     };
   });
 }

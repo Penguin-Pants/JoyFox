@@ -38,7 +38,7 @@
 
 14. Upgrade an existing installation rather than a clean one, and confirm notes
     and tags written before the upgrade are still present.
-15. Confirm a data export reports schema version 2 (3 since ADR 0013) and
+15. Confirm a data export reports schema version 2 (4 since ADR 0014) and
     includes the message observation and sender override collections.
 16. Confirm no message is cached anywhere while selectors are unverified, since
     nothing reads a page yet.
@@ -440,35 +440,53 @@ automatically.
 85. Choose a file that is not a JoyFox export. Confirm the error says nothing
     was imported.
 
+**Result (2026-09-25): passed.** The project owner confirmed items 83 to 85.
+
+## First message contains (ADR 0013)
+
+86. On the Contact rule tab, tick "First message contains" in the ALL box, type
+    a word from your own profile instruction, and leave the field. Confirm "Rule
+    saved". Reload the options page and confirm the text is still there.
+87. Ask a test contact to send you a first message that contains the word. Open
+    the inbox and confirm the row is Qualified. Open "Why" and confirm it says
+    the latest message contains the word.
+88. Ask the same contact to send a second message without the word. Reload the
+    inbox and confirm the row stays Qualified ("An earlier message … contains").
+89. For a sender whose preview does not contain the word, confirm the row goes
+    to Needs Review. Set "If JoyFox cannot see this" to "Count as not met" and
+    confirm the row goes to Quarantined.
+90. Type an emoji as the text (for example 🦊) and repeat item 87 with a message
+    that holds the emoji.
+
 **Result:** not yet run.
 
-## German and English UI (ADR 0013)
+## German and English UI (ADR 0014)
 
-86. In a Firefox profile where no JoyFox language was picked yet, set Firefox to
+91. In a Firefox profile where no JoyFox language was picked yet, set Firefox to
     German (`about:preferences`, Language) and open the options page. Confirm it
     shows German ("Erste Schritte", "Konten") and "Sprache / Language" shows
     "Deutsch". Set Firefox to English and confirm the page shows English after a
     reload.
-87. On the options page, choose "English" in "Sprache / Language", then
+92. On the options page, choose "English" in "Sprache / Language", then
     "Deutsch". Confirm every tab, heading, button and hint changes at once, with
     no reload, and that the toggle's own label stays "Sprache / Language".
     Confirm typed but unsaved text in "Konto hinzufügen", a template and a rule
     number stays after each switch.
-88. Keep a ClubMail inbox and a conversation open in other tabs. Switch the
+93. Keep a ClubMail inbox and a conversation open in other tabs. Switch the
     language on the options page. Confirm the JoyFox tab bar, the badges, the
     "Warum" panel, the member bar, the note editor and the "Ignorieren und
     löschen" notice change at once. Confirm text typed in an open note editor
     stays.
-89. On an installation upgraded from a build before this change, with a sender
+94. On an installation upgraded from a build before this change, with a sender
     you moved by hand, open the "Warum" panel in German. Confirm it says "Du
     hast diese Person nach „…“ verschoben." and that the sender is still in the
     placement you chose.
-90. In German, open the "Warum" panel of a sender you moved by hand. Confirm the
+95. In German, open the "Warum" panel of a sender you moved by hand. Confirm the
     date shows as `TT.MM.JJJJ` (for example 25.09.2026), and in English as "Sep
     25, 2026".
-91. In German, on "Konten", choose a file that is not a JoyFox export. Confirm
+96. In German, on "Konten", choose a file that is not a JoyFox export. Confirm
     the error is German and ends "Es wurde nichts importiert."
-92. In German, look at every tab and every JoyFox element on JoyClub. Confirm no
+97. In German, look at every tab and every JoyFox element on JoyClub. Confirm no
     English text is left, except brand names (JoyFox, JoyClub, JOYCE, ClubMail)
     and your own data. Confirm "Profil ignorieren" and "In den Papierkorb
     schieben" match JoyClub's own labels.

@@ -695,7 +695,7 @@ describe("M8 import: restoring and merging", () => {
   });
 });
 
-describe("M8 import: language and schema version 3", () => {
+describe("M8 import: language and schema version 4", () => {
   const classification = (reasons: unknown[]) => ({
     id: "classification:1234567",
     accountId: "a",
@@ -725,30 +725,33 @@ describe("M8 import: language and schema version 3", () => {
       schemaVersion: version,
     });
 
-  it("imports a version 2 export with English reasons as messages", async () => {
-    await importText(
-      fileOf(2, [
-        "You moved this sender to Quarantined.",
-        "Something an older build wrote.",
-      ]),
-    );
-    const [stored] = await repositories.conversationClassifications.list("a");
-    expect(stored?.reasons).toEqual([
-      {
-        key: "triage.reason.userMoved",
-        params: { placement: { key: "placement.quarantined" } },
-      },
-      {
-        key: "legacy.text",
-        params: { text: "Something an older build wrote." },
-      },
-    ]);
-  });
+  it.each([2, 3])(
+    "imports a version %i export with English reasons as messages",
+    async (version) => {
+      await importText(
+        fileOf(version, [
+          "You moved this sender to Quarantined.",
+          "Something an older build wrote.",
+        ]),
+      );
+      const [stored] = await repositories.conversationClassifications.list("a");
+      expect(stored?.reasons).toEqual([
+        {
+          key: "triage.reason.userMoved",
+          params: { placement: { key: "placement.quarantined" } },
+        },
+        {
+          key: "legacy.text",
+          params: { text: "Something an older build wrote." },
+        },
+      ]);
+    },
+  );
 
-  it("refuses English reasons in a version 3 file, with a display message", () => {
+  it("refuses English reasons in a version 4 file, with a display message", () => {
     let refusal: unknown;
     try {
-      parseImportFile(fileOf(3, ["You moved this sender to Quarantined."]));
+      parseImportFile(fileOf(4, ["You moved this sender to Quarantined."]));
     } catch (error) {
       refusal = error;
     }
@@ -811,7 +814,7 @@ describe("M8 import: language and schema version 3", () => {
   it("exports the language with the other settings", async () => {
     await settings.set({ [LOCALE_KEY]: "de" });
     const exported = await data.exportAll();
-    expect(exported.schemaVersion).toBe(3);
+    expect(exported.schemaVersion).toBe(4);
     expect(exported.settings[LOCALE_KEY]).toBe("de");
   });
 });

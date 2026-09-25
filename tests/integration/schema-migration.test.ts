@@ -47,8 +47,17 @@ const observation = (id: string, observedAt: string): MessageObservation => ({
   updatedAt: observedAt,
 });
 
-/** Builds a real version 1 database, as an install from the last release has. */
-async function createVersion1Database(): Promise<void> {
+const VERSION_2_STORES = [
+  ...VERSION_1_STORES,
+  "messageObservations",
+  "senderSpamOverrides",
+];
+
+/** Builds a real older database, as an install from an earlier release has. */
+async function createOlderDatabase(
+  version: number,
+  stores: readonly string[],
+): Promise<void> {
   await resetDatabaseConnectionForTests();
   await new Promise<void>((resolve, reject) => {
     const request = indexedDB.deleteDatabase(DATABASE_NAME);
@@ -56,9 +65,9 @@ async function createVersion1Database(): Promise<void> {
     request.onerror = () => reject(request.error);
   });
   const db = await new Promise<IDBDatabase>((resolve, reject) => {
-    const request = indexedDB.open(DATABASE_NAME, 1);
+    const request = indexedDB.open(DATABASE_NAME, version);
     request.onupgradeneeded = () => {
-      for (const name of VERSION_1_STORES) {
+      for (const name of stores) {
         const store = request.result.createObjectStore(name, {
           keyPath: "storageKey",
         });
@@ -100,11 +109,23 @@ describe("schema version 2", () => {
   });
 
   it("upgrades a version 1 database without losing its records", async () => {
-    await createVersion1Database();
+    await createOlderDatabase(1, VERSION_1_STORES);
     const db = await openDatabase();
     expect(db.version).toBe(DATABASE_VERSION);
     expect(db.objectStoreNames.contains("messageObservations")).toBe(true);
     expect(db.objectStoreNames.contains("senderSpamOverrides")).toBe(true);
+    expect(db.objectStoreNames.contains("messagePhraseMatches")).toBe(true);
+    const note = await repositories.userNotes.get(ACCOUNT, "note-1");
+    expect(note?.body).toBe("Note written before the upgrade");
+  });
+
+  it("upgrades a version 2 database by adding only the phrase match store", async () => {
+    await createOlderDatabase(2, VERSION_2_STORES);
+    const db = await openDatabase();
+    expect(db.version).toBe(DATABASE_VERSION);
+    expect(Array.from(db.objectStoreNames).sort()).toEqual(
+      [...VERSION_2_STORES, "messagePhraseMatches"].sort(),
+    );
     const note = await repositories.userNotes.get(ACCOUNT, "note-1");
     expect(note?.body).toBe("Note written before the upgrade");
   });
@@ -214,8 +235,12 @@ describe("schema version 2", () => {
   });
 });
 
-/** A version 2 install with manual placements in version 2's English form. */
-async function createVersion2Database(
+/**
+ * An older install (version 2, or version 3 with the phrase match store) with
+ * manual placements in their English form.
+ */
+async function createDatabaseWithReasons(
+  version: 2 | 3,
   classifications: Array<Record<string, unknown>>,
 ): Promise<void> {
   await resetDatabaseConnectionForTests();
@@ -225,13 +250,11 @@ async function createVersion2Database(
     request.onerror = () => reject(request.error);
   });
   const db = await new Promise<IDBDatabase>((resolve, reject) => {
-    const request = indexedDB.open(DATABASE_NAME, 2);
+    const request = indexedDB.open(DATABASE_NAME, version);
     request.onupgradeneeded = () => {
-      for (const name of [
-        ...VERSION_1_STORES,
-        "messageObservations",
-        "senderSpamOverrides",
-      ]) {
+      for (const name of version === 2
+        ? VERSION_2_STORES
+        : [...VERSION_2_STORES, "messagePhraseMatches"]) {
         const store = request.result.createObjectStore(name, {
           keyPath: "storageKey",
         });
@@ -263,86 +286,91 @@ async function createVersion2Database(
   db.close();
 }
 
-describe("schema version 3", () => {
+describe("schema version 4", () => {
   beforeEach(async () => {
     await freshDatabase();
   });
 
-  it("rewrites version 2 reasons as messages and keeps every override", async () => {
-    await createVersion2Database([
-      {
-        id: "classification:1",
-        memberId: "1",
-        placement: "needs-review",
-        reasons: ["You moved this sender to Needs Review."],
-      },
-      {
-        id: "classification:2",
-        memberId: "2",
-        placement: "quarantined",
-        reasons: [
-          "You moved this sender to Quarantined.",
-          "A reason from an older build.",
-        ],
-      },
-    ]);
-    const db = await openDatabase();
-    expect(db.version).toBe(3);
-    const stored = await repositories.conversationClassifications.list(ACCOUNT);
-    expect(
-      stored
-        .sort((a, b) => a.id.localeCompare(b.id))
-        .map(({ memberId, placement, reasons }) => ({
-          memberId,
-          placement,
-          reasons,
-        })),
-    ).toEqual([
-      {
-        memberId: "1",
-        placement: "needs-review",
-        reasons: [
-          {
-            key: "triage.reason.userMoved",
-            params: { placement: { key: "placement.needs-review" } },
-          },
-        ],
-      },
-      {
-        memberId: "2",
-        placement: "quarantined",
-        reasons: [
-          {
-            key: "triage.reason.userMoved",
-            params: { placement: { key: "placement.quarantined" } },
-          },
-          {
-            key: "legacy.text",
-            params: { text: "A reason from an older build." },
-          },
-        ],
-      },
-    ]);
-    // The migrated reasons read in both languages; old text stays verbatim.
-    const reasons = stored.flatMap((record) => record.reasons);
-    expect(texts(reasons)).toEqual([
-      "You moved this sender to Needs Review.",
-      "You moved this sender to Quarantined.",
-      "A reason from an older build.",
-    ]);
-    setLocale("de");
-    expect(texts(reasons)).toEqual([
-      "Du hast diese Person nach „Zu prüfen“ verschoben.",
-      "Du hast diese Person nach „Quarantäne“ verschoben.",
-      "A reason from an older build.",
-    ]);
-    setLocale("en");
-  });
+  it.each([2, 3] as const)(
+    "rewrites version %i reasons as messages and keeps every override",
+    async (version) => {
+      await createDatabaseWithReasons(version, [
+        {
+          id: "classification:1",
+          memberId: "1",
+          placement: "needs-review",
+          reasons: ["You moved this sender to Needs Review."],
+        },
+        {
+          id: "classification:2",
+          memberId: "2",
+          placement: "quarantined",
+          reasons: [
+            "You moved this sender to Quarantined.",
+            "A reason from an older build.",
+          ],
+        },
+      ]);
+      const db = await openDatabase();
+      expect(db.version).toBe(4);
+      expect(db.objectStoreNames.contains("messagePhraseMatches")).toBe(true);
+      const stored =
+        await repositories.conversationClassifications.list(ACCOUNT);
+      expect(
+        stored
+          .sort((a, b) => a.id.localeCompare(b.id))
+          .map(({ memberId, placement, reasons }) => ({
+            memberId,
+            placement,
+            reasons,
+          })),
+      ).toEqual([
+        {
+          memberId: "1",
+          placement: "needs-review",
+          reasons: [
+            {
+              key: "triage.reason.userMoved",
+              params: { placement: { key: "placement.needs-review" } },
+            },
+          ],
+        },
+        {
+          memberId: "2",
+          placement: "quarantined",
+          reasons: [
+            {
+              key: "triage.reason.userMoved",
+              params: { placement: { key: "placement.quarantined" } },
+            },
+            {
+              key: "legacy.text",
+              params: { text: "A reason from an older build." },
+            },
+          ],
+        },
+      ]);
+      // The migrated reasons read in both languages; old text stays verbatim.
+      const reasons = stored.flatMap((record) => record.reasons);
+      expect(texts(reasons)).toEqual([
+        "You moved this sender to Needs Review.",
+        "You moved this sender to Quarantined.",
+        "A reason from an older build.",
+      ]);
+      setLocale("de");
+      expect(texts(reasons)).toEqual([
+        "Du hast diese Person nach „Zu prüfen“ verschoben.",
+        "Du hast diese Person nach „Quarantäne“ verschoben.",
+        "A reason from an older build.",
+      ]);
+      setLocale("en");
+    },
+  );
 
-  it("upgrades a version 1 database through both versions", async () => {
-    await createVersion1Database();
+  it("upgrades a version 1 database through every version", async () => {
+    await createOlderDatabase(1, VERSION_1_STORES);
     const db = await openDatabase();
-    expect(db.version).toBe(3);
+    expect(db.version).toBe(4);
     expect((await repositories.userNotes.get(ACCOUNT, "note-1"))?.body).toBe(
       "Note written before the upgrade",
     );

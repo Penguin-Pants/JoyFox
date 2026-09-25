@@ -2,6 +2,7 @@ import { isStrictIsoDate } from "../domain/iso-date";
 import type { AccountScopedEntity, EntityName } from "../domain/types";
 import { isMessage } from "../i18n/message";
 import { contactRuleProblem } from "../rules/contact-rule";
+import { MAX_NORMALIZED_PHRASE_LENGTH } from "../rules/message-phrase";
 
 export class ValidationError extends Error {}
 
@@ -296,6 +297,27 @@ export function validateEntity(
       requireEnum(record, "decision", ["not-spam"]);
       requireDate(record, "decidedAt");
       optionalString(record, "reason");
+      break;
+    case "messagePhraseMatches":
+      // Closed like messageObservations: only the result is stored, so a
+      // field carrying message text cannot be added by accident.
+      allowOnly(
+        record,
+        [
+          "id",
+          "accountId",
+          "createdAt",
+          "updatedAt",
+          "memberId",
+          "phrase",
+          "matchedAt",
+        ],
+        "MessagePhraseMatch",
+      );
+      requireString(record, "memberId");
+      if (requireString(record, "phrase").length > MAX_NORMALIZED_PHRASE_LENGTH)
+        throw new ValidationError("phrase is too long");
+      requireDate(record, "matchedAt");
       break;
     case "actionLogs":
       requireString(record, "action");

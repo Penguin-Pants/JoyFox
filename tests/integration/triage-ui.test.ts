@@ -487,6 +487,44 @@ describe("M2 inbox triage", () => {
   });
 });
 
+describe("First message contains in the inbox (ADR 0013)", () => {
+  it("sends each row's preview and places rows by the phrase", async () => {
+    await rules.saveGlobalRule(ACCOUNT, {
+      ...knownRule(),
+      schemaVersion: 3,
+      root: {
+        type: "group",
+        match: "all",
+        children: [
+          {
+            type: "condition",
+            kind: "firstMessageContains",
+            text: "Preview TEXT",
+            whenUnknown: "not-met",
+          },
+        ],
+      },
+    });
+    setPage("/clubmail/", inboxHtml);
+    const client = serviceClient();
+    const sent: Array<string | undefined> = [];
+    const evaluate = client.evaluate;
+    client.evaluate = (members) => {
+      sent.push(...members.map((member) => member.preview));
+      return evaluate(members);
+    };
+    new InboxTriage(document, client).update();
+    await vi.waitFor(() => expect(bar()).not.toBeNull());
+    expect(sent).toEqual([
+      "Synthetic preview text",
+      "Another synthetic preview",
+    ]);
+    // Row 1 holds the phrase. Row 2 does not, and the rule counts that as
+    // not met. Row 3 has no profile link, so it is never evaluated.
+    expect(placements()).toEqual(["qualified", "quarantined", "needs-review"]);
+  });
+});
+
 describe("conversation and profile panel", () => {
   const panel = () => document.querySelector('[data-joyfox-ui="member-panel"]');
 

@@ -11,14 +11,14 @@ const PLACEMENTS: readonly TriagePlacement[] = [
 const USER_MOVED = /^You moved this sender to .+\.$/su;
 
 /**
- * Schema version 3 stores `ConversationClassification.reasons` as catalog
+ * Schema version 4 stores `ConversationClassification.reasons` as catalog
  * messages instead of English text (docs/i18n-spec.md, Section 4.1). A
- * version 2 sentence "You moved this sender to <placement>." becomes the
+ * sentence from an earlier version, "You moved this sender to <placement>." becomes the
  * message for the record's own placement, so it is shown in the user's
  * language. Any other string is kept verbatim as `legacy.text`. An item that
  * is not a string is left as it is, for validation to judge.
  *
- * Used by the database upgrade and by the import of a version 1 or 2 file.
+ * Used by the database upgrade and by the import of a version 1 to 3 file.
  */
 export function migrateReasons(reasons: unknown, placement: unknown): unknown {
   if (!Array.isArray(reasons)) return reasons;

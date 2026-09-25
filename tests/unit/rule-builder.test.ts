@@ -240,3 +240,30 @@ describe("advanced form (ADR 0012)", () => {
     ).toBeUndefined();
   });
 });
+
+describe("text conditions (ADR 0013)", () => {
+  const phraseForm: BuilderForm = {
+    ...form,
+    all: {
+      ...form.all,
+      firstMessageContains: { text: "Blue heron 🦊", whenUnknown: "not-met" },
+    },
+  };
+
+  it("round-trips the text through the two boxes as version 3", () => {
+    const rule = fromBuilderForm(phraseForm);
+    expect(rule.schemaVersion).toBe(3);
+    expect(contactRuleProblem(rule)).toBeUndefined();
+    expect(toBuilderForm(rule)).toEqual(phraseForm);
+  });
+
+  it("keeps the text through the advanced form and back", () => {
+    const advanced = builderToAdvanced(phraseForm);
+    const rule = fromAdvancedForm(advanced);
+    expect(contactRuleProblem(rule)).toBeUndefined();
+    expect(toAdvancedForm(rule)?.rules[0]?.conditions).toMatchObject({
+      firstMessageContains: { text: "Blue heron 🦊", whenUnknown: "not-met" },
+    });
+    expect(advancedToBuilder(advanced)).toEqual(phraseForm);
+  });
+});

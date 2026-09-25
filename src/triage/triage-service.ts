@@ -1,5 +1,6 @@
 import type {
   ConversationClassification,
+  MessagePhraseMatch,
   ProfileSnapshot,
   TriagePlacement,
 } from "../domain/types";
@@ -13,9 +14,12 @@ import {
 import {
   evaluateContactRule,
   PLACEMENT_TEXT,
+  rulePhrases,
+  type MessageEvidence,
   type RuleEvaluation,
   type SpamStatus,
 } from "../rules/contact-rule";
+import { phrasesIn } from "../rules/message-phrase";
 import { GLOBAL_RULE_ID } from "../rules/rule-service";
 import {
   runtimeSettingsArea,
@@ -26,6 +30,7 @@ import {
   ContactRuleRepository,
   ConversationClassificationRepository,
   JoyClubMemberRepository,
+  MessagePhraseMatchRepository,
   ProfileSnapshotRepository,
   SenderSpamOverrideRepository,
   TrustSignalRepository,
@@ -48,10 +53,20 @@ export const MAX_MEMBERS_PER_REQUEST = 200;
 export const classificationId = (memberId: string) =>
   `classification:${encodeURIComponent(memberId)}`;
 
+/** One record per sender and rule phrase, so a repeat match writes nothing. */
+export const phraseMatchId = (memberId: string, phrase: string) =>
+  `phrase-match:${encodeURIComponent(memberId)}:${encodeURIComponent(phrase)}`;
+
 export interface TriageRequestMember {
   memberId: string;
   /** Facts read from the current page. Unusable values count as not seen. */
   observed: Partial<ProfileFacts>;
+  /**
+   * The inbox row's message preview: the sender's latest message, as the
+   * page shows it (ADR 0013). Compared with the rule's phrases and then
+   * dropped: never stored and never logged. Left out on other pages.
+   */
+  preview?: string;
 }
 
 export interface MemberTriage {
@@ -121,6 +136,7 @@ export class TriageService {
     private readonly settings: SettingsArea = runtimeSettingsArea,
     private readonly now: () => Date = () => new Date(),
     private readonly newId: () => string = () => crypto.randomUUID(),
+    private readonly phraseMatches = new MessagePhraseMatchRepository(),
   ) {}
 
   async evaluate(
@@ -136,13 +152,19 @@ export class TriageService {
     if (!rule) return { status: "no-rule", accountId };
     if (!rule.enabled) return { status: "rule-disabled", accountId };
 
+    const phrases = rulePhrases(rule.root);
     // One read per store for the whole batch, grouped by member.
-    const [snapshots, overrides, spamOverrides, signals] = await Promise.all([
-      this.snapshots.list(accountId),
-      this.classifications.list(accountId),
-      this.spamOverrides.list(accountId),
-      this.trustSignals.list(accountId),
-    ]);
+    const [snapshots, overrides, spamOverrides, signals, matches] =
+      await Promise.all([
+        this.snapshots.list(accountId),
+        this.classifications.list(accountId),
+        this.spamOverrides.list(accountId),
+        this.trustSignals.list(accountId),
+        phrases.size > 0
+          ? this.phraseMatches.list(accountId)
+          : Promise.resolve([] as MessagePhraseMatch[]),
+      ]);
+    const matchesByMember = groupBy(matches, (item) => item.memberId);
     const snapshotsByMember = groupBy(snapshots, (item) => item.memberId);
     const overrideByMember = new Map(
       overrides.map((item) => [item.memberId, item]),
@@ -166,11 +188,24 @@ export class TriageService {
         spam,
         personallyKnown: facts.personallyKnown,
       });
+      const messages: MessageEvidence | undefined =
+        phrases.size > 0
+          ? {
+              previewShown: member.preview !== undefined,
+              seenNow: phrasesIn(member.preview ?? "", phrases),
+              seenBefore: new Set(
+                (matchesByMember.get(member.memberId) ?? []).map(
+                  (match) => match.phrase,
+                ),
+              ),
+            }
+          : undefined;
       const automatic = evaluateContactRule(rule, {
         facts,
         sources,
         spam,
         trust,
+        ...(messages ? { messages } : {}),
         now,
       });
       const override = overrideByMember.get(member.memberId);
@@ -225,6 +260,55 @@ export class TriageService {
         personallyKnown: facts.personallyKnown,
       }),
     };
+  }
+
+  /**
+   * Store which of the rule's phrases each inbox preview contains, so the
+   * condition stays met after the sender's later messages hide the one that
+   * held it (ADR 0013). Only the normalized phrase and the time are stored,
+   * never the preview. Returns how many new matches were written.
+   */
+  async recordPhraseMatches(
+    accountId: string,
+    requested: readonly TriageRequestMember[],
+  ): Promise<number> {
+    requireAccountId(accountId);
+    for (const member of requested) requireMemberId(member.memberId);
+    const rule = await this.rules.get(accountId, GLOBAL_RULE_ID);
+    if (!rule?.enabled) return 0;
+    const phrases = rulePhrases(rule.root);
+    if (phrases.size === 0) return 0;
+    const stored = new Set(
+      (await this.phraseMatches.list(accountId)).map((match) => match.id),
+    );
+    const timestamp = this.now().toISOString();
+    let written = 0;
+    for (const member of requested) {
+      if (member.preview === undefined) continue;
+      for (const phrase of phrasesIn(member.preview, phrases)) {
+        const id = phraseMatchId(member.memberId, phrase);
+        if (stored.has(id)) continue;
+        stored.add(id);
+        await registerMember(
+          this.members,
+          accountId,
+          member.memberId,
+          timestamp,
+        );
+        await this.phraseMatches.put(accountId, {
+          id,
+          accountId,
+          memberId: member.memberId,
+          phrase,
+          matchedAt: timestamp,
+          createdAt: timestamp,
+          updatedAt: timestamp,
+        });
+        written += 1;
+      }
+    }
+    if (written > 0) await bumpTriageRevision(this.settings);
+    return written;
   }
 
   /** Store or clear (`null`) the user's manual placement for one sender. */

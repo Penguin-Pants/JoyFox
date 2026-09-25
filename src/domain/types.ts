@@ -82,7 +82,8 @@ export interface ConversationClassification extends AccountScopedEntity {
   ruleId?: string;
   /**
    * Why the sender is placed here, as catalog messages translated when
-   * shown. Schema version 3 migrated version 2's English strings.
+   * shown. Schema version 4 migrated the English strings of earlier
+   * versions.
    */
   reasons: Message[];
 }
@@ -154,6 +155,18 @@ export interface SenderSpamOverride extends AccountScopedEntity {
   decidedAt: string;
   reason?: string;
 }
+/**
+ * A phrase from the user's own contact rule that a message from this sender
+ * was seen to contain ("First message contains", ADR 0013). Only the result
+ * is stored: the normalized phrase, never message text. A record stays met
+ * after the sender's later messages, so a follow-up message cannot undo it.
+ */
+export interface MessagePhraseMatch extends AccountScopedEntity {
+  memberId: string;
+  /** The rule phrase in normalized form (`normalizePhrase`). */
+  phrase: string;
+  matchedAt: string;
+}
 export interface ActionLog extends AccountScopedEntity {
   memberId?: string;
   /** The conversation acted on, kept opaque (`personal-<n>-<n>`). */
@@ -181,6 +194,7 @@ export interface EntityMap {
   messageObservations: MessageObservation;
   senderSpamOverrides: SenderSpamOverride;
   actionLogs: ActionLog;
+  messagePhraseMatches: MessagePhraseMatch;
 }
 
 export type EntityName = keyof EntityMap;

@@ -54,6 +54,14 @@ browser; nothing is uploaded, and no `downloads` permission is used. An export
 holds sensitive data (notes, tags, cached normalized messages). The user chooses
 where the file goes, and its name never holds an account identifier.
 
+The "First message contains" rule condition (ADR 0013) reads the message preview
+on each inbox row, which is the sender's latest message as JoyClub already shows
+it. The content script sends the preview to the background with the row's member
+ID; the background compares it with the phrases in the user's own rule and drops
+it. It is never stored and never logged. When a preview holds a phrase, only
+that result is stored: the member ID, the rule's normalized phrase and the time.
+Conversation message bubbles are never read.
+
 Message templates are the user's own text and are stored per account. The
 composer picker is on by default and turned off by setting
 `joyfox.templatePicker` to `false` (ADR 0007). It reads the template list from

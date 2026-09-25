@@ -116,6 +116,19 @@ describe("F1 extraction from the verified inbox", () => {
     expect(serialized).not.toMatch(/synthetic_one|Synthetic One|preview/);
   });
 
+  it("reads each inbox row's message preview for the phrase condition", () => {
+    const rows = extractInboxRows(load("inbox"), INBOX_URL);
+    expect(rows[0]?.messagePreview).toEqual({
+      status: "found",
+      value: "Synthetic preview text",
+      source: "inbox.messagePreview",
+    });
+    // Surrounding whitespace in the markup is trimmed.
+    expect(rows[1]?.messagePreview).toMatchObject({
+      value: "Another synthetic preview",
+    });
+  });
+
   it("reads the sender name for display only (F2 proof of concept)", () => {
     const rows = extractInboxRows(load("inbox"), INBOX_URL);
     expect(rows.map((row) => row.senderName)).toEqual([

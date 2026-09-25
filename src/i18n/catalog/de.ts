@@ -21,6 +21,7 @@ export const de: Catalog = {
   "condition.minimumAccountAgeDays": "Mindestalter des Kontos in Tagen",
   "condition.notTemplateSpam": "Nicht als Vorlagen-Spam markiert",
   "condition.minimumTrustScore": "Mindest-Vertrauenswert (lokal)",
+  "condition.firstMessageContains": "Erste Nachricht enthält",
   "field.accountAgeDays": "Kontoalter in Tagen",
   "field.photoCount": "Anzahl der Fotos",
   "field.profileWordCount": "Wörter im Profil",
@@ -68,6 +69,14 @@ export const de: Catalog = {
     "Du hast diese Person als „kein Spam“ markiert.",
   "triage.reason.spamUnknown":
     "JoyFox hat die Nachrichten dieser Person nicht auf Vorlagen geprüft. Der Spam-Status ist deshalb unbekannt.",
+  "triage.reason.phraseSeenNow": (p) =>
+    `Die neueste Nachricht dieser Person enthält „${p.text}“.`,
+  "triage.reason.phraseSeenBefore": (p) =>
+    `Eine frühere Nachricht dieser Person aus deinem Posteingang enthält „${p.text}“.`,
+  "triage.reason.phraseNotInLatest": (p) =>
+    `Die neueste Nachricht dieser Person enthält „${p.text}“ nicht. Der Posteingang zeigt nur die neueste Nachricht, deshalb kann JoyFox nicht sehen, ob die erste Nachricht es enthielt.`,
+  "triage.reason.phraseNotSeen": (p) =>
+    `JoyFox hat keine Nachricht dieser Person gesehen, die „${p.text}“ enthält. Nur der Posteingang zeigt JoyFox Nachrichten.`,
   "triage.reason.trustUnknown":
     "Du hast zu diesem Mitglied nichts erfasst. Der lokale Vertrauenswert ist deshalb unbekannt.",
   "triage.reason.trustAtOrAbove": (p, f) =>
@@ -422,9 +431,11 @@ export const de: Catalog = {
   "rule.enabled": "Meinen JoyClub-Posteingang mit dieser Regel sortieren",
   "rule.placementLabel": "Einordnung, wenn die Regel nicht erfüllt ist:",
   "rule.spamHint":
-    "Der Spam-Status ist vorerst unbekannt: JoyFox liest noch keine Nachrichtentexte. Nur deine eigenen Korrekturen „kein Spam“ zählen. Der Posteingang zeigt nur das Verifizierungssymbol. Fotos, Wörter im Profil und Kontoalter stammen aus Profilen, die du vorher geöffnet hast.",
+    "Der Spam-Status ist vorerst unbekannt: JoyFox prüft Nachrichten noch nicht auf Vorlagen. Nur deine eigenen Korrekturen „kein Spam“ zählen. Der Posteingang zeigt nur das Verifizierungssymbol. Fotos, Wörter im Profil und Kontoalter stammen aus Profilen, die du vorher geöffnet hast.",
   "rule.autosaveHint":
-    "Änderungen werden automatisch gespeichert: ein Kästchen oder eine Auswahl sofort, eine Zahl, sobald du das Feld verlässt.",
+    "Änderungen werden automatisch gespeichert: ein Kästchen oder eine Auswahl sofort, eine Zahl oder ein Text, sobald du das Feld verlässt.",
+  "rule.firstMessageHint":
+    "„Erste Nachricht enthält“ liest die Nachrichtenvorschau in deinem Posteingang und beachtet keine Groß- und Kleinschreibung. Der Posteingang zeigt nur die neueste Nachricht. Wenn eine Person mehr als eine Nachricht gesendet hat, ist die Vorschau deshalb vielleicht nicht die erste. Wenn die Vorschau deinen Text nicht enthält, zählt die Bedingung nach deiner Wahl unter „Wenn JoyFox das nicht sehen kann“. Sobald JoyFox deinen Text sieht, bleibt die Bedingung erfüllt.",
   "rule.editor": "Editor:",
   "rule.simple": "Einfach",
   "rule.advanced": "Erweitert",
@@ -443,6 +454,10 @@ export const de: Catalog = {
   "rule.valueLabel": (p) => `${p.condition}: Wert`,
   "rule.numberProblem": (p, f) =>
     `Gib für „${p.condition}“ eine ganze Zahl von ${f.number(p.minimum)} bis ${f.number(p.maximum)} ein.`,
+  "rule.textPlaceholder": "Wort, Formulierung oder Emoji",
+  "rule.textLabel": (p) => `${p.condition}: Wort, Formulierung oder Emoji`,
+  "rule.textProblem": (p, f) =>
+    `Gib für „${p.condition}“ ein Wort, eine Formulierung oder ein Emoji mit höchstens ${f.number(p.maximum)} Zeichen ein.`,
   "rule.combine.label": "Wie die Regeln verknüpft werden",
   "rule.combine.prefix": "Eine Person ist qualifiziert bei ",
   "rule.combine.suffix": " dieser Regeln.",
@@ -554,6 +569,7 @@ export const de: Catalog = {
     "Zwischengespeicherte Nachrichtentexte (normalisiert)",
   "entity.senderSpamOverrides": "Korrekturen „kein Spam“",
   "entity.actionLogs": "Aktionsprotokoll",
+  "entity.messagePhraseMatches": "Gefundene Formulierungen in Nachrichten",
   "data.readFailed":
     "JoyFox konnte die gespeicherten Daten nicht lesen. Es wurde nichts geändert.",
   "data.hint":

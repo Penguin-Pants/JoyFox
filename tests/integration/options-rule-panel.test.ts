@@ -584,3 +584,62 @@ describe("advanced rule editor (ADR 0012)", () => {
     expect(add.disabled).toBe(true);
   });
 });
+
+describe("First message contains (ADR 0013)", () => {
+  const saved = () => status()?.textContent?.startsWith("Rule saved") ?? false;
+
+  it("saves the typed word, phrase or emoji from the Simple editor", async () => {
+    const account = await accounts.createAccount({ joyClubAccountId: "a" });
+    await panel.render();
+    input("joyfox-rule-all-firstMessageContains-on").checked = true;
+    const text = input("joyfox-rule-all-firstMessageContains-text");
+    expect(text.type).toBe("text");
+    expect(text.maxLength).toBe(100);
+    text.value = "  Blue heron 🦊 ";
+    change(text);
+    await settle(saved);
+    const stored = await rules.getGlobalRule(account.id);
+    expect(stored?.schemaVersion).toBe(3);
+    expect(JSON.stringify(stored?.root)).toContain(
+      '"kind":"firstMessageContains","text":"Blue heron 🦊"',
+    );
+    // A new page shows the stored text.
+    await new RulePanel(root, rules, accounts).render();
+    expect(input("joyfox-rule-all-firstMessageContains-text").value).toBe(
+      "Blue heron 🦊",
+    );
+  });
+
+  it("refuses an empty text and keeps the stored rule", async () => {
+    const account = await accounts.createAccount({ joyClubAccountId: "a" });
+    await panel.render();
+    input("joyfox-rule-all-firstMessageContains-on").checked = true;
+    submit();
+    await settle(() => status()?.getAttribute("role") === "alert");
+    expect(status()?.textContent).toContain("Enter a word, phrase or emoji");
+    expect(await rules.getGlobalRule(account.id)).toBeUndefined();
+  });
+
+  it("adds the condition in the Advanced editor and saves once text is entered", async () => {
+    const account = await accounts.createAccount({ joyClubAccountId: "a" });
+    await panel.render();
+    root.querySelector<HTMLButtonElement>('[data-view="advanced"]')!.click();
+    const add = root.querySelector<HTMLSelectElement>(
+      ".joyfox-rule__add-condition",
+    )!;
+    add.value = "firstMessageContains";
+    change(add);
+    const text = root.querySelector<HTMLInputElement>(
+      '[data-kind="firstMessageContains"] .joyfox-rule__text',
+    )!;
+    expect(document.activeElement).toBe(text);
+    // Adding it alone saves nothing and shows no error.
+    expect(status()?.textContent ?? "").toBe("");
+    text.value = "🦊";
+    change(text);
+    await settle(saved);
+    expect(
+      JSON.stringify((await rules.getGlobalRule(account.id))?.root),
+    ).toContain('"text":"🦊"');
+  });
+});

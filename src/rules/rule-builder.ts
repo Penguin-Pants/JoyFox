@@ -3,6 +3,7 @@ import {
   CONDITION_KINDS,
   NUMERIC_CONDITION_KINDS,
   schemaVersionFor,
+  TEXT_CONDITION_KINDS,
   type ConditionGroup,
   type ConditionKind,
   type ContactRuleDefinition,
@@ -20,8 +21,26 @@ import {
  */
 export interface BoxEntry {
   value?: number;
+  /** The word, phrase or emoji of a text condition. */
+  text?: string;
   whenUnknown: UnknownHandling;
 }
+
+/** A condition's threshold or text, as its kind takes it. */
+function operand(
+  kind: ConditionKind,
+  entry: BoxEntry,
+): Pick<RuleCondition, "value" | "text"> {
+  if (NUMERIC_CONDITION_KINDS.has(kind)) return { value: entry.value ?? 0 };
+  if (TEXT_CONDITION_KINDS.has(kind)) return { text: entry.text ?? "" };
+  return {};
+}
+
+/** A stored condition's threshold or text, for a form entry. */
+const storedOperand = (node: RuleCondition) => ({
+  ...(node.value !== undefined ? { value: node.value } : {}),
+  ...(node.text !== undefined ? { text: node.text } : {}),
+});
 
 export interface BuilderForm {
   enabled: boolean;
@@ -38,7 +57,7 @@ function box(
     if (node.type !== "condition" || entries[node.kind] || node.negate)
       return undefined;
     entries[node.kind] = {
-      ...(node.value !== undefined ? { value: node.value } : {}),
+      ...storedOperand(node),
       whenUnknown: node.whenUnknown,
     };
   }
@@ -78,7 +97,7 @@ function conditions(
     ([kind, entry]) => ({
       type: "condition",
       kind,
-      ...(NUMERIC_CONDITION_KINDS.has(kind) ? { value: entry.value ?? 0 } : {}),
+      ...operand(kind, entry),
       whenUnknown: entry.whenUnknown,
     }),
   );
@@ -135,7 +154,7 @@ export const MAX_ADVANCED_RULES = 10;
 
 function advancedEntry(node: RuleCondition): AdvancedEntry {
   return {
-    ...(node.value !== undefined ? { value: node.value } : {}),
+    ...storedOperand(node),
     whenUnknown: node.whenUnknown,
     ...(node.negate ? { negate: true } : {}),
   };
@@ -182,9 +201,7 @@ function advancedConditions(rule: AdvancedRule): RuleCondition[] {
       {
         type: "condition",
         kind,
-        ...(NUMERIC_CONDITION_KINDS.has(kind)
-          ? { value: entry.value ?? 0 }
-          : {}),
+        ...operand(kind, entry),
         whenUnknown: entry.whenUnknown,
         ...(entry.negate ? { negate: true } : {}),
       },
@@ -254,6 +271,7 @@ export function advancedToBuilder(form: AdvancedForm): BuilderForm | Message {
   if (allRules.length > 1) return message("rule.simpleUnavailable.severalAll");
   const plain = (entry: AdvancedEntry): BoxEntry => ({
     ...(entry.value !== undefined ? { value: entry.value } : {}),
+    ...(entry.text !== undefined ? { text: entry.text } : {}),
     whenUnknown: entry.whenUnknown,
   });
   const boxOf = (list: AdvancedRule[]) => {

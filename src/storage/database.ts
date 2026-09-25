@@ -3,10 +3,11 @@ import { migrateReasons } from "./reason-migration";
 
 export const DATABASE_NAME = "joyfox";
 /**
- * Version 3 adds no store: it rewrites the stored reasons of manual
- * placements from English text to catalog messages (docs/i18n-spec.md).
+ * Version 4 adds no store: it rewrites the stored reasons of manual
+ * placements from English text to catalog messages (docs/i18n-spec.md,
+ * ADR 0014).
  */
-export const DATABASE_VERSION = 3;
+export const DATABASE_VERSION = 4;
 
 /** The stores schema version 1 created. Frozen: it describes history. */
 const VERSION_1_ENTITY_NAMES: readonly EntityName[] = [
@@ -34,9 +35,13 @@ const VERSION_2_ENTITY_NAMES: readonly EntityName[] = [
   "senderSpamOverrides",
 ];
 
+/** The store schema version 3 added, for "First message contains". */
+const VERSION_3_ENTITY_NAMES: readonly EntityName[] = ["messagePhraseMatches"];
+
 export const ENTITY_NAMES: readonly EntityName[] = [
   ...VERSION_1_ENTITY_NAMES,
   ...VERSION_2_ENTITY_NAMES,
+  ...VERSION_3_ENTITY_NAMES,
 ];
 
 let connection: Promise<IDBDatabase> | undefined;
@@ -46,7 +51,7 @@ let connection: Promise<IDBDatabase> | undefined;
  * plain objects, so the rewrite runs inside the upgrade transaction and
  * commits or aborts with it.
  */
-function migrateToVersion3(
+function migrateToVersion4(
   db: IDBDatabase,
   transaction: IDBTransaction | null,
 ): void {
@@ -81,7 +86,8 @@ export function openDatabase(): Promise<IDBDatabase> {
       };
       if (event.oldVersion < 1) createStores(VERSION_1_ENTITY_NAMES);
       if (event.oldVersion < 2) createStores(VERSION_2_ENTITY_NAMES);
-      if (event.oldVersion < 3) migrateToVersion3(db, request.transaction);
+      if (event.oldVersion < 3) createStores(VERSION_3_ENTITY_NAMES);
+      if (event.oldVersion < 4) migrateToVersion4(db, request.transaction);
     };
     request.onsuccess = () => resolve(request.result);
     request.onerror = () => reject(request.error);

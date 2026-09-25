@@ -617,3 +617,104 @@ describe("account lock", () => {
     expect(await repositories.joyClubMembers.list(account.id)).toEqual([]);
   });
 });
+
+describe("First message contains (ADR 0013)", () => {
+  let router: MessageRouter;
+
+  const phraseRule: ContactRuleDefinition = {
+    schemaVersion: 3,
+    audience: "all",
+    enabled: true,
+    defaultPlacement: "quarantined",
+    root: {
+      type: "group",
+      match: "all",
+      children: [
+        {
+          type: "condition",
+          kind: "firstMessageContains",
+          text: "Blue Heron",
+          whenUnknown: "needs-review",
+        },
+      ],
+    },
+  };
+
+  beforeEach(() => {
+    router = new MessageRouter();
+    registerTriageHandlers(router, {
+      triage,
+      trust,
+      activeAccountId: () => Promise.resolve(A),
+      openOptions: () => Promise.resolve(),
+    });
+  });
+
+  const evaluate = async (members: unknown[]) => {
+    const response = (await router.route({
+      type: "triage.evaluate",
+      requestId: "r1",
+      payload: { members },
+    } as never)) as { ok: boolean; payload?: TriageResponse };
+    if (!response.ok || !response.payload) throw new Error("request failed");
+    return ok(response.payload);
+  };
+
+  it("qualifies a sender whose preview holds the phrase and stores only the result", async () => {
+    await rules.saveGlobalRule(A, phraseRule);
+    const [result] = await evaluate([
+      {
+        memberId: MEMBER,
+        observed: {},
+        preview: "Hi! I read your profile. blue  HERON. Private text here.",
+      },
+    ]);
+    expect(result?.placement).toBe("qualified");
+    const stored = await repositories.messagePhraseMatches.list(A);
+    expect(stored).toHaveLength(1);
+    expect(stored[0]).toMatchObject({ memberId: MEMBER, phrase: "blue heron" });
+    expect(JSON.stringify(stored)).not.toContain("Private text");
+    expect(await repositories.joyClubMembers.get(A, MEMBER)).toBeDefined();
+    expect(settings.items.get(TRIAGE_REVISION_KEY)).toBeDefined();
+  });
+
+  it("stays met after a later message without the phrase", async () => {
+    await rules.saveGlobalRule(A, phraseRule);
+    await evaluate([
+      { memberId: MEMBER, observed: {}, preview: "Blue heron, hello" },
+    ]);
+    const [result] = await evaluate([
+      { memberId: MEMBER, observed: {}, preview: "Are you there?" },
+    ]);
+    expect(result?.placement).toBe("qualified");
+    expect(await repositories.messagePhraseMatches.list(A)).toHaveLength(1);
+  });
+
+  it("sends a preview without the phrase to the unknown choice", async () => {
+    await rules.saveGlobalRule(A, phraseRule);
+    const [result] = await evaluate([
+      { memberId: OTHER, observed: {}, preview: "Hey sexy" },
+    ]);
+    expect(result?.placement).toBe("needs-review");
+    expect(await repositories.messagePhraseMatches.list(A)).toEqual([]);
+  });
+
+  it("stores nothing while the rule has no text condition", async () => {
+    await rules.saveGlobalRule(A, photoRule());
+    await evaluate([{ memberId: MEMBER, observed: {}, preview: "Blue heron" }]);
+    expect(await repositories.messagePhraseMatches.list(A)).toEqual([]);
+  });
+
+  it("refuses a preview that is not a bounded string", async () => {
+    await rules.saveGlobalRule(A, phraseRule);
+    for (const preview of [42, "x".repeat(2_001)])
+      expect(
+        await router.route({
+          type: "triage.evaluate",
+          requestId: "r1",
+          payload: { members: [{ memberId: MEMBER, observed: {}, preview }] },
+        } as never),
+      ).toMatchObject({ ok: false });
+    expect(await repositories.messagePhraseMatches.list(A)).toEqual([]);
+  });
+});

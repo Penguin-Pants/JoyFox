@@ -1,10 +1,10 @@
-# 0013: Runtime-switchable UI language with a typed catalog
+# 0014: Runtime-switchable UI language with a typed catalog
 
 ## Status
 
 Accepted (project owner, 2026-09-25, `docs/i18n-spec.md`). The spec names this
-record "ADR 0012"; that number was already taken by the rule groups decision, so
-it is 0013.
+record "ADR 0012"; 0012 (rule groups) and 0013 ("First message contains") were
+already taken, so it is 0014.
 
 ## Context
 
@@ -34,9 +34,10 @@ and cannot switch at runtime.
    display text, a stored reason follows a later language switch, and user text
    never passes through the catalog.
 3. **Stored reasons.** `ConversationClassification.reasons` is the only stored
-   display text. Schema version 3 rewrites version 2's English reasons as
-   messages; any text it does not recognize is kept verbatim as `legacy.text`.
-   Import converts version 1 and 2 files the same way. `isMessage` checks each
+   display text. Schema version 4 rewrites the English reasons of versions 1 to
+   3 as messages; any text it does not recognize is kept verbatim as
+   `legacy.text`. Version 3 was already taken by ADR 0013's phrase match store.
+   Import converts version 1 to 3 files the same way. `isMessage` checks each
    stored and imported reason against `MESSAGE_PARAMS`.
 4. **Errors.** `ExtensionError` gains an optional `display` message. The English
    `message` stays for logs. The options panels show `display`, or a per-code

@@ -1,6 +1,7 @@
 import type { TriagePlacement } from "../domain/types";
 import type { MessageRouter } from "../messaging/router";
 import type { ProfileFacts } from "../qualification/facts";
+import { MAX_PREVIEW_LENGTH } from "../rules/message-phrase";
 import {
   MAX_MEMBERS_PER_REQUEST,
   type TriageRequestMember,
@@ -36,6 +37,14 @@ function observed(value: unknown): Partial<ProfileFacts> {
   return value as Partial<ProfileFacts>;
 }
 
+/** A message preview is a bounded string, or left out. */
+function preview(value: unknown): { preview?: string } {
+  if (value === undefined) return {};
+  if (typeof value !== "string" || value.length > MAX_PREVIEW_LENGTH)
+    throw invalid("message preview");
+  return { preview: value };
+}
+
 function members(value: unknown): TriageRequestMember[] {
   if (!Array.isArray(value) || value.length > MAX_MEMBERS_PER_REQUEST)
     throw invalid("member list");
@@ -44,6 +53,7 @@ function members(value: unknown): TriageRequestMember[] {
     return {
       memberId: memberId(entry.memberId),
       observed: observed(entry.observed),
+      ...preview(entry.preview),
     };
   });
 }
@@ -58,12 +68,18 @@ export function registerTriageHandlers(
   router: MessageRouter,
   deps: TriageHandlerDeps,
 ): void {
-  router.register("triage.evaluate", async (payload) =>
-    deps.triage.evaluate(
-      await deps.activeAccountId(),
-      members(payload?.members),
-    ),
-  );
+  router.register("triage.evaluate", async (payload) => {
+    const requested = members(payload?.members);
+    const accountId = await deps.activeAccountId();
+    // Store the phrase matches the previews show first, under the account
+    // lock, so the answer and every other tab agree. A failed write must
+    // not stop triage: the previews on screen still decide this answer.
+    if (accountId && requested.some((member) => member.preview !== undefined))
+      await lockedWrite(deps, accountId, 0, (id) =>
+        deps.triage.recordPhraseMatches(id, requested),
+      ).catch(() => 0);
+    return deps.triage.evaluate(await deps.activeAccountId(), requested);
+  });
   router.register("triage.setOverride", async (payload) => {
     const id = memberId(payload?.memberId);
     const placement = payload?.placement;

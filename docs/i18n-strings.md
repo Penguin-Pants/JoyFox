@@ -29,6 +29,7 @@ stay as they are.
 | `condition.minimumAccountAgeDays` | Minimum account age in days | Mindestalter des Kontos in Tagen |
 | `condition.notTemplateSpam` | Not flagged as template spam | Nicht als Vorlagen-Spam markiert |
 | `condition.minimumTrustScore` | Minimum local trust score | Mindest-Vertrauenswert (lokal) |
+| `condition.firstMessageContains` | First message contains | Erste Nachricht enthält |
 
 ## field
 
@@ -81,6 +82,10 @@ stay as they are.
 | `triage.reason.spamNotFlagged` | No message from this sender looks like a copied template. | Keine Nachricht dieser Person sieht wie eine kopierte Vorlage aus. |
 | `triage.reason.spamOverridden` | You marked this sender as not spam. | Du hast diese Person als „kein Spam“ markiert. |
 | `triage.reason.spamUnknown` | JoyFox has not checked this sender's messages for templates, so spam status is unknown. | JoyFox hat die Nachrichten dieser Person nicht auf Vorlagen geprüft. Der Spam-Status ist deshalb unbekannt. |
+| `triage.reason.phraseSeenNow` | The latest message from this sender contains "{text}". | Die neueste Nachricht dieser Person enthält „{text}“. |
+| `triage.reason.phraseSeenBefore` | An earlier message from this sender, seen in your inbox, contains "{text}". | Eine frühere Nachricht dieser Person aus deinem Posteingang enthält „{text}“. |
+| `triage.reason.phraseNotInLatest` | The latest message from this sender does not contain "{text}". The inbox shows only the latest message, so JoyFox cannot see if the first message contained it. | Die neueste Nachricht dieser Person enthält „{text}“ nicht. Der Posteingang zeigt nur die neueste Nachricht, deshalb kann JoyFox nicht sehen, ob die erste Nachricht es enthielt. |
+| `triage.reason.phraseNotSeen` | JoyFox has not seen a message from this sender that contains "{text}". Only the inbox shows messages to JoyFox. | JoyFox hat keine Nachricht dieser Person gesehen, die „{text}“ enthält. Nur der Posteingang zeigt JoyFox Nachrichten. |
 | `triage.reason.trustUnknown` | You have logged nothing about this member, so the local trust score is unknown. | Du hast zu diesem Mitglied nichts erfasst. Der lokale Vertrauenswert ist deshalb unbekannt. |
 | `triage.reason.trustAtOrAbove` | Your local trust score is {score}, at or above the required {minimum}. | Dein lokaler Vertrauenswert: {score}. Das erreicht den geforderten Mindestwert {minimum}. |
 | `triage.reason.trustBelow` | Your local trust score is {score}, below the required {minimum}. | Dein lokaler Vertrauenswert: {score}. Das liegt unter dem geforderten Mindestwert {minimum}. |
@@ -371,8 +376,9 @@ stay as they are.
 | `rule.note.none` | No rule is saved for the active account, so JoyFox does not sort the inbox. | Für das aktive Konto ist keine Regel gespeichert, deshalb sortiert JoyFox den Posteingang nicht. |
 | `rule.enabled` | Sort my JoyClub inbox with this rule | Meinen JoyClub-Posteingang mit dieser Regel sortieren |
 | `rule.placementLabel` | A sender who does not meet the rule goes to | Einordnung, wenn die Regel nicht erfüllt ist: |
-| `rule.spamHint` | Spam status is unknown for now: JoyFox does not read message text yet. Only your own "not spam" corrections count. The inbox shows only the verification shield; photos, profile words and account age come from profiles you opened before. | Der Spam-Status ist vorerst unbekannt: JoyFox liest noch keine Nachrichtentexte. Nur deine eigenen Korrekturen „kein Spam“ zählen. Der Posteingang zeigt nur das Verifizierungssymbol. Fotos, Wörter im Profil und Kontoalter stammen aus Profilen, die du vorher geöffnet hast. |
-| `rule.autosaveHint` | Changes are saved automatically: a box or choice at once, a number when you leave its field. | Änderungen werden automatisch gespeichert: ein Kästchen oder eine Auswahl sofort, eine Zahl, sobald du das Feld verlässt. |
+| `rule.spamHint` | Spam status is unknown for now: JoyFox does not check messages for templates yet. Only your own "not spam" corrections count. The inbox shows only the verification shield; photos, profile words and account age come from profiles you opened before. | Der Spam-Status ist vorerst unbekannt: JoyFox prüft Nachrichten noch nicht auf Vorlagen. Nur deine eigenen Korrekturen „kein Spam“ zählen. Der Posteingang zeigt nur das Verifizierungssymbol. Fotos, Wörter im Profil und Kontoalter stammen aus Profilen, die du vorher geöffnet hast. |
+| `rule.autosaveHint` | Changes are saved automatically: a box or choice at once, a number or text when you leave its field. | Änderungen werden automatisch gespeichert: ein Kästchen oder eine Auswahl sofort, eine Zahl oder ein Text, sobald du das Feld verlässt. |
+| `rule.firstMessageHint` | "First message contains" reads the message preview in your inbox, ignoring upper and lower case. The inbox shows only the latest message, so when a sender sent more than one, the preview may not be the first. If the preview does not contain your text, the condition counts as your "If JoyFox cannot see this" choice. Once JoyFox sees your text, it stays met. | „Erste Nachricht enthält“ liest die Nachrichtenvorschau in deinem Posteingang und beachtet keine Groß- und Kleinschreibung. Der Posteingang zeigt nur die neueste Nachricht. Wenn eine Person mehr als eine Nachricht gesendet hat, ist die Vorschau deshalb vielleicht nicht die erste. Wenn die Vorschau deinen Text nicht enthält, zählt die Bedingung nach deiner Wahl unter „Wenn JoyFox das nicht sehen kann“. Sobald JoyFox deinen Text sieht, bleibt die Bedingung erfüllt. |
 | `rule.editor` | Editor: | Editor: |
 | `rule.simple` | Simple | Einfach |
 | `rule.advanced` | Advanced | Erweitert |
@@ -387,6 +393,9 @@ stay as they are.
 | `rule.unknownLabel` | {condition}: if JoyFox cannot see this | {condition}: wenn JoyFox das nicht sehen kann |
 | `rule.valueLabel` | {condition} value | {condition}: Wert |
 | `rule.numberProblem` | Enter a whole number from {minimum} to {maximum} for "{condition}". | Gib für „{condition}“ eine ganze Zahl von {minimum} bis {maximum} ein. |
+| `rule.textPlaceholder` | Word, phrase or emoji | Wort, Formulierung oder Emoji |
+| `rule.textLabel` | {condition}: word, phrase or emoji | {condition}: Wort, Formulierung oder Emoji |
+| `rule.textProblem` | Enter a word, phrase or emoji of up to {maximum} characters for "{condition}". | Gib für „{condition}“ ein Wort, eine Formulierung oder ein Emoji mit höchstens {maximum} Zeichen ein. |
 | `rule.combine.label` | How the rules combine | Wie die Regeln verknüpft werden |
 | `rule.combine.prefix` | A sender is qualified if | Eine Person ist qualifiziert bei |
 | `rule.combine.suffix` | of these rules match. | dieser Regeln. |
@@ -478,6 +487,7 @@ stay as they are.
 | `entity.messageObservations` | Cached message text (normalized) | Zwischengespeicherte Nachrichtentexte (normalisiert) |
 | `entity.senderSpamOverrides` | Not-spam corrections | Korrekturen „kein Spam“ |
 | `entity.actionLogs` | Action log | Aktionsprotokoll |
+| `entity.messagePhraseMatches` | Message phrase matches | Gefundene Formulierungen in Nachrichten |
 
 ## data
 

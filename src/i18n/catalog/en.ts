@@ -32,6 +32,7 @@ export const en = {
   "condition.minimumAccountAgeDays": "Minimum account age in days",
   "condition.notTemplateSpam": "Not flagged as template spam",
   "condition.minimumTrustScore": "Minimum local trust score",
+  "condition.firstMessageContains": "First message contains",
   "field.accountAgeDays": "Account age in days",
   "field.photoCount": "Photo count",
   "field.profileWordCount": "Profile word count",
@@ -92,6 +93,14 @@ export const en = {
   "triage.reason.spamOverridden": "You marked this sender as not spam.",
   "triage.reason.spamUnknown":
     "JoyFox has not checked this sender's messages for templates, so spam status is unknown.",
+  "triage.reason.phraseSeenNow": (p: { text: string }) =>
+    `The latest message from this sender contains "${p.text}".`,
+  "triage.reason.phraseSeenBefore": (p: { text: string }) =>
+    `An earlier message from this sender, seen in your inbox, contains "${p.text}".`,
+  "triage.reason.phraseNotInLatest": (p: { text: string }) =>
+    `The latest message from this sender does not contain "${p.text}". The inbox shows only the latest message, so JoyFox cannot see if the first message contained it.`,
+  "triage.reason.phraseNotSeen": (p: { text: string }) =>
+    `JoyFox has not seen a message from this sender that contains "${p.text}". Only the inbox shows messages to JoyFox.`,
   "triage.reason.trustUnknown":
     "You have logged nothing about this member, so the local trust score is unknown.",
   "triage.reason.trustAtOrAbove": (
@@ -448,9 +457,11 @@ export const en = {
   "rule.enabled": "Sort my JoyClub inbox with this rule",
   "rule.placementLabel": "A sender who does not meet the rule goes to",
   "rule.spamHint":
-    'Spam status is unknown for now: JoyFox does not read message text yet. Only your own "not spam" corrections count. The inbox shows only the verification shield; photos, profile words and account age come from profiles you opened before.',
+    'Spam status is unknown for now: JoyFox does not check messages for templates yet. Only your own "not spam" corrections count. The inbox shows only the verification shield; photos, profile words and account age come from profiles you opened before.',
   "rule.autosaveHint":
-    "Changes are saved automatically: a box or choice at once, a number when you leave its field.",
+    "Changes are saved automatically: a box or choice at once, a number or text when you leave its field.",
+  "rule.firstMessageHint":
+    '"First message contains" reads the message preview in your inbox, ignoring upper and lower case. The inbox shows only the latest message, so when a sender sent more than one, the preview may not be the first. If the preview does not contain your text, the condition counts as your "If JoyFox cannot see this" choice. Once JoyFox sees your text, it stays met.',
   "rule.editor": "Editor:",
   "rule.simple": "Simple",
   "rule.advanced": "Advanced",
@@ -470,6 +481,11 @@ export const en = {
     f: Format,
   ) =>
     `Enter a whole number from ${f.number(p.minimum)} to ${f.number(p.maximum)} for "${p.condition}".`,
+  "rule.textPlaceholder": "Word, phrase or emoji",
+  "rule.textLabel": (p: { condition: T }) =>
+    `${p.condition}: word, phrase or emoji`,
+  "rule.textProblem": (p: { maximum: number; condition: T }, f: Format) =>
+    `Enter a word, phrase or emoji of up to ${f.number(p.maximum)} characters for "${p.condition}".`,
   "rule.combine.label": "How the rules combine",
   "rule.combine.prefix": "A sender is qualified if ",
   "rule.combine.suffix": " of these rules match.",
@@ -579,6 +595,7 @@ export const en = {
   "entity.messageObservations": "Cached message text (normalized)",
   "entity.senderSpamOverrides": "Not-spam corrections",
   "entity.actionLogs": "Action log",
+  "entity.messagePhraseMatches": "Message phrase matches",
   "data.readFailed":
     "JoyFox could not read its stored data. Nothing was changed.",
   "data.hint":
