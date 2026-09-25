@@ -111,7 +111,7 @@ regression test confirmed to fail without the fix:
 - **Path B.** If Ignore needs the profile, the `storage.session` marker and
   resume after navigation (build plan Section 16).
 - **Guided mode.** The PRD's settings toggle to navigate and stage while the
-  user clicks.
+  user clicks. Dropped by the owner on 2026-09-25 (ADR 0015).
 - **Live acceptance.** The manual matrix, items 43 to 54, by hand only.
 
 ## Validation

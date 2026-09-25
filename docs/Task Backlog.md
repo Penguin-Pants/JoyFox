@@ -45,7 +45,7 @@ Matches the PRD's Section 19.1 scope exactly. Nothing here is not in that list, 
 | F7 | Done | Answer: Path B. Ignore is only on the profile page ("Profil ignorieren" in `profile-context-menu`, then a `j-modal` confirmation); afterwards the item reads "Profil nicht mehr ignorieren". Delete asks for no confirmation; from the inbox row, the row goes and a 5-second Undo notice appears (`live-evidence/10-ignore.md`, 2026-09-24). The conversation page's Delete also asks for no confirmation; the row leaves the list and the conversation stays open at first (2026-09-24). |
 | F8 | Blocked | Human-assisted verification. See `manual-verification-needed.md`. |
 | M1 | Partial | Engine, fact merge and extraction are complete. Milestone C added the page badge, the explanation panel and profile snapshot capture. The 95 percent manual trial over 50 messages remains. |
-| M2 | Partial | Tab bar, per-row badges, in-place filtering, per-sender manual placement and dynamic rows are complete and tested (`milestone-c-audit.md`). Live acceptance passed on 2026-09-23, including the split-view re-check. The existing-conversation exception is blocked on reply detection. |
+| M2 | Partial | Tab bar, per-row badges, in-place filtering, per-sender manual placement and dynamic rows are complete and tested (`milestone-c-audit.md`). A manual Qualified placement is the PRD 7.4 trusted exception (ADR 0015). Live acceptance passed on 2026-09-23, including the split-view re-check. The existing-conversation exception is blocked on reply detection. |
 | M4 | Partial | One global rule in the V1-compatible schema, a pure evaluator with explicit unknown handling, and the two-box options builder are complete and tested. The advanced editor (rule groups with AND/OR and "not", ADR 0012) is built and tested; its live acceptance (items 75 to 80) passed on 2026-09-25. The "First message contains" condition (ADR 0013) is built and tested; its live acceptance (items 86 to 90) is pending. Presets are deferred. Live acceptance of the two-box builder passed on 2026-09-23. |
 | M6 | Partial | Point-count trust score with a full explanation, outcome logging and undo on conversation and profile pages are complete and tested. Live acceptance passed on 2026-09-23. The spam point stays unknown until M3 reads messages from a page (blocked on the message-bubble evidence). |
 | M3 | Partial | Normalization, the pluggable similarity engine, duplicate and known-phrase matching, explanations, and the persisted per-sender override are complete. Nothing reads a message from a page yet, which waits on F1. |
@@ -53,7 +53,7 @@ Matches the PRD's Section 19.1 scope exactly. Nothing here is not in that list, 
 | M7 | Partial | Explicit active account, account-scoped repositories, options switcher, and the Section 14 isolation test. Automatic account detection waits on F1 and F9. |
 | M8 | Done | Account selector, counts, per-entity inspection, delete record, data type, account data and everything, account and full JSON export with the schema version. Export completeness is tested item by item against every entity (`milestone-d-audit.md`). Live acceptance passed on 2026-09-23 (`manual-acceptance.md`, items 27 to 30 and 35). |
 | M10 | Partial | Create, edit, delete, folders and exact insertion at the cursor are complete, tested and accepted live on the standard composer (items 31 to 34, 2026-09-23). The picker is on by default (ADR 0007). The event ClubMail composer is unverified, so "every compose context" stays open. |
-| M9 | Partial | Live driver built (ADR 0011, owner choice "conversation first", 2026-09-24): Delete through the conversation's three-dot menu, a tab-bound hand-off in `storage.session`, then Ignore on the profile page. Off by default. Item 43 (both steps succeed) passed live on 2026-09-24. Items 44 to 54 were accepted on 2026-09-25: 48, 49 and 51 to 54 passed live; 44, 45, 47 and 50 cannot be caused by hand and are covered by synthetic tests; 46 ends in the correct state but does not say the member was already ignored; the owner keeps it as is. The guided mode is not built. Review follow-ups built on 2026-09-25 (ADR 0011): the hand-off is refused from any page but the run's conversation, and a cancelled move to the profile withdraws the marker; live check pending (item 98). |
+| M9 | Partial | Live driver built (ADR 0011, owner choice "conversation first", 2026-09-24): Delete through the conversation's three-dot menu, a tab-bound hand-off in `storage.session`, then Ignore on the profile page. Off by default. Item 43 (both steps succeed) passed live on 2026-09-24. Items 44 to 54 were accepted on 2026-09-25: 48, 49 and 51 to 54 passed live; 44, 45, 47 and 50 cannot be caused by hand and are covered by synthetic tests; 46 ends in the correct state but does not say the member was already ignored; the owner keeps it as is. The guided mode is dropped (ADR 0015). Review follow-ups built on 2026-09-25 (ADR 0011): the hand-off is refused from any page but the run's conversation, and a cancelled move to the profile withdraws the marker; live check pending (item 98). |
 
 ### MVP release gate (build plan Section 28)
 
@@ -85,7 +85,8 @@ accepted by hand on 2026-09-25 (ADR 0011, `manual-acceptance.md`).
   verified; code `3` is the separate "personally known" signal.
 - "Personally known" (code `3`) is available as the `requirePersonallyKnown`
   criterion. Offer it in the M4 rule builder, and use it in M6 trust and the
-  PRD 7.4 triage exception for previously met senders.
+  PRD 7.4 triage exception for previously met senders. Done: it is the
+  "Personally known" rule condition and a trust point (ADR 0015).
 - Observe more "Angemeldet seit" forms (days, weeks, years, singular) to
   confirm the parser, and whether JoyClub rounds the duration down.
 - Done in Milestone C: the qualification badge on inbox rows and in the
@@ -96,6 +97,8 @@ accepted by hand on 2026-09-25 (ADR 0011, `manual-acceptance.md`).
   database schema and belongs with M8.
 - Add the user-facing toggle for message caching that PRD Section 19.5
   requires, before anything writes a message observation from a live page.
+  Deferred by the owner (2026-09-25, ADR 0015): built with the first feature
+  that stores message text.
 - Tune the spam thresholds against a real inbox and record the outcome, since
   build plan Section 30 keeps the acceptable false-positive threshold open.
 - Done (2026-09-25): account creation is atomic. The duplicate check and the
@@ -198,8 +201,8 @@ accepted by hand on 2026-09-25 (ADR 0011, `manual-acceptance.md`).
     in the tab drops a marker meant for another page and closes its run (ADR
     0011, "Stale hand-off on page load"). Live check pending
     (`manual-acceptance.md`, item 100).
-- The PRD's settings toggle for the guided alternative (navigate and stage, the
-  user clicks).
+- Dropped (owner, 2026-09-25, ADR 0015): the PRD's settings toggle for the
+  guided alternative (navigate and stage, the user clicks).
 - Confirm or tune the step timeout (15 seconds) and the interrupted threshold
   (2 minutes) against the live site.
 
