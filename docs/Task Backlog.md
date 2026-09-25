@@ -143,6 +143,13 @@ ready to run by hand (ADR 0011).
   (`manual-acceptance.md` items 73 and 74). Live acceptance passed on
   2026-09-24.
 
+### Owner requests (2026-09-25)
+
+- German and English UI with a toggle in the options header, live switching in
+  open tabs, and German as the default when Firefox runs in German. Build after
+  the M9 manual matrix (items 43 to 54) passes. Spec: `docs/i18n-spec.md`.
+  Triggered by the owner: most JoyClub members are native German speakers.
+
 ### Follow-up work recorded during Milestone D
 
 - Capture evidence for the event ClubMail composer (`manual-verification-needed.md`
