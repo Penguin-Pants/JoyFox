@@ -41,5 +41,5 @@ inserts a template at the cursor; it never sends. See
 Quick Ignore and Delete (M9) has its state machine, ActionLog and on-screen
 notice. Its live driver follows F7's evidence: Delete on the conversation page,
 then Ignore on the member's profile in the same tab (ADR 0011). It stays off
-unless `joyfox.quickIgnoreDelete` is set to `true`, and the manual matrix
-(`docs/manual-acceptance.md`, items 43 to 54) has not run yet.
+unless `joyfox.quickIgnoreDelete` is set to `true`. The manual matrix
+(`docs/manual-acceptance.md`, items 43 to 54) was accepted on 2026-09-25.

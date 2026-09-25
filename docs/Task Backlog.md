@@ -53,7 +53,7 @@ Matches the PRD's Section 19.1 scope exactly. Nothing here is not in that list, 
 | M7 | Partial | Explicit active account, account-scoped repositories, options switcher, and the Section 14 isolation test. Automatic account detection waits on F1 and F9. |
 | M8 | Done | Account selector, counts, per-entity inspection, delete record, data type, account data and everything, account and full JSON export with the schema version. Export completeness is tested item by item against every entity (`milestone-d-audit.md`). Live acceptance passed on 2026-09-23 (`manual-acceptance.md`, items 27 to 30 and 35). |
 | M10 | Partial | Create, edit, delete, folders and exact insertion at the cursor are complete, tested and accepted live on the standard composer (items 31 to 34, 2026-09-23). The picker is on by default (ADR 0007). The event ClubMail composer is unverified, so "every compose context" stays open. |
-| M9 | Partial | Live driver built (ADR 0011, owner choice "conversation first", 2026-09-24): Delete through the conversation's three-dot menu, a tab-bound hand-off in `storage.session`, then Ignore on the profile page. Off by default. Item 43 (both steps succeed) passed live on 2026-09-24; items 44 to 54 remain. The guided mode is not built. |
+| M9 | Partial | Live driver built (ADR 0011, owner choice "conversation first", 2026-09-24): Delete through the conversation's three-dot menu, a tab-bound hand-off in `storage.session`, then Ignore on the profile page. Off by default. Item 43 (both steps succeed) passed live on 2026-09-24. Items 44 to 54 were accepted on 2026-09-25: 48, 49 and 51 to 54 passed live; 44, 45, 47 and 50 cannot be caused by hand and are covered by synthetic tests; 46 ends in the correct state but does not say the member was already ignored; the owner keeps it as is. The guided mode is not built. |
 
 ### MVP release gate (build plan Section 28)
 
@@ -75,8 +75,8 @@ Matches the PRD's Section 19.1 scope exactly. Nothing here is not in that list, 
 | Unsupported markup causes graceful degradation | Met: features stay off without a verified selector |
 | Permissions match documentation | Met: permission check in lint |
 
-M9 is judged separately, under its own matrix (items 43 to 54), which is now
-ready to run by hand (ADR 0011).
+M9 is judged separately, under its own matrix (items 43 to 54), which was
+accepted by hand on 2026-09-25 (ADR 0011, `manual-acceptance.md`).
 
 ### Follow-up work recorded during Milestone B
 
@@ -151,7 +151,8 @@ ready to run by hand (ADR 0011).
 
 - German and English UI with a toggle in the options header, live switching in
   open tabs, and German as the default when Firefox runs in German. Build after
-  the M9 manual matrix (items 43 to 54) passes. Spec: `docs/i18n-spec.md`.
+  the M9 manual matrix (items 43 to 54) passes; it was accepted on 2026-09-25,
+  so this can start. Spec: `docs/i18n-spec.md`.
   Triggered by the owner: most JoyClub members are native German speakers.
 
 ### Follow-up work recorded during Milestone D
@@ -178,11 +179,10 @@ ready to run by hand (ADR 0011).
 ### Follow-up work recorded during the M9 core
 
 - Done (ADR 0011): the live `QuickActionDriver`, the `storage.session`
-  hand-off and the resume on the profile page. Next: run the manual matrix
-  (items 43 to 54).
-- M9 review follow-ups (ADR 0011, "Deferred from the review"): report an
-  already ignored member as such; match the deleted conversation's own row, if
-  inbox rows carry its link; drop the marker when the navigation is cancelled;
+  hand-off and the resume on the profile page. The manual matrix (items 43 to
+  54) was accepted on 2026-09-25.
+- M9 review follow-ups (ADR 0011, "Deferred from the review"): match the
+  deleted conversation's own row, if inbox rows carry its link; drop the marker when the navigation is cancelled;
   check the sender page in `action.ignoreDelete.handOff` too.
 - The PRD's settings toggle for the guided alternative (navigate and stage, the
   user clicks).

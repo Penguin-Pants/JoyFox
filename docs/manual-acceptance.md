@@ -225,14 +225,30 @@ text; never record the member's real data in this repository.
 
 ## M9 destructive-action matrix (build plan Section 24)
 
-**Ready to run, by hand only (ADR 0011).** The live driver now exists. Run these
-only on test conversations you mean to trash, with members you are willing to
-ignore and then un-ignore ("Profil nicht mehr ignorieren" in the profile menu).
-Never run them automatically. Turn the button on first: in `about:debugging`,
-click **Inspect** next to JoyFox, and in that console run
-`browser.storage.local.set({"joyfox.quickIgnoreDelete": true})`. Use the split
-view (conversation list on the left), because Delete is checked by the row
-leaving the list.
+**Accepted by hand on 2026-09-25 (ADR 0011); results below the table.** Run
+these only on test conversations you mean to trash, with members you are willing
+to ignore and then un-ignore ("Profil nicht mehr ignorieren" in the profile
+menu). Never run them automatically. Use the split view (conversation list on
+the left), because Delete is checked by the row leaving the list.
+
+Turn the button on first, from the console of the JoyFox options page:
+
+- Open the JoyFox options page: in `about:addons`, click the "..." next to
+  JoyFox, then **Options** (older Firefox: **Preferences**). It opens in its own
+  tab, and the address starts with `moz-extension://`.
+- In that tab, press `Ctrl+Shift+K` (macOS: `Cmd+Option+K`) to open the Web
+  Console.
+- Run `browser.storage.local.set({"joyfox.quickIgnoreDelete": true})`. If
+  Firefox asks, type `allow pasting` first.
+- To check it, run `browser.storage.local.get("joyfox.quickIgnoreDelete")`. The
+  result must show `true`. To turn it off again, run the same `set` with
+  `false`.
+- Reload the JoyClub tab.
+
+Other consoles give "ReferenceError: browser is not defined": a JoyClub page,
+the `about:debugging` page itself, and the Inspect toolbox when its console is
+not in the extension's own context. Only extension pages, such as the options
+page, can use `browser`.
 
 The run: on the conversation page, JoyFox moves the conversation to the trash,
 opens the member's profile in the same tab, and ignores them there. The result
@@ -242,7 +258,10 @@ For each item, check three things: JoyClub's final state, the ActionLog record
 in "Your data" (steps, in order, with the `errorCode` of `Failed`), and the
 on-screen notice. Success means every item ends in the expected state with the
 expected ActionLog. Each item has a synthetic test with the same case number in
-`tests/integration/quick-action.test.ts`.
+`tests/integration/quick-action.test.ts`, except item 45: its test is "does not
+start Delete when the list that shows its result is missing" in
+`tests/integration/quick-action-driver.test.ts` (case 3 there tests a missing
+Delete confirmation instead).
 
 | Item | Case                                   | How to cause it                                                                           | Expected ActionLog steps                                                                           | Expected notice                                                                          |
 | ---- | -------------------------------------- | ----------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
@@ -266,8 +285,25 @@ left the list), `IgnoreRequested` (1.7 s, after the move to the profile),
 `IgnoreConfirmed` (2.6 s) and `Completed`, one operation with the matching
 member and conversation. The first attempt had stopped before any click with
 "could not find JoyClub's Delete control"; Delete moved to the conversation's
-three-dot menu (`live-evidence/10-ignore.md`, eighth report). Items 44 to 54
-remain.
+three-dot menu (`live-evidence/10-ignore.md`, eighth report).
+
+**Result, items 44 to 54 (2026-09-25): accepted.** The project owner ran the
+matrix by hand:
+
+- **44 and 45: not reproducible live.** JoyClub always shows the Delete control
+  and the list row, so these cases cannot be caused by hand. Synthetic tests
+  cover them: case 2 for item 44, and the driver test for a missing list for
+  item 45.
+- **46: accepted, with a known gap.** The conversation went to the trash and the
+  member stayed ignored, so the end state is correct. No notice said the member
+  was already ignored. This is the deferred review item in ADR 0011 ("report an
+  already ignored member as such"). The owner decided to keep it as is, with no
+  fix.
+- **47 and 50: not reproducible live.** JoyFox clicks Ignore too quickly to
+  press "Abbrechen" or to open another profile first. The owner accepts this as
+  is: an unwanted Ignore can be undone by hand. The synthetic tests (cases 5
+  and 8) cover them.
+- **48, 49 and 51 to 54: passed.**
 
 ## Rule autosave (2026-09-24)
 

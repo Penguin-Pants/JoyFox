@@ -19,17 +19,18 @@ Rules:
   the conversation and profile roots below, and read only the member ID. If the
   root or the member ID is missing, neither appears.
 
-| Surface                 | Status     | Evidence             | Runtime behavior       |
-| ----------------------- | ---------- | -------------------- | ---------------------- |
-| Inbox                   | Verified   | `01-inbox.md`        | Detected and extracted |
-| Conversation            | Verified   | `02-conversation.md` | Detected and extracted |
-| Profile                 | Verified   | `03-profile.md`      | Detected and extracted |
-| Search                  | Unverified | None                 | Disabled               |
-| Event                   | Unverified | None                 | Disabled               |
-| Event calendar          | Unverified | None                 | Disabled               |
-| Standard composer       | Verified   | `02-conversation.md` | Template picker (M10)  |
-| Profile Ignore item     | Observed   | `10-ignore.md`       | Not used (M9 blocked)  |
-| Event ClubMail composer | Unverified | None                 | Disabled               |
+| Surface                  | Status     | Evidence             | Runtime behavior        |
+| ------------------------ | ---------- | -------------------- | ----------------------- |
+| Inbox                    | Verified   | `01-inbox.md`        | Detected and extracted  |
+| Conversation             | Verified   | `02-conversation.md` | Detected and extracted  |
+| Profile                  | Verified   | `03-profile.md`      | Detected and extracted  |
+| Search                   | Unverified | None                 | Disabled                |
+| Event                    | Unverified | None                 | Disabled                |
+| Event calendar           | Unverified | None                 | Disabled                |
+| Standard composer        | Verified   | `02-conversation.md` | Template picker (M10)   |
+| Conversation Delete item | Verified   | `02-conversation.md` | M9 Delete step, flag on |
+| Profile Ignore item      | Verified   | `10-ignore.md`       | M9 Ignore step, flag on |
+| Event ClubMail composer  | Unverified | None                 | Disabled                |
 
 ## Page signals
 
