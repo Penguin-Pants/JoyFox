@@ -22,7 +22,7 @@ stay as they are.
 
 | Key | English | Deutsch |
 | --- | --- | --- |
-| `condition.verified` | Verified by JoyClub | Von JoyClub geprüft |
+| `condition.verified` | Verified by JoyClub | Verifiziert |
 | `condition.personallyKnown` | Personally known | Persönlich bekannt |
 | `condition.minimumPhotos` | Minimum photos | Mindestanzahl Fotos |
 | `condition.minimumProfileWords` | Minimum profile words | Mindestanzahl Wörter im Profil |
@@ -70,9 +70,9 @@ stay as they are.
 | `triage.reason.accountAgeRangeAbove` | Account age is between {min} and {max} days, at or above the required {minimum}. | Kontoalter: zwischen {min} und {max} Tagen. Das erreicht den geforderten Mindestwert {minimum}. |
 | `triage.reason.accountAgeRangeBelow` | Account age is between {min} and {max} days, below the required {minimum}. | Kontoalter: zwischen {min} und {max} Tagen. Das liegt unter dem geforderten Mindestwert {minimum}. |
 | `triage.reason.accountAgeRangeCoarse` | Account age is between {min} and {max} days, which is too coarse to compare with the required {minimum}, so it was not counted for or against. | Kontoalter: zwischen {min} und {max} Tagen. Das ist zu ungenau für einen Vergleich mit dem geforderten Mindestwert {minimum}, deshalb wurde es weder dafür noch dagegen gezählt. |
-| `triage.reason.verificationUnknown` | Verification status is unknown, so it was not counted for or against. | Der Prüfstatus ist unbekannt. Er wurde weder dafür noch dagegen gezählt. |
-| `triage.reason.verified` | The profile is verified, as the rule requires. | Das Profil ist geprüft, wie deine Regel es verlangt. |
-| `triage.reason.notVerified` | The profile is not verified, which the rule requires. | Das Profil ist nicht geprüft. Deine Regel verlangt das aber. |
+| `triage.reason.verificationUnknown` | Verification status is unknown, so it was not counted for or against. | Der Verifizierungsstatus ist unbekannt. Er wurde weder dafür noch dagegen gezählt. |
+| `triage.reason.verified` | The profile is verified, as the rule requires. | Das Profil ist verifiziert, wie deine Regel es verlangt. |
+| `triage.reason.notVerified` | The profile is not verified, which the rule requires. | Das Profil ist nicht verifiziert. Deine Regel verlangt das aber. |
 | `triage.reason.personallyKnownUnknown` | Whether you know this member personally is unknown, so it was not counted for or against. | Ob du dieses Mitglied persönlich kennst, ist unbekannt. Das wurde weder dafür noch dagegen gezählt. |
 | `triage.reason.personallyKnown` | You marked this member as personally known, as the rule requires. | Du hast dieses Mitglied als persönlich bekannt markiert, wie deine Regel es verlangt. |
 | `triage.reason.notPersonallyKnown` | You have not marked this member as personally known, which the rule requires. | Du hast dieses Mitglied nicht als persönlich bekannt markiert. Deine Regel verlangt das aber. |
@@ -371,7 +371,7 @@ stay as they are.
 | `rule.note.none` | No rule is saved for the active account, so JoyFox does not sort the inbox. | Für das aktive Konto ist keine Regel gespeichert, deshalb sortiert JoyFox den Posteingang nicht. |
 | `rule.enabled` | Sort my JoyClub inbox with this rule | Meinen JoyClub-Posteingang mit dieser Regel sortieren |
 | `rule.placementLabel` | A sender who does not meet the rule goes to | Einordnung, wenn die Regel nicht erfüllt ist: |
-| `rule.spamHint` | Spam status is unknown for now: JoyFox does not read message text yet. Only your own "not spam" corrections count. The inbox shows only the verification shield; photos, profile words and account age come from profiles you opened before. | Der Spam-Status ist vorerst unbekannt: JoyFox liest noch keine Nachrichtentexte. Nur deine eigenen Korrekturen „kein Spam“ zählen. Der Posteingang zeigt nur das Prüfsiegel. Fotos, Wörter im Profil und Kontoalter stammen aus Profilen, die du vorher geöffnet hast. |
+| `rule.spamHint` | Spam status is unknown for now: JoyFox does not read message text yet. Only your own "not spam" corrections count. The inbox shows only the verification shield; photos, profile words and account age come from profiles you opened before. | Der Spam-Status ist vorerst unbekannt: JoyFox liest noch keine Nachrichtentexte. Nur deine eigenen Korrekturen „kein Spam“ zählen. Der Posteingang zeigt nur das Verifizierungssymbol. Fotos, Wörter im Profil und Kontoalter stammen aus Profilen, die du vorher geöffnet hast. |
 | `rule.autosaveHint` | Changes are saved automatically: a box or choice at once, a number when you leave its field. | Änderungen werden automatisch gespeichert: ein Kästchen oder eine Auswahl sofort, eine Zahl, sobald du das Feld verlässt. |
 | `rule.editor` | Editor: | Editor: |
 | `rule.simple` | Simple | Einfach |

@@ -14,7 +14,7 @@ export const de: Catalog = {
   "placement.qualified": "Qualifiziert",
   "placement.needs-review": "Zu prüfen",
   "placement.quarantined": "Quarantäne",
-  "condition.verified": "Von JoyClub geprüft",
+  "condition.verified": "Verifiziert",
   "condition.personallyKnown": "Persönlich bekannt",
   "condition.minimumPhotos": "Mindestanzahl Fotos",
   "condition.minimumProfileWords": "Mindestanzahl Wörter im Profil",
@@ -47,11 +47,11 @@ export const de: Catalog = {
   "triage.reason.accountAgeRangeCoarse": (p, f) =>
     `Kontoalter: zwischen ${f.number(p.min)} und ${f.number(p.max)} Tagen. Das ist zu ungenau für einen Vergleich mit dem geforderten Mindestwert ${f.number(p.minimum)}, deshalb wurde es weder dafür noch dagegen gezählt.`,
   "triage.reason.verificationUnknown":
-    "Der Prüfstatus ist unbekannt. Er wurde weder dafür noch dagegen gezählt.",
+    "Der Verifizierungsstatus ist unbekannt. Er wurde weder dafür noch dagegen gezählt.",
   "triage.reason.verified":
-    "Das Profil ist geprüft, wie deine Regel es verlangt.",
+    "Das Profil ist verifiziert, wie deine Regel es verlangt.",
   "triage.reason.notVerified":
-    "Das Profil ist nicht geprüft. Deine Regel verlangt das aber.",
+    "Das Profil ist nicht verifiziert. Deine Regel verlangt das aber.",
   "triage.reason.personallyKnownUnknown":
     "Ob du dieses Mitglied persönlich kennst, ist unbekannt. Das wurde weder dafür noch dagegen gezählt.",
   "triage.reason.personallyKnown":
@@ -422,7 +422,7 @@ export const de: Catalog = {
   "rule.enabled": "Meinen JoyClub-Posteingang mit dieser Regel sortieren",
   "rule.placementLabel": "Einordnung, wenn die Regel nicht erfüllt ist:",
   "rule.spamHint":
-    "Der Spam-Status ist vorerst unbekannt: JoyFox liest noch keine Nachrichtentexte. Nur deine eigenen Korrekturen „kein Spam“ zählen. Der Posteingang zeigt nur das Prüfsiegel. Fotos, Wörter im Profil und Kontoalter stammen aus Profilen, die du vorher geöffnet hast.",
+    "Der Spam-Status ist vorerst unbekannt: JoyFox liest noch keine Nachrichtentexte. Nur deine eigenen Korrekturen „kein Spam“ zählen. Der Posteingang zeigt nur das Verifizierungssymbol. Fotos, Wörter im Profil und Kontoalter stammen aus Profilen, die du vorher geöffnet hast.",
   "rule.autosaveHint":
     "Änderungen werden automatisch gespeichert: ein Kästchen oder eine Auswahl sofort, eine Zahl, sobald du das Feld verlässt.",
   "rule.editor": "Editor:",
