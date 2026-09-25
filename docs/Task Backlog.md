@@ -226,7 +226,7 @@ owner's approval before the task starts. The others quote the PRD.
 
 | ID | Task | Depends on | Acceptance criteria | Size |
 | --- | --- | --- | --- | --- |
-| V1-1 | Per-audience contact rules: one rule set per sender profile type (PRD 6.1, 11.4). First step: store the sender's profile type as a fact | M4's rule engine and builder (built; M4's open items, presets and live checks, are not needed); D1 | A sender who fails the applicable rule set is quarantined by default; the user can always see which rule failed (PRD 6.1). **Proposed:** a sender whose profile type is unknown follows the rule's unknown handling, never another audience's rule. | M |
+| V1-1 | Per-audience contact rules: one rule set per sender profile type (PRD 6.1, 11.4). First step: store the sender's profile type as a fact | M4's rule engine and builder (built; M4's open items, presets and live checks, are not needed); D1 | A sender who fails the applicable rule set is quarantined by default; the user can always see which rule failed (PRD 6.1). **Proposed:** with different rules set for two profile types, a sender of each type is placed by the rule for their own type; a sender whose profile type is unknown follows the rule's unknown handling, never another audience's rule. | M |
 | V1-2 | Compatibility Overlay: highlight the viewed profile's preferences that match the user's own (PRD 6.2) | E3; D5 | Every tag marked as matching is independently verifiable by reading both checklists manually (PRD 6.2). | M |
 | V1-3 | Saved Searches: store a search's URL and filter state, replay it in one click (PRD 6.2, 8.2) | E1 | **Proposed:** a saved search opens the same URL with the same filters. If JoyClub's search address no longer matches, JoyFox says so and opens nothing. | S |
 | V1-4 | Conversation History Search: full-text search over the user's own cached messages (PRD 6.2, 13.3) | E2; the message-caching toggle (ADR 0004, deferred to this caller by ADR 0015) | Cached message text has a configurable auto-purge window, default 12 months, and is always manually deletable (PRD 13.3). **Proposed:** every cached message that contains the query is found; with caching off, nothing is stored. | M |
@@ -269,9 +269,12 @@ owner's approval before the task starts. The others quote the PRD.
 
 ### Order
 
+A task with **proposed** criteria starts only after the owner approves them (see
+"Owner decisions needed"); each step below assumes that approval.
+
 1. Ready once its decision is made: V1-1 (D1), V1-6 (D2). V1-1 starts by
    storing profile type as a fact: `ProfileSnapshot` has no field for it yet,
    and `profileTypeFromCode` (`src/extraction/joyclub.ts`) has no caller.
-2. Ready now: V1-7 and V1-8.
+2. Ready once their proposed criteria are approved: V1-7 and V1-8.
 3. Blocked on evidence: V1-3 (E1), V1-4 (E2), V1-2 (E3), V1-5 (E4).
 4. Last: V1-9, after the MVP release gate, F8, D3, D4 and V1-8.
