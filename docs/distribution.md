@@ -40,7 +40,7 @@ owner has chosen a channel.
 1. Create an addons.mozilla.org developer account and accept the developer
    agreement.
 2. On AMO's "Manage API Keys" page, create API credentials: a JWT issuer and a
-   JWT secret. Keep them out of the repository.
+   JWT secret. Keep them out of the repository, shell history and logs.
 3. Fix the manifest gaps below.
 4. Install `web-ext` at a pinned version, so every release signs the same way:
    `npm install --save-dev --save-exact web-ext@<version>`, with the version
@@ -49,15 +49,17 @@ owner has chosen a channel.
 5. Build: `npm ci`, then `npm run build:firefox`, which writes `dist/firefox`.
 6. Make the source package (see "Source code"). Every build is bundled by
    esbuild, so every submission needs it, not only when AMO asks.
-7. Sign from `dist/firefox`:
-   `npx web-ext sign --channel=unlisted --api-key=<issuer> --api-secret=<secret>`,
-   and upload the source package with the submission. The signed `.xpi` is
-   downloaded when signing finishes. **Verify** the flags with
-   `npx web-ext sign --help`, including how the installed version uploads source
-   code, and confirm that `--channel=unlisted` never creates a public listing:
-   `web-ext` 8 reportedly changed the default for new add-ons to create a
-   listing (Extension Workshop, "web-ext command reference"; `mozilla/web-ext`
-   releases).
+7. Sign from `dist/firefox`. Keep the credentials out of the command line, where
+   shell history and the process list would show them: put them in the
+   environment variables `WEB_EXT_API_KEY` and `WEB_EXT_API_SECRET`, loaded from
+   a password manager or a protected prompt, never typed on the command line.
+   Then run `npx web-ext sign --channel=unlisted` and upload the source package
+   with the submission. The signed `.xpi` is downloaded when signing finishes.
+   **Verify** with `npx web-ext sign --help` that the installed version reads
+   those variables, how it uploads source code, and that `--channel=unlisted`
+   never creates a public listing: `web-ext` 8 reportedly changed the default
+   for new add-ons to create a listing (Extension Workshop, "web-ext command
+   reference"; `mozilla/web-ext` releases).
 8. Publish the signed `.xpi` on the GitHub release (V1-9).
 
 ## Manifest gaps (`manifests/firefox.json`)
