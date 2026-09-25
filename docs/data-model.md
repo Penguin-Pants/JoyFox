@@ -84,9 +84,11 @@ Version 4 adds no store. It rewrites `ConversationClassification.reasons` from
 English text to catalog messages (`Message`, below), inside the upgrade
 transaction (`src/storage/reason-migration.ts`):
 
-- `You moved this sender to <placement>.` becomes
+- The exact sentence an earlier version wrote for the record's own placement
+  (`You moved this sender to Qualified.`, `… Needs Review.` or `… Quarantined.`)
+  becomes
   `{ key: "triage.reason.userMoved", params: { placement: { key: "placement.<record.placement>" } } }`.
-- Any other string becomes
+- Any other string, including a similar sentence JoyFox did not write, becomes
   `{ key: "legacy.text", params: { text: <original> } }` and is shown verbatim
   in both languages.
 
