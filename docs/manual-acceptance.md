@@ -394,12 +394,12 @@ automatically.
 
 ## Import without a second confirmation (2026-09-25)
 
-75. On the Accounts tab, click "Browse", choose a JoyFox export file and click
+83. On the Accounts tab, click "Browse", choose a JoyFox export file and click
     OK. Confirm the import starts at once: no "Confirm import" button shows, and
     "Import complete" and the table "What the import changed" appear. Confirm
     the imported accounts show in the account list.
-76. Choose the same file again. Confirm the message says nothing was changed.
-77. Choose a file that is not a JoyFox export. Confirm the error says nothing
+84. Choose the same file again. Confirm the message says nothing was changed.
+85. Choose a file that is not a JoyFox export. Confirm the error says nothing
     was imported.
 
 **Result:** not yet run.
