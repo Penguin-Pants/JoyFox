@@ -147,6 +147,11 @@ export class InboxTriage {
   #view: TriageView = "default";
   #selected?: string;
   #detailsKey = "";
+  /**
+   * The member whose last move failed. The notice stays when the details
+   * redraw (for example after a language change) until another choice.
+   */
+  #failedFor?: string;
   #writeQueue: Promise<void> = Promise.resolve();
   #active = false;
   #day?: string;
@@ -283,6 +288,7 @@ export class InboxTriage {
       node.removeAttribute(VIEW_ATTRIBUTE);
     this.#detailsKey = "";
     this.#selected = undefined;
+    this.#failedFor = undefined;
   }
 
   /**
@@ -484,6 +490,7 @@ export class InboxTriage {
         () => {
           // Read at click time: JoyClub may reuse a row for another sender.
           this.#selected = created.dataset.member ?? "";
+          this.#failedFor = undefined;
           this.#detailsKey = "";
           this.#refresh();
           const details = this.document.querySelector<HTMLElement>(
@@ -532,6 +539,7 @@ export class InboxTriage {
       t("common.close"),
       () => {
         this.#selected = undefined;
+        this.#failedFor = undefined;
         this.#detailsKey = "";
         details.hidden = true;
         details.replaceChildren();
@@ -572,16 +580,28 @@ export class InboxTriage {
           this.#writeQueue = this.#writeQueue.then(() =>
             this.client
               .setOverride(accountId, memberId, placement)
-              .then(() => this.invalidate())
-              .catch(() => this.#showError(details)),
+              .then(() => {
+                this.#failedFor = undefined;
+                this.invalidate();
+              })
+              .catch(() => {
+                this.#failedFor = memberId;
+                this.#showError();
+              }),
           );
         },
       }),
       close,
     );
+    if (this.#failedFor === memberId) this.#showError();
   }
 
-  #showError(details: HTMLElement): void {
+  /** The failure notice, in the details shown now (a redraw replaces them). */
+  #showError(): void {
+    const details = this.document.querySelector<HTMLElement>(
+      `[${UI_ATTRIBUTE}="triage-bar"] .joyfox-triage__details`,
+    );
+    if (!details || details.querySelector(".joyfox-error")) return;
     details.append(
       element(this.document, "p", "joyfox-error", t("common.saveFailed")),
     );

@@ -398,6 +398,45 @@ describe("content surfaces (docs/i18n-spec.md, Sections 3.7 and 6)", () => {
     expect(leaks(joyfox())).toEqual([]);
   });
 
+  it("keeps an inbox save failure on screen across a switch", async () => {
+    const client = await setUp();
+    client.setOverride = () => Promise.reject(new Error("synthetic failure"));
+    window.history.replaceState(null, "", "/clubmail/");
+    document.body.innerHTML = inboxHtml;
+    const inbox = new InboxTriage(document, client);
+    inbox.update();
+    await vi.waitFor(() =>
+      expect(document.querySelector('[data-joyfox-ui="badge"]')).not.toBeNull(),
+    );
+    document
+      .querySelector<HTMLButtonElement>('[data-joyfox-ui="badge"]')!
+      .click();
+    await vi.waitFor(() =>
+      expect(document.querySelector(".joyfox-explain")).not.toBeNull(),
+    );
+    Array.from(
+      document.querySelectorAll<HTMLButtonElement>(".joyfox-explain button"),
+    )
+      .find((button) => !button.disabled)!
+      .click();
+    const error = () =>
+      document.querySelector(".joyfox-triage__details .joyfox-error")
+        ?.textContent;
+    await vi.waitFor(() =>
+      expect(error()).toBe(
+        "JoyFox could not save that change. Nothing was changed.",
+      ),
+    );
+    setLocale("de");
+    inbox.localeChanged();
+    expect(error()).toBe(
+      "JoyFox konnte diese Änderung nicht speichern. Es wurde nichts geändert.",
+    );
+    expect(
+      document.querySelectorAll(".joyfox-triage__details .joyfox-error"),
+    ).toHaveLength(1);
+  });
+
   it("redraws the member panel, notes, Ignore and Delete and the picker, keeping typed text", async () => {
     const client = await setUp();
     await trust.logOutcome(ACCOUNT, MEMBER, "positive");
