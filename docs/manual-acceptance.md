@@ -388,6 +388,8 @@ Import now sits under the account list on the Accounts tab.
     tab. Go back to the conversation and confirm the link is gone and the
     placement uses the photo and word counts.
 
+**Result (2026-09-25): passed.** The project owner confirmed items 81 and 82.
+
 Live selector and action acceptance must wait for the evidence checklist in
 `manual-verification-needed.md`. Never perform destructive action testing
 automatically.
