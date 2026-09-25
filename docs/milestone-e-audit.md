@@ -147,3 +147,16 @@ Validation: `npm test` (650 tests), `npm run lint`, `npm run typecheck`,
 `npm run format:check` and `npm run build:firefox` pass. No permission, schema
 version or UI string was added; the notice reuses the approved `handoff-failed`
 text. Live check: `manual-acceptance.md`, items 98 and 99, pending.
+
+## Stale hand-off on page load (2026-09-25)
+
+- **Done.** With the flag on, each JoyClub page load in a tab asks the
+  background to drop a hand-off marker meant for another page
+  (`action.ignoreDelete.dropStale`). The run is closed as
+  `Failed:handoff-failed`. The marker's own profile keeps it. See ADR 0011.
+- **Still open:** a cancel followed by the same member's profile within the
+  15-second wait continues the run.
+
+Validation: `npm test` (668 tests), `npm run lint`, `npm run typecheck`,
+`npm run format:check` and `npm run build:firefox` pass. Live check:
+`manual-acceptance.md`, item 100, pending.

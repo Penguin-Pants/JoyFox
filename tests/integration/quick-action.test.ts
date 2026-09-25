@@ -921,6 +921,89 @@ describe("M9 hand-off messages (ADR 0011)", () => {
     );
   });
 
+  /** A page in the tab at `path`, as the browser reports it. */
+  const pageAt = (path: string, tabId = TAB) =>
+    messageQuickActionClient((message) =>
+      router.route(message, {
+        tabId,
+        url: `${window.location.origin}${path}`,
+      }),
+    );
+
+  it("keeps the marker for the profile it names when that page loads", async () => {
+    const id = await afterDelete();
+    await fromConversation().handOff("account-a", id, "ignore", PROFILE_PATH);
+    expect(await pageAt(PROFILE_PATH).dropStale()).toEqual({ status: "none" });
+    expect(await client.pending()).toMatchObject({
+      status: "ok",
+      operationId: id,
+    });
+  });
+
+  it("drops the marker when another page loads in the tab, and closes the run", async () => {
+    const id = await afterDelete();
+    await fromConversation().handOff("account-a", id, "ignore", PROFILE_PATH);
+    // Another tab changes nothing.
+    expect(await pageAt("/clubmail/", 8).dropStale()).toEqual({
+      status: "none",
+    });
+    expect(session.items.size).toBe(1);
+    expect(await pageAt("/clubmail/").dropStale()).toEqual({
+      status: "dropped",
+    });
+    expect(session.items.size).toBe(0);
+    expect(await logged()).toEqual([
+      [
+        "Started",
+        "DeleteRequested",
+        "DeleteConfirmed",
+        "Failed:handoff-failed",
+      ],
+    ]);
+    // The profile, visited later in the tab, continues nothing.
+    expect(await client.pending()).toEqual({ status: "none" });
+  });
+
+  it("drops the marker on another member's profile too", async () => {
+    const id = await afterDelete();
+    await fromConversation().handOff("account-a", id, "ignore", PROFILE_PATH);
+    expect(await pageAt("/profile/5550001.synthetic.html").dropStale()).toEqual(
+      { status: "dropped" },
+    );
+    expect((await logged()).at(-1)?.at(-1)).toBe("Failed:handoff-failed");
+  });
+
+  it("closes the run under its own account after an account switch", async () => {
+    const id = await afterDelete();
+    await fromConversation().handOff("account-a", id, "ignore", PROFILE_PATH);
+    active = "account-b";
+    expect(await pageAt("/clubmail/").dropStale()).toEqual({
+      status: "dropped",
+    });
+    expect((await logged("account-a")).at(-1)?.at(-1)).toBe(
+      "Failed:handoff-failed",
+    );
+    expect(await logged("account-b")).toEqual([]);
+  });
+
+  it("removes a stale marker without writing to the log", async () => {
+    const id = await afterDelete();
+    await fromConversation().handOff("account-a", id, "ignore", PROFILE_PATH);
+    clock += STALE_AFTER_MS + 1;
+    expect(await pageAt("/clubmail/").dropStale()).toEqual({ status: "none" });
+    expect(session.items.size).toBe(0);
+    expect(await logged()).toEqual([
+      ["Started", "DeleteRequested", "DeleteConfirmed"],
+    ]);
+  });
+
+  it("answers none when no marker waits in the tab", async () => {
+    expect(await pageAt("/clubmail/").dropStale()).toEqual({ status: "none" });
+    await expect(
+      messageQuickActionClient((message) => router.route(message)).dropStale(),
+    ).rejects.toThrow();
+  });
+
   it("refuses a message without a tab, and a first step as the next", async () => {
     const id = await afterDelete();
     const noTab = messageQuickActionClient((message) => router.route(message));
@@ -1209,6 +1292,86 @@ describe("M9 button and notice", () => {
       expect((await logged())[0]?.at(-1)).toBe("Completed"),
     );
     expect(onProfile.clicks).toEqual(["request:ignore", "confirm:ignore"]);
+  });
+
+  it("drops a hand-off when another page loads in the tab first", async () => {
+    const driver = new FakeDriver();
+    driver.current = () => HERE;
+    const visited: string[] = [];
+    conversationPage(driver, visited);
+    await vi.waitFor(() => expect(runButton()).toBeDefined());
+    runButton()!.click();
+    await vi.waitFor(() => expect(visited).toHaveLength(1));
+    // The move is cancelled and the user opens the inbox instead: the old
+    // page goes (so its own wait ends), and a new page loads.
+    window.dispatchEvent(new Event("pagehide"));
+    window.history.replaceState(null, "", "/clubmail/");
+    document.body.innerHTML = "";
+    const inbox = new QuickIgnoreDelete(
+      document,
+      client,
+      () => new FakeDriver(),
+    );
+    inbox.pageSeen();
+    inbox.pageSeen();
+    await vi.waitFor(async () =>
+      expect((await logged())[0]?.at(-1)).toBe("Failed:handoff-failed"),
+    );
+    // Later, the member's profile in the same tab continues nothing.
+    onProfilePage();
+    document.body.innerHTML = profileHtml;
+    const later = new FakeDriver();
+    later.current = () => PROFILE;
+    const profile = new QuickIgnoreDelete(document, client, () => later);
+    profile.pageSeen();
+    profile.updateProfile();
+    await new Promise((resolve) => setTimeout(resolve, 30));
+    expect(later.clicks).toEqual([]);
+  });
+
+  it("still finishes on the profile when that page reports itself first", async () => {
+    const driver = new FakeDriver();
+    driver.current = () => HERE;
+    const visited: string[] = [];
+    conversationPage(driver, visited);
+    await vi.waitFor(() => expect(runButton()).toBeDefined());
+    runButton()!.click();
+    await vi.waitFor(() => expect(visited).toHaveLength(1));
+    window.dispatchEvent(new Event("pagehide"));
+    onProfilePage();
+    document.body.innerHTML = profileHtml;
+    const onProfile = new FakeDriver();
+    onProfile.current = () => PROFILE;
+    const profile = new QuickIgnoreDelete(document, client, () => onProfile);
+    // As in the content script: the page is reported, then updated.
+    profile.pageSeen();
+    profile.updateProfile();
+    await vi.waitFor(async () =>
+      expect((await logged())[0]?.at(-1)).toBe("Completed"),
+    );
+    expect(onProfile.clicks).toEqual(["request:ignore", "confirm:ignore"]);
+  });
+
+  it("asks to drop a hand-off once per page, and only with a driver", async () => {
+    let asked = 0;
+    const counting: QuickActionClient = {
+      ...client,
+      dropStale: () => {
+        asked += 1;
+        return Promise.resolve({ status: "none" });
+      },
+    };
+    const none = new QuickIgnoreDelete(document, counting, () => undefined);
+    none.pageSeen();
+    expect(asked).toBe(0);
+    const page = new QuickIgnoreDelete(
+      document,
+      counting,
+      () => new FakeDriver(),
+    );
+    page.pageSeen();
+    page.pageSeen();
+    expect(asked).toBe(1);
   });
 
   it("starts nothing when the member's profile address is unknown", async () => {

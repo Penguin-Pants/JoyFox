@@ -81,8 +81,12 @@ if (hasVerifiedSelectors() && VERIFIED_HOSTS.includes(location.hostname)) {
   };
   const updateQuickAction = () => {
     // Turning the flag off also stops a run before its next click.
-    if (!quickAction.enabled) quick.turnOff();
-    else if (lastType === "conversation") quick.update();
+    if (!quickAction.enabled) {
+      quick.turnOff();
+      return;
+    }
+    quick.pageSeen();
+    if (lastType === "conversation") quick.update();
     // A run handed off from a conversation continues here (ADR 0011).
     else if (lastType === "profile") quick.updateProfile();
     else quick.leave();

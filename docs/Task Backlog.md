@@ -193,10 +193,11 @@ accepted by hand on 2026-09-25 (ADR 0011, `manual-acceptance.md`).
     hand-off. Live check pending (`manual-acceptance.md`, item 98).
   - Blocked: match the deleted conversation's own row. `01-inbox.md` shows no
     conversation link or ID on an inbox row. Needs that evidence first.
-  - New (2026-09-25): a cancel followed by another page within the 15-second
-    wait still leaves the marker for up to 2 minutes (ADR 0011, "Limits of the
-    withdrawal"). Closing it would need every JoyClub page in the tab to read
-    and drop the marker on load.
+  - Done (2026-09-25): a cancel followed by another page within the
+    15-second wait no longer leaves the marker. Every JoyClub page that loads
+    in the tab drops a marker meant for another page and closes its run (ADR
+    0011, "Stale hand-off on page load"). Live check pending
+    (`manual-acceptance.md`, item 100).
 - The PRD's settings toggle for the guided alternative (navigate and stage, the
   user clicks).
 - Confirm or tune the step timeout (15 seconds) and the interrupted threshold

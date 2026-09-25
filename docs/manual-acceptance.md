@@ -513,3 +513,11 @@ conversation you mean to trash, with a member you are willing to ignore.
 99. Repeat item 43 on another test conversation. Confirm the run still finishes
     on the profile ("Ignore and Delete finished."), so the new check of the
     sending page does not refuse the normal hand-off.
+100.  Click "Ignore and Delete", and press `Esc` as soon as the conversation
+      leaves the list. Within 15 seconds, open the inbox with a full page load
+      (for example, type the ClubMail address and press Enter). Confirm the
+      ActionLog ends `DeleteConfirmed`, `Failed:handoff-failed`. Then open the
+      member's profile in the same tab. Confirm the member is not ignored. If
+      the profile opens too quickly to cancel, record the item as not
+      reproducible live; the synthetic test "drops a hand-off when another page
+      loads in the tab first" covers it.
