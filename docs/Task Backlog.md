@@ -112,7 +112,7 @@ accepted by hand on 2026-09-25 (ADR 0011, `manual-acceptance.md`).
 - Add the existing-conversation exception (PRD Section 7.4) once the
   read-status icon's meaning is confirmed.
 - Add rule presets (PRD Section 11.3) once thresholds for "Complete profiles
-  only" and "High-trust members" are decided.
+  only" and "High-trust members" are decided. Now V1-11 (D8).
 - Decide whether the inbox retries on its own after a failed background answer.
 - Wire the spam detector to pages, so the "not template spam" condition and the
   trust score's spam point can become known.
@@ -227,8 +227,8 @@ owner's approval before the task starts. The others quote the PRD.
 
 | ID | Task | Depends on | Acceptance criteria | Size |
 | --- | --- | --- | --- | --- |
-| V1-1 | Per-audience contact rules: one rule set per sender profile type (PRD 6.1, 11.4). First step: store the sender's profile type as a fact | M4's rule engine and builder (built; M4's open items, presets and live checks, are not needed); D1 | A sender who fails the applicable rule set is quarantined by default; the user can always see which rule failed (PRD 6.1). **Proposed:** with different rules set for two profile types, a sender of each type is placed by the rule for their own type; a sender whose profile type is unknown follows the rule's unknown handling, never another audience's rule. | M |
-| V1-2 | Compatibility Overlay: highlight the viewed profile's preferences that match the user's own on the profile page (PRD 6.2), a compatibility badge on every surface where a profile card shows (search results, the inbox, event attendee lists; PRD 8.3) and a sort-by-compatibility toggle on search results (PRD 10.1) | E1; E3; E4 (attendee lists); D5 | Every tag marked as matching is independently verifiable by reading both checklists manually (PRD 6.2). **Proposed:** each profile card on search results, the inbox and event attendee lists shows the same compatibility result as that member's profile page (PRD 8.3), and the sort orders the loaded search results by it. | M |
+| V1-1 | Per-audience contact rules: one rule set per sender profile type (PRD 6.1, 11.4). First step: store the sender's profile type as a fact | M4's rule engine and builder (built; M4's open items are not needed: presets are V1-11, and the live checks stay under M4); D1 | A sender who fails the applicable rule set is quarantined by default; the user can always see which rule failed (PRD 6.1). **Proposed:** with different rules set for two profile types, a sender of each type is placed by the rule for their own type; a sender whose profile type is unknown follows the rule's unknown handling, never another audience's rule. | M |
+| V1-2 | Compatibility Overlay: highlight the viewed profile's preferences that match the user's own on the profile page (PRD 6.2), a compatibility badge on every surface where a profile card shows (search results, the inbox, event attendee lists; PRD 8.3) and a sort-by-compatibility toggle on search results (PRD 10.1) | E1; E3; E4 (attendee lists); D5 | Every tag marked as matching is independently verifiable by reading both checklists manually (PRD 6.2). **Proposed:** for two profiles that share preferences, every shared preference is highlighted and no other; two loaded results with different overlaps show different results and sort in overlap order; each profile card on search results, the inbox and event attendee lists shows the same compatibility result as that member's profile page (PRD 8.3), and the sort orders the loaded search results by it. | M |
 | V1-3 | Saved Searches: store a search's URL and filter state, replay it in one click (PRD 6.2, 8.2) | E1 | **Proposed:** a saved search opens the same URL with the same filters. If JoyClub's search address no longer matches, JoyFox says so and opens nothing. | S |
 | V1-4 | Conversation History Search: full-text search over the user's own cached messages (PRD 6.2, 13.3) | E2; the message-caching toggle (ADR 0004, deferred to this caller by ADR 0015) | Cached message text is on by default, has a configurable auto-purge window, default 12 months, and is always manually deletable (PRD 13.3). **Proposed:** with caching on, every message shown in an opened conversation is cached; then every cached message that contains the query is found, and no cached message without it is shown; with caching off, nothing is stored. | M |
 | V1-5 | Personal Event Tracker: private notes, attendance and tags on event and venue listings, and a personal calendar of tracked events (PRD 6.3, 9.1, 9.2) | E4; D6 | Event notes persist after the listing is removed from JoyClub's own calendar post-event (PRD 6.3). **Proposed:** notes, attendance and tags save and show again on event and venue listings; a filter by the user's own tags or notes shows only the matching events in JoyClub's already-loaded event list, with no new request to JoyClub (PRD 9.1, 10.1); the personal calendar lists every tracked event and filters the same way (PRD 9.1). | M |
@@ -236,7 +236,8 @@ owner's approval before the task starts. The others quote the PRD.
 | V1-7 | Data-inspector polish (PRD 13.5, 20) | M8 (done) | **Proposed:** each record shows as readable fields, not raw JSON only; a full export stays complete against every entity, verified item by item (PRD 21.4). | S |
 | V1-8 | Repository cleanup and documentation (PRD 20) | None; it can run beside the MVP gate items | **Proposed:** cleanup: no placeholder values (such as the extension ID `joyfox@example.invalid`), no unused source files or fixtures, and no debug output outside the diagnostics flag remain, and every check passes; docs: every document in build plan Section 33 is current, and the README states how to build, install and verify a release; a license file exists (D3). | S |
 | V1-10 | Cross-surface profile signals: the completeness badge, trust score, note icon and profile tags on every surface where a profile card shows (search results, the inbox, event attendee lists; PRD 8.3, 8.4), notes and tags editable inline there (PRD 6.2, 9.3), and a filter that hides incomplete profiles in the loaded search results (PRD 8.1). V1-2 covers the compatibility overlay | E1; E4 (attendee lists) | The signals render the same way on every surface where a profile card shows up (PRD 8.3). A note or tag attached to a profile ID follows that profile everywhere, not just where it was created (PRD 8.4). The note icon is editable inline wherever it appears (PRD 6.2). **Proposed:** for one member, each signal on a search-result card, an inbox row and an attendee-list entry matches the same signal on that member's profile page; a tag added from a search result shows on that member's attendee-list entry; a note or tag created or edited from an attendee-list entry saves to that member's profile ID and shows on the profile page; the incomplete-profile filter hides only the loaded results that the completeness badge marks incomplete, with no new request to JoyClub. | M |
-| V1-9 | Self-distributed public release on GitHub (PRD 18.2, 20) | V1-1 to V1-8 and V1-10; the personal dogfooding period after MVP feature-complete (PRD 24.7: "MVP feature-complete → personal dogfooding period → V1 feature-complete → self-distributed public release"; D7); MVP release gate (build plan Section 28); F8; D3; D4 | **Proposed:** the GitHub repository and its release are public and hold the source under the chosen license (D3); the signed build attached to the release installs on release Firefox and passes the MVP release gate; building the release tag's public source with the documented command gives files identical to the ones in the signed `.xpi`, apart from the signature files (reproducible builds, PRD 13.2). | M |
+| V1-11 | Rule presets: Open, Complete profiles only, Verified members, High-trust members and Custom (PRD 11.3) | M4's rule builder (built); D8 | The presets mirror the standalone spec's presets (PRD 11.3). **Proposed:** each preset fills the builder with the conditions PRD 11.3 names, using the D8 thresholds; the user can then edit the result like any other rule; Custom opens the builder with no conditions set. | S |
+| V1-9 | Self-distributed public release on GitHub (PRD 18.2, 20) | V1-1 to V1-8, V1-10 and V1-11; the personal dogfooding period after MVP feature-complete (PRD 24.7: "MVP feature-complete → personal dogfooding period → V1 feature-complete → self-distributed public release"; D7); MVP release gate (build plan Section 28); F8; D3; D4 | **Proposed:** the GitHub repository and its release are public and hold the source under the chosen license (D3); the signed build attached to the release installs on release Firefox and passes the MVP release gate; building the release tag's public source with the documented command gives files identical to the ones in the signed `.xpi`, apart from the signature files (reproducible builds, PRD 13.2). | M |
 
 ### Blocked on site evidence
 
@@ -270,6 +271,9 @@ owner's approval before the task starts. The others quote the PRD.
   confirm them before the tracker uses them.
 - **D7:** the length of the personal dogfooding period. PRD 24.7 names the
   period but gives no length. It starts once the MVP is feature-complete.
+- **D8:** the thresholds for the "Complete profiles only" preset (completeness
+  level and photo count) and the "High-trust members" preset (completeness,
+  account age and minimum trust score; PRD 11.3).
 - The proposed acceptance criteria above.
 
 ### Order
@@ -277,11 +281,11 @@ owner's approval before the task starts. The others quote the PRD.
 A task with **proposed** criteria starts only after the owner approves them (see
 "Owner decisions needed"); each step below assumes that approval.
 
-1. Ready once its decision is made: V1-1 (D1), V1-6 (D2). V1-1 starts by
-   storing profile type as a fact: `ProfileSnapshot` has no field for it yet,
-   and `profileTypeFromCode` (`src/extraction/joyclub.ts`) has no caller.
+1. Ready once its decision is made: V1-1 (D1), V1-6 (D2), V1-11 (D8). V1-1
+   starts by storing profile type as a fact: `ProfileSnapshot` has no field
+   for it yet, and `profileTypeFromCode` (`src/extraction/joyclub.ts`) has no caller.
 2. Ready once their proposed criteria are approved: V1-7 and V1-8.
 3. Blocked on evidence and decisions: V1-3 (E1), V1-4 (E2), V1-2 (E1, E3, E4,
    D5), V1-5 (E4, D6), V1-10 (E1, E4).
-4. Last: V1-9, after V1-1 to V1-8 and V1-10, the personal dogfooding period
-   (D7), the MVP release gate, F8, D3 and D4.
+4. Last: V1-9, after V1-1 to V1-8, V1-10 and V1-11, the personal dogfooding
+   period (D7), the MVP release gate, F8, D3 and D4.
