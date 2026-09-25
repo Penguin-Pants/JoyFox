@@ -185,6 +185,8 @@ describe("options page (docs/i18n-spec.md, Sections 3.7 to 3.9)", () => {
     field("joyfox-template-name").value = "Entwurf";
     field("joyfox-template-body").value = "Noch nicht gespeichert";
     field("joyfox-rule-all-minimumPhotos-value").value = "999999999";
+    // A phrase with spaces the save would trim: a redraw keeps it as typed.
+    field("joyfox-rule-any-firstMessageContains-text").value = "  Hallo du ";
 
     // The guard sees English while English is shown.
     expect(leaks([document.body]).length).toBeGreaterThan(20);
@@ -236,6 +238,9 @@ describe("options page (docs/i18n-spec.md, Sections 3.7 to 3.9)", () => {
     expect(field("joyfox-template-body").value).toBe("Noch nicht gespeichert");
     expect(field("joyfox-rule-all-minimumPhotos-value").value).toBe(
       "999999999",
+    );
+    expect(field("joyfox-rule-any-firstMessageContains-text").value).toBe(
+      "  Hallo du ",
     );
     // Dates and numbers follow the language.
     expect(

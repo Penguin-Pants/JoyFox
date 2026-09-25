@@ -358,15 +358,18 @@ export class RulePanel {
       | { view: "advanced"; form: AdvancedForm } = this.#rules
       ? { view: "advanced", form: this.#readAdvanced(numberOrNone) }
       : { view: "simple", form: this.#readSimple(numberOrNone) };
+    // Number and phrase fields, as typed: a value that is not valid yet, or
+    // one in a condition that is not ticked, is not in the form read above.
+    const fields = "input[type=number], input.joyfox-rule__text";
     const typed = Array.from(
-      this.#form.querySelectorAll<HTMLInputElement>("input[type=number]"),
+      this.#form.querySelectorAll<HTMLInputElement>(fields),
       (input) => input.value,
     );
     const focused = document.activeElement?.id;
     this.#drawForm(document, accountId, shown);
     // The same form gives the same fields in the same order.
     this.#form
-      .querySelectorAll<HTMLInputElement>("input[type=number]")
+      .querySelectorAll<HTMLInputElement>(fields)
       .forEach((input, index) => {
         input.value = typed[index] ?? input.value;
       });
@@ -917,7 +920,7 @@ export class RulePanel {
   /**
    * Read the simple editor. By default a field that is not valid ends the
    * read with its problem. For a redraw, `number` decides what a number
-   * field gives, and text that is not valid yet is read as typed.
+   * field gives, and text is read exactly as typed.
    */
   #readSimple(): BuilderForm | Message;
   #readSimple(
@@ -947,12 +950,14 @@ export class RulePanel {
           if (value !== undefined) entry.value = value;
         }
         if (controls.text) {
-          const text = readText(controls.text, kind);
-          // A redraw (`number` given) keeps text that is not valid yet.
-          if (failed(text)) {
-            if (!number) return text;
-            entry.text = controls.text.value;
-          } else entry.text = text.text;
+          // A redraw (`number` given) keeps the text exactly as typed,
+          // valid or not.
+          if (number) entry.text = controls.text.value;
+          else {
+            const text = readText(controls.text, kind);
+            if (failed(text)) return text;
+            entry.text = text.text;
+          }
         }
         form[box][kind] = entry;
       }
@@ -1009,12 +1014,14 @@ export class RulePanel {
         const textField =
           row.querySelector<HTMLInputElement>(".joyfox-rule__text");
         if (textField) {
-          const text = readText(textField, kind);
-          // A redraw (`number` given) keeps text that is not valid yet.
-          if (failed(text)) {
-            if (!number) return text;
-            entry.text = textField.value;
-          } else entry.text = text.text;
+          // A redraw (`number` given) keeps the text exactly as typed,
+          // valid or not.
+          if (number) entry.text = textField.value;
+          else {
+            const text = readText(textField, kind);
+            if (failed(text)) return text;
+            entry.text = text.text;
+          }
         }
         rule.conditions[kind] = entry;
       }
