@@ -7,11 +7,11 @@ import type {
 } from "../domain/types";
 import { newestCaptureFirst } from "../domain/snapshot-order";
 import {
+  commitAll,
   DATABASE_VERSION,
   ENTITY_NAMES,
   openDatabase,
   requestResult,
-  transactionDone,
 } from "./database";
 import {
   IndexedDbRepository,
@@ -19,7 +19,7 @@ import {
   withoutStorageKey,
   type Stored,
 } from "./repository";
-import { validateEntity } from "./validation";
+import { validateEntity, ValidationError } from "./validation";
 
 /**
  * Profile snapshots are time-series personal data, so the store keeps only the
@@ -47,6 +47,39 @@ export class ExtensionAccountRepository extends IndexedDbRepository<"extensionAc
         .getAll() as IDBRequest<Array<Stored<ExtensionAccount>>>,
     );
     return stored.map(withoutStorageKey);
+  }
+  /**
+   * Stores a new account only if no stored account has its JoyClub
+   * identifier. The check and the write share one readwrite transaction, and
+   * IndexedDB runs such transactions on this store one at a time, in every
+   * extension context, so two creates can never both pass the check.
+   * Returns `false`, writing nothing, for a duplicate.
+   */
+  async addIfIdentifierFree(account: ExtensionAccount): Promise<boolean> {
+    validateEntity("extensionAccounts", account);
+    if (account.accountId !== account.id)
+      throw new ValidationError("An account must be its own scope");
+    const db = await openDatabase();
+    const transaction = db.transaction("extensionAccounts", "readwrite");
+    const store = transaction.objectStore("extensionAccounts");
+    let added = false;
+    await commitAll(transaction, async () => {
+      const stored = await requestResult(
+        store.getAll() as IDBRequest<Array<Stored<ExtensionAccount>>>,
+      );
+      if (
+        stored.some(
+          (existing) => existing.joyClubAccountId === account.joyClubAccountId,
+        )
+      )
+        return;
+      store.put({
+        ...account,
+        storageKey: storageKeyFor(account.id, account.id),
+      });
+      added = true;
+    });
+    return added;
   }
 }
 export class JoyClubMemberRepository extends IndexedDbRepository<"joyClubMembers"> {
@@ -326,14 +359,15 @@ export async function deleteAccountEntities(
   if (names.length === 0) return;
   const db = await openDatabase();
   const transaction = db.transaction([...names], "readwrite");
-  for (const name of names) {
-    const store = transaction.objectStore(name);
-    const keys = await requestResult(
-      store.index("accountId").getAllKeys(accountId),
-    );
-    for (const recordKey of keys) store.delete(recordKey);
-  }
-  await transactionDone(transaction);
+  await commitAll(transaction, async () => {
+    for (const name of names) {
+      const store = transaction.objectStore(name);
+      const keys = await requestResult(
+        store.index("accountId").getAllKeys(accountId),
+      );
+      for (const recordKey of keys) store.delete(recordKey);
+    }
+  });
 }
 
 export async function deleteAccountData(accountId: string): Promise<void> {
@@ -347,8 +381,9 @@ export async function deleteAccountData(accountId: string): Promise<void> {
 export async function clearAllData(): Promise<void> {
   const db = await openDatabase();
   const transaction = db.transaction([...ENTITY_NAMES], "readwrite");
-  for (const name of ENTITY_NAMES) transaction.objectStore(name).clear();
-  await transactionDone(transaction);
+  await commitAll(transaction, () => {
+    for (const name of ENTITY_NAMES) transaction.objectStore(name).clear();
+  });
 }
 
 /** The total record count over every store and scope. */
@@ -382,10 +417,11 @@ export async function putRecords(
   const names = [...new Set(writes.map((write) => write.name))];
   const db = await openDatabase();
   const transaction = db.transaction(names, "readwrite");
-  for (const { name, entity } of writes)
-    transaction.objectStore(name).put({
-      ...entity,
-      storageKey: storageKeyFor(entity.accountId, entity.id),
-    });
-  await transactionDone(transaction);
+  await commitAll(transaction, () => {
+    for (const { name, entity } of writes)
+      transaction.objectStore(name).put({
+        ...entity,
+        storageKey: storageKeyFor(entity.accountId, entity.id),
+      });
+  });
 }

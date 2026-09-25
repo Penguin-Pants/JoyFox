@@ -78,6 +78,44 @@ describe("M7 explicit active account", () => {
     ).rejects.toThrow(/already registered/);
   });
 
+  it("registers an identifier once when two creates run at once", async () => {
+    const results = await Promise.allSettled([
+      service.createAccount({ joyClubAccountId: "synthetic-a" }),
+      // A second options tab: its own service, the same database.
+      new AccountService(
+        repositories.extensionAccounts,
+        settings,
+      ).createAccount({ joyClubAccountId: " synthetic-a " }),
+    ]);
+    expect(results.map((result) => result.status).sort()).toEqual([
+      "fulfilled",
+      "rejected",
+    ]);
+    const rejected = results.find((result) => result.status === "rejected");
+    expect(String(rejected?.reason)).toMatch(/already registered/);
+    const stored = await service.listAccounts();
+    expect(stored).toHaveLength(1);
+    // The one stored account is the one that was reported as created, and
+    // it is the active one.
+    const created = results.find((result) => result.status === "fulfilled");
+    expect(created?.status === "fulfilled" && created.value.id).toBe(
+      stored[0]!.id,
+    );
+    expect(settings.items.get(ACTIVE_ACCOUNT_SETTING_KEY)).toBe(stored[0]!.id);
+  });
+
+  it("stores nothing and activates nothing for a duplicate", async () => {
+    const first = await service.createAccount({
+      joyClubAccountId: "synthetic-a",
+    });
+    await service.clearActiveAccount();
+    await expect(
+      service.createAccount({ joyClubAccountId: "synthetic-a" }),
+    ).rejects.toThrow(/already registered/);
+    expect((await service.listAccounts()).map((a) => a.id)).toEqual([first.id]);
+    expect(settings.items.has(ACTIVE_ACCOUNT_SETTING_KEY)).toBe(false);
+  });
+
   it("refuses to activate an unregistered account", async () => {
     await expect(
       service.setActiveAccount("not-a-real-account"),

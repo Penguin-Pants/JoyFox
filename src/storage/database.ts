@@ -128,3 +128,30 @@ export function transactionDone(transaction: IDBTransaction): Promise<void> {
     transaction.onabort = () => reject(transaction.error);
   });
 }
+
+/**
+ * Run `work` inside a readwrite transaction, so its writes commit together
+ * or not at all. IndexedDB aborts on a failed request by itself, but not
+ * when code between requests throws: the requests already queued would
+ * still commit. So a throw aborts the transaction here, then is rethrown.
+ */
+export async function commitAll(
+  transaction: IDBTransaction,
+  work: () => void | Promise<void>,
+): Promise<void> {
+  const done = transactionDone(transaction);
+  // A failed request can reject `done` while `work` still runs; it is
+  // awaited below, or replaced by the error `work` throws.
+  done.catch(() => undefined);
+  try {
+    await work();
+  } catch (error) {
+    try {
+      transaction.abort();
+    } catch {
+      // Already finished or aborted by a failed request.
+    }
+    throw error;
+  }
+  await done;
+}

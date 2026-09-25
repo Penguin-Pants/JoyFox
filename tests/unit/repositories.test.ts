@@ -7,9 +7,11 @@ import type {
 } from "../../src/domain/types";
 import { ENTITY_NAMES } from "../../src/storage/database";
 import {
+  clearAllData,
   deleteAccountData,
   exportAccount,
   PROFILE_SNAPSHOT_RETENTION,
+  putRecords,
   repositories,
 } from "../../src/storage/repositories";
 import { freshDatabase } from "../setup-indexeddb";
@@ -272,5 +274,98 @@ describe("F6 repositories", () => {
     await expect(
       repositories.actionLogs.put("account-a", malformed as never),
     ).rejects.toThrow("ok must be a boolean");
+  });
+});
+
+describe("F6 writes commit together or not at all", () => {
+  beforeEach(freshDatabase);
+
+  /** Make one store's method throw, as a storage error between requests would. */
+  function failIn<M extends "put" | "delete" | "clear">(
+    method: M,
+    store: EntityName,
+  ): () => void {
+    const original = IDBObjectStore.prototype[method];
+    IDBObjectStore.prototype[method] = function (
+      this: IDBObjectStore,
+      ...args: unknown[]
+    ) {
+      if (this.name === store) throw new Error("injected storage failure");
+      return (original as (...a: unknown[]) => IDBRequest).apply(this, args);
+    } as never;
+    return () => {
+      IDBObjectStore.prototype[method] = original;
+    };
+  }
+
+  it("writes no record of an import when a later one fails", async () => {
+    const restore = failIn("put", "userTags");
+    try {
+      await expect(
+        putRecords([
+          { name: "userNotes", entity: entity("userNotes", "account-a", "n") },
+          { name: "userTags", entity: entity("userTags", "account-a", "t") },
+        ]),
+      ).rejects.toThrow("injected storage failure");
+    } finally {
+      restore();
+    }
+    expect(await repositories.userNotes.list("account-a")).toEqual([]);
+  });
+
+  it("clears no store when a later store fails", async () => {
+    await repositories.userNotes.put(
+      "account-a",
+      entity("userNotes", "account-a", "n"),
+    );
+    const restore = failIn("clear", ENTITY_NAMES.at(-1)!);
+    try {
+      await expect(clearAllData()).rejects.toThrow("injected storage failure");
+    } finally {
+      restore();
+    }
+    expect(await repositories.userNotes.list("account-a")).toHaveLength(1);
+  });
+
+  it("keeps an account's records when a later store fails", async () => {
+    await repositories.userNotes.put(
+      "account-a",
+      entity("userNotes", "account-a", "n"),
+    );
+    const restore = failIn("delete", ENTITY_NAMES.at(-1)!);
+    await repositories[ENTITY_NAMES.at(-1)!].put(
+      "account-a",
+      entity(ENTITY_NAMES.at(-1)!, "account-a", "last") as never,
+    );
+    try {
+      await expect(deleteAccountData("account-a")).rejects.toThrow(
+        "injected storage failure",
+      );
+    } finally {
+      restore();
+    }
+    expect(await repositories.userNotes.list("account-a")).toHaveLength(1);
+  });
+
+  it("does not store a snapshot whose retention purge fails", async () => {
+    for (let index = 0; index < PROFILE_SNAPSHOT_RETENTION; index += 1)
+      await repositories.profileSnapshots.put("account-a", {
+        ...entity("profileSnapshots", "account-a", `snapshot-${index}`),
+        capturedAt: new Date(Date.parse(now) + index * 1000).toISOString(),
+      });
+    const restore = failIn("delete", "profileSnapshots");
+    try {
+      await expect(
+        repositories.profileSnapshots.put("account-a", {
+          ...entity("profileSnapshots", "account-a", "newest"),
+          capturedAt: new Date(Date.parse(now) + 60_000).toISOString(),
+        }),
+      ).rejects.toThrow("injected storage failure");
+    } finally {
+      restore();
+    }
+    const stored = await repositories.profileSnapshots.list("account-a");
+    expect(stored.map(({ id }) => id)).not.toContain("newest");
+    expect(stored).toHaveLength(PROFILE_SNAPSHOT_RETENTION);
   });
 });
