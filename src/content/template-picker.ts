@@ -230,8 +230,9 @@ export class TemplatePicker {
 
 /**
  * Grouped and sorted by the shown folder name, so "General" is one group
- * and sits where its name reads in the language shown. Within a group the
- * background's order (by name) stays.
+ * and sits where its name reads in the language shown. A folder the user
+ * named "General" merges with templates without one, so each group is
+ * sorted by name again.
  */
 function groupByFolder(
   templates: readonly TemplateSummary[],
@@ -243,5 +244,9 @@ function groupByFolder(
     group.push(template);
     groups.set(folder, group);
   }
+  for (const group of groups.values())
+    group.sort(
+      (a, b) => a.name.localeCompare(b.name) || a.id.localeCompare(b.id),
+    );
   return Array.from(groups).sort(([a], [b]) => a.localeCompare(b));
 }
