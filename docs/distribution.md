@@ -114,8 +114,8 @@ rebuild match the submitted file.
 - Personal data may be collected only after explicit consent. No Mozilla policy
   text found in this pass addresses an extension that clicks a site's own
   controls for the user (M9). That risk stays the one the PRD names: JoyClub's
-  terms (PRD Sections 18.3 and 18.4), not Mozilla policy. The ToS review in PRD
-  Section 23 is still open.
+  terms (PRD Sections 18.3 and 18.4), not Mozilla policy. The owner chose no ToS
+  review; the release carries a disclaimer instead (D4, ADR 0016).
 
 ## Owner decisions
 

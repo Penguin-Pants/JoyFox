@@ -238,7 +238,7 @@ owner's approval before the task starts. The others quote the PRD.
 | V1-11 | Rule presets: Open, Complete profiles only, Verified members, High-trust members and Custom (PRD 11.3). **Done (2026-09-26):** "Start from a preset" on the contact rule fills the Simple editor and saves (`src/rules/presets.ts`); live check: `manual-acceptance.md`, items 105 to 107 | M4's rule builder (built); D8 (answered, ADR 0016) | The presets mirror the standalone spec's presets (PRD 11.3). **Approved (owner, 2026-09-26, ADR 0016):** each preset fills the builder with the conditions ADR 0016 lists (from PRD 11.3 and the D8 values); the user can then edit the result like any other rule; Custom opens the builder with no conditions set. | S |
 | V1-12 | Configurable `ProfileSnapshot` retention (PRD 13.3). **Done (2026-09-26):** "Profile snapshots kept per member" on "Your data" (`joyfox.snapshotRetention`, 1 to 100, default 20); saving a lower number prunes every member at once (`src/storage/snapshot-retention.ts`); live check: `manual-acceptance.md`, items 103 and 104 | None | The default keeps the latest snapshot plus a short history window, configurable, to bound how much sensitive data sits at rest (PRD 13.3). **Approved (owner, 2026-09-26, ADR 0016):** a setting controls how many snapshots are kept per member, default 20 (the current value); after the user lowers it, each member keeps only that many of the newest snapshots, including the ones already stored; the latest snapshot is always kept. | S |
 | V1-13 | Shared-event exception: store the attendees that a tracked event's page shows, and a configurable triage exception for senders who share a tracked event with the user (PRD 7.4, 9.3). `EventMetadata` has no attendee field yet (`src/domain/types.ts`). "Previously met" is already the "Personally known" rule condition (ADR 0015) | V1-5; E4 | The extension reads and locally caches whatever attendee information JoyClub's own event page already renders to the logged-in viewer (PRD 9.3). A shared event co-attendee gets a configurable, but not automatic, exception; every exception is per-sender and reversible (PRD 7.4). **Proposed:** opening a tracked event's page stores the shown attendees' profile IDs with that event, and that member's profile page lists the event; the exception is off by default; with it on, a sender who appears on a tracked event that the user marked as attending is placed Qualified, the "Why" panel names the event, and the user can undo it for that sender. | M |
-| V1-9 | Self-distributed public release on GitHub (PRD 18.2, 20) | V1-2 to V1-5, V1-7, V1-8 and V1-10 to V1-13 (V1-1 is dropped; V1-6 is deferred); the personal dogfooding period after MVP feature-complete (PRD 24.7: "MVP feature-complete → personal dogfooding period → V1 feature-complete → self-distributed public release"; D7); MVP release gate (build plan Section 28); F8; D3 (answered); D4 | **Proposed:** the GitHub repository and its release are public and hold the source under the chosen license (D3); the signed build attached to the release installs on release Firefox and passes the MVP release gate; building the release tag's public source with the documented command gives files identical to the ones in the signed `.xpi`, apart from the signature files (reproducible builds, PRD 13.2). | M |
+| V1-9 | Self-distributed public release on GitHub (PRD 18.2, 20) | V1-2 to V1-5, V1-7, V1-8 and V1-10 to V1-13 (V1-1 is dropped; V1-6 is deferred); the personal dogfooding period after MVP feature-complete (PRD 24.7: "MVP feature-complete → personal dogfooding period → V1 feature-complete → self-distributed public release"; D7); MVP release gate (build plan Section 28); F8; D3 (answered); D4 (answered: disclaimer, ADR 0016) | **Proposed:** the GitHub repository and its release are public and hold the source under the chosen license (D3); the release page repeats the README's disclaimer (D4); the signed build attached to the release installs on release Firefox and passes the MVP release gate; building the release tag's public source with the documented command gives files identical to the ones in the signed `.xpi`, apart from the signature files (reproducible builds, PRD 13.2). | M |
 
 ### Blocked on site evidence
 
@@ -261,9 +261,10 @@ owner's approval before the task starts. The others quote the PRD.
   Section 23). The encryption is decided (ADR 0002).
 - **D3:** answered (owner, 2026-09-26, ADR 0016): GNU GPL version 3 or later
   (`GPL-3.0-or-later`), repository name `JoyFox`. The `LICENSE` file is added.
-- **D4:** the formal ToS review of JoyClub's terms and the GDPR
-  household-exemption consult, both recommended before any public release (PRD
-  Section 23).
+- **D4:** answered (owner, 2026-09-26, ADR 0016): no ToS review and no GDPR
+  consult; the release carries a disclaimer instead (README, "Disclaimer"),
+  against the recommended review. The owner can still choose a review before
+  V1-9 ships.
 - **D5:** answered (owner, 2026-09-26, ADR 0016): every preference section the
   checklist shows (exact list confirmed from E3); shared tags highlighted on
   the profile page, and an "N shared" count on cards and for the sort; no
@@ -292,4 +293,4 @@ A task with **proposed** criteria starts only after the owner approves them (see
 3. Blocked on evidence or other tasks: V1-3 (E1), V1-4 (E2), V1-2 (E1, E3,
    E4), V1-5 (E4), V1-10 (E1, E4), V1-13 (V1-5, E4).
 4. Last: V1-9, after V1-2 to V1-5, V1-7, V1-8 and V1-10 to V1-13, the personal
-   dogfooding period (D7), the MVP release gate, F8 and D4.
+   dogfooding period (D7), the MVP release gate and F8.

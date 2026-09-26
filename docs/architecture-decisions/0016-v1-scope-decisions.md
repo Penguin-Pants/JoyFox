@@ -1,4 +1,4 @@
-# 0016: V1 scope decisions: no per-audience rules, license, presets, no sync yet, overlay and attendance
+# 0016: V1 scope decisions: no per-audience rules, license, presets, no sync yet, overlay, attendance, disclaimer
 
 ## Status
 
@@ -109,3 +109,23 @@ export it under "Your data" before the switch and import it after.
    validation accept the new value now; no screen writes it until V1-5. V1-13's
    shared-event exception uses Attending, as its criteria say, and the V1-13
    task decides whether Attended also counts.
+
+## Amendment: D4 (project owner, 2026-09-26)
+
+**D4: no ToS review and no GDPR consult before the public release; the release
+carries a disclaimer instead.** This overrides the recommendations in PRD
+Sections 18.3, 18.5 and 23. The owner chose it against the recommended option (a
+self-review of JoyClub's terms plus one short GDPR consult), with the risks
+stated:
+
+- Nobody knows whether JoyClub's terms forbid tools like JoyFox. If they do,
+  users can lose their accounts (PRD 18.4). Quick Ignore and Delete (M9) carries
+  the highest risk and stays off by default.
+- The household exemption (GDPR Article 2(2)(c)) very likely covers one user's
+  private use, but it is not confirmed for a public open-source release. Sync is
+  deferred (V1-6), so no data leaves the device.
+
+The README states the disclaimer ("Disclaimer"): no connection to JoyClub, the
+unchecked terms and the account risk, local storage of data about other members
+and the user's responsibility for it, and no warranty. V1-9's release page
+repeats it. The owner can still choose a review before V1-9 ships.
