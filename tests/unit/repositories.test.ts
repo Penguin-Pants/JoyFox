@@ -196,6 +196,9 @@ describe("F6 repositories", () => {
     for (const [field, value] of [
       ["kind", "party"],
       ["startLocal", "2026-09-27 21:00"],
+      ["startLocal", "2026-99-99T25:00"],
+      ["startLocal", "2026-02-30"],
+      ["startLocal", "2026-09-27T24:00"],
       ["path", "/profile/1234567.name.html"],
       ["venueId", "club"],
       ["title", ""],

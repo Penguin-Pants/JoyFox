@@ -13,6 +13,7 @@ import type {
 import { ExtensionError } from "../errors";
 import { isLocale, LOCALE_KEY } from "../i18n/locale";
 import { message, type Message } from "../i18n/message";
+import { MAX_EVENT_TAGS, notesProblem } from "../events/listing";
 import { MAX_NOTE_LENGTH, MAX_TAG_LENGTH } from "../notes/limits";
 import {
   MAX_NORMALIZED_PHRASE_LENGTH,
@@ -302,6 +303,31 @@ function domainProblem(
         normalizePhrase(record.phrase) !== record.phrase
         ? { text: "phrase is not in normalized form" }
         : tooLong("phrase", MAX_NORMALIZED_PHRASE_LENGTH);
+    case "eventMetadata": {
+      // The tracker's own limits, so the editor can save the record again.
+      const problem = notesProblem({
+        note: typeof record.note === "string" ? record.note : "",
+        tags: Array.isArray(record.tags)
+          ? record.tags.filter((tag): tag is string => typeof tag === "string")
+          : [],
+        attendance: "unknown",
+      });
+      if (problem === "note")
+        return {
+          text: `note is longer than ${MAX_NOTE_LENGTH} characters`,
+          field: "note",
+          maximum: MAX_NOTE_LENGTH,
+        };
+      if (problem === "tag")
+        return {
+          text: `a tag is longer than ${MAX_TAG_LENGTH} characters`,
+          field: "tags",
+          maximum: MAX_TAG_LENGTH,
+        };
+      return problem === "tags"
+        ? { text: `more than ${MAX_EVENT_TAGS} tags` }
+        : undefined;
+    }
     default:
       return undefined;
   }

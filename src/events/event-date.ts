@@ -60,3 +60,18 @@ export function parseEventStart(text: string): string | undefined {
   if (hour > 23 || minute > 59) return date;
   return `${date}T${pad(hour)}:${pad(minute)}`;
 }
+
+/**
+ * True for a stored start (`YYYY-MM-DD` or `YYYY-MM-DDTHH:mm`) that names a
+ * real day and time. A value such as `2026-99-99T25:00` is refused, so it
+ * is never shown as another day.
+ */
+export function isWallTime(value: string): boolean {
+  const match = /^(\d{4})-(\d{2})-(\d{2})(?:T(\d{2}):(\d{2}))?$/u.exec(value);
+  if (!match) return false;
+  if (!validDay(Number(match[1]), Number(match[2]), Number(match[3])))
+    return false;
+  return (
+    match[4] === undefined || (Number(match[4]) <= 23 && Number(match[5]) <= 59)
+  );
+}

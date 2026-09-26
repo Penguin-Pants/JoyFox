@@ -1,4 +1,5 @@
 import type { EventMetadata } from "../domain/types";
+import { isWallTime } from "../events/event-date";
 import type { EventTrackerService } from "../events/event-service";
 import {
   ATTENDANCE_VALUES,
@@ -26,7 +27,6 @@ export interface ListingHandlerDeps extends ActiveAccountSource {
 type SaveAnswer = MessageContract["listing.save"]["response"];
 
 const NUMBER = /^\d{1,12}$/u;
-const START = /^\d{4}-\d{2}-\d{2}(T\d{2}:\d{2})?$/u;
 const PATH = /^\/(event|club)\/\d{1,12}\.[^/]+\.html$/u;
 
 export function summarize(record: EventMetadata): ListingSummary {
@@ -69,7 +69,9 @@ function listingFacts(value: unknown): ListingFacts {
     throw invalid("listing facts");
   const facts = value as Record<string, unknown>;
   const title = optionalText(facts.title);
-  const startLocal = optionalText(facts.startLocal, START);
+  const startLocal = optionalText(facts.startLocal);
+  if (startLocal !== undefined && !isWallTime(startLocal))
+    throw invalid("listing fact");
   const path = optionalText(facts.path, PATH);
   const venueId = optionalText(facts.venueId, NUMBER);
   const venueName = optionalText(facts.venueName);

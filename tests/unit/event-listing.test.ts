@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { parseEventStart } from "../../src/events/event-date";
+import { isWallTime, parseEventStart } from "../../src/events/event-date";
 import {
   cleanTags,
   compareListings,
@@ -31,6 +31,22 @@ describe("V1-5 event start from the page", () => {
       expect(parseEventStart(text), text).toBeUndefined();
     // A time out of range keeps the date only.
     expect(parseEventStart("27. September 2026 - ab 25:00")).toBe("2026-09-27");
+  });
+});
+
+describe("V1-5 stored start", () => {
+  it("accepts only a real day and time", () => {
+    for (const value of ["2026-09-27", "2026-09-27T21:00", "2028-02-29T00:00"])
+      expect(isWallTime(value), value).toBe(true);
+    for (const value of [
+      "2026-99-99T25:00",
+      "2026-02-29",
+      "2026-09-27T24:00",
+      "2026-09-27T21:60",
+      "2026-9-27",
+      "27.09.2026",
+    ])
+      expect(isWallTime(value), value).toBe(false);
   });
 });
 

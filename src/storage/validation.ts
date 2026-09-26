@@ -1,5 +1,6 @@
 import { isStrictIsoDate } from "../domain/iso-date";
 import type { AccountScopedEntity, EntityName } from "../domain/types";
+import { isWallTime } from "../events/event-date";
 import { isMessage } from "../i18n/message";
 import { contactRuleProblem } from "../rules/contact-rule";
 import { MAX_NORMALIZED_PHRASE_LENGTH } from "../rules/message-phrase";
@@ -242,9 +243,7 @@ export function validateEntity(
       optionalString(record, "title");
       if (
         record.startLocal !== undefined &&
-        !/^\d{4}-\d{2}-\d{2}(T\d{2}:\d{2})?$/u.test(
-          requireString(record, "startLocal"),
-        )
+        !isWallTime(requireString(record, "startLocal"))
       )
         throw new ValidationError("startLocal must be YYYY-MM-DD[THH:mm]");
       if (

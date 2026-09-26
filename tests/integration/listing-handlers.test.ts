@@ -229,6 +229,7 @@ describe("V1-5 listing handlers", () => {
       { tags: "one" },
       { note: 7 },
       { facts: { startLocal: "tomorrow" } },
+      { facts: { startLocal: "2026-13-01T21:00" } },
       { facts: { path: "/profile/1.x.html" } },
       { facts: { venueId: "x" } },
       { facts: null },
