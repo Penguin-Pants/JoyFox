@@ -647,3 +647,22 @@ sending-page check does not refuse the normal hand-off.
      sorted, note it: the list's layout needs a new capture.
 120. Switch the language to German and confirm "N gemeinsam" and a German
      section. Switch the active account and confirm every count disappears.
+
+## Conversation History Search (V1-4)
+
+121. Open the JoyFox options, tab "Messages". Confirm "Store the messages I open
+     in ClubMail" is ticked and "Keep messages for (months)" shows 12. Open a
+     ClubMail conversation with a few sent and received messages, then search
+     "Messages" for a word from one of them. Confirm every message with that
+     word is listed, marked, with "Member <ID> to you" or "You to member <ID>"
+     and the time, and no message without it.
+122. Reload the conversation and search again. Confirm no message is listed
+     twice. Search a word with different capital letters and extra spaces and
+     confirm the same results.
+123. Untick the switch and confirm "Message storing is off." Open another
+     conversation, then search a word from it and confirm nothing is found. Tick
+     it again.
+124. Set "Keep messages for (months)" to 1 and save. Confirm the message says
+     how many older messages were deleted. Under "Your data", show "Stored
+     messages (for search)" and delete one; confirm search no longer finds it.
+     Switch the language to German and confirm the tab is German.

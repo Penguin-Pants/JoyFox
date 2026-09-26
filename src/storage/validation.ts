@@ -2,6 +2,11 @@ import { isStrictIsoDate } from "../domain/iso-date";
 import type { AccountScopedEntity, EntityName } from "../domain/types";
 import { isWallTime } from "../events/event-date";
 import { normalizeLabel } from "../extraction/preferences";
+import {
+  CONVERSATION_ID_PATTERN,
+  MAX_MESSAGE_TEXT_LENGTH,
+  MESSAGE_ID_PATTERN,
+} from "../messages/message-settings";
 import { isMessage } from "../i18n/message";
 import { contactRuleProblem } from "../rules/contact-rule";
 import { MAX_NORMALIZED_PHRASE_LENGTH } from "../rules/message-phrase";
@@ -351,6 +356,27 @@ export function validateEntity(
       requireDate(record, "decidedAt");
       optionalString(record, "reason");
       break;
+    case "cachedMessages": {
+      const messageId = requireString(record, "messageId");
+      if (!MESSAGE_ID_PATTERN.test(messageId))
+        throw new ValidationError("messageId must be JoyClub's message ID");
+      if (record.id !== `message:${messageId}`)
+        throw new ValidationError("id must be message:<messageId>");
+      const conversationId = requireString(record, "conversationId");
+      if (!CONVERSATION_ID_PATTERN.test(conversationId))
+        throw new ValidationError("conversationId must be personal-<n>-<n>");
+      const memberId = requireString(record, "memberId");
+      if (!conversationId.split("-").slice(1).includes(memberId))
+        throw new ValidationError("memberId must be in the conversation");
+      requireEnum(record, "direction", ["sent", "received"]);
+      if (record.sentAt !== undefined) requireDate(record, "sentAt");
+      const text = requireString(record, "text");
+      if (text.trim().length === 0 || text.length > MAX_MESSAGE_TEXT_LENGTH)
+        throw new ValidationError(
+          `text must hold 1 to ${MAX_MESSAGE_TEXT_LENGTH} characters`,
+        );
+      break;
+    }
     case "messagePhraseMatches":
       // Closed like messageObservations: only the result is stored, so a
       // field carrying message text cannot be added by accident.

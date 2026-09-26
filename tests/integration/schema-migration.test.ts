@@ -119,12 +119,12 @@ describe("schema version 2", () => {
     expect(note?.body).toBe("Note written before the upgrade");
   });
 
-  it("upgrades a version 2 database by adding only the phrase match store", async () => {
+  it("upgrades a version 2 database by adding only the later stores", async () => {
     await createOlderDatabase(2, VERSION_2_STORES);
     const db = await openDatabase();
     expect(db.version).toBe(DATABASE_VERSION);
     expect(Array.from(db.objectStoreNames).sort()).toEqual(
-      [...VERSION_2_STORES, "messagePhraseMatches"].sort(),
+      [...VERSION_2_STORES, "messagePhraseMatches", "cachedMessages"].sort(),
     );
     const note = await repositories.userNotes.get(ACCOUNT, "note-1");
     expect(note?.body).toBe("Note written before the upgrade");
@@ -312,7 +312,7 @@ describe("schema version 4", () => {
         },
       ]);
       const db = await openDatabase();
-      expect(db.version).toBe(4);
+      expect(db.version).toBe(DATABASE_VERSION);
       expect(db.objectStoreNames.contains("messagePhraseMatches")).toBe(true);
       const stored =
         await repositories.conversationClassifications.list(ACCOUNT);
@@ -370,7 +370,7 @@ describe("schema version 4", () => {
   it("upgrades a version 1 database through every version", async () => {
     await createOlderDatabase(1, VERSION_1_STORES);
     const db = await openDatabase();
-    expect(db.version).toBe(4);
+    expect(db.version).toBe(DATABASE_VERSION);
     expect((await repositories.userNotes.get(ACCOUNT, "note-1"))?.body).toBe(
       "Note written before the upgrade",
     );
@@ -390,5 +390,24 @@ describe("schema version 4", () => {
         updatedAt: "2026-09-20T00:00:00.000Z",
       }),
     ).rejects.toThrow("catalog messages");
+  });
+});
+
+describe("schema version 5", () => {
+  beforeEach(async () => {
+    await freshDatabase();
+  });
+
+  it("upgrades a version 4 database by adding only the cached message store", async () => {
+    await createOlderDatabase(4, [...VERSION_2_STORES, "messagePhraseMatches"]);
+    const db = await openDatabase();
+    expect(db.version).toBe(5);
+    expect(Array.from(db.objectStoreNames).sort()).toEqual(
+      [...ENTITY_NAMES].sort(),
+    );
+    expect((await repositories.userNotes.get(ACCOUNT, "note-1"))?.body).toBe(
+      "Note written before the upgrade",
+    );
+    expect(await repositories.cachedMessages.list(ACCOUNT)).toEqual([]);
   });
 });

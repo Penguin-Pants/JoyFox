@@ -17,6 +17,9 @@ import {
 import { freshDatabase } from "../setup-indexeddb";
 
 const now = "2026-09-22T00:00:00.000Z";
+/** A cached message's ID is derived from JoyClub's message ID (V1-4). */
+const MESSAGE_ID = "cm-message-00000000-0000-4000-8000-000000000001";
+
 const entityData: {
   [N in EntityName]: Omit<EntityMap[N], keyof AccountScopedEntity>;
 } = {
@@ -91,6 +94,14 @@ const entityData: {
     phrase: "blue heron",
     matchedAt: now,
   },
+  cachedMessages: {
+    messageId: MESSAGE_ID,
+    conversationId: "personal-1111111-1234567",
+    memberId: "1234567",
+    direction: "received",
+    sentAt: now,
+    text: "Invented synthetic message",
+  },
 };
 
 function entity<N extends EntityName>(
@@ -99,7 +110,7 @@ function entity<N extends EntityName>(
   id: string,
 ): EntityMap[N] {
   return {
-    id,
+    id: name === "cachedMessages" ? `message:${MESSAGE_ID}` : id,
     accountId,
     createdAt: now,
     updatedAt: now,
@@ -117,14 +128,13 @@ describe("F6 repositories", () => {
         list(a: string): Promise<AccountScopedEntity[]>;
         delete(a: string, id: string): Promise<void>;
       };
-      await repo.put("account-a", entity(name, "account-a", `${name}-1`));
-      await repo.put("account-b", entity(name, "account-b", `${name}-1`));
-      expect((await repo.get("account-a", `${name}-1`))?.accountId).toBe(
-        "account-a",
-      );
+      const { id } = entity(name, "account-a", `${name}-1`);
+      await repo.put("account-a", entity(name, "account-a", id));
+      await repo.put("account-b", entity(name, "account-b", id));
+      expect((await repo.get("account-a", id))?.accountId).toBe("account-a");
       expect(await repo.list("account-a")).toHaveLength(1);
-      await repo.delete("account-a", `${name}-1`);
-      expect(await repo.get("account-a", `${name}-1`)).toBeUndefined();
+      await repo.delete("account-a", id);
+      expect(await repo.get("account-a", id)).toBeUndefined();
       expect(await repo.list("account-b")).toHaveLength(1);
     });
 

@@ -1,4 +1,5 @@
 import type {
+  CachedMessage,
   EntityMap,
   EntityName,
   ExtensionAccount,
@@ -19,6 +20,7 @@ import {
   withoutStorageKey,
   type Stored,
 } from "./repository";
+import { messageTime } from "../messages/message-settings";
 import { DEFAULT_SNAPSHOT_RETENTION } from "./snapshot-retention";
 import { validateEntity, ValidationError } from "./validation";
 
@@ -266,6 +268,34 @@ export class MessagePhraseMatchRepository extends IndexedDbRepository<"messagePh
     super("messagePhraseMatches");
   }
 }
+export class CachedMessageRepository extends IndexedDbRepository<"cachedMessages"> {
+  constructor() {
+    super("cachedMessages");
+  }
+  /**
+   * Deletes every cached message, in every account, older than `cutoff`
+   * (an ISO date), in one transaction. A message's age counts from when it
+   * was sent, or from when it was stored when the page showed no time.
+   * Returns how many were deleted.
+   */
+  async pruneOlderThan(cutoff: string): Promise<number> {
+    const db = await openDatabase();
+    const transaction = db.transaction("cachedMessages", "readwrite");
+    const store = transaction.objectStore("cachedMessages");
+    let deleted = 0;
+    await commitAll(transaction, async () => {
+      const all = await requestResult(
+        store.getAll() as IDBRequest<Array<Stored<CachedMessage>>>,
+      );
+      for (const message of all)
+        if (Date.parse(messageTime(message)) < Date.parse(cutoff)) {
+          store.delete(message.storageKey);
+          deleted += 1;
+        }
+    });
+    return deleted;
+  }
+}
 
 export const repositories = {
   extensionAccounts: new ExtensionAccountRepository(),
@@ -287,6 +317,7 @@ export const repositories = {
   senderSpamOverrides: new SenderSpamOverrideRepository(),
   actionLogs: new ActionLogRepository(),
   messagePhraseMatches: new MessagePhraseMatchRepository(),
+  cachedMessages: new CachedMessageRepository(),
 };
 
 export interface DataExport {

@@ -5,9 +5,10 @@ export const DATABASE_NAME = "joyfox";
 /**
  * Version 4 adds no store: it rewrites the stored reasons of manual
  * placements from English text to catalog messages (docs/i18n-spec.md,
- * ADR 0014).
+ * ADR 0014). Version 5 adds the cached messages of Conversation History
+ * Search (V1-4).
  */
-export const DATABASE_VERSION = 4;
+export const DATABASE_VERSION = 5;
 
 /** The stores schema version 1 created. Frozen: it describes history. */
 const VERSION_1_ENTITY_NAMES: readonly EntityName[] = [
@@ -38,10 +39,14 @@ const VERSION_2_ENTITY_NAMES: readonly EntityName[] = [
 /** The store schema version 3 added, for "First message contains". */
 const VERSION_3_ENTITY_NAMES: readonly EntityName[] = ["messagePhraseMatches"];
 
+/** The store schema version 5 added, for Conversation History Search. */
+const VERSION_5_ENTITY_NAMES: readonly EntityName[] = ["cachedMessages"];
+
 export const ENTITY_NAMES: readonly EntityName[] = [
   ...VERSION_1_ENTITY_NAMES,
   ...VERSION_2_ENTITY_NAMES,
   ...VERSION_3_ENTITY_NAMES,
+  ...VERSION_5_ENTITY_NAMES,
 ];
 
 let connection: Promise<IDBDatabase> | undefined;
@@ -89,6 +94,7 @@ export function openDatabase(): Promise<IDBDatabase> {
       if (event.oldVersion < 2) createStores(VERSION_2_ENTITY_NAMES);
       if (event.oldVersion < 3) createStores(VERSION_3_ENTITY_NAMES);
       if (event.oldVersion < 4) migrateToVersion4(db, request.transaction);
+      if (event.oldVersion < 5) createStores(VERSION_5_ENTITY_NAMES);
     };
     request.onsuccess = () => {
       const db = request.result;

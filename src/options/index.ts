@@ -17,7 +17,13 @@ import { TRIAGE_REVISION_KEY } from "../storage/triage-revision";
 import { mountAccountPanel, type AccountPanel } from "./account-panel";
 import { EVENT_REVISION_KEY } from "../storage/event-revision";
 import { DataPanel } from "./data-panel";
+import {
+  MESSAGE_CACHING_KEY,
+  MESSAGE_RETENTION_KEY,
+} from "../messages/message-settings";
+import { MESSAGE_REVISION_KEY } from "../storage/message-revision";
 import { EventsPanel } from "./events-panel";
+import { MessagesPanel } from "./messages-panel";
 import { GetStartedPanel } from "./get-started";
 import { RulePanel } from "./rule-panel";
 import { OptionsTabs } from "./tabs";
@@ -61,6 +67,10 @@ const eventsRoot = find("joyfox-events");
 const events = eventsRoot ? new EventsPanel(eventsRoot) : undefined;
 const renderEvents = quietly(async () => events?.render());
 
+const messagesRoot = find("joyfox-messages");
+const messages = messagesRoot ? new MessagesPanel(messagesRoot) : undefined;
+const renderMessages = quietly(async () => messages?.render());
+
 const ruleRoot = find("joyfox-rule");
 const rules = ruleRoot ? new RulePanel(ruleRoot) : undefined;
 const renderRules = quietly(async () => rules?.render());
@@ -87,6 +97,7 @@ function refreshAll(): void {
   renderRules();
   renderTemplates();
   renderEvents();
+  renderMessages();
 }
 
 /**
@@ -115,6 +126,7 @@ onLocaleChange((locale) => {
   if (rules) void rules.localeChanged().catch(() => undefined);
   renderTemplates();
   renderEvents();
+  renderMessages();
   renderData();
 });
 
@@ -134,6 +146,7 @@ browser.storage.onChanged.addListener((changes, area) => {
     renderRules();
     renderTemplates();
     renderEvents();
+    renderMessages();
     renderData();
   }
   // Another tab may have saved or removed the rule. Redraw only if the
@@ -143,7 +156,17 @@ browser.storage.onChanged.addListener((changes, area) => {
     renderStart();
     if (rules) void rules.refreshIfChanged().catch(() => undefined);
     renderEvents();
+    renderMessages();
     renderData();
+  }
+  // Messages stored from a conversation, or the message settings (V1-4).
+  if (
+    MESSAGE_REVISION_KEY in changes ||
+    MESSAGE_CACHING_KEY in changes ||
+    MESSAGE_RETENTION_KEY in changes
+  ) {
+    renderMessages();
+    if (MESSAGE_REVISION_KEY in changes) renderData();
   }
   // Event notes saved on a JoyClub page.
   if (EVENT_REVISION_KEY in changes) {
@@ -165,5 +188,6 @@ void readLocale(runtimeSettingsArea).then((locale) => {
   renderRules();
   renderTemplates();
   renderEvents();
+  renderMessages();
   renderData();
 });

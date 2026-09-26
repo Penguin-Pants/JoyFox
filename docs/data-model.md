@@ -91,14 +91,31 @@ committed note or tag write sets `joyfox.notesRevision` in `storage.local` to a
 random token, so another open page reloads its editor at once. It is separate
 from the triage revision, so a note does not make open inboxes re-evaluate.
 
+## Cached messages (V1-4)
+
+CachedMessage holds one ClubMail message the user had on screen, for
+Conversation History Search. Its ID is `message:<messageId>`, where `messageId`
+is JoyClub's own `cm-message-<uuid>`; it keeps the conversation ID
+(`personal-<n>-<n>`), the other member's ID (one of the numbers in the
+conversation ID), the direction (`sent` or `received`), the send time when the
+page shows one, and the text as shown (1 to 10,000 characters). A message is
+filed under the first conversation it was seen in and never moved. Messages are
+stored only while `joyfox.messageCaching` is not `false`. The purge window is
+`joyfox.messageRetentionMonths` (12 by default, 1 to 120): a message older than
+the window, by its send time or else by when it was stored, is not stored, and
+every store, a change of the window and an import delete the ones already older,
+in every account. `joyfox.messageRevision` is a change marker for open options
+pages.
+
 ## Schema versions
 
 Version 1 created the 16 PRD entities. Version 2 adds `messageObservations` and
-`senderSpamOverrides`. Version 3 adds `messagePhraseMatches`. Each version's
-upgrade branch creates only its own stores, so a fresh install runs every branch
-in order without any store being created twice. An upgrade from version 1 or 2
-keeps every existing record. An export names the database version; import
-accepts a file from this version or an earlier one.
+`senderSpamOverrides`. Version 3 adds `messagePhraseMatches`. Version 5 adds
+`cachedMessages` (V1-4). Each version's upgrade branch creates only its own
+stores, so a fresh install runs every branch in order without any store being
+created twice. An upgrade from version 1 or 2 keeps every existing record. An
+export names the database version; import accepts a file from this version or an
+earlier one.
 
 Version 4 adds no store. It rewrites `ConversationClassification.reasons` from
 English text to catalog messages (`Message`, below), inside the upgrade

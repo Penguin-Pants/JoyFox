@@ -355,6 +355,30 @@ stay as they are.
 | `eventFilter.badge` | JoyFox | JoyFox |
 | `eventFilter.hasNote` | note | Notiz |
 
+## messages
+
+| Key | English | Deutsch |
+| --- | --- | --- |
+| `messages.heading` | Message search | Nachrichtensuche |
+| `messages.hint` | JoyFox stores the ClubMail messages you open, sent and received, so you can search them here. It stores only what a conversation shows on screen and never loads older messages. The text stays in this browser, and an export file holds it too. | JoyFox speichert die ClubMail-Nachrichten, die du öffnest, gesendete und empfangene, damit du sie hier durchsuchen kannst. Es speichert nur, was eine Unterhaltung auf dem Bildschirm zeigt, und lädt nie ältere Nachrichten. Der Text bleibt in diesem Browser, und eine Exportdatei enthält ihn auch. |
+| `messages.caching` | Store the messages I open in ClubMail | Die Nachrichten speichern, die ich in ClubMail öffne |
+| `messages.cachingOn` | Message storing is on. | Das Speichern von Nachrichten ist an. |
+| `messages.cachingOff` | Message storing is off. Messages stored before stay until they are older than the time below, or until you delete them under "Your data". | Das Speichern von Nachrichten ist aus. Schon gespeicherte Nachrichten bleiben, bis sie älter als die Zeit unten sind oder bis du sie unter „Deine Daten“ löschst. |
+| `messages.onHint` | Messages older than this are deleted automatically. | Ältere Nachrichten werden automatisch gelöscht. |
+| `messages.offHint` | Storing is off: JoyFox stores no new messages. Search still covers the messages stored before. | Das Speichern ist aus: JoyFox speichert keine neuen Nachrichten. Die Suche umfasst weiter die schon gespeicherten Nachrichten. |
+| `messages.retentionLabel` | Keep messages for (months) | Nachrichten behalten für (Monate) |
+| `messages.retentionSave` | Save | Speichern |
+| `messages.retentionSaved` | Saved. 1 older message was / {deleted} older messages were deleted. | Gespeichert. 1 ältere Nachricht wurde / {deleted} ältere Nachrichten wurden gelöscht. |
+| `messages.retentionInvalid` | Enter a whole number from {minimum} to {maximum}. Nothing was changed. | Gib eine ganze Zahl von {minimum} bis {maximum} ein. Nichts wurde geändert. |
+| `messages.noAccount` | Select or add an account first. | Wähle zuerst ein Konto aus oder füge eines hinzu. |
+| `messages.readFailed` | JoyFox could not read your stored messages. Reload the page to try again. | JoyFox konnte deine gespeicherten Nachrichten nicht lesen. Lade die Seite neu, um es noch einmal zu versuchen. |
+| `messages.searchLabel` | Search my messages | Meine Nachrichten durchsuchen |
+| `messages.count` | 1 message / {count} messages found. | 1 Nachricht / {count} Nachrichten gefunden. |
+| `messages.countLimited` | {count} messages found. The newest {shown} are shown. | {count} Nachrichten gefunden. Die neuesten {shown} werden gezeigt. |
+| `messages.sentTo` | You to member {member} · {when} | Du an Mitglied {member} · {when} |
+| `messages.receivedFrom` | Member {member} to you · {when} | Mitglied {member} an dich · {when} |
+| `messages.storedAt` | stored {when} | gespeichert {when} |
+
 ## compat
 
 | Key | English | Deutsch |
@@ -431,6 +455,7 @@ stay as they are.
 | `options.tabs.rule` | Contact rule | Kontaktregel |
 | `options.tabs.templates` | Templates | Vorlagen |
 | `options.tabs.events` | Events | Events |
+| `options.tabs.messages` | Messages | Nachrichten |
 | `options.tabs.data` | Your data | Deine Daten |
 | `options.importRegion` | Import JoyFox data | JoyFox-Daten importieren |
 
@@ -618,6 +643,7 @@ stay as they are.
 | `entity.senderSpamOverrides` | Not-spam corrections | Korrekturen „kein Spam“ |
 | `entity.actionLogs` | Action log | Aktionsprotokoll |
 | `entity.messagePhraseMatches` | Message phrase matches | Gefundene Formulierungen in Nachrichten |
+| `entity.cachedMessages` | Stored messages (for search) | Gespeicherte Nachrichten (für die Suche) |
 
 ## data
 

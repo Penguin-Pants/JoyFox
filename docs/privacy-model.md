@@ -71,7 +71,20 @@ it. The content script sends the preview to the background with the row's member
 ID; the background compares it with the phrases in the user's own rule and drops
 it. It is never stored and never logged. When a preview holds a phrase, only
 that result is stored: the member ID, the rule's normalized phrase and the time.
-Conversation message bubbles are never read.
+
+Conversation History Search (V1-4, ADR 0016) reads the message bubbles of a
+conversation the user opens, sent and received, and stores each message's text
+as shown, JoyClub's message ID, the conversation ID, the other member's ID, the
+direction and the send time. It is on by default, as PRD Section 13.3 says, and
+turned off on the options page ("Messages") or by setting
+`joyfox.messageCaching` to `false`; then nothing new is stored. Messages older
+than the purge window (12 months by default, 1 to 120,
+`joyfox.messageRetentionMonths`) are deleted automatically, and each message can
+be seen and deleted under "Your data". The text is special-category data kept
+unencrypted in this browser's extension database and in export files; the owner
+accepted this with the risk stated. JoyFox reads only what a conversation shows
+on screen: it never scrolls, never loads older messages and never logs message
+text.
 
 Message templates are the user's own text and are stored per account. The
 composer picker is on by default and turned off by setting

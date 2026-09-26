@@ -24,6 +24,7 @@ export const DATE_PATHS: ReadonlySet<string> = new Set([
   "matchedAt",
   "observedAt",
   "occurredAt",
+  "sentAt",
   "steps[].at",
   "updatedAt",
 ]);

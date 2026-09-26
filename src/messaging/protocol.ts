@@ -7,6 +7,10 @@ import type {
 } from "../actions/ignore-delete";
 import type { CompatibilityAnswer } from "../compatibility/compatibility-service";
 import type { ActionLog, TriagePlacement } from "../domain/types";
+import type {
+  CacheAnswer,
+  SeenMessage,
+} from "../messages/message-cache-service";
 import type { Message } from "../i18n/message";
 import type { ProfileFacts } from "../qualification/facts";
 import type {
@@ -129,6 +133,19 @@ export interface MessageContract {
       ownProfile?: boolean;
     };
     response: { stored: boolean };
+  };
+  /**
+   * V1-4: store the messages an open conversation shows, while message
+   * caching is on (ADR 0016), in the active account. `messages` holds at
+   * most 100 per request.
+   */
+  "messages.cache": {
+    request: {
+      conversationId: string;
+      memberId: string;
+      messages: SeenMessage[];
+    };
+    response: CacheAnswer | { status: "no-account" };
   };
   /** V1-2: the viewer's own preferences and each member's shared count. */
   "compat.lookup": {

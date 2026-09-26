@@ -1,7 +1,9 @@
 import { AccountService } from "../accounts/account-service";
 import { ActionLogService } from "../actions/action-log-service";
 import { CompatibilityService } from "../compatibility/compatibility-service";
+import { MessageCacheService } from "../messages/message-cache-service";
 import { MessageRouter } from "../messaging/router";
+import { runtimeSettingsArea } from "../storage/local-settings";
 import { runtimeSessionArea } from "../storage/session-area";
 import { EventTrackerService } from "../events/event-service";
 import { NotesService } from "../notes/notes-service";
@@ -13,6 +15,7 @@ import { registerActionHandlers } from "./action-handlers";
 import { incrementPersistentWakeCounter } from "./lifecycle";
 import { registerCompatibilityHandlers } from "./compatibility-handlers";
 import { registerListingHandlers } from "./listing-handlers";
+import { registerMessageHandlers } from "./message-handlers";
 import { registerNotesHandlers } from "./notes-handlers";
 import { registerOnboarding } from "./onboarding";
 import { registerSearchHandlers } from "./search-handlers";
@@ -38,6 +41,10 @@ registerTriageHandlers(router, {
   openOptions: () => browser.runtime.openOptionsPage(),
 });
 registerNotesHandlers(router, { notes: new NotesService(), activeAccountId });
+registerMessageHandlers(router, {
+  messages: new MessageCacheService(runtimeSettingsArea),
+  activeAccountId,
+});
 registerCompatibilityHandlers(router, {
   compatibility: new CompatibilityService(),
   activeAccountId,

@@ -482,3 +482,33 @@
   white-space: pre-wrap;
   overflow-wrap: anywhere;
 }
+
+/* V1-4: message search. */
+.joyfox-messages__switch {
+  display: flex;
+  gap: var(--joyfox-space-2);
+  align-items: center;
+}
+
+.joyfox-messages__months {
+  width: 6rem;
+}
+
+.joyfox-messages__list {
+  padding-inline-start: 1.5em;
+}
+
+.joyfox-messages__item {
+  margin-bottom: var(--joyfox-space-3);
+}
+
+.joyfox-messages__meta {
+  margin: 0;
+  font-size: 0.875em;
+}
+
+.joyfox-messages__text {
+  margin: var(--joyfox-space-1) 0 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}

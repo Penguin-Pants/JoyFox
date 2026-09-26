@@ -435,6 +435,50 @@ export const en = {
   "eventFilter.badge": "JoyFox",
   "eventFilter.hasNote": "note",
 
+  // Options page: message search (V1-4)
+  "messages.heading": "Message search",
+  "messages.hint":
+    "JoyFox stores the ClubMail messages you open, sent and received, so you can search them here. It stores only what a conversation shows on screen and never loads older messages. The text stays in this browser, and an export file holds it too.",
+  "messages.caching": "Store the messages I open in ClubMail",
+  "messages.cachingOn": "Message storing is on.",
+  "messages.cachingOff":
+    'Message storing is off. Messages stored before stay until they are older than the time below, or until you delete them under "Your data".',
+  "messages.onHint": "Messages older than this are deleted automatically.",
+  "messages.offHint":
+    "Storing is off: JoyFox stores no new messages. Search still covers the messages stored before.",
+  "messages.retentionLabel": "Keep messages for (months)",
+  "messages.retentionSave": "Save",
+  "messages.retentionSaved": (p: { deleted: number }, f: Format) =>
+    p.deleted === 0
+      ? "Saved. No older message needed deleting."
+      : `Saved. ${f.plural(p.deleted, {
+          one: "1 older message was",
+          other: `${f.number(p.deleted)} older messages were`,
+        })} deleted.`,
+  "messages.retentionInvalid": (
+    p: { minimum: number; maximum: number },
+    f: Format,
+  ) =>
+    `Enter a whole number from ${f.number(p.minimum)} to ${f.number(p.maximum)}. Nothing was changed.`,
+  "messages.noAccount": "Select or add an account first.",
+  "messages.readFailed":
+    "JoyFox could not read your stored messages. Reload the page to try again.",
+  "messages.searchLabel": "Search my messages",
+  "messages.count": (p: { count: number }, f: Format) =>
+    p.count === 0
+      ? "No stored message contains this."
+      : `${f.plural(p.count, {
+          one: "1 message",
+          other: `${f.number(p.count)} messages`,
+        })} found.`,
+  "messages.countLimited": (p: { count: number; shown: number }, f: Format) =>
+    `${f.number(p.count)} messages found. The newest ${f.number(p.shown)} are shown.`,
+  "messages.sentTo": (p: { member: string; when: string }) =>
+    `You to member ${p.member} · ${p.when}`,
+  "messages.receivedFrom": (p: { member: string; when: string }) =>
+    `Member ${p.member} to you · ${p.when}`,
+  "messages.storedAt": (p: { when: string }) => `stored ${p.when}`,
+
   // Content script: compatibility overlay (V1-2)
   "compat.heading": "Shared preferences",
   "compat.shared": (p: { count: number }, f: Format) =>
@@ -531,6 +575,7 @@ export const en = {
   "options.tabs.rule": "Contact rule",
   "options.tabs.templates": "Templates",
   "options.tabs.events": "Events",
+  "options.tabs.messages": "Messages",
   "options.tabs.data": "Your data",
   "options.importRegion": "Import JoyFox data",
 
@@ -767,6 +812,7 @@ export const en = {
   "entity.senderSpamOverrides": "Not-spam corrections",
   "entity.actionLogs": "Action log",
   "entity.messagePhraseMatches": "Message phrase matches",
+  "entity.cachedMessages": "Stored messages (for search)",
   "data.readFailed":
     "JoyFox could not read its stored data. Nothing was changed.",
   "data.hint":
