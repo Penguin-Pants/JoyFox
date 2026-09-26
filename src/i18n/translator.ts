@@ -47,6 +47,7 @@ export function onLocaleChange(listener: (locale: Locale) => void): () => void {
 
 const numberFormats = new Map<Locale, Intl.NumberFormat>();
 const dateFormats = new Map<Locale, Intl.DateTimeFormat>();
+const dateTimeFormats = new Map<Locale, Intl.DateTimeFormat>();
 const pluralRules = new Map<Locale, Intl.PluralRules>();
 
 function cached<V>(map: Map<Locale, V>, make: (tag: string) => V): V {
@@ -66,6 +67,31 @@ export function formatNumber(value: number): string {
 }
 
 /**
+ * A stored number with every digit kept: de 50,123456, en 50.123456. It uses
+ * the digits of the number's shortest exact text, so no rounding applies (the
+ * default keeps only three decimals) and binary noise never shows. Intl only
+ * supplies the grouping and the decimal sign, with default options, so this
+ * needs no newer Intl feature. A number that JavaScript writes with an
+ * exponent (below 10^-6 or from 10^21) keeps it: 1E-200.
+ */
+export function formatExactNumber(value: number): string {
+  const text = String(value);
+  const parts = /^(-?)(\d+)(?:\.(\d+))?(?:e([+-]\d+))?$/u.exec(text);
+  if (!parts) return text;
+  const [, sign, whole, fraction, exponent] = parts;
+  const format = cached(numberFormats, (tag) => new Intl.NumberFormat(tag));
+  const decimal =
+    format.formatToParts(1.5).find((part) => part.type === "decimal")?.value ??
+    ".";
+  return (
+    sign +
+    format.format(BigInt(whole!)) +
+    (fraction ? decimal + fraction : "") +
+    (exponent ? `E${Number(exponent)}` : "")
+  );
+}
+
+/**
  * de: 25.09.2026, en: Sep 25, 2026. The date is the UTC calendar date, the
  * same day an ISO timestamp names, so a record never shows a day earlier
  * or later than the one stored. A value that is not a date is shown as is.
@@ -77,6 +103,29 @@ export function formatDate(iso: string): string {
     dateFormats,
     (tag) =>
       new Intl.DateTimeFormat(tag, { dateStyle: "medium", timeZone: "UTC" }),
+  ).format(time);
+}
+
+/**
+ * de: 25. Sept. 2026, 20:03 UTC, en: Sep 25, 2026, 08:03 PM UTC. The time is
+ * shown in UTC, as stored, and says so. A value that is not a date is shown
+ * as is.
+ */
+export function formatDateTime(iso: string): string {
+  const time = Date.parse(iso);
+  if (!Number.isFinite(time)) return iso;
+  return cached(
+    dateTimeFormats,
+    (tag) =>
+      new Intl.DateTimeFormat(tag, {
+        year: "numeric",
+        month: "short",
+        day: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+        timeZone: "UTC",
+        timeZoneName: "short",
+      }),
   ).format(time);
 }
 

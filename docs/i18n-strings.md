@@ -514,6 +514,12 @@ stay as they are.
 | `data.recordsTitle` | {label} ({count}) | {label} ({count}) |
 | `data.accountRecordHint` | The account record is removed only with the whole account, in Accounts above. | Der Kontodatensatz wird nur mit dem ganzen Konto entfernt, unter „Konten“. |
 | `data.recordSummary` | {id} (updated {updated}) | {id} (geändert: {updated}) |
+| `data.valueYes` | yes | ja |
+| `data.valueNo` | no | nein |
+| `data.valueEmpty` | (empty) | (leer) |
+| `data.rawJson` | Stored JSON | Gespeichertes JSON |
+| `data.moreCharacters` | …and {count} more characters (see "Stored JSON") | …und {count} weitere Zeichen (siehe „Gespeichertes JSON“) |
+| `data.moreValues` | …and {count} more (see "Stored JSON") | …und {count} weitere (siehe „Gespeichertes JSON“) |
 | `data.delete` | Delete | Löschen |
 | `data.deleteRecordLabel` | Delete record {id} | Datensatz {id} löschen |
 | `data.deleteRecordPrompt` | Click "Confirm" to delete record {id}. | Klicke auf „Bestätigen“, um den Datensatz {id} zu löschen. |

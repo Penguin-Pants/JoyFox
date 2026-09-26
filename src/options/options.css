@@ -309,6 +309,47 @@
   min-width: 0;
 }
 
+/* A record's fields: the stored name, then its readable value. */
+.joyfox-data__fields {
+  display: grid;
+  /* Names fit their width up to 40% of the list, then wrap. */
+  grid-template-columns: fit-content(40%) minmax(0, 1fr);
+  gap: var(--joyfox-space-1) var(--joyfox-space-2);
+  margin: var(--joyfox-space-2) 0;
+}
+
+.joyfox-data__fields dt {
+  font-size: 0.8125em;
+  overflow-wrap: anywhere;
+}
+
+.joyfox-data__fields dd {
+  margin: 0;
+  min-width: 0;
+}
+
+/* Nested fields are indented, with a line, beside their name. */
+.joyfox-data__fields dd > .joyfox-data__fields {
+  margin: 0;
+  padding-left: var(--joyfox-space-2);
+  border-left: 1px solid currentColor;
+}
+
+.joyfox-data__list {
+  margin: 0;
+  padding-left: var(--joyfox-space-3);
+}
+
+.joyfox-data__value--text {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.joyfox-data__value--empty,
+.joyfox-data__value--more {
+  font-style: italic;
+}
+
 .joyfox-data__json {
   overflow-x: auto;
   white-space: pre-wrap;

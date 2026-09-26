@@ -68,6 +68,20 @@ const count = (entity: string) =>
 
 const data = () => new DataService(accounts, settings);
 
+/**
+ * Shows an entity's records and opens each one: a record's fields are drawn
+ * only when it is opened.
+ */
+async function showRecords(label: string): Promise<void> {
+  byLabel(label).click();
+  await settle(() => root.querySelector(".joyfox-data__record") !== null);
+  for (const details of Array.from(
+    root.querySelectorAll<HTMLDetailsElement>(".joyfox-data__details"),
+  ))
+    details.open = true;
+  await settle(() => root.querySelector(".joyfox-data__fields") !== null);
+}
+
 describe("M8 data panel", () => {
   let saved: Array<{ name: string; text: string }>;
   let panel: DataPanel;
@@ -118,9 +132,55 @@ describe("M8 data panel", () => {
     ).not.toBeNull();
   });
 
-  it("keeps expanded records open when the panel redraws", async () => {
+  it("shows a record as readable fields, with the stored JSON one click away", async () => {
+    await showRecords("Show Message templates");
+    const record = root.querySelector(".joyfox-data__record details")!;
+    const [stored] = await data().records(a, "messageTemplates");
+    const fields = record.querySelector<HTMLDListElement>(
+      ":scope > .joyfox-data__fields",
+    )!;
+    const shown = new Map(
+      Array.from(fields.querySelectorAll(":scope > dt"), (term) => [
+        term.textContent,
+        term.nextElementSibling?.textContent,
+      ]),
+    );
+    // Every stored field is listed by its stored name.
+    expect([...shown.keys()]).toEqual(Object.keys(stored!));
+    expect(shown.get("name")).toBe("Hi");
+    expect(shown.get("body")).toBe("Hallo");
+    expect(fields.querySelector("time")?.dateTime).toBe(stored!.createdAt);
+    // The raw JSON is still there, closed, and is exactly what is stored.
+    const raw = record.querySelector<HTMLDetailsElement>(".joyfox-data__raw")!;
+    expect(raw.open).toBe(false);
+    expect(raw.querySelector("summary")?.textContent).toBe("Stored JSON");
+    // The JSON text is made only when "Stored JSON" is opened.
+    expect(raw.querySelector("pre")).toBeNull();
+    raw.open = true;
+    await settle(() => raw.querySelector("pre") !== null);
+    expect(JSON.parse(raw.querySelector("pre")!.textContent!)).toEqual(stored);
+  });
+
+  it("draws a record's fields only when the record is opened", async () => {
     byLabel("Show Message templates").click();
-    await settle(() => text().includes("Hallo"));
+    await settle(() => root.querySelector(".joyfox-data__record") !== null);
+    const record = root.querySelector<HTMLDetailsElement>(
+      ".joyfox-data__record details",
+    )!;
+    expect(record.querySelector(".joyfox-data__fields")).toBeNull();
+    expect(record.querySelector(".joyfox-data__raw")).toBeNull();
+    record.open = true;
+    await settle(() => record.querySelector(".joyfox-data__fields") !== null);
+    // Closing and opening again draws nothing twice.
+    record.open = false;
+    record.open = true;
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(record.querySelectorAll(".joyfox-data__fields")).toHaveLength(1);
+    expect(record.querySelectorAll(".joyfox-data__raw")).toHaveLength(1);
+  });
+
+  it("keeps expanded records open when the panel redraws", async () => {
+    await showRecords("Show Message templates");
     const record = () =>
       root.querySelector<HTMLDetailsElement>(".joyfox-data__record details")!;
     record().open = true;
@@ -142,8 +202,8 @@ describe("M8 data panel", () => {
     select.value = b;
     select.dispatchEvent(new Event("change"));
     await settle(() => byLabel("Show Message templates") !== null);
-    byLabel("Show Message templates").click();
-    await settle(() => text().includes("Beta text"));
+    await showRecords("Show Message templates");
+    expect(text()).toContain("Beta text");
     expect(text()).not.toContain("Hallo");
     expect((await accounts.getActiveAccount())?.id).toBe(a);
   });
@@ -154,8 +214,13 @@ describe("M8 data panel", () => {
       body: "<b>x</b>",
     });
     await panel.render();
-    byLabel("Show Message templates").click();
-    await settle(() => text().includes("<b>x</b>"));
+    await showRecords("Show Message templates");
+    for (const raw of Array.from(
+      root.querySelectorAll<HTMLDetailsElement>(".joyfox-data__raw"),
+    ))
+      raw.open = true;
+    await settle(() => root.querySelector(".joyfox-data__json") !== null);
+    expect(text()).toContain("<b>x</b>");
     expect(root.querySelector("img")).toBeNull();
     expect(root.querySelector("b")).toBeNull();
   });

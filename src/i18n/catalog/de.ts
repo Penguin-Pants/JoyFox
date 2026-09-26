@@ -594,6 +594,14 @@ export const de: Catalog = {
   "data.accountRecordHint":
     "Der Kontodatensatz wird nur mit dem ganzen Konto entfernt, unter „Konten“.",
   "data.recordSummary": (p) => `${p.id} (geändert: ${p.updated})`,
+  "data.valueYes": "ja",
+  "data.valueNo": "nein",
+  "data.valueEmpty": "(leer)",
+  "data.rawJson": "Gespeichertes JSON",
+  "data.moreCharacters": (p, f) =>
+    `…und ${f.number(p.count)} weitere Zeichen (siehe „Gespeichertes JSON“)`,
+  "data.moreValues": (p, f) =>
+    `…und ${f.number(p.count)} weitere (siehe „Gespeichertes JSON“)`,
   "data.delete": "Löschen",
   "data.deleteRecordLabel": (p) => `Datensatz ${p.id} löschen`,
   "data.deleteRecordPrompt": (p) =>

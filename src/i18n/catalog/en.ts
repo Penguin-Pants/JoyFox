@@ -622,6 +622,14 @@ export const en = {
     "The account record is removed only with the whole account, in Accounts above.",
   "data.recordSummary": (p: { id: string; updated: string }) =>
     `${p.id} (updated ${p.updated})`,
+  "data.valueYes": "yes",
+  "data.valueNo": "no",
+  "data.valueEmpty": "(empty)",
+  "data.rawJson": "Stored JSON",
+  "data.moreCharacters": (p: { count: number }, f: Format) =>
+    `…and ${f.number(p.count)} more characters (see "Stored JSON")`,
+  "data.moreValues": (p: { count: number }, f: Format) =>
+    `…and ${f.number(p.count)} more (see "Stored JSON")`,
   "data.delete": "Delete",
   "data.deleteRecordLabel": (p: { id: string }) => `Delete record ${p.id}`,
   "data.deleteRecordPrompt": (p: { id: string }) =>
