@@ -242,15 +242,27 @@ owner's approval before the task starts. The others quote the PRD.
 
 ### Blocked on site evidence
 
-- **E1:** the search page and one result (`manual-verification-needed.md`,
-  item 4). Blocks V1-3 and the search parts of V1-2 and V1-10.
-- **E2:** message text on the conversation page and whether a message has a
-  stable identifier (item 2). Blocks V1-4, and M3 on pages.
-- **E3:** the profile's preference checklist on another member's profile and on
-  the user's own profile. No evidence file covers it yet. Blocks V1-2.
-- **E4:** the event, calendar and venue pages (item 5 covers events and the
-  calendar; no item covers venue pages yet). Blocks V1-5, V1-13 and the
-  attendee-list parts of V1-2 and V1-10.
+- **E1:** captured 2026-09-26 (`live-evidence/11-search.md`). The results URL
+  holds every filter, and opening it in a new tab gave the same results. Still
+  open: whether the URL or filters stored on the account drove that replay,
+  whether a result card shows profile text (V1-10's 50-word rule), and search →
+  profile navigation. Unblocks V1-3 and the search parts of V1-2 and V1-10.
+- **E2:** captured 2026-09-26 (`live-evidence/12-messages.md`). Each message
+  has `data-message-id` (`cm-message-` plus a UUID); sent and received bubbles
+  carry `data-e2e="sent-message"` and `"received-message"`; the conversation
+  URL is the owner's member ID, then the other member's. Still open: whether a
+  message ID stays the same after a reload. Unblocks V1-4, and M3 on pages.
+- **E3:** structure captured 2026-09-26 (`live-evidence/13-preferences.md`):
+  a profile shows only its selected tags, grouped in six levels from "Unbedingt"
+  to "Geht gar nicht", and a tag's German label is its only key. Still open:
+  the full tag vocabulary, and which levels count as shared for D5. Blocks
+  V1-2.
+- **E4:** captured 2026-09-26 (`live-evidence/14-events.md`,
+  `15-venues.md`): the event list (event ID in `data-element-id`), the event
+  page, the attendee list (visible to the owner; each entry links to a
+  profile) and the venue page (a venue is a member account). Still open: the
+  venue's own events page. Unblocks V1-5, V1-13 and the attendee-list parts of
+  V1-2 and V1-10.
 
 ### Owner decisions needed
 
