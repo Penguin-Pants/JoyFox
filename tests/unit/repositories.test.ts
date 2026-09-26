@@ -210,6 +210,27 @@ describe("F6 repositories", () => {
         } as never),
         field,
       ).rejects.toThrow(field);
+    // With a kind, the record must be at the key the tracker looks up.
+    for (const [changes, error] of [
+      [{ id: "1234567" }, "id must be"],
+      [{ kind: "venue" }, "id must be"],
+      [{ id: "event:x", eventId: "x" }, "eventId"],
+    ] as const)
+      await expect(
+        repositories.eventMetadata.put("account-a", {
+          ...base,
+          eventId: "1234567",
+          kind: "event",
+          ...changes,
+        } as never),
+        error,
+      ).rejects.toThrow(error);
+    // An older record without a kind keeps its own key.
+    await repositories.eventMetadata.put("account-a", {
+      ...base,
+      id: "1234567",
+      eventId: "1234567",
+    });
   });
   it("refuses a phrase match longer than a rule phrase can normalize to", async () => {
     const long = {

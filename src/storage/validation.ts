@@ -238,8 +238,17 @@ export function validateEntity(
       break;
     case "eventMetadata":
       requireString(record, "eventId");
-      if (record.kind !== undefined)
+      if (record.kind !== undefined) {
+        // A V1-5 record is found by this key (`event-service.ts`); only an
+        // older record without `kind` may have another one.
         requireEnum(record, "kind", ["event", "venue"]);
+        if (!/^\d{1,12}$/u.test(record.eventId as string))
+          throw new ValidationError("eventId must be JoyClub's number");
+        if (
+          record.id !== `${record.kind as string}:${record.eventId as string}`
+        )
+          throw new ValidationError("id must be <kind>:<eventId>");
+      }
       optionalString(record, "title");
       if (
         record.startLocal !== undefined &&

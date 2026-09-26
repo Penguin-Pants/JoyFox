@@ -13,7 +13,11 @@ import type {
 import { ExtensionError } from "../errors";
 import { isLocale, LOCALE_KEY } from "../i18n/locale";
 import { message, type Message } from "../i18n/message";
-import { MAX_EVENT_TAGS, notesProblem } from "../events/listing";
+import {
+  MAX_EVENT_TAGS,
+  MAX_LISTING_TEXT_LENGTH,
+  notesProblem,
+} from "../events/listing";
 import { MAX_NOTE_LENGTH, MAX_TAG_LENGTH } from "../notes/limits";
 import {
   MAX_NORMALIZED_PHRASE_LENGTH,
@@ -324,9 +328,12 @@ function domainProblem(
           field: "tags",
           maximum: MAX_TAG_LENGTH,
         };
-      return problem === "tags"
-        ? { text: `more than ${MAX_EVENT_TAGS} tags` }
-        : undefined;
+      if (problem === "tags")
+        return { text: `more than ${MAX_EVENT_TAGS} tags` };
+      return (
+        tooLong("title", MAX_LISTING_TEXT_LENGTH) ??
+        tooLong("venueName", MAX_LISTING_TEXT_LENGTH)
+      );
     }
     default:
       return undefined;

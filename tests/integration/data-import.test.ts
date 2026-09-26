@@ -625,6 +625,10 @@ describe("M8 import: restoring and merging", () => {
     expect(() => parseImportFile(listing({ note: "x".repeat(4001) }))).toThrow(
       "longer than 4000",
     );
+    for (const field of ["title", "venueName"])
+      expect(() =>
+        parseImportFile(listing({ [field]: "x".repeat(301) })),
+      ).toThrow(`${field} is longer than 300`);
   });
 
   it("refuses cached message text that is not normalized", () => {
