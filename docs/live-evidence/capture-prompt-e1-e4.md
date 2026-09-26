@@ -44,8 +44,8 @@ files. The owner then copies your files into the repository.
    - Site vocabulary is not personal data and may be copied as is: button
      labels, headings, section names, filter names, CSS classes, `data-e2e`
      hooks and attribute names.
-   - Never record which preferences another member ticked, who attends an event,
-     or the content of any message.
+   - Never record which preferences anyone selected (the owner included), who
+     attends an event, or the content of any message.
 7. **Report absence as a result.** If a field does not exist, write "Absent" and
    say what you searched for. If you cannot tell, write "Unclear" and why. Do
    not guess. Mark every inference as an inference.
@@ -128,21 +128,33 @@ Capture:
 
 - The section's root element on each page, and whether both pages use the same
   structure.
-- **Every section heading** (category names are site vocabulary, so copy them),
-  in page order.
-- The element for one preference entry (tag), and the full list of tag labels
-  **on the owner's own profile** (site vocabulary).
+- The section heading element. On a profile page, write each heading as
+  `SECTION` and give only the number of sections: a profile may show only the
+  sections its owner filled in, so the headings alone can reveal preferences.
+  Copy the real headings only from a full list (see "Tag vocabulary" below).
+- The element for one preference entry (tag). Write its label as `TAG`.
+- **Never record which tags anyone selected, the owner included.** Preferences
+  are sensitive data, and the repository must never hold real preference data
+  (`codex.md`, "Never commit"). A profile that shows only selected tags reveals
+  its owner's preferences through the labels alone, so from a profile page
+  record only the structure, the number of entries per section and `TAG` in
+  place of each label.
 - How an entry shows its state. Are only selected tags shown, or all tags with a
   state? Are there levels (for example "like", "maybe", "no"), and how is each
-  level marked (class, icon, attribute)? Give the shapes only.
+  level marked (class, icon, attribute)? Give the shapes only, never which tag
+  has which state.
 - Whether each tag has a stable key (attribute or class) or only its visible
-  German label.
+  German label. From a profile page, give the key's name and shape only (for
+  example `data-id`, digits), never its value, since a value can name the tag.
 - Whether any section is hidden or collapsed, and what reveals it.
-- Optional, read only: if the owner's profile edit page lists **all** available
-  tags, record the section names and tag vocabulary from it. Do not tick, untick
-  or save anything.
-- On the other member's profile, record **structure only**. Never record which
-  tags they selected.
+- **Tag vocabulary, only from a full list.** If a page lists **every** available
+  tag (for example the owner's profile edit page), you may copy the section
+  names and all tag labels from it, in page order, because that list is the
+  site's vocabulary and says nothing about anyone. Copy the labels only, never
+  which are ticked or at which level. Do not tick, untick or save anything. If
+  no page lists every tag, write "Vocabulary not captured" and do not copy
+  labels from any profile.
+- On both profiles, record **structure only**.
 
 ## E4: events, calendar and venues (for the personal event tracker)
 
