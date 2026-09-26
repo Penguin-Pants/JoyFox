@@ -185,3 +185,25 @@ repeats it. The owner can still choose a review before V1-9 ships.
    result items and never moves or loads them. It works only when the result
    list is a flex or grid container, which the evidence does not record; JoyFox
    says so otherwise (live check, `manual-acceptance.md` item 119).
+
+## Amendment: V1-4, V1-10 and V1-13 criteria (project owner, 2026-09-26)
+
+The proposed criteria of V1-4, V1-10 and V1-13 are approved as written in the
+task backlog, with these decisions:
+
+1. **V1-4, message caching.** The original text of each message shown in an
+   opened conversation is stored, so search results are readable, and caching is
+   on by default, as PRD Section 13.3 says. This is the toggle ADR 0004 and ADR
+   0015 require: with it off, nothing is stored. The text is special-category
+   data kept unencrypted in the extension's database and in export files; the
+   owner accepted this with the risk stated. It keeps PRD 13.3's 12-month
+   default purge window, configurable, and manual delete.
+2. **V1-10, unknown completeness.** The incomplete-profile filter hides only a
+   member known to be below the D8 level. A member whose facts JoyFox does not
+   know stays visible, marked unknown: JoyFox never guesses a profile is
+   incomplete.
+3. **V1-13, attendance and retention.** The shared-event exception counts events
+   the user marked Attending or Attended (this settles the question the D6
+   amendment left to V1-13). A tracked event's stored attendee list is kept
+   while the event is tracked and deleted when it is no longer tracked, or with
+   the user's data.
