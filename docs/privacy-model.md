@@ -40,13 +40,13 @@ inbox list state, never a URL, name, ID or message.
 
 Milestone C adds local triage. When an account is active, opening a profile page
 stores a snapshot of its counts, codes and join dates, never its text. Since
-V1-10 the snapshot also keeps whether you marked the member as met in person,
-for card signals only. Logged trust outcomes and manual placements are stored
-per account and per member ID. The trust score uses only this browser's own
-records; nothing is shared with other members or sent anywhere. Triage changes
-only what the user's own inbox shows: it never deletes, archives, sends or
-changes anything on JoyClub. The sender name appears in the "Why" panel as
-JoyClub shows it and is never stored or logged.
+V1-10 it also keeps one record per member while you have marked that member as
+met in person, for card signals only. Logged trust outcomes and manual
+placements are stored per account and per member ID. The trust score uses only
+this browser's own records; nothing is shared with other members or sent
+anywhere. Triage changes only what the user's own inbox shows: it never deletes,
+archives, sends or changes anything on JoyClub. The sender name appears in the
+"Why" panel as JoyClub shows it and is never stored or logged.
 
 The Compatibility Overlay (V1-2) reads a profile's "Vorlieben" checklist and
 stores, with the profile's snapshot, the labels of the tags it lists at a

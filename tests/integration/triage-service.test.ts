@@ -253,8 +253,8 @@ describe("snapshot capture", () => {
       joinedEarliest: window.earliest,
       joinedLatest: window.latest,
     });
-    // The "met in person" mark is stored for card signals only (V1-10).
-    expect(snapshot?.personallyKnown).toBe(true);
+    // Personally known is live-only and never cached.
+    expect(snapshot).not.toHaveProperty("personallyKnown");
     // The same facts a few milliseconds later write nothing new.
     expect(
       await triage.captureSnapshot(A, MEMBER, {
@@ -271,11 +271,16 @@ describe("snapshot capture", () => {
     expect(await repositories.joyClubMembers.get(A, MEMBER)).toBeDefined();
   });
 
-  it('never reads the stored "met in person" mark back into triage', async () => {
+  it('keeps the "met in person" mark for cards only, and never in triage', async () => {
     await triage.captureSnapshot(A, MEMBER, {
       photoCount: 4,
       personallyKnown: true,
     });
+    const [snapshot] = await repositories.profileSnapshots.list(A);
+    expect(snapshot).not.toHaveProperty("personallyKnown");
+    expect(
+      (await repositories.extensionPreferences.list(A)).map((item) => item.id),
+    ).toEqual([`met-in-person:${MEMBER}`]);
     await rules.saveGlobalRule(A, {
       ...photoRule(),
       root: {
@@ -290,17 +295,17 @@ describe("snapshot capture", () => {
         ],
       },
     });
-    // A page with no shield: the live mark is unknown, whatever was stored.
+    // A page with no shield: the live mark is unknown, whatever is stored.
     const [unseen] = ok(
       await triage.evaluate(A, [{ memberId: MEMBER, observed: {} }]),
     );
     expect(unseen?.placement).toBe("needs-review");
-    const [seen] = ok(
-      await triage.evaluate(A, [
-        { memberId: MEMBER, observed: { personallyKnown: true } },
-      ]),
-    );
-    expect(seen?.placement).toBe("qualified");
+    // A profile read that shows facts but no mark removes the record; one
+    // that shows nothing at all (the page is still drawing) keeps it.
+    await triage.captureSnapshot(A, MEMBER, {});
+    expect(await repositories.extensionPreferences.list(A)).toHaveLength(1);
+    await triage.captureSnapshot(A, MEMBER, { photoCount: 4 });
+    expect(await repositories.extensionPreferences.list(A)).toHaveLength(0);
   });
 
   it("keeps capture order for two snapshots in the same millisecond", async () => {

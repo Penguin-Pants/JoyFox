@@ -204,7 +204,6 @@ describe("F6 repositories", () => {
       ...base,
       positivePreferences: ["Synthetic A"],
       ownProfile: true,
-      personallyKnown: false,
     });
     for (const [field, value] of [
       ["positivePreferences", "Synthetic A"],
@@ -215,7 +214,6 @@ describe("F6 repositories", () => {
       ["positivePreferences", ["B", "A"]],
       ["positivePreferences", ["A", "A"]],
       ["ownProfile", false],
-      ["personallyKnown", "yes"],
     ] as const)
       await expect(
         repositories.profileSnapshots.put("account-a", {

@@ -225,16 +225,17 @@ than 500 labels or a label longer than 100 characters.
 
 ## Live-only profile facts
 
-`personallyKnown` ("persönlich bekannt") is a profile fact for qualification. It
-is the logged-in user's own mark and can change, so qualification reads it from
-the current page each time and never from a snapshot.
+`personallyKnown` ("persönlich bekannt") is a profile fact for qualification but
+has no ProfileSnapshot field. It is the logged-in user's own mark and can
+change, so qualification reads it from the current page each time and never from
+storage.
 
-Since 2026-09-26 (owner decision, V1-10), a ProfileSnapshot may carry an
-optional `personallyKnown` boolean: the mark as the profile page last showed it.
-Only card signals read it, and only for a card that shows no shield (a
-guest-list entry), so that card's trust score matches the profile page. It is an
-optional field on the existing store, so no database version change was needed.
-It can be stale until the member's profile is opened again.
+V1-10 (owner, 2026-09-26): a guest-list entry shows no shield, so its card
+signals need the mark from elsewhere. An `ExtensionPreference` with key
+`metInPerson` and ID `met-in-person:<member ID>` exists while the member's
+profile page shows the mark. It is updated in place, not kept as history: a
+profile read that shows other facts but no mark deletes it. Only card signals
+for a card with no shield read it.
 
 ## ContactRule (Milestone C)
 

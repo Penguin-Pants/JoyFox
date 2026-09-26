@@ -160,7 +160,6 @@ const ENTITY_FIELDS: Readonly<Record<EntityName, readonly string[]>> = {
     "joinedLatest",
     "positivePreferences",
     "ownProfile",
-    "personallyKnown",
   ],
   userNotes: ["memberId", "body"],
   userTags: ["memberId", "label"],

@@ -50,13 +50,6 @@ export interface ProfileSnapshot extends AccountScopedEntity {
   positivePreferences?: string[];
   /** V1-2: captured from the viewer's own profile. */
   ownProfile?: true;
-  /**
-   * V1-10: the viewer's own "met in person" mark (the green shield), as the
-   * profile page last showed it. Only card signals read it, for a card that
-   * shows no shield (a guest-list entry); triage reads the live mark only,
-   * because the viewer can change it at any time.
-   */
-  personallyKnown?: boolean;
 }
 
 export interface UserNote extends AccountScopedEntity {

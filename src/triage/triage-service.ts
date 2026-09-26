@@ -1,3 +1,4 @@
+import { MET_IN_PERSON_KEY, metInPersonId } from "../signals/met-in-person";
 import type {
   ConversationClassification,
   MessagePhraseMatch,
@@ -131,7 +132,6 @@ const SNAPSHOT_FIELDS = [
   "joinedLatest",
   "positivePreferences",
   "ownProfile",
-  "personallyKnown",
 ] as const;
 
 /** What a profile page showed beyond the rule facts (V1-2). */
@@ -199,6 +199,34 @@ export class TriageService {
    * decides again. The user undoes it by deleting the record under "Your
    * data".
    */
+  /**
+   * V1-10: keep the profile page's "met in person" mark for guest-list card
+   * signals (`src/signals/met-in-person.ts`). Written only when it changes.
+   * Called only after the page showed some fact, so a header whose shield has
+   * not drawn yet with nothing else does not clear it.
+   */
+  async #recordMetInPerson(
+    accountId: string,
+    memberId: string,
+    marked: boolean,
+  ): Promise<void> {
+    const id = metInPersonId(memberId);
+    const stored = await this.preferences.get(accountId, id);
+    if (marked === (stored !== undefined)) return;
+    if (marked) {
+      const timestamp = this.now().toISOString();
+      await this.preferences.put(accountId, {
+        id,
+        accountId,
+        key: MET_IN_PERSON_KEY,
+        value: memberId,
+        createdAt: timestamp,
+        updatedAt: timestamp,
+      });
+    } else await this.preferences.delete(accountId, id);
+    await bumpTriageRevision(this.settings);
+  }
+
   async optOutSharedEvent(accountId: string, memberId: string): Promise<void> {
     requireAccountId(accountId);
     requireMemberId(memberId);
@@ -463,7 +491,6 @@ export class TriageService {
       | "joinedLatest"
       | "positivePreferences"
       | "ownProfile"
-      | "personallyKnown"
     > = {
       verification: facts.verification,
       photoCount: facts.photoCount,
@@ -476,20 +503,20 @@ export class TriageService {
         ? { positivePreferences: [...extras.preferences] }
         : {}),
       ...(extras.ownProfile ? { ownProfile: true as const } : {}),
-      // Kept for card signals only (V1-10); triage never reads it back.
-      ...(facts.personallyKnown === "unknown"
-        ? {}
-        : { personallyKnown: facts.personallyKnown }),
     };
     const seen =
       values.positivePreferences !== undefined ||
-      values.personallyKnown !== undefined ||
       values.verification !== "unknown" ||
       values.photoCount !== "unknown" ||
       values.profileWordCount !== "unknown" ||
       values.joinedAt !== "unknown" ||
       window !== undefined;
     if (!seen) return false;
+    await this.#recordMetInPerson(
+      accountId,
+      memberId,
+      facts.personallyKnown === true,
+    );
     const all = await this.snapshots.list(accountId);
     const newest = newestSnapshot(
       all.filter((snapshot) => snapshot.memberId === memberId),
@@ -520,11 +547,6 @@ export class TriageService {
       if (!values.positivePreferences && newest.positivePreferences)
         values.positivePreferences = newest.positivePreferences;
       if (newest.ownProfile) values.ownProfile = true;
-      if (
-        values.personallyKnown === undefined &&
-        newest.personallyKnown !== undefined
-      )
-        values.personallyKnown = newest.personallyKnown;
     }
     if (
       newest &&
