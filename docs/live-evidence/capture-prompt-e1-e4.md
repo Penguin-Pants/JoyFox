@@ -59,9 +59,25 @@ For each page:
 2. Find the stable identifiers (member ID, event ID, venue ID, message ID).
    Check the URL, `href` values, `id` attributes and every `data-*` attribute.
    Say where each one is, or that it is absent.
-3. For each field listed below, give a CSS selector that finds it. Prefer
-   `data-e2e` hooks and custom elements (`j-...`) over layout classes. Test each
-   selector with `querySelectorAll` and give the match count.
+3. For each field listed below, record (the project's evidence contract,
+   `docs/Engineering-Build-Plan.md`, F1):
+   - **Primary selector:** prefer `data-e2e` hooks and custom elements (`j-...`)
+     over layout classes.
+   - **Fallback selector:** a second selector that does not depend on the
+     primary one (another hook, attribute or structure). Write "None found" if
+     there is none.
+   - **Expected cardinality:** how many matches are normal, for example "exactly
+     1 per page", "0 or 1", "1 per result card".
+   - **Matches:** test both selectors with `querySelectorAll` and give the
+     counts you saw.
+   - **Validation rule:** how code can check that a match is the right thing,
+     for example "`href` matches `/profile/<digits>.`" or "text matches
+     `<digits> Fotos`".
+   - **Missing state:** what the page shows when the field has no value or the
+     member hides it (element absent, empty, a placeholder text, a different
+     class). Write "Not observed" if you did not see it.
+   - **Notes:** anything else, for example a value that only appears after
+     scrolling.
 4. Record how the page loads more content: scroll once or twice and note whether
    new items appear, whether the URL changes and whether a "more" button exists.
 5. Record navigation type for each move between pages.
@@ -225,8 +241,8 @@ and value shapes were recorded>.
 
 ## Fields
 
-| Field | Present? | Selector | Matches | Value shape |
-| ----- | -------- | -------- | ------- | ----------- |
+| Field | Present? | Primary selector | Fallback selector | Expected cardinality | Matches | Validation rule | Missing state | Value shape | Notes |
+| ----- | -------- | ---------------- | ----------------- | -------------------- | ------- | --------------- | ------------- | ----------- | ----- |
 
 ## Loading and navigation
 
