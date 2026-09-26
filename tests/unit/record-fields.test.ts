@@ -1,0 +1,118 @@
+// @vitest-environment jsdom
+import { afterEach, describe, expect, it } from "vitest";
+import { formatDateTime, setLocale } from "../../src/i18n/translator";
+import { renderFields } from "../../src/options/record-fields";
+
+afterEach(() => setLocale("en"));
+
+/** The field list as [name, shown value] pairs, top level only. */
+function pairs(list: HTMLDListElement): [string, string][] {
+  const result: [string, string][] = [];
+  for (const term of Array.from(list.querySelectorAll(":scope > dt"))) {
+    const value = term.nextElementSibling as HTMLElement;
+    result.push([term.textContent ?? "", value.textContent ?? ""]);
+  }
+  return result;
+}
+
+describe("record fields (V1-7)", () => {
+  it("shows every stored field by its stored name, in stored order", () => {
+    const list = renderFields(document, {
+      id: "note-1",
+      accountId: "acc-1",
+      text: "Met at the party",
+      pinned: true,
+      archived: false,
+      count: 1234,
+      tags: [],
+      comment: "",
+      extra: null,
+    });
+    expect(pairs(list)).toEqual([
+      ["id", "note-1"],
+      ["accountId", "acc-1"],
+      ["text", "Met at the party"],
+      ["pinned", "yes"],
+      ["archived", "no"],
+      ["count", "1,234"],
+      ["tags", "(empty)"],
+      ["comment", "(empty)"],
+      ["extra", "(empty)"],
+    ]);
+    // Field names are stored keys, never translated.
+    expect(list.querySelector("dt > code")?.textContent).toBe("id");
+  });
+
+  it("skips undefined fields, as the JSON export does", () => {
+    const list = renderFields(document, { id: "x", label: undefined });
+    expect(pairs(list)).toEqual([["id", "x"]]);
+  });
+
+  it("shows dates in date fields only, with the stored value kept", () => {
+    const stamp = "2026-09-25T20:03:00.000Z";
+    const list = renderFields(document, {
+      capturedAt: stamp,
+      joinedAt: "unknown",
+      text: stamp,
+    });
+    const time = list.querySelector("time")!;
+    expect(time.dateTime).toBe(stamp);
+    expect(time.title).toBe(stamp);
+    expect(time.textContent).toBe(formatDateTime(stamp));
+    expect(time.textContent).toContain("UTC");
+    expect(pairs(list)).toEqual([
+      ["capturedAt", formatDateTime(stamp)],
+      ["joinedAt", "unknown"],
+      // A text field that looks like a date stays text.
+      ["text", stamp],
+    ]);
+    expect(list.querySelectorAll("time")).toHaveLength(1);
+  });
+
+  it("shows lists as lists and objects as nested fields", () => {
+    const list = renderFields(document, {
+      tags: ["friendly", "local"],
+      criteria: { minimumPhotoCount: 3, requireVerification: true },
+      groups: [{ kind: "all" }],
+    });
+    const tags = list.querySelector(":scope > dd > ul")!;
+    expect(
+      Array.from(tags.querySelectorAll("li"), (item) => item.textContent),
+    ).toEqual(["friendly", "local"]);
+    const nested = list.querySelector<HTMLDListElement>(":scope > dd > dl")!;
+    expect(pairs(nested)).toEqual([
+      ["minimumPhotoCount", "3"],
+      ["requireVerification", "yes"],
+    ]);
+    const inList = list.querySelector<HTMLDListElement>(
+      ":scope > dd > ul > li > dl",
+    )!;
+    expect(pairs(inList)).toEqual([["kind", "all"]]);
+  });
+
+  it("formats values in the UI language", () => {
+    setLocale("de");
+    const stamp = "2026-09-25T20:03:00.000Z";
+    const list = renderFields(document, {
+      count: 1234,
+      pinned: true,
+      tags: [],
+      updatedAt: stamp,
+    });
+    expect(pairs(list)).toEqual([
+      ["count", "1.234"],
+      ["pinned", "ja"],
+      ["tags", "(leer)"],
+      ["updatedAt", formatDateTime(stamp)],
+    ]);
+    expect(formatDateTime(stamp)).toContain("20:03");
+  });
+
+  it("sets stored text as text, never as markup", () => {
+    const list = renderFields(document, {
+      text: '<img src=x onerror="alert(1)">',
+    });
+    expect(list.querySelector("img")).toBeNull();
+    expect(pairs(list)).toEqual([["text", '<img src=x onerror="alert(1)">']]);
+  });
+});

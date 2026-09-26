@@ -118,6 +118,32 @@ describe("M8 data panel", () => {
     ).not.toBeNull();
   });
 
+  it("shows a record as readable fields, with the stored JSON one click away", async () => {
+    byLabel("Show Message templates").click();
+    await settle(() => text().includes("Hallo"));
+    const record = root.querySelector(".joyfox-data__record details")!;
+    const [stored] = await data().records(a, "messageTemplates");
+    const fields = record.querySelector<HTMLDListElement>(
+      ":scope > .joyfox-data__fields",
+    )!;
+    const shown = new Map(
+      Array.from(fields.querySelectorAll(":scope > dt"), (term) => [
+        term.textContent,
+        term.nextElementSibling?.textContent,
+      ]),
+    );
+    // Every stored field is listed by its stored name.
+    expect([...shown.keys()]).toEqual(Object.keys(stored!));
+    expect(shown.get("name")).toBe("Hi");
+    expect(shown.get("body")).toBe("Hallo");
+    expect(fields.querySelector("time")?.dateTime).toBe(stored!.createdAt);
+    // The raw JSON is still there, closed, and is exactly what is stored.
+    const raw = record.querySelector<HTMLDetailsElement>(".joyfox-data__raw")!;
+    expect(raw.open).toBe(false);
+    expect(raw.querySelector("summary")?.textContent).toBe("Stored JSON");
+    expect(JSON.parse(raw.querySelector("pre")!.textContent!)).toEqual(stored);
+  });
+
   it("keeps expanded records open when the panel redraws", async () => {
     byLabel("Show Message templates").click();
     await settle(() => text().includes("Hallo"));

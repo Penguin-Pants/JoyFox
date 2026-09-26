@@ -47,6 +47,7 @@ export function onLocaleChange(listener: (locale: Locale) => void): () => void {
 
 const numberFormats = new Map<Locale, Intl.NumberFormat>();
 const dateFormats = new Map<Locale, Intl.DateTimeFormat>();
+const dateTimeFormats = new Map<Locale, Intl.DateTimeFormat>();
 const pluralRules = new Map<Locale, Intl.PluralRules>();
 
 function cached<V>(map: Map<Locale, V>, make: (tag: string) => V): V {
@@ -77,6 +78,29 @@ export function formatDate(iso: string): string {
     dateFormats,
     (tag) =>
       new Intl.DateTimeFormat(tag, { dateStyle: "medium", timeZone: "UTC" }),
+  ).format(time);
+}
+
+/**
+ * de: 25. Sept. 2026, 20:03 UTC, en: Sep 25, 2026, 08:03 PM UTC. The time is
+ * shown in UTC, as stored, and says so. A value that is not a date is shown
+ * as is.
+ */
+export function formatDateTime(iso: string): string {
+  const time = Date.parse(iso);
+  if (!Number.isFinite(time)) return iso;
+  return cached(
+    dateTimeFormats,
+    (tag) =>
+      new Intl.DateTimeFormat(tag, {
+        year: "numeric",
+        month: "short",
+        day: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+        timeZone: "UTC",
+        timeZoneName: "short",
+      }),
   ).format(time);
 }
 

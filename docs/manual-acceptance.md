@@ -530,3 +530,16 @@ when the page is not left for the profile", item 100 on "drops a hand-off when
 another page loads in the tab first". This matches items 44, 45, 47 and 50. Item
 99, a normal run, is still pending: it is the only live check that the
 sending-page check does not refuse the normal hand-off.
+
+## Readable records in "Your data" (V1-7)
+
+101. On "Your data", click "Show" for "Message templates" and open the template
+     from item 27. Confirm each field shows as its stored name and a readable
+     value: `name` and `body` as plain text (with the umlaut, the emoji and both
+     lines), and `createdAt` and `updatedAt` as a date and time ending in "UTC".
+     Open "Stored JSON" under the fields and confirm it shows the same record as
+     JSON.
+102. Show "Contact rules" (or any record with nested values). Confirm lists show
+     as bullet points and nested values as indented fields, and that an empty
+     value reads "(empty)". Switch the language to German and confirm yes or no
+     values read "ja" or "nein" and numbers use German separators.

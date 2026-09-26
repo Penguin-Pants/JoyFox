@@ -15,6 +15,7 @@ import { errorDisplay, formatDate, formatNumber, t } from "../i18n/translator";
 import { ENTITY_NAMES } from "../storage/database";
 import type { EntityCounts } from "../storage/repositories";
 import { confirmAllowed, confirmTiming } from "./confirm";
+import { renderFields } from "./record-fields";
 import { StatusLine } from "./status-line";
 
 function element<K extends keyof HTMLElementTagNameMap>(
@@ -346,6 +347,17 @@ export class DataPanel {
       item.dataset.recordId = record.id;
       const details = element(document, "details", "joyfox-data__details");
       details.open = this.#openRecords.has(record.id);
+      // The stored JSON stays one click away, exactly as exported.
+      const raw = element(document, "details", "joyfox-data__raw");
+      raw.append(
+        element(document, "summary", "", t("data.rawJson")),
+        element(
+          document,
+          "pre",
+          "joyfox-data__json",
+          JSON.stringify(record, null, 2),
+        ),
+      );
       details.append(
         element(
           document,
@@ -356,12 +368,8 @@ export class DataPanel {
             updated: formatDate(record.updatedAt),
           }),
         ),
-        element(
-          document,
-          "pre",
-          "joyfox-data__json",
-          JSON.stringify(record, null, 2),
-        ),
+        renderFields(document, record as unknown as Record<string, unknown>),
+        raw,
       );
       item.append(details);
       if (isDeletableEntity(name))

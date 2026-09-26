@@ -38,9 +38,9 @@ for a verified member ID, never a display name. See `docs/manual-acceptance.md`,
 items 36 to 42.
 
 The options page also holds message templates and "Your data", where every
-stored record can be inspected, exported as JSON and deleted, per account or for
-the whole extension. A "JoyFox templates" button below JoyClub's message box
-inserts a template at the cursor; it never sends. See
+stored record can be inspected field by field, exported as JSON and deleted, per
+account or for the whole extension. A "JoyFox templates" button below JoyClub's
+message box inserts a template at the cursor; it never sends. See
 `docs/manual-acceptance.md`, items 27 to 35.
 
 Quick Ignore and Delete (M9) has its state machine, ActionLog and on-screen
