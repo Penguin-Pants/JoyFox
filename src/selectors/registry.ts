@@ -69,6 +69,14 @@ export const selectorRegistry: Readonly<
       genderCode: ".cm-conversation-header j-gender-icon[universal-gender]",
       profileDescription: ".cm-conversation-header__description",
       messageItem: "li.cm-message-list-item",
+      // V1-4, from 12-messages.md. Each item carries `data-message-id`;
+      // a date separator or a system hint has no bubble and is skipped.
+      sentBubble: 'div.cm-message-bubble[data-e2e="sent-message"]',
+      receivedBubble: 'div.cm-message-bubble[data-e2e="received-message"]',
+      messageText: "div.cm-message-bubble__content",
+      messageBubble: "j-message-bubble",
+      // In the bubble's shadow root.
+      messageTime: ".footer time[datetime]",
       composer: "textarea.joy-input-wonder__input",
       sendButton: 'button.joy-input-wonder__button[data-e2e="button-submit"]',
     },

@@ -18,6 +18,12 @@ import {
   MAX_PREFERENCE_LABEL_LENGTH,
   MAX_PREFERENCE_TAGS,
 } from "../extraction/preferences";
+import {
+  isMessageRetention,
+  MAX_MESSAGE_TEXT_LENGTH,
+  MESSAGE_CACHING_KEY,
+  MESSAGE_RETENTION_KEY,
+} from "../messages/message-settings";
 import { MAX_NOTE_LENGTH, MAX_TAG_LENGTH } from "../notes/limits";
 import {
   MAX_NORMALIZED_PHRASE_LENGTH,
@@ -33,6 +39,7 @@ import { DATABASE_VERSION, ENTITY_NAMES } from "../storage/database";
 import { migrateReasons } from "../storage/reason-migration";
 import type { RecordWrite } from "../storage/repositories";
 import { EVENT_REVISION_KEY } from "../storage/event-revision";
+import { MESSAGE_REVISION_KEY } from "../storage/message-revision";
 import { SAVED_SEARCH_REVISION_KEY } from "../storage/saved-search-revision";
 import { TRIAGE_REVISION_KEY } from "../storage/triage-revision";
 import { validateEntity, ValidationError } from "../storage/validation";
@@ -101,6 +108,7 @@ const KEEP_EXISTING: ReadonlySet<EntityName> = new Set<EntityName>([
   "profileSnapshots",
   "messageObservations",
   "messagePhraseMatches",
+  "cachedMessages",
   "actionLogs",
   "messageTemplates",
   // A file must never redirect an existing sync endpoint.
@@ -120,6 +128,7 @@ const CHANGE_MARKERS: ReadonlySet<string> = new Set([
   "joyfox.notesRevision",
   SAVED_SEARCH_REVISION_KEY,
   EVENT_REVISION_KEY,
+  MESSAGE_REVISION_KEY,
 ]);
 
 const IMPORTED_SETTINGS: Readonly<Record<string, (value: unknown) => boolean>> =
@@ -130,6 +139,9 @@ const IMPORTED_SETTINGS: Readonly<Record<string, (value: unknown) => boolean>> =
     [LOCALE_KEY]: isLocale,
     // How many profile snapshots are kept per member (V1-12).
     [SNAPSHOT_RETENTION_KEY]: isSnapshotRetention,
+    // Message caching (V1-4): the switch and how long messages are kept.
+    [MESSAGE_CACHING_KEY]: (value) => typeof value === "boolean",
+    [MESSAGE_RETENTION_KEY]: isMessageRetention,
   };
 
 /** Every field each entity may have. Anything else refuses the file. */
@@ -196,6 +208,14 @@ const ENTITY_FIELDS: Readonly<Record<EntityName, readonly string[]>> = {
   senderSpamOverrides: ["memberId", "decision", "decidedAt", "reason"],
   actionLogs: ["memberId", "conversationId", "action", "steps"],
   messagePhraseMatches: ["memberId", "phrase", "matchedAt"],
+  cachedMessages: [
+    "messageId",
+    "conversationId",
+    "memberId",
+    "direction",
+    "sentAt",
+    "text",
+  ],
 };
 
 /** Keys that could reach an object's prototype if a value were ever merged. */
@@ -312,6 +332,8 @@ function domainProblem(
           }
         : undefined;
     }
+    case "cachedMessages":
+      return tooLong("text", MAX_MESSAGE_TEXT_LENGTH);
     case "userNotes":
       return tooLong("body", MAX_NOTE_LENGTH);
     case "userTags":
@@ -376,6 +398,7 @@ const DATE_FIELDS: readonly string[] = [
   "decidedAt",
   "observedAt",
   "matchedAt",
+  "sentAt",
   "lastSyncedAt",
   "joinedAt",
   "joinedEarliest",

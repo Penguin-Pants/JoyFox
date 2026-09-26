@@ -213,6 +213,7 @@ describe("options page (docs/i18n-spec.md, Sections 3.7 to 3.9)", () => {
       "Kontaktregel",
       "Vorlagen",
       "Events",
+      "Nachrichten",
       "Deine Daten",
     ]);
     // The toggle itself is never translated.

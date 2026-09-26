@@ -207,6 +207,25 @@ export interface ActionLog extends AccountScopedEntity {
   steps: Array<{ name: string; ok: boolean; at: string; errorCode?: string }>;
 }
 
+/**
+ * V1-4: one ClubMail message the user had on screen, kept for Conversation
+ * History Search (PRD 6.2, 13.3; ADR 0016). The text is stored as shown: it
+ * is special-category data, kept only while message caching is on and inside
+ * its purge window. The ID is `message:<messageId>`.
+ */
+export interface CachedMessage extends AccountScopedEntity {
+  /** JoyClub's own message ID, `cm-message-<uuid>` (12-messages.md). */
+  messageId: string;
+  /** The conversation, kept opaque (`personal-<n>-<n>`). */
+  conversationId: string;
+  /** The other member in the conversation. */
+  memberId: string;
+  direction: "sent" | "received";
+  /** When the message was sent, from the page, when it shows one. */
+  sentAt?: string;
+  text: string;
+}
+
 export interface EntityMap {
   extensionAccounts: ExtensionAccount;
   joyClubMembers: JoyClubMember;
@@ -227,6 +246,7 @@ export interface EntityMap {
   senderSpamOverrides: SenderSpamOverride;
   actionLogs: ActionLog;
   messagePhraseMatches: MessagePhraseMatch;
+  cachedMessages: CachedMessage;
 }
 
 export type EntityName = keyof EntityMap;

@@ -1,5 +1,6 @@
 import { ACTIVE_ACCOUNT_SETTING_KEY } from "../accounts/account-service";
 import { readPreferences } from "../extraction/preferences";
+import { MESSAGE_CACHING_KEY } from "../messages/message-settings";
 import { extractInboxRows } from "../extraction/joyclub";
 import { LOCALE_KEY, localeFromSetting, readLocale } from "../i18n/locale";
 import { onLocaleChange, setLocale } from "../i18n/translator";
@@ -22,6 +23,7 @@ import {
   runtimeCompatibilityClient,
 } from "./compatibility";
 import { EventListFilter } from "./event-list-filter";
+import { MessageCache, runtimeMessageCacheClient } from "./message-cache";
 import { PreferenceRetry } from "./preference-retry";
 import { ListingPanel, runtimeListingClient } from "./listing-panel";
 import { MemberNotes, runtimeNotesClient } from "./member-notes";
@@ -67,6 +69,35 @@ if (hasVerifiedSelectors() && VERIFIED_HOSTS.includes(location.hostname)) {
     storageEvents,
     QUICK_ACTION_KEY,
   );
+  // V1-4: on unless the user turned it off (PRD 13.3, ADR 0016).
+  const messageCaching = new DiagnosticsFlag(
+    () => runtimeSettingsArea.get([MESSAGE_CACHING_KEY]),
+    storageEvents,
+    MESSAGE_CACHING_KEY,
+    true,
+  );
+  // The active account, for writes that must name the account a page was
+  // read for (V1-4). A change heard before the first read is newer.
+  let activeAccountId: string | undefined;
+  let accountHeard = false;
+  const accountIdOf = (value: unknown) =>
+    typeof value === "string" && value.length > 0 ? value : undefined;
+  const accountRead = runtimeSettingsArea
+    .get([ACTIVE_ACCOUNT_SETTING_KEY])
+    .then((settings) => {
+      if (!accountHeard)
+        activeAccountId = accountIdOf(settings[ACTIVE_ACCOUNT_SETTING_KEY]);
+    })
+    .catch(() => undefined);
+  const messageCache = new MessageCache(
+    document,
+    runtimeMessageCacheClient(),
+    () => activeAccountId,
+  );
+  const updateMessageCache = () => {
+    if (lastType === "conversation")
+      messageCache.update(messageCaching.enabled);
+  };
   const client = runtimeTriageClient();
   const inbox = new InboxTriage(document, client);
   const panel = new MemberPanel(document, client);
@@ -144,6 +175,8 @@ if (hasVerifiedSelectors() && VERIFIED_HOSTS.includes(location.hostname)) {
       type === "profile" && readPreferences(document).status === "unreadable",
     );
     lastType = type;
+    // The messages an open conversation shows, for search (V1-4).
+    updateMessageCache();
     updatePicker();
     updateQuickAction();
   });
@@ -182,6 +215,12 @@ if (hasVerifiedSelectors() && VERIFIED_HOSTS.includes(location.hostname)) {
     // The flag listener registered first, so it already holds the new value.
     if (TEMPLATE_PICKER_KEY in changes) updatePicker();
     if (QUICK_ACTION_KEY in changes) updateQuickAction();
+    // The flag listener registered first, so it already holds the new value:
+    // storing just turned on captures the open conversation at once.
+    if (MESSAGE_CACHING_KEY in changes) {
+      messageCache.reset();
+      updateMessageCache();
+    }
     // A Quick Ignore and Delete run moved, in this tab or another one.
     if (ACTION_REVISION_KEY in changes) quick.invalidate();
     if (ACTIVE_ACCOUNT_SETTING_KEY in changes) {
@@ -194,6 +233,12 @@ if (hasVerifiedSelectors() && VERIFIED_HOSTS.includes(location.hostname)) {
       listing.accountChanged();
       eventFilter.accountChanged();
       compatibility.accountChanged();
+      accountHeard = true;
+      activeAccountId = accountIdOf(
+        changes[ACTIVE_ACCOUNT_SETTING_KEY]?.newValue,
+      );
+      messageCache.reset();
+      updateMessageCache();
     } else if (TRIAGE_REVISION_KEY in changes) {
       // Also set by every delete in the data inspector, so a deleted note,
       // tag or saved search leaves an open page at once.
@@ -228,6 +273,8 @@ if (hasVerifiedSelectors() && VERIFIED_HOSTS.includes(location.hostname)) {
     diagnostics.ready,
     templatePicker.ready,
     quickAction.ready,
+    messageCaching.ready,
+    accountRead,
     language,
   ]).then(() => coordinator.start());
 }

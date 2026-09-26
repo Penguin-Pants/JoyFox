@@ -403,6 +403,43 @@ export const de: Catalog = {
     "Wähle in den JoyFox-Einstellungen ein Konto aus oder füge eines hinzu, um nach deinen Notizen zu filtern.",
   "eventFilter.badge": "JoyFox",
   "eventFilter.hasNote": "Notiz",
+  "messages.heading": "Nachrichtensuche",
+  "messages.hint":
+    "JoyFox speichert die ClubMail-Nachrichten, die du öffnest, gesendete und empfangene, damit du sie hier durchsuchen kannst. Es speichert nur, was eine Unterhaltung auf dem Bildschirm zeigt, und lädt nie ältere Nachrichten. Der Text bleibt in diesem Browser, und eine Exportdatei enthält ihn auch.",
+  "messages.caching": "Die Nachrichten speichern, die ich in ClubMail öffne",
+  "messages.cachingOn": "Das Speichern von Nachrichten ist an.",
+  "messages.cachingOff":
+    "Das Speichern von Nachrichten ist aus. Schon gespeicherte Nachrichten bleiben, bis sie älter als die Zeit unten sind oder bis du sie unter „Deine Daten“ löschst.",
+  "messages.onHint": "Ältere Nachrichten werden automatisch gelöscht.",
+  "messages.offHint":
+    "Das Speichern ist aus: JoyFox speichert keine neuen Nachrichten. Die Suche umfasst weiter die schon gespeicherten Nachrichten.",
+  "messages.retentionLabel": "Nachrichten behalten für (Monate)",
+  "messages.retentionSave": "Speichern",
+  "messages.retentionSaved": (p, f) =>
+    p.deleted === 0
+      ? "Gespeichert. Keine ältere Nachricht musste gelöscht werden."
+      : `Gespeichert. ${f.plural(p.deleted, {
+          one: "1 ältere Nachricht wurde",
+          other: `${f.number(p.deleted)} ältere Nachrichten wurden`,
+        })} gelöscht.`,
+  "messages.retentionInvalid": (p, f) =>
+    `Gib eine ganze Zahl von ${f.number(p.minimum)} bis ${f.number(p.maximum)} ein. Nichts wurde geändert.`,
+  "messages.noAccount": "Wähle zuerst ein Konto aus oder füge eines hinzu.",
+  "messages.readFailed":
+    "JoyFox konnte deine gespeicherten Nachrichten nicht lesen. Lade die Seite neu, um es noch einmal zu versuchen.",
+  "messages.searchLabel": "Meine Nachrichten durchsuchen",
+  "messages.count": (p, f) =>
+    p.count === 0
+      ? "Keine gespeicherte Nachricht enthält das."
+      : `${f.plural(p.count, {
+          one: "1 Nachricht",
+          other: `${f.number(p.count)} Nachrichten`,
+        })} gefunden.`,
+  "messages.countLimited": (p, f) =>
+    `${f.number(p.count)} Nachrichten gefunden. Die neuesten ${f.number(p.shown)} werden gezeigt.`,
+  "messages.sentTo": (p) => `Du an Mitglied ${p.member} · ${p.when}`,
+  "messages.receivedFrom": (p) => `Mitglied ${p.member} an dich · ${p.when}`,
+  "messages.storedAt": (p) => `gespeichert ${p.when}`,
   "compat.heading": "Gemeinsame Vorlieben",
   "compat.shared": (p, f) =>
     `Du teilst ${f.plural(p.count, {
@@ -494,6 +531,7 @@ export const de: Catalog = {
   "options.tabs.rule": "Kontaktregel",
   "options.tabs.templates": "Vorlagen",
   "options.tabs.events": "Events",
+  "options.tabs.messages": "Nachrichten",
   "options.tabs.data": "Deine Daten",
   "options.importRegion": "JoyFox-Daten importieren",
 
@@ -727,6 +765,7 @@ export const de: Catalog = {
   "entity.senderSpamOverrides": "Korrekturen „kein Spam“",
   "entity.actionLogs": "Aktionsprotokoll",
   "entity.messagePhraseMatches": "Gefundene Formulierungen in Nachrichten",
+  "entity.cachedMessages": "Gespeicherte Nachrichten (für die Suche)",
   "data.readFailed":
     "JoyFox konnte die gespeicherten Daten nicht lesen. Es wurde nichts geändert.",
   "data.hint":

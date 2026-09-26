@@ -74,6 +74,14 @@
       >
       <a
         role="tab"
+        id="tab-messages"
+        href="#messages"
+        aria-controls="panel-messages"
+        data-i18n="options.tabs.messages"
+        >Messages</a
+      >
+      <a
+        role="tab"
         id="tab-data"
         href="#data"
         aria-controls="panel-data"
@@ -125,6 +133,14 @@
       class="joyfox-tabpanel"
     >
       <section id="joyfox-events"></section>
+    </div>
+    <div
+      role="tabpanel"
+      id="panel-messages"
+      aria-labelledby="tab-messages"
+      class="joyfox-tabpanel"
+    >
+      <section id="joyfox-messages"></section>
     </div>
     <div
       role="tabpanel"

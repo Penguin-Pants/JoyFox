@@ -791,6 +791,61 @@ describe("M8 import: restoring and merging", () => {
     expect(await ids()).toEqual(["snap-3"]);
   });
 
+  it("imports stored messages and their settings, and drops ones past the window (V1-4)", async () => {
+    const cached = (n: number, sentAt: string, extra = {}) => ({
+      id: `message:cm-message-00000000-0000-4000-8000-00000000000${n}`,
+      accountId: "a",
+      messageId: `cm-message-00000000-0000-4000-8000-00000000000${n}`,
+      conversationId: "personal-1111111-1234567",
+      memberId: "1234567",
+      direction: "received",
+      sentAt,
+      text: "Invented message",
+      createdAt: t0,
+      updatedAt: t0,
+      ...extra,
+    });
+    const plan = await importText(
+      fullFile(
+        {
+          extensionAccounts: [account("a", "me")],
+          cachedMessages: [
+            cached(1, t0),
+            cached(2, "2024-01-01T10:00:00.000Z"),
+          ],
+        },
+        {
+          "joyfox.messageCaching": false,
+          "joyfox.messageRetentionMonths": 12,
+          "joyfox.messageRevision": "x",
+        },
+      ),
+    );
+    expect(plan.settingsAdded).toEqual(
+      expect.arrayContaining([
+        "joyfox.messageCaching",
+        "joyfox.messageRetentionMonths",
+      ]),
+    );
+    expect(plan.settingsSkipped).toEqual([]);
+    expect(
+      (await repositories.cachedMessages.list("a")).map((item) => item.sentAt),
+    ).toEqual([t0]);
+    // A record not at its own key, or with too long a text, is refused.
+    for (const record of [
+      cached(3, t0, { id: "message:other" }),
+      cached(4, t0, { text: "x".repeat(10001) }),
+    ])
+      expect(() =>
+        parseImportFile(
+          fullFile({
+            extensionAccounts: [account("a", "me")],
+            cachedMessages: [record],
+          }),
+        ),
+      ).toThrow(/invalid|longer than 10000/u);
+  });
+
   it("keeps the imported records when saving settings fails afterwards", async () => {
     const text = fullFile({ extensionAccounts: [account("a", "me")] });
     const plan = await data.previewImport(text);
@@ -960,7 +1015,7 @@ describe("M8 import: language and schema version 4", () => {
   it("exports the language with the other settings", async () => {
     await settings.set({ [LOCALE_KEY]: "de" });
     const exported = await data.exportAll();
-    expect(exported.schemaVersion).toBe(4);
+    expect(exported.schemaVersion).toBe(DATABASE_VERSION);
     expect(exported.settings[LOCALE_KEY]).toBe("de");
   });
 });

@@ -16,7 +16,8 @@ Rules:
   stored and never logged. The only message text read is the inbox row's
   preview, for the "First message contains" rule condition (ADR 0013): it is
   compared with the rule's phrases and dropped, never stored and never logged.
-  Conversation message bubbles are never read.
+  Conversation message bubbles are read only for Conversation History Search
+  (V1-4), while message caching is on; their text is never logged.
 - The content script starts only on a verified host.
 - The member panel (M2, M6) and the note and tag editor (M5) are placed after
   the conversation and profile roots below, and read only the member ID. If the
@@ -73,6 +74,10 @@ app (`09-navigation.md`) and the inbox list can stay in the DOM.
 | Conversation | Message item      | `li.cm-message-list-item`                                                          | Recorded, not read (see below)                       |
 | Conversation | Composer          | `textarea.joy-input-wonder__input`                                                 | Template insertion target (M10)                      |
 | Conversation | Send              | `button.joy-input-wonder__button[data-e2e="button-submit"]`                        | Recorded only, never clicked                         |
+| Conversation | Message ID        | `data-message-id` on the message item                                              | `cm-message-<uuid>`; stable across a reload (V1-4)   |
+| Conversation | Direction         | `div.cm-message-bubble[data-e2e="sent-message"]` or `"received-message"`           | Sent or received                                     |
+| Conversation | Message text      | `div.cm-message-bubble__content`                                                   | Text nodes and `br`; the quote is not included       |
+| Conversation | Send time         | `j-message-bubble` shadow root › `.footer time[datetime]`                          | ISO date and time, when shown                        |
 | Profile      | Member ID         | URL path                                                                           | Digits before the first `.`                          |
 | Profile      | Verification code | `[data-e2e="profile-header-base-info"] j-veri-icon[…]`                             | Numeric code                                         |
 | Profile      | Photo count       | `.amount-badge[aria-label]`                                                        | `"<n> Fotos"` or `"1 Foto"`                          |
@@ -170,8 +175,9 @@ buttons sit in open shadow roots; the driver clicks them there.
   registers the text, and also its deletion by keyboard. The M10 picker is
   therefore on by default (ADR 0007). It places itself after the composer's form
   (`textarea.form`, no extra selector) and never touches Send.
-- **Message text.** `cm-message-bubble--left` and `--right` probably mean
-  received and sent, inferred from layout. Nothing reads message text until that
-  is confirmed and the message-caching toggle from ADR 0004 exists.
+- **Message text.** Confirmed by `12-messages.md`: `data-e2e="received-message"`
+  and `"sent-message"` mark the direction, and `data-message-id` stays the same
+  after a reload (owner, 2026-09-26). V1-4 reads it behind the message-caching
+  switch (ADR 0004, ADR 0016).
 - **Member ID permanence** is unconfirmed (build plan Section 30). IDs of 6, 7
   and 8 digits were seen.

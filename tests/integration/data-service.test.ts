@@ -25,6 +25,9 @@ import { freshDatabase } from "../setup-indexeddb";
 const now = "2026-09-23T10:00:00.000Z";
 
 /** One synthetic record per entity. No real member data. */
+/** A cached message's ID is derived from JoyClub's message ID (V1-4). */
+const MESSAGE_ID = "cm-message-00000000-0000-4000-8000-000000000001";
+
 const sample: {
   [N in EntityName]: Omit<EntityMap[N], keyof AccountScopedEntity>;
 } = {
@@ -112,6 +115,14 @@ const sample: {
     phrase: "blue heron",
     matchedAt: now,
   },
+  cachedMessages: {
+    messageId: MESSAGE_ID,
+    conversationId: "personal-1111111-1234567",
+    memberId: "1234567",
+    direction: "received",
+    sentAt: now,
+    text: "Invented synthetic message",
+  },
 };
 
 function record<N extends EntityName>(
@@ -142,7 +153,11 @@ async function fill(accountId: string): Promise<void> {
       record(
         name,
         accountId,
-        name === "extensionAccounts" ? accountId : `${name}-1`,
+        name === "extensionAccounts"
+          ? accountId
+          : name === "cachedMessages"
+            ? `message:${MESSAGE_ID}`
+            : `${name}-1`,
       ),
     );
 }

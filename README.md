@@ -91,6 +91,13 @@ profile you opened before, and it can sort the loaded search results by that
 number. It never shows a percentage (V1-2, `docs/manual-acceptance.md`, items
 116 to 120).
 
+Conversation History Search stores the ClubMail messages you open, sent and
+received, and the options page's "Messages" tab searches them. It is on by
+default and can be turned off there; messages older than 12 months (you choose 1
+to 120) are deleted automatically, and each message can be deleted under "Your
+data". It stores only what a conversation shows on screen (V1-4,
+`docs/manual-acceptance.md`, items 121 to 124).
+
 The options page also holds message templates and "Your data", where every
 stored record can be inspected field by field, exported as JSON and deleted, per
 account or for the whole extension. It also sets how many profile snapshots

@@ -207,3 +207,12 @@
   their German label only (`13-preferences.md`). The sort orders only the
   results JoyClub has loaded, and works only if JoyClub lays the list out as a
   flex or grid container.
+- Conversation History Search (V1-4) finds only messages JoyFox stored: the ones
+  a conversation showed on screen while message caching was on. It never loads
+  older messages, so a message never scrolled into view is not searchable. A
+  photo without text is not stored. A message edited or deleted on JoyClub keeps
+  its stored text until the conversation is opened again (an edit) or the purge
+  window passes (a deletion). Results name the other member by ID only, and have
+  no link to JoyClub (the network isolation check forbids remote addresses in
+  the extension's code). The search matches the query's words in order, ignoring
+  case and spacing; it has no fuzzy matching.

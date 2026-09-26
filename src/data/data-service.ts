@@ -1,3 +1,4 @@
+import { MessageCacheService } from "../messages/message-cache-service";
 import {
   AccountService,
   ACTIVE_ACCOUNT_SETTING_KEY,
@@ -233,6 +234,12 @@ export class DataService {
         );
       } catch {
         // The next capture of each member applies the limit.
+      }
+      // The same for cached messages (V1-4): none older than the window.
+      try {
+        await new MessageCacheService(this.settings).prune();
+      } catch {
+        // The next stored message applies the window.
       }
       return { ...current, settingsSaved };
     });
