@@ -1,8 +1,10 @@
 # JoyFox
 
-JoyFox is a local-first Firefox extension foundation for enhancing pages that a
-user opens on JoyClub and JOYCE. It does not fetch profiles, call undocumented
-APIs, or contain verified site selectors yet.
+JoyFox is a local-first Firefox extension that enhances pages a user opens on
+JoyClub. It does not fetch profiles or call undocumented APIs. It works on the
+inbox, conversation and profile pages of www.joyclub.de, whose selectors are
+verified from live evidence (`docs/selector-map.md`). Search, events and JOYCE
+are not verified yet, and JoyFox stays inactive there.
 
 ## Development
 
@@ -16,9 +18,34 @@ Requires Node.js 22 and npm.
 - `npm run build:firefox` creates the deterministic unpacked build in
   `dist/firefox`.
 
-Load `dist/firefox/manifest.json` temporarily from `about:debugging` for local
-development. The extension safely does nothing on JoyClub until selectors have
-been manually verified and enabled in source.
+## Install
+
+- **For development:** run `npm run build:firefox`, then load
+  `dist/firefox/manifest.json` from `about:debugging` > "This Firefox" > "Load
+  Temporary Add-on". Firefox removes it when it closes.
+- **A signed release:** download the `.xpi` from the GitHub release and open it
+  in Firefox (`about:addons` > gear menu > "Install Add-on From File"). Release
+  Firefox installs only signed builds; `docs/distribution.md` describes how a
+  release is signed.
+
+The extension ID is `joyfox@drclaw`. Firefox keeps an extension's data under its
+ID, so a build with a different ID starts empty: export your data under "Your
+data" first and import it afterwards.
+
+## Verify a release
+
+The build is deterministic: the same source and the same locked dependencies
+give byte-identical files. To check that a release `.xpi` matches its source:
+
+1. Check out the release tag and run `npm ci`, then `npm run build:firefox`
+   (Node.js 22).
+2. Unpack the `.xpi` (it is a ZIP file), for example
+   `unzip joyfox.xpi -d release`.
+3. Run `diff -r --exclude=META-INF release dist/firefox`. No output means the
+   release holds exactly the files built from the source. `META-INF` holds only
+   the signature that Mozilla's signing adds.
+
+## Features
 
 The database is at schema version 4. An existing version 1, 2 or 3 installation
 upgrades in place and keeps its records.

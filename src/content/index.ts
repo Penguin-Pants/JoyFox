@@ -10,6 +10,7 @@ import { TRIAGE_REVISION_KEY } from "../storage/triage-revision";
 import {
   DIAGNOSTICS_KEY,
   DiagnosticsFlag,
+  logDiagnostic,
   summarizeInbox,
 } from "./diagnostics";
 import { InboxTriage, inboxListShown, inboxListState } from "./inbox-triage";
@@ -122,14 +123,14 @@ if (hasVerifiedSelectors() && VERIFIED_HOSTS.includes(location.hostname)) {
     } inboxList=${inboxListState(document)}`;
     if (pageLine !== lastPageLine) {
       lastPageLine = pageLine;
-      console.debug(`JoyFox ${pageLine}`);
+      logDiagnostic(pageLine);
     }
     if (!inboxListShown(document)) return;
     const summary = summarizeInbox(extractInboxRows(document, location.href));
     // Mutations fire often; log only when the counts change.
     if (summary === lastSummary) return;
     lastSummary = summary;
-    console.debug(`JoyFox ${summary}`);
+    logDiagnostic(summary);
   });
   // A rule, placement, trust or snapshot write, or an account switch, in
   // any tab or the options page: re-evaluate what this page shows.

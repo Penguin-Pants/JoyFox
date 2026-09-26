@@ -2,7 +2,10 @@
 
 ## Status
 
-Accepted (project owner, 2026-09-23: "Build the F7-free core").
+Accepted (project owner, 2026-09-23: "Build the F7-free core"). Amended by ADR
+0011: the live driver and the `storage.session` hand-off (Path B) are built, and
+the M9 matrix was accepted on 2026-09-25. The guided mode is dropped (ADR 0015).
+The consequences below describe the state on 2026-09-23.
 
 ## Context
 

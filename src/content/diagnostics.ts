@@ -27,6 +27,15 @@ export function summarizeInbox(rows: readonly InboxRowExtraction[]): string {
   ].join(" ");
 }
 
+/**
+ * Writes one diagnostics line to the console. The only debug output JoyFox
+ * has: callers write only while the diagnostics flag is on, and lint allows
+ * `console.debug` in this file alone.
+ */
+export function logDiagnostic(line: string): void {
+  console.debug(`JoyFox ${line}`);
+}
+
 type StorageChanges = Record<string, { newValue?: unknown }>;
 type ChangeListener = (changes: StorageChanges, areaName: string) => void;
 

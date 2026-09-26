@@ -33,7 +33,7 @@
   trust than verification. Code `3` is "yes" and code `1` is "no" (the owner
   confirmed that green replaces grey). A missing shield and other codes read as
   unknown. It is read live on each page and never cached, as the user can change
-  the mark. No settings UI exists yet (M4).
+  the mark.
 - Conversation header data is used only when its member ID matches a number in
   the conversation URL. If those URL numbers turn out not to be member IDs,
   header data will always read as missing.
@@ -150,8 +150,8 @@
   experimental flag is the only mode.
 - A sender is "trusted" (PRD Section 7.4) by a manual Qualified placement, not
   by a tag (ADR 0015).
-- Database version 1 supplies a migration boundary. No historical schema yet
-  exists to migrate.
+- The database is at version 4. Versions 1 to 3 upgrade in place and keep their
+  records.
 - Cached profile facts do not expire (ADR 0005). A fact that changed on JoyClub
   since the member's profile was last seen stays in use until the profile is
   seen again.
@@ -167,8 +167,9 @@
 - Deleting one member record in the data inspector does not delete the notes,
   tags or other records that refer to that member. Each data type is deleted on
   its own.
-- The data inspector shows records as raw JSON, 50 at a time. It is complete but
-  not polished; PRD Section 20 puts inspector polish in V1.
+- The data inspector lists 50 records at a time. An opened record shows its
+  fields, with the stored JSON one click away (V1-7). It draws at most 200
+  values and 1,000 characters per text; the stored JSON always has the rest.
 - The contact rule saves on every change: at once for a box or choice, and when
   a number field loses focus or on Enter. An invalid number is not saved; the
   error names the field, and the last valid rule stays in force.
