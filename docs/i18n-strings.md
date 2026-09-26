@@ -532,6 +532,11 @@ stay as they are.
 | `data.deleteAccountDataPrompt` | Click "Confirm" to delete every record of this account. The account itself stays in Accounts. | Klicke auf „Bestätigen“, um alle Datensätze dieses Kontos zu löschen. Das Konto selbst bleibt unter „Konten“. |
 | `data.deletedAccountData` | Deleted all data of this account. The account itself is kept. | Alle Daten dieses Kontos wurden gelöscht. Das Konto selbst bleibt erhalten. |
 | `data.allAccounts` | All accounts | Alle Konten |
+| `data.retentionLabel` | Profile snapshots kept per member | Gespeicherte Profil-Momentaufnahmen je Mitglied |
+| `data.retentionHint` | JoyFox keeps the newest snapshots of each member's profile facts, always at least the latest one. Lowering the number deletes older snapshots at once, in every account. From {minimum} to {maximum}; the default is {default}. | JoyFox behält die neuesten Momentaufnahmen der Profilangaben jedes Mitglieds, immer mindestens die letzte. Eine kleinere Zahl löscht ältere Momentaufnahmen sofort, in allen Konten. Von {minimum} bis {maximum}; Standard ist {default}. |
+| `data.retentionSave` | Save | Speichern |
+| `data.retentionSaved` | Saved. 1 older snapshot was / {deleted} older snapshots were deleted. | Gespeichert. 1 ältere Momentaufnahme wurde / {deleted} ältere Momentaufnahmen wurden gelöscht. |
+| `data.retentionInvalid` | Enter a whole number from {minimum} to {maximum}. Nothing was changed. | Gib eine ganze Zahl von {minimum} bis {maximum} ein. Es wurde nichts geändert. |
 | `data.exportAll` | Export all JoyFox data (JSON) | Alle JoyFox-Daten exportieren (JSON) |
 | `data.exportedAll` | Export of all JoyFox data created. | Der Export aller JoyFox-Daten wurde erstellt. |
 | `data.deleteEverything` | Delete all JoyFox data | Alle JoyFox-Daten löschen |

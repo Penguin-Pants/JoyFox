@@ -7,6 +7,7 @@ import { MessageRouter } from "../../src/messaging/router";
 import type { ContactRuleDefinition } from "../../src/rules/contact-rule";
 import { GLOBAL_RULE_ID, RuleService } from "../../src/rules/rule-service";
 import { repositories } from "../../src/storage/repositories";
+import { SNAPSHOT_RETENTION_KEY } from "../../src/storage/snapshot-retention";
 import { TRIAGE_REVISION_KEY } from "../../src/storage/triage-revision";
 import {
   classificationId,
@@ -217,6 +218,16 @@ describe("TriageService.evaluate", () => {
 });
 
 describe("snapshot capture", () => {
+  it("keeps as many snapshots per member as the setting says (V1-12)", async () => {
+    await settings.set({ [SNAPSHOT_RETENTION_KEY]: 2 });
+    for (const photoCount of [1, 2, 3, 4])
+      expect(await triage.captureSnapshot(A, MEMBER, { photoCount })).toBe(
+        true,
+      );
+    const kept = await repositories.profileSnapshots.list(A);
+    expect(kept.map((snapshot) => snapshot.photoCount).sort()).toEqual([3, 4]);
+  });
+
   it("stores counts and dates only, and skips unseen or unchanged facts", async () => {
     expect(await triage.captureSnapshot(A, MEMBER, {})).toBe(false);
     const window = {

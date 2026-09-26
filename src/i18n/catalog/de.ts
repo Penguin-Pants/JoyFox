@@ -617,6 +617,19 @@ export const de: Catalog = {
   "data.deletedAccountData":
     "Alle Daten dieses Kontos wurden gelöscht. Das Konto selbst bleibt erhalten.",
   "data.allAccounts": "Alle Konten",
+  "data.retentionLabel": "Gespeicherte Profil-Momentaufnahmen je Mitglied",
+  "data.retentionHint": (p, f) =>
+    `JoyFox behält die neuesten Momentaufnahmen der Profilangaben jedes Mitglieds, immer mindestens die letzte. Eine kleinere Zahl löscht ältere Momentaufnahmen sofort, in allen Konten. Von ${f.number(p.minimum)} bis ${f.number(p.maximum)}; Standard ist ${f.number(p.default)}.`,
+  "data.retentionSave": "Speichern",
+  "data.retentionSaved": (p, f) =>
+    p.deleted === 0
+      ? "Gespeichert. Keine Momentaufnahme musste gelöscht werden."
+      : `Gespeichert. ${f.plural(p.deleted, {
+          one: "1 ältere Momentaufnahme wurde",
+          other: `${f.number(p.deleted)} ältere Momentaufnahmen wurden`,
+        })} gelöscht.`,
+  "data.retentionInvalid": (p, f) =>
+    `Gib eine ganze Zahl von ${f.number(p.minimum)} bis ${f.number(p.maximum)} ein. Es wurde nichts geändert.`,
   "data.exportAll": "Alle JoyFox-Daten exportieren (JSON)",
   "data.exportedAll": "Der Export aller JoyFox-Daten wurde erstellt.",
   "data.deleteEverything": "Alle JoyFox-Daten löschen",

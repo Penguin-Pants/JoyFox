@@ -28,6 +28,13 @@ import {
   type EntityCounts,
   type FullDataExport,
 } from "../storage/repositories";
+import {
+  isSnapshotRetention,
+  MAX_SNAPSHOT_RETENTION,
+  MIN_SNAPSHOT_RETENTION,
+  readSnapshotRetention,
+  SNAPSHOT_RETENTION_KEY,
+} from "../storage/snapshot-retention";
 import { bumpTriageRevision } from "../storage/triage-revision";
 import {
   parseImportFile,
@@ -153,6 +160,31 @@ export class DataService {
     });
   }
 
+  /** How many profile snapshots are kept per member (V1-12). */
+  snapshotRetention(): Promise<number> {
+    return readSnapshotRetention(this.settings);
+  }
+
+  /**
+   * Saves how many profile snapshots are kept per member, then deletes the
+   * older snapshots of every member in every account at once. Holds the
+   * exclusive data lock, so no capture or import overlaps the purge. Returns
+   * how many snapshots were deleted.
+   */
+  async setSnapshotRetention(keep: number): Promise<number> {
+    if (!isSnapshotRetention(keep))
+      throw new ExtensionError("StorageError", "Invalid snapshot retention", {
+        display: message("data.retentionInvalid", {
+          minimum: MIN_SNAPSHOT_RETENTION,
+          maximum: MAX_SNAPSHOT_RETENTION,
+        }),
+      });
+    return withExclusiveDataLock(async () => {
+      await this.settings.set({ [SNAPSHOT_RETENTION_KEY]: keep });
+      return repositories.profileSnapshots.pruneAll(keep);
+    });
+  }
+
   /**
    * Check a file and show what importing it would change, without writing.
    * The returned signature must be passed to `applyImport`.
@@ -166,7 +198,7 @@ export class DataService {
    * overlaps it, and plans again from current data: if the result differs
    * from the preview, nothing is written. All records are written in one
    * transaction, so a failure leaves stored records unchanged.
-   * Settings follow as a best-effort second step.
+   * Settings, then the snapshot limit (V1-12), follow as best-effort steps.
    */
   async applyImport(
     text: string,
@@ -191,6 +223,17 @@ export class DataService {
         } catch {
           settingsSaved = false;
         }
+      // Records are written without retention, and the file may bring a
+      // lower snapshot limit: apply the limit now in effect, so no member
+      // stays above it until their next capture (V1-12). Best effort like
+      // the settings: the imported records are already committed.
+      try {
+        await repositories.profileSnapshots.pruneAll(
+          await readSnapshotRetention(this.settings),
+        );
+      } catch {
+        // The next capture of each member applies the limit.
+      }
       return { ...current, settingsSaved };
     });
     await bumpTriageRevision(this.settings);

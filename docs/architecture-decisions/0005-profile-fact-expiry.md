@@ -22,8 +22,8 @@ user deletes it.
 ## Consequences
 
 - Snapshots are still bounded by count, not by age: each write keeps the newest
-  20 snapshots per member (PRD Section 13.3). Nothing purges a snapshot because
-  of its age.
+  20 snapshots per member (PRD Section 13.3; a setting since V1-12, default 20).
+  Nothing purges a snapshot because of its age.
 - A fact observed on the current page always wins over a cached fact, and a
   newer snapshot wins over an older one. This is how a cached fact is
   "superseded on re-visit".

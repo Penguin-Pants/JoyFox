@@ -171,6 +171,13 @@ export const MESSAGE_PARAMS: {
   "data.deleteRecordPrompt": { id: "string" },
   "data.deletedRecord": { id: "string" },
   "data.showMore": { count: "number" },
+  "data.retentionHint": {
+    minimum: "number",
+    maximum: "number",
+    default: "number",
+  },
+  "data.retentionSaved": { deleted: "number" },
+  "data.retentionInvalid": { minimum: "number", maximum: "number" },
   "data.moreValues": { count: "number" },
   "data.moreCharacters": { count: "number" },
   "data.confirmLabel": { label: "message" },

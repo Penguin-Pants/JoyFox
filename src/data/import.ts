@@ -1,4 +1,8 @@
 import { ACTIVE_ACCOUNT_SETTING_KEY } from "../accounts/account-service";
+import {
+  isSnapshotRetention,
+  SNAPSHOT_RETENTION_KEY,
+} from "../storage/snapshot-retention";
 import type {
   AccountScopedEntity,
   EntityMap,
@@ -115,6 +119,8 @@ const IMPORTED_SETTINGS: Readonly<Record<string, (value: unknown) => boolean>> =
     // The UI language. Imported only when valid and none is stored, like
     // every setting here.
     [LOCALE_KEY]: isLocale,
+    // How many profile snapshots are kept per member (V1-12).
+    [SNAPSHOT_RETENTION_KEY]: isSnapshotRetention,
   };
 
 /** Every field each entity may have. Anything else refuses the file. */

@@ -19,14 +19,34 @@ import {
   withoutStorageKey,
   type Stored,
 } from "./repository";
+import { DEFAULT_SNAPSHOT_RETENTION } from "./snapshot-retention";
 import { validateEntity, ValidationError } from "./validation";
 
 /**
  * Profile snapshots are time-series personal data, so the store keeps only the
  * newest snapshots per member. Without a bound, ordinary revisits grow storage
- * indefinitely and retain obsolete profile facts.
+ * indefinitely and retain obsolete profile facts. The user can change the
+ * number (`snapshot-retention.ts`); this is the default.
  */
-export const PROFILE_SNAPSHOT_RETENTION = 20;
+export const PROFILE_SNAPSHOT_RETENTION = DEFAULT_SNAPSHOT_RETENTION;
+
+/** The snapshots past `keep` for each member, newest kept first. */
+function snapshotsBeyond(
+  snapshots: ReadonlyArray<Stored<ProfileSnapshot>>,
+  keep: number,
+): Array<Stored<ProfileSnapshot>> {
+  const byMember = new Map<string, Array<Stored<ProfileSnapshot>>>();
+  for (const snapshot of snapshots) {
+    const member = `${snapshot.accountId}\u0000${snapshot.memberId}`;
+    const list = byMember.get(member) ?? [];
+    list.push(snapshot);
+    byMember.set(member, list);
+  }
+  // Instants, not strings: offsets and precision can differ.
+  return [...byMember.values()].flatMap((list) =>
+    list.sort(newestCaptureFirst).slice(Math.max(keep, 1)),
+  );
+}
 
 export class ExtensionAccountRepository extends IndexedDbRepository<"extensionAccounts"> {
   constructor() {
@@ -95,18 +115,39 @@ export class ProfileSnapshotRepository extends IndexedDbRepository<"profileSnaps
     store: IDBObjectStore,
     accountId: string,
     entity: ProfileSnapshot,
+    retention = PROFILE_SNAPSHOT_RETENTION,
   ): Promise<void> {
     const stored = await requestResult(
       store.index("accountId").getAll(accountId) as IDBRequest<
         Array<Stored<ProfileSnapshot>>
       >,
     );
-    const newestFirst = stored
-      .filter((snapshot) => snapshot.memberId === entity.memberId)
-      // Instants, not strings: offsets and precision can differ.
-      .sort(newestCaptureFirst);
-    for (const obsolete of newestFirst.slice(PROFILE_SNAPSHOT_RETENTION))
+    const member = stored.filter(
+      (snapshot) => snapshot.memberId === entity.memberId,
+    );
+    for (const obsolete of snapshotsBeyond(member, retention))
       store.delete(obsolete.storageKey);
+  }
+  /**
+   * Keeps only the newest `keep` snapshots of every member in every account,
+   * in one transaction: after the user lowers the setting, the snapshots
+   * already stored follow it too. Returns how many were deleted.
+   */
+  async pruneAll(keep: number): Promise<number> {
+    const db = await openDatabase();
+    const transaction = db.transaction("profileSnapshots", "readwrite");
+    const store = transaction.objectStore("profileSnapshots");
+    let deleted = 0;
+    await commitAll(transaction, async () => {
+      const all = await requestResult(
+        store.getAll() as IDBRequest<Array<Stored<ProfileSnapshot>>>,
+      );
+      for (const obsolete of snapshotsBeyond(all, keep)) {
+        store.delete(obsolete.storageKey);
+        deleted += 1;
+      }
+    });
+    return deleted;
   }
 }
 export class UserNoteRepository extends IndexedDbRepository<"userNotes"> {

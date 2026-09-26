@@ -73,7 +73,9 @@ already stored, which files to accept, and how conflicts resolve.
   other. Importing the same file twice changes nothing.
 - An older note is replaced by a newer one, never combined. The owner approved
   this; combining is not built.
-- Retention (20 snapshots per member, 12 months of cached messages) is not
-  applied during import. It applies on the next ordinary write to that store.
+- Retention (12 months of cached messages) is not applied during import. It
+  applies on the next ordinary write to that store. Since V1-12, the profile
+  snapshot limit (20 per member by default, a setting) is applied right after an
+  import, with the limit in effect once the file's settings are saved.
 - Import reads the whole stored database to plan. That is fine for one person's
   data; a very large store makes the preview slower.

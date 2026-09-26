@@ -63,7 +63,15 @@ export class IndexedDbRepository<N extends EntityName>
     );
     return records.map(withoutStorageKey);
   }
-  async put(accountId: string, entity: EntityMap[N]): Promise<void> {
+  /**
+   * Stores one record. `retention` is passed to the store's retention policy,
+   * if it has one (profile snapshots: how many to keep per member).
+   */
+  async put(
+    accountId: string,
+    entity: EntityMap[N],
+    retention?: number,
+  ): Promise<void> {
     if (entity.accountId !== accountId)
       throw new ValidationError(
         "Entity account does not match repository scope",
@@ -74,7 +82,7 @@ export class IndexedDbRepository<N extends EntityName>
     const store = transaction.objectStore(this.entityName);
     await commitAll(transaction, async () => {
       store.put({ ...entity, storageKey: key(accountId, entity.id) });
-      await this.applyRetention?.(store, accountId, entity);
+      await this.applyRetention?.(store, accountId, entity, retention);
     });
   }
   async delete(accountId: string, id: string): Promise<void> {
@@ -93,5 +101,6 @@ export class IndexedDbRepository<N extends EntityName>
     store: IDBObjectStore,
     accountId: string,
     entity: EntityMap[N],
+    retention?: number,
   ): Promise<void>;
 }
