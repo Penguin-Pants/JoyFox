@@ -109,12 +109,12 @@ what it matches, or a screenshot with DOM inspection notes.
    and documents reload, History API navigation occurs, and content changes
    dynamically. This decides which coordinator signals are necessary. Send a
    short observation per transition.
-10. **F8 — Firefox distribution:** Confirm the intended distribution channel
-    (temporary development, unlisted self-distribution, or listed AMO). Current
-    Mozilla signing requirements then need verification against official
+10. **F8 — Firefox distribution:** The channel is chosen: unlisted
+    self-distribution with automatic updates (owner, 2026-09-26, ADR 0016).
+    Current Mozilla signing requirements then need verification against official
     documentation before release packaging is claimed. A research draft with the
-    steps, the manifest gaps (the placeholder extension ID and the missing
-    `data_collection_permissions`) and a verification checklist is in
+    steps, the manifest gaps (the missing `data_collection_permissions`; the
+    extension ID is decided, ADR 0016) and a verification checklist is in
     `docs/distribution.md` (2026-09-25); it could not be checked against the
     live pages from this environment.
 

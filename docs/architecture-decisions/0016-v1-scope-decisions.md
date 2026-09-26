@@ -1,4 +1,4 @@
-# 0016: V1 scope decisions: no per-audience rules, license, presets, no sync yet, overlay, attendance, disclaimer
+# 0016: V1 scope decisions: no per-audience rules, license, presets, no sync yet, overlay, attendance, disclaimer, release channel
 
 ## Status
 
@@ -129,3 +129,21 @@ The README states the disclaimer ("Disclaimer"): no connection to JoyClub, the
 unchecked terms and the account risk, local storage of data about other members
 and the user's responsibility for it, and no warranty. V1-9's release page
 repeats it. The owner can still choose a review before V1-9 ships.
+
+## Amendment: D7 and F8 (project owner, 2026-09-26)
+
+1. **D7: no fixed personal testing period.** The public release (V1-9) follows
+   when V1 is done and the MVP release gate passes. The owner chose this against
+   the recommended option (at least 4 weeks of daily use plus exit criteria).
+   This overrides the separate "personal dogfooding period" step in PRD Section
+   24.7; the owner's own use while V1 is built takes its place. The risk: the
+   last V1 features can reach users with little or no real use first.
+2. **F8: an unlisted build with automatic updates.** Mozilla signs the build, it
+   is not listed on addons.mozilla.org, and the GitHub release carries the
+   signed `.xpi` (PRD Section 20). Firefox updates it through
+   `browser_specific_settings.gecko.update_url`, which points to an
+   `updates.json` served over HTTPS from GitHub; V1-9 sets the exact address.
+   The steps in `docs/distribution.md` stay a draft until someone with access to
+   the Mozilla pages completes its verification checklist; this environment
+   cannot reach them. `data_collection_permissions` is added in V1-9, once its
+   format is verified.

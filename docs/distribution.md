@@ -10,8 +10,8 @@ is claimed, verify every claim marked **Verify** against the live page (see
 "Verification checklist").
 
 F8's acceptance criterion ("documented steps to produce a signed, installable
-build outside AMO") is met only as a draft until that check is done and the
-owner has chosen a channel.
+build outside AMO") is met only as a draft until that check is done. The owner
+chose the channel: unlisted, with automatic updates (ADR 0016).
 
 ## Channels
 
@@ -119,10 +119,13 @@ rebuild match the submitted file.
 
 ## Owner decisions
 
-- **Channel:** temporary install only (personal use), unlisted signed build
-  (matches PRD Section 20, V1), or AMO listing (PRD "Later").
+- **Channel:** decided (owner, 2026-09-26, ADR 0016): an unlisted signed build,
+  published on the GitHub release (PRD Section 20, V1). An AMO listing stays
+  "Later".
 - **Extension ID:** decided: `joyfox@drclaw` (ADR 0016).
-- **Updates:** a self-hosted `update_url`, or updates installed by hand.
+- **Updates:** decided (owner, 2026-09-26, ADR 0016): automatic, through
+  `update_url` and an `updates.json` served over HTTPS from GitHub. V1-9 sets
+  the exact address.
 
 ## Verification checklist
 
