@@ -134,8 +134,10 @@ rebuild match the submitted file.
   "Later".
 - **Extension ID:** decided: `joyfox@drclaw` (ADR 0016).
 - **Updates:** decided (owner, 2026-09-26, ADR 0016): automatic, through
-  `update_url` and an `updates.json` served over HTTPS from GitHub. V1-9 sets
-  the exact address.
+  `update_url` and an `updates.json` served over HTTPS from GitHub. The address
+  is `https://raw.githubusercontent.com/Penguin-Pants/JoyFox/main/updates.json`
+  (owner, 2026-09-26): a file in the repository, updated by each release PR.
+  V1-9 adds the file and the manifest key.
 
 ## Verification checklist
 
