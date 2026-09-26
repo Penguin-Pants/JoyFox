@@ -626,6 +626,8 @@ export const en = {
   "data.valueNo": "no",
   "data.valueEmpty": "(empty)",
   "data.rawJson": "Stored JSON",
+  "data.moreCharacters": (p: { count: number }, f: Format) =>
+    `…and ${f.number(p.count)} more characters (see "Stored JSON")`,
   "data.moreValues": (p: { count: number }, f: Format) =>
     `…and ${f.number(p.count)} more (see "Stored JSON")`,
   "data.delete": "Delete",

@@ -7,6 +7,7 @@ import {
 } from "../../src/i18n/translator";
 import {
   DATE_PATHS,
+  MAX_SHOWN_CHARACTERS,
   MAX_SHOWN_VALUES,
   renderFields,
 } from "../../src/options/record-fields";
@@ -229,6 +230,24 @@ describe("record fields (V1-7)", () => {
     expect(terms[terms.length - 1]!.nextElementSibling?.textContent).toBe(
       `…and ${(5_000 - MAX_SHOWN_VALUES / 2).toLocaleString("en-US")} more (see "Stored JSON")`,
     );
+  });
+
+  it("cuts a long text, never inside a character, and says how much is left", () => {
+    // An emoji is two UTF-16 units; one straddles the cut.
+    const text = `${"a".repeat(MAX_SHOWN_CHARACTERS - 1)}🦊${"b".repeat(50_000)}`;
+    const list = renderFields(document, { value: text });
+    const shown = list.querySelector(".joyfox-data__value--text")!;
+    const more = shown.querySelector(".joyfox-data__value--more")!;
+    expect(more.textContent).toBe(
+      `…and ${(50_001).toLocaleString("en-US")} more characters (see "Stored JSON")`,
+    );
+    const kept = shown.firstChild!.textContent!;
+    expect(kept).toBe("a".repeat(MAX_SHOWN_CHARACTERS - 1));
+    // A text at the limit is shown whole.
+    const whole = "c".repeat(MAX_SHOWN_CHARACTERS);
+    expect(pairs(renderFields(document, { value: whole }))).toEqual([
+      ["value", whole],
+    ]);
   });
 
   it("sets stored text as text, never as markup", () => {

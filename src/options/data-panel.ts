@@ -71,6 +71,21 @@ export const browserFileSaver: FileSaver = (name, text) => {
   setTimeout(() => URL.revokeObjectURL(url), 0);
 };
 
+/**
+ * Runs `fill` once, the first time `details` is open: at once if it is open
+ * already, else when the user opens it.
+ */
+function whenOpened(details: HTMLDetailsElement, fill: () => void): void {
+  let filled = false;
+  const run = () => {
+    if (filled || !details.open) return;
+    filled = true;
+    fill();
+  };
+  details.addEventListener("toggle", run);
+  run();
+}
+
 /** A destructive action waiting for its confirming second click. */
 type Pending =
   | { kind: "record"; entity: EntityName; id: string }
@@ -346,18 +361,6 @@ export class DataPanel {
       const item = element(document, "li", "joyfox-data__record");
       item.dataset.recordId = record.id;
       const details = element(document, "details", "joyfox-data__details");
-      details.open = this.#openRecords.has(record.id);
-      // The stored JSON stays one click away, exactly as exported.
-      const raw = element(document, "details", "joyfox-data__raw");
-      raw.append(
-        element(document, "summary", "", t("data.rawJson")),
-        element(
-          document,
-          "pre",
-          "joyfox-data__json",
-          JSON.stringify(record, null, 2),
-        ),
-      );
       details.append(
         element(
           document,
@@ -368,9 +371,29 @@ export class DataPanel {
             updated: formatDate(record.updatedAt),
           }),
         ),
-        renderFields(document, record as unknown as Record<string, unknown>),
-        raw,
       );
+      details.open = this.#openRecords.has(record.id);
+      // A record's fields and its stored JSON are drawn when it is opened,
+      // never for every listed record: an imported record can be very large.
+      whenOpened(details, () => {
+        // The stored JSON stays one click away, exactly as exported.
+        const raw = element(document, "details", "joyfox-data__raw");
+        raw.append(element(document, "summary", "", t("data.rawJson")));
+        whenOpened(raw, () =>
+          raw.append(
+            element(
+              document,
+              "pre",
+              "joyfox-data__json",
+              JSON.stringify(record, null, 2),
+            ),
+          ),
+        );
+        details.append(
+          renderFields(document, record as unknown as Record<string, unknown>),
+          raw,
+        );
+      });
       item.append(details);
       if (isDeletableEntity(name))
         item.append(

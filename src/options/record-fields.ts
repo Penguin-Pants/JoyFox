@@ -73,6 +73,44 @@ function span(document: Document, className: string, text: string) {
  */
 export const MAX_SHOWN_VALUES = 200;
 
+/**
+ * The most characters shown of one text value. An imported free-form value
+ * can hold a text of almost 50 MiB; past this length, a line says how many
+ * more characters there are, and "Stored JSON" has the whole text.
+ */
+export const MAX_SHOWN_CHARACTERS = 1_000;
+
+/** Characters (code points) from `start` to the end, counted without copying. */
+function charactersFrom(text: string, start: number): number {
+  let count = 0;
+  for (let index = start; index < text.length; index += 1) {
+    const unit = text.charCodeAt(index);
+    // A low surrogate is the second half of a character already counted.
+    if (unit < 0xdc00 || unit > 0xdfff) count += 1;
+  }
+  return count;
+}
+
+/** A text value, cut after MAX_SHOWN_CHARACTERS with a line saying so. */
+function renderText(document: Document, text: string): HTMLElement {
+  if (text.length <= MAX_SHOWN_CHARACTERS)
+    return span(document, "joyfox-data__value--text", text);
+  let end = MAX_SHOWN_CHARACTERS;
+  // Never cut a character in half.
+  const last = text.charCodeAt(end - 1);
+  if (last >= 0xd800 && last <= 0xdbff) end -= 1;
+  const node = span(document, "joyfox-data__value--text", text.slice(0, end));
+  node.append(
+    " ",
+    span(
+      document,
+      "joyfox-data__value--more",
+      t("data.moreCharacters", { count: charactersFrom(text, end) }),
+    ),
+  );
+  return node;
+}
+
 interface Budget {
   left: number;
 }
@@ -118,7 +156,7 @@ function renderValue(
       time.textContent = date;
       return time;
     }
-    return span(document, "joyfox-data__value--text", value);
+    return renderText(document, value);
   }
   if (Array.isArray(value)) {
     const list = document.createElement("ul");
