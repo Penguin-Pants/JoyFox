@@ -24,6 +24,14 @@ export interface TemplateSummary {
   body: string;
 }
 
+/** What the search page needs of one saved search (V1-3). */
+export interface SavedSearchSummary {
+  id: string;
+  name: string;
+  url: string;
+  filters: unknown;
+}
+
 /**
  * One member's note and tags under the active account (M5). `accountId` is
  * the account they were read for; writes send it back.
@@ -230,6 +238,30 @@ export interface MessageContract {
           next: ActionStep;
           steps: ActionLog["steps"];
         };
+  };
+  /**
+   * V1-3: the active account's saved searches. `accountId` is absent when
+   * no account is active.
+   */
+  "search.list": {
+    request: Record<string, never>;
+    response: { accountId?: string; searches: SavedSearchSummary[] };
+  };
+  /**
+   * Save the search page's current address under a name. `refused` means
+   * the account is no longer active; `no-match` that the address is not a
+   * verified search address; `full` that the account has the most saved
+   * searches allowed.
+   */
+  "search.save": {
+    request: { accountId: string; name: string; url: string };
+    response:
+      | { status: "saved"; id: string }
+      | { status: "refused" | "no-match" | "full" };
+  };
+  "search.delete": {
+    request: { accountId: string; id: string };
+    response: { status: "deleted" | "refused" };
   };
   /** Content scripts cannot open the options page themselves. */
   "options.open": {

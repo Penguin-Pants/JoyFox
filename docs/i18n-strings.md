@@ -290,6 +290,30 @@ stay as they are.
 | `notes.summary.tags` | Your notes and tags (1 tag / {count} tags) | Deine Notizen und Tags (1 Tag / {count} Tags) |
 | `notes.summary.noteAndTags` | Your notes and tags (a note and 1 tag / {count} tags) | Deine Notizen und Tags (eine Notiz und 1 Tag / {count} Tags) |
 
+## searches
+
+| Key | English | Deutsch |
+| --- | --- | --- |
+| `searches.heading` | JoyFox saved searches | Gespeicherte JoyFox-Suchen |
+| `searches.loading` | Loading saved searches… | Gespeicherte Suchen werden geladen … |
+| `searches.readFailed` | JoyFox could not read your saved searches. Reload the page to try again. | JoyFox konnte deine gespeicherten Suchen nicht lesen. Lade die Seite neu, um es noch einmal zu versuchen. |
+| `searches.empty` | No saved searches yet. | Noch keine gespeicherten Suchen. |
+| `searches.noAccount` | Select or add an account in the JoyFox options to save searches. | Wähle in den JoyFox-Einstellungen ein Konto aus oder füge eines hinzu, um Suchen zu speichern. |
+| `searches.save` | Save this search | Diese Suche speichern |
+| `searches.nameLabel` | Name for this search | Name für diese Suche |
+| `searches.confirmSave` | Save | Speichern |
+| `searches.cancel` | Cancel | Abbrechen |
+| `searches.noName` | Type a name first. Nothing was saved. | Gib zuerst einen Namen ein. Es wurde nichts gespeichert. |
+| `searches.nameTooLong` | A name can have at most {maximum} characters. Nothing was saved. | Ein Name darf höchstens {maximum} Zeichen haben. Es wurde nichts gespeichert. |
+| `searches.notSearchAddress` | This page's address is not a search JoyFox can save. Nothing was saved. | Die Adresse dieser Seite ist keine Suche, die JoyFox speichern kann. Es wurde nichts gespeichert. |
+| `searches.full` | You have {maximum} saved searches, the most JoyFox keeps. Delete one first. | Du hast {maximum} gespeicherte Suchen, mehr behält JoyFox nicht. Lösche zuerst eine. |
+| `searches.refused` | The active JoyFox account changed, so nothing was changed. | Das aktive JoyFox-Konto hat sich geändert, deshalb wurde nichts geändert. |
+| `searches.saved` | Saved "{name}". | „{name}“ gespeichert. |
+| `searches.noMatch` | "{name}" no longer matches JoyClub's search address, so JoyFox did not open it. Run the search again and save it again. | „{name}“ passt nicht mehr zur Suchadresse von JoyClub, deshalb hat JoyFox die Suche nicht geöffnet. Führe die Suche noch einmal aus und speichere sie neu. |
+| `searches.deleteLabel` | Delete saved search {name} | Gespeicherte Suche {name} löschen |
+| `searches.confirmDelete` | Click ✕ again to delete "{name}". | Klicke noch einmal auf ✕, um „{name}“ zu löschen. |
+| `searches.deleted` | Deleted "{name}". | „{name}“ gelöscht. |
+
 ## picker
 
 | Key | English | Deutsch |

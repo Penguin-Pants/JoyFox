@@ -1,4 +1,4 @@
-# 0016: V1 scope decisions: no per-audience rules, license, presets, no sync yet, overlay, attendance, disclaimer, release channel
+# 0016: V1 scope decisions: no per-audience rules, license, presets, no sync yet, overlay, attendance, disclaimer, release channel, preference levels
 
 ## Status
 
@@ -147,3 +147,19 @@ repeats it. The owner can still choose a review before V1-9 ships.
    the Mozilla pages completes its verification checklist; this environment
    cannot reach them. `data_collection_permissions` is added in V1-9, once its
    format is verified.
+
+## Amendment: D5 levels and V1-3 criteria (project owner, 2026-09-26)
+
+1. **D5, which levels count as shared.** Evidence E3
+   (`docs/live-evidence/13-preferences.md`) shows that a profile lists only its
+   selected tags, each in one of six levels: Unbedingt, Steh ich drauf,
+   Situationsabhängig, Mag ich nicht so, Geht gar nicht and Möchte ich gerne
+   ausprobieren. A tag counts as shared when both profiles have it at a positive
+   level: Unbedingt, Steh ich drauf, Situationsabhängig or Möchte ich gerne
+   ausprobieren. A tag that one profile likes and the other rejects is never
+   shared. The German label is the only key, so tags are matched by label.
+2. **V1-3 criteria approved** as written: a saved search opens the same URL with
+   the same filters; if JoyClub's search address no longer matches, JoyFox says
+   so and opens nothing. In the build, "matches" means that the saved address
+   passes the verified search address in the selector registry (`11-search.md`)
+   and still holds the filters stored with it.

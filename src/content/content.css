@@ -14,6 +14,7 @@
 .joyfox-panel,
 .joyfox-badge,
 .joyfox-template-picker,
+.joyfox-saved-searches,
 .joyfox-strip {
   --joyfox-ink: currentColor;
   --joyfox-muted: color-mix(in srgb, currentColor 70%, transparent);
@@ -443,5 +444,63 @@
 }
 
 .joyfox-triage__about .joyfox-note {
+  margin: var(--joyfox-space) 0 0;
+}
+
+/* V1-3: saved searches above JoyClub's member search results. */
+.joyfox-saved-searches {
+  box-sizing: border-box;
+  margin: var(--joyfox-space) 0;
+  padding: var(--joyfox-space) 0.75em;
+  border: 1px solid var(--joyfox-line);
+  border-radius: var(--joyfox-radius);
+  background: var(--joyfox-surface);
+  font: inherit;
+  font-size: 0.875rem;
+  line-height: 1.4;
+}
+
+.joyfox-saved-searches__heading {
+  margin: 0 0 var(--joyfox-space);
+  font-weight: 600;
+}
+
+.joyfox-saved-searches__list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--joyfox-space);
+  margin: 0 0 var(--joyfox-space);
+  padding: 0;
+  list-style: none;
+}
+
+.joyfox-saved-searches__item {
+  display: inline-flex;
+  gap: 0.25em;
+}
+
+.joyfox-saved-searches__save {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--joyfox-space);
+  align-items: center;
+}
+
+.joyfox-saved-searches__name {
+  box-sizing: border-box;
+  max-width: 100%;
+  padding: 0.25em 0.5em;
+  border: 1px solid var(--joyfox-line);
+  border-radius: var(--joyfox-radius);
+  background: var(--joyfox-field);
+  color: inherit;
+  font: inherit;
+}
+
+.joyfox-saved-searches__status:empty {
+  display: none;
+}
+
+.joyfox-saved-searches__status {
   margin: var(--joyfox-space) 0 0;
 }

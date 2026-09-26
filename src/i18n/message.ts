@@ -151,6 +151,13 @@ export const MESSAGE_PARAMS: {
   "rule.addConditionLabel": { number: "number" },
   "rule.ruleCount": { count: "number", maximum: "number" },
   "rule.notSaved": { problem: "message" },
+  "searches.nameTooLong": { maximum: "number" },
+  "searches.full": { maximum: "number" },
+  "searches.saved": { name: "string" },
+  "searches.noMatch": { name: "string" },
+  "searches.deleteLabel": { name: "string" },
+  "searches.confirmDelete": { name: "string" },
+  "searches.deleted": { name: "string" },
   "rule.preset.describe.complete": { photos: "number", words: "number" },
   "rule.preset.describe.highTrust": {
     photos: "number",

@@ -6,6 +6,7 @@ import { hasVerifiedSelectors, VERIFIED_HOSTS } from "../selectors/registry";
 import { runtimeSettingsArea } from "../storage/local-settings";
 import { ACTION_REVISION_KEY } from "../storage/action-revision";
 import { NOTES_REVISION_KEY } from "../storage/notes-revision";
+import { SAVED_SEARCH_REVISION_KEY } from "../storage/saved-search-revision";
 import { TRIAGE_REVISION_KEY } from "../storage/triage-revision";
 import {
   DIAGNOSTICS_KEY,
@@ -24,6 +25,7 @@ import {
   QuickIgnoreDelete,
   runtimeQuickActionClient,
 } from "./quick-action";
+import { runtimeSavedSearchClient, SavedSearchBar } from "./saved-searches";
 import {
   runtimeTemplateClient,
   TEMPLATE_PICKER_KEY,
@@ -61,6 +63,7 @@ if (hasVerifiedSelectors() && VERIFIED_HOSTS.includes(location.hostname)) {
   const panel = new MemberPanel(document, client);
   const notes = new MemberNotes(document, runtimeNotesClient());
   const picker = new TemplatePicker(document, runtimeTemplateClient());
+  const searches = new SavedSearchBar(document, runtimeSavedSearchClient());
   const quick = new QuickIgnoreDelete(
     document,
     runtimeQuickActionClient(),
@@ -74,6 +77,7 @@ if (hasVerifiedSelectors() && VERIFIED_HOSTS.includes(location.hostname)) {
     notes.localeChanged();
     picker.localeChanged();
     quick.localeChanged();
+    searches.localeChanged();
   });
   let lastType: string | undefined;
   const updatePicker = () => {
@@ -106,6 +110,8 @@ if (hasVerifiedSelectors() && VERIFIED_HOSTS.includes(location.hostname)) {
       panel.leave();
       notes.leave();
     }
+    if (type === "search") searches.update();
+    else searches.leave();
     lastType = type;
     updatePicker();
     updateQuickAction();
@@ -153,17 +159,21 @@ if (hasVerifiedSelectors() && VERIFIED_HOSTS.includes(location.hostname)) {
       notes.accountChanged();
       picker.accountChanged();
       quick.accountChanged();
+      searches.accountChanged();
     } else if (TRIAGE_REVISION_KEY in changes) {
-      // Also set by every delete in the data inspector, so a deleted note
-      // or tag leaves an open page at once.
+      // Also set by every delete in the data inspector, so a deleted note,
+      // tag or saved search leaves an open page at once.
       inbox.invalidate();
       panel.invalidate();
       notes.invalidate();
       quick.invalidate();
+      searches.invalidate();
     } else if (NOTES_REVISION_KEY in changes) {
       // A note or tag saved in another tab.
       notes.invalidate();
     }
+    // A search saved or deleted in another tab.
+    if (SAVED_SEARCH_REVISION_KEY in changes) searches.invalidate();
   });
   // Start after the initial flag and language are known, so the first event
   // is not missed and the first drawing is already in the right language.

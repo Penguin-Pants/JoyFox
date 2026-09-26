@@ -2,9 +2,9 @@
 
 JoyFox is a local-first Firefox extension that enhances pages a user opens on
 JoyClub. It does not fetch profiles or call undocumented APIs. It works on the
-inbox, conversation and profile pages of www.joyclub.de, whose selectors are
-verified from live evidence (`docs/selector-map.md`). Search, events and JOYCE
-are not verified yet, and JoyFox stays inactive there.
+inbox, conversation, profile and member search pages of www.joyclub.de, whose
+selectors are verified from live evidence (`docs/selector-map.md`). Events and
+JOYCE are not verified yet, and JoyFox stays inactive there.
 
 ## Development
 
@@ -69,6 +69,11 @@ an Advanced editor, and saves on each change. "Start from a preset" fills it
 with one of the PRD's presets: Open, Complete profiles only, Verified members,
 High-trust members or Custom (ADR 0016, `docs/manual-acceptance.md`, items 105
 to 107).
+
+On JoyClub's member search, a "JoyFox saved searches" bar above the results
+saves the search's address, which holds every filter, under a name, and opens it
+again in one click. A saved search whose address no longer matches JoyClub's
+search is not opened (V1-3, `docs/manual-acceptance.md`, items 108 to 110).
 
 The options page also holds message templates and "Your data", where every
 stored record can be inspected field by field, exported as JSON and deleted, per

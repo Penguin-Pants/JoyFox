@@ -11,18 +11,20 @@ import {
 import inboxEvidence from "../../docs/live-evidence/01-inbox.md?raw";
 import conversationEvidence from "../../docs/live-evidence/02-conversation.md?raw";
 import profileEvidence from "../../docs/live-evidence/03-profile.md?raw";
+import searchEvidence from "../../docs/live-evidence/11-search.md?raw";
 
 const EVIDENCE: Record<string, string> = {
   "01-inbox.md": inboxEvidence,
   "02-conversation.md": conversationEvidence,
   "03-profile.md": profileEvidence,
+  "11-search.md": searchEvidence,
 };
 
 describe("F2 content framework", () => {
   it("verifies only pages backed by live evidence", () => {
     for (const [page, definition] of Object.entries(selectorRegistry)) {
       if (definition.status === "verified") {
-        expect(definition.evidence, page).toMatch(/^0\d-[a-z-]+\.md$/);
+        expect(definition.evidence, page).toMatch(/^\d\d-[a-z-]+\.md$/);
         expect(EVIDENCE[definition.evidence ?? ""], page).toMatch(/^# /);
       } else expect(Object.keys(definition.fields), page).toHaveLength(0);
     }

@@ -1,8 +1,9 @@
 # Known limitations
 
-- Only the inbox, conversation and profile pages on `www.joyclub.de` are
-  verified (`docs/selector-map.md`). Inbox triage and the conversation and
-  profile panel render there. Search, events and JOYCE stay disabled.
+- Only the inbox, conversation, profile and member search pages on
+  `www.joyclub.de` are verified (`docs/selector-map.md`). Inbox triage and the
+  conversation and profile panel render there, and saved searches on the member
+  search. Events and JOYCE stay disabled.
 - The member ID is the number in the profile URL. Whether JoyClub ever reuses
   such a number is unconfirmed. Account, event and message identity sources are
   still unknown. Features must not use display names as identifiers.
@@ -183,3 +184,8 @@
 - The member strip's place depends on JoyClub's layout: it follows the header's
   parent when that parent is a horizontal flex row (ADR 0010). At narrow widths
   the bar wraps onto a second line.
+- Saved searches (V1-3) appear only while JoyClub's result list
+  (`div.member_search_list`) is on the page. Whether it is there for a search
+  with no results is not known. A replay opens the saved address; whether
+  JoyClub also applies filters stored on the account is not known
+  (`live-evidence/11-search.md`, caveat).
