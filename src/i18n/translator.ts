@@ -49,6 +49,7 @@ const numberFormats = new Map<Locale, Intl.NumberFormat>();
 const dateFormats = new Map<Locale, Intl.DateTimeFormat>();
 const dateTimeFormats = new Map<Locale, Intl.DateTimeFormat>();
 const exactNumberFormats = new Map<Locale, Intl.NumberFormat>();
+const scientificNumberFormats = new Map<Locale, Intl.NumberFormat>();
 const pluralRules = new Map<Locale, Intl.PluralRules>();
 
 function cached<V>(map: Map<Locale, V>, make: (tag: string) => V): V {
@@ -70,17 +71,26 @@ export function formatNumber(value: number): string {
 /**
  * A stored number with every digit kept: de 50,123456, en 50.123456. It
  * formats the number's shortest exact text, so no rounding applies (the
- * default keeps only three decimals) and binary noise never shows.
+ * default keeps only three decimals) and binary noise never shows. A number
+ * that JavaScript writes with an exponent (below 10^-6 or from 10^21) is
+ * shown in scientific notation, 1E-200, since a plain decimal of it can need
+ * more places than Intl allows.
  */
 export function formatExactNumber(value: number): string {
   if (!Number.isFinite(value)) return String(value);
+  const text = String(value);
+  const scientific = /e/iu.test(text);
   const exact = cached(
-    exactNumberFormats,
-    (tag) => new Intl.NumberFormat(tag, { maximumFractionDigits: 100 }),
+    scientific ? scientificNumberFormats : exactNumberFormats,
+    (tag) =>
+      new Intl.NumberFormat(tag, {
+        maximumFractionDigits: 100,
+        ...(scientific ? { notation: "scientific" as const } : {}),
+      }),
   );
   // Intl formats a numeric string as an exact decimal (ES2023, Firefox 116
   // and later). The ES2022 types this project uses have only the number form.
-  return exact.format(String(value) as unknown as number);
+  return exact.format(text as unknown as number);
 }
 
 /**

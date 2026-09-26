@@ -158,22 +158,29 @@ describe("record fields (V1-7)", () => {
       precise: 50.123456,
       tenth: 0.1,
       tiny: 1.23e-25,
+      tiniest: 1e-200,
+      largest: 1.7976931348623157e308,
       large: 1e21,
       negative: -123456.789,
     };
     expect(pairs(renderFields(document, values))).toEqual([
       ["precise", "50.123456"],
       ["tenth", "0.1"],
-      ["tiny", "0.000000000000000000000000123"],
-      ["large", "1,000,000,000,000,000,000,000"],
+      // JavaScript writes these with an exponent; so does the inspector.
+      ["tiny", "1.23E-25"],
+      ["tiniest", "1E-200"],
+      ["largest", "1.7976931348623157E308"],
+      ["large", "1E21"],
       ["negative", "-123,456.789"],
     ]);
     setLocale("de");
     expect(pairs(renderFields(document, values))).toEqual([
       ["precise", "50,123456"],
       ["tenth", "0,1"],
-      ["tiny", "0,000000000000000000000000123"],
-      ["large", "1.000.000.000.000.000.000.000"],
+      ["tiny", "1,23E-25"],
+      ["tiniest", "1E-200"],
+      ["largest", "1,7976931348623157E308"],
+      ["large", "1E21"],
       ["negative", "-123.456,789"],
     ]);
   });
