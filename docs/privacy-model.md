@@ -35,7 +35,8 @@ the extension active on a half-removed scope.
 On verified JoyClub pages the content script reads member IDs, badge codes,
 photo counts and word counts. The inbox sender name is read for display alone:
 it is never used as an identity, never stored and never logged. The optional
-development diagnostics log counts only.
+development diagnostics log counts, the page type, its detection state and the
+inbox list state, never a URL, name, ID or message.
 
 Milestone C adds local triage. When an account is active, opening a profile page
 stores a snapshot of its counts, codes and join dates, never its text. Logged

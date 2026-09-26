@@ -195,9 +195,10 @@ stored; they are recomputed from the rule.
 
 ## TrustSignal and snapshot capture (Milestone C)
 
-Each logged outcome is one TrustSignal (`trust:<random>`). A profile page stores
-a ProfileSnapshot when its facts differ from the newest one (the join window is
-compared by day). Rule, placement, trust and snapshot writes set
+Each logged outcome is one TrustSignal (`trust:<sequence>:<random>`, the
+sequence zero-padded so the text order of IDs is the logging order). A profile
+page stores a ProfileSnapshot when its facts differ from the newest one (the
+join window is compared by day). Rule, placement, trust and snapshot writes set
 `joyfox.triageRevision` in `storage.local` to a random token, so open pages
 re-evaluate. Saving a note, placement, outcome or snapshot also registers the
 JoyClubMember record.
