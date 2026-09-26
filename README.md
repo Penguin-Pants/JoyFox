@@ -91,6 +91,13 @@ profile you opened before, and it can sort the loaded search results by that
 number. It never shows a percentage (V1-2, `docs/manual-acceptance.md`, items
 116 to 120).
 
+On search results, inbox rows and event guest lists, JoyFox shows what it knows
+about each member: the completeness badge (photos, words, verification), the
+local trust score and your own tags, with a button to edit your note and tags
+right there. On the member search, "JoyFox: hide incomplete profiles" hides the
+loaded results known to be below 3 photos or 50 words (V1-10,
+`docs/manual-acceptance.md`, items 125 to 128).
+
 Conversation History Search stores the ClubMail messages you open, sent and
 received, and the options page's "Messages" tab searches them. It is on by
 default and can be turned off there; messages older than 12 months (you choose 1

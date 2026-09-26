@@ -655,3 +655,93 @@
 .joyfox-compat-sort .joyfox-note:empty {
   display: none;
 }
+
+/* V1-10: signals on each card. The texts carry the state; colors repeat it. */
+.joyfox-signals {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.25em;
+  margin: 0.25em 0;
+  font-size: 0.8125rem;
+}
+
+.joyfox-signals .joyfox-badge {
+  margin: 0;
+  cursor: default;
+}
+
+.joyfox-signals__completeness[data-state="complete"] {
+  border-color: var(--joyfox-qualified);
+}
+
+.joyfox-signals__completeness[data-state="incomplete"] {
+  border-color: var(--joyfox-quarantined);
+  border-style: dashed;
+}
+
+.joyfox-signals__tags {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 0.25em;
+}
+
+.joyfox-signals__tag {
+  padding: 0 0.5em;
+  border: 1px solid var(--joyfox-line);
+  border-radius: var(--joyfox-radius);
+}
+
+.joyfox-signals,
+.joyfox-signals-filter,
+.joyfox-card-editor {
+  --joyfox-ink: currentColor;
+  --joyfox-line: color-mix(in srgb, currentColor 28%, transparent);
+  --joyfox-qualified: #2ea663;
+  --joyfox-quarantined: #e0544a;
+  --joyfox-radius: 0.5em;
+}
+
+[data-joyfox-hide-incomplete="on"] [data-joyfox-incomplete="yes"] {
+  display: none !important;
+}
+
+.joyfox-signals-filter {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5em;
+}
+
+.joyfox-signals-filter .joyfox-note {
+  margin: 0;
+}
+
+.joyfox-signals-filter .joyfox-note:empty {
+  display: none;
+}
+
+/* The card editor floats over the page, outside JoyClub's links. */
+.joyfox-card-editor {
+  position: fixed;
+  right: 1rem;
+  bottom: 1rem;
+  z-index: 2147483000;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5em;
+  width: min(24rem, calc(100vw - 2rem));
+  max-height: calc(100vh - 2rem);
+  overflow: auto;
+  background: Canvas;
+  color: CanvasText;
+}
+
+.joyfox-card-editor__tags {
+  margin: 0;
+  padding-inline-start: 1.25em;
+}
+
+.joyfox-card-editor__status:empty {
+  display: none;
+}

@@ -25,6 +25,11 @@ function shieldFacts(
   return facts;
 }
 
+/** The facts a verification shield shows, on any card (V1-10). */
+export const observedFromShield = (
+  code: InboxRowExtraction["verificationCode"],
+) => shieldFacts(code);
+
 export const observedFromInboxRow = (row: InboxRowExtraction) =>
   shieldFacts(row.verificationCode);
 

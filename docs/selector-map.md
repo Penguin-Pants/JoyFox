@@ -92,6 +92,7 @@ app (`09-navigation.md`) and the inbox list can stay in the DOM.
 | Profile      | Own profile       | `h2.profile-headline` with text "Account"                                          | Only the viewer's own profile has it                 |
 | Search       | Result link       | `a[data-e2e="result-item"]`                                                        | Member ID for the shared count (V1-2)                |
 | Search       | Result card       | `j-member-card` in the link                                                        | Badge in its `badge-top-right` slot                  |
+| Search       | Card shield       | `j-member-card[verification-status]`                                               | Same codes as the inbox shield (V1-10)               |
 | Event        | Event ID          | URL path                                                                           | Digits before the first `.`                          |
 | Event        | Title             | `h1.event_name`                                                                    | Kept with the user's notes                           |
 | Event        | Start             | `.event_info_box .event-time`                                                      | "Samstag, 27. September 2026 - ab 21:00", local time |

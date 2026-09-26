@@ -666,3 +666,23 @@ sending-page check does not refuse the normal hand-off.
      how many older messages were deleted. Under "Your data", show "Stored
      messages (for search)" and delete one; confirm search no longer finds it.
      Switch the language to German and confirm the tab is German.
+
+## Profile signals on cards (V1-10)
+
+125. Open a member's profile and note the "Profile completeness" line in the
+     JoyFox strip (state, photos, words, verification) and the trust score in
+     the member panel. Open the member search, the inbox and an event's guest
+     list ("Gäste") where the member appears. Confirm each shows the same
+     completeness text, the same trust score and the same tags.
+126. On a search result, click "Add note", add a tag and close the panel.
+     Confirm the tag shows on the card. Open an event's guest list with that
+     member and confirm the tag shows there too.
+127. On a guest-list entry, open the note, type a note and save, then change it
+     and save again, and add a tag. Open the member's profile and confirm the
+     editor there shows the changed note and the tag.
+128. On the member search, with one loaded result below 3 photos or 50 words
+     (profile opened before), one at or above both, and one never opened, tick
+     "JoyFox: hide incomplete profiles". Confirm only the first is hidden, the
+     line says how many, and the one never opened stays, marked "Completeness
+     unknown". Untick and confirm all are back. Switch the language to German
+     and confirm the texts are German.

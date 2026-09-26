@@ -3,6 +3,7 @@ import { ActionLogService } from "../actions/action-log-service";
 import { CompatibilityService } from "../compatibility/compatibility-service";
 import { MessageCacheService } from "../messages/message-cache-service";
 import { MessageRouter } from "../messaging/router";
+import { SignalsService } from "../signals/signals-service";
 import { runtimeSettingsArea } from "../storage/local-settings";
 import { runtimeSessionArea } from "../storage/session-area";
 import { EventTrackerService } from "../events/event-service";
@@ -16,6 +17,7 @@ import { incrementPersistentWakeCounter } from "./lifecycle";
 import { registerCompatibilityHandlers } from "./compatibility-handlers";
 import { registerListingHandlers } from "./listing-handlers";
 import { registerMessageHandlers } from "./message-handlers";
+import { registerSignalsHandlers } from "./signals-handlers";
 import { registerNotesHandlers } from "./notes-handlers";
 import { registerOnboarding } from "./onboarding";
 import { registerSearchHandlers } from "./search-handlers";
@@ -43,6 +45,10 @@ registerTriageHandlers(router, {
 registerNotesHandlers(router, { notes: new NotesService(), activeAccountId });
 registerMessageHandlers(router, {
   messages: new MessageCacheService(runtimeSettingsArea),
+  activeAccountId,
+});
+registerSignalsHandlers(router, {
+  signals: new SignalsService(),
   activeAccountId,
 });
 registerCompatibilityHandlers(router, {

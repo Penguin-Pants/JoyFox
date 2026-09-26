@@ -379,6 +379,34 @@ stay as they are.
 | `messages.receivedFrom` | Member {member} to you · {when} | Mitglied {member} an dich · {when} |
 | `messages.storedAt` | stored {when} | gespeichert {when} |
 
+## signals
+
+| Key | English | Deutsch |
+| --- | --- | --- |
+| `signals.state.complete` | Complete | Vollständig |
+| `signals.state.incomplete` | Incomplete | Unvollständig |
+| `signals.state.unknown` | Completeness unknown | Vollständigkeit unbekannt |
+| `signals.photos` | 1 photo / {count} photos | 1 Foto / {count} Fotos |
+| `signals.photosUnknown` | photos unknown | Fotos unbekannt |
+| `signals.words` | 1 word / {count} words | 1 Wort / {count} Wörter |
+| `signals.wordsUnknown` | words unknown | Wörter unbekannt |
+| `signals.verified` | verified | geprüft |
+| `signals.notVerified` | not verified | nicht geprüft |
+| `signals.verificationUnknown` | verification unknown | Prüfung unbekannt |
+| `signals.heading` | Profile completeness | Vollständigkeit des Profils |
+| `signals.trust` | Trust {score} | Vertrauen {score} |
+| `signals.trustNone` | No trust history | Kein Vertrauensverlauf |
+| `signals.noteAdd` | Add note | Notiz hinzufügen |
+| `signals.noteEdit` | Note | Notiz |
+| `signals.tagsLabel` | My tags | Meine Tags |
+| `signals.editor.label` | JoyFox: note and tags for member {member} | JoyFox: Notiz und Tags für Mitglied {member} |
+| `signals.editor.loading` | Loading… | Wird geladen … |
+| `signals.editor.close` | Close | Schließen |
+| `signals.editor.noAccount` | Select or add an account in the JoyFox options to keep notes. | Wähle in den JoyFox-Einstellungen ein Konto aus oder füge eines hinzu, um Notizen zu führen. |
+| `signals.editor.readFailed` | JoyFox could not read this member's notes. Close and try again. | JoyFox konnte die Notizen zu diesem Mitglied nicht lesen. Schließe und versuche es noch einmal. |
+| `signals.filter.label` | JoyFox: hide incomplete profiles | JoyFox: unvollständige Profile ausblenden |
+| `signals.filter.count` | {hidden} of {loaded} loaded profiles hidden. Profiles JoyFox knows nothing about stay. | {hidden} von {loaded} geladenen Profilen ausgeblendet. Profile, über die JoyFox nichts weiß, bleiben. |
+
 ## compat
 
 | Key | English | Deutsch |

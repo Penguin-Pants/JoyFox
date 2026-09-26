@@ -479,6 +479,44 @@ export const en = {
     `Member ${p.member} to you · ${p.when}`,
   "messages.storedAt": (p: { when: string }) => `stored ${p.when}`,
 
+  // Content script: profile signals on cards (V1-10)
+  "signals.state.complete": "Complete",
+  "signals.state.incomplete": "Incomplete",
+  "signals.state.unknown": "Completeness unknown",
+  "signals.photos": (p: { count: number }, f: Format) =>
+    f.plural(p.count, {
+      one: "1 photo",
+      other: `${f.number(p.count)} photos`,
+    }),
+  "signals.photosUnknown": "photos unknown",
+  "signals.words": (p: { count: number }, f: Format) =>
+    f.plural(p.count, {
+      one: "1 word",
+      other: `${f.number(p.count)} words`,
+    }),
+  "signals.wordsUnknown": "words unknown",
+  "signals.verified": "verified",
+  "signals.notVerified": "not verified",
+  "signals.verificationUnknown": "verification unknown",
+  "signals.heading": "Profile completeness",
+  "signals.trust": (p: { score: number }, f: Format) =>
+    `Trust ${p.score > 0 ? "+" : ""}${f.number(p.score)}`,
+  "signals.trustNone": "No trust history",
+  "signals.noteAdd": "Add note",
+  "signals.noteEdit": "Note",
+  "signals.tagsLabel": "My tags",
+  "signals.editor.label": (p: { member: string }) =>
+    `JoyFox: note and tags for member ${p.member}`,
+  "signals.editor.loading": "Loading…",
+  "signals.editor.close": "Close",
+  "signals.editor.noAccount":
+    "Select or add an account in the JoyFox options to keep notes.",
+  "signals.editor.readFailed":
+    "JoyFox could not read this member's notes. Close and try again.",
+  "signals.filter.label": "JoyFox: hide incomplete profiles",
+  "signals.filter.count": (p: { hidden: number; loaded: number }, f: Format) =>
+    `${f.number(p.hidden)} of ${f.number(p.loaded)} loaded profiles hidden. Profiles JoyFox knows nothing about stay.`,
+
   // Content script: compatibility overlay (V1-2)
   "compat.heading": "Shared preferences",
   "compat.shared": (p: { count: number }, f: Format) =>
