@@ -60,6 +60,14 @@ export function registerMessageHandlers(
   router: MessageRouter,
   deps: MessageHandlerDeps,
 ): void {
+  // The window also applies while no conversation is opened: each start of
+  // the background deletes what has expired since.
+  void deps.messages
+    .prune()
+    .then((deleted) =>
+      deleted > 0 ? bumpMessageRevision(deps.settings) : undefined,
+    )
+    .catch(() => undefined);
   router.register("messages.cache", async (payload) => {
     const conversationId = payload?.conversationId;
     if (
@@ -80,8 +88,9 @@ export function registerMessageHandlers(
       (accountId) =>
         deps.messages.store(accountId, conversationId, member, messages),
     );
-    // Open options pages show the new messages in search.
-    if (answer.status === "stored" && answer.stored > 0)
+    // Open options pages show the new messages in search, and lose the
+    // ones the window removed.
+    if (answer.status === "stored" && answer.stored + answer.deleted > 0)
       await bumpMessageRevision(deps.settings).catch(() => undefined);
     return answer;
   });

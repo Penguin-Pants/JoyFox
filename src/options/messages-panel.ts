@@ -93,6 +93,8 @@ export class MessagesPanel {
       accountId = (await this.accounts.getActiveAccount())?.id;
       if (accountId !== this.#accountId) this.#query = "";
       current = await readMessageSettings(this.settings);
+      // What the window no longer keeps is gone before anything is shown.
+      await this.service.prune();
       found = accountId
         ? (await this.service.search(accountId, this.#query)).messages
         : [];

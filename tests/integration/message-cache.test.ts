@@ -96,7 +96,7 @@ describe("V1-4 storing messages", () => {
       await send({
         messages: [message(1, "Invented hello"), message(2, "Invented bye")],
       }),
-    ).toEqual({ status: "stored", stored: 2 });
+    ).toEqual({ status: "stored", stored: 2, deleted: 0 });
     expect(settings.items.get(MESSAGE_REVISION_KEY)).toBeDefined();
     const [first] = await repositories.cachedMessages.list("account-a");
     expect(first).toMatchObject({
@@ -108,6 +108,7 @@ describe("V1-4 storing messages", () => {
     expect(await send({ messages: [message(1, "Invented hello")] })).toEqual({
       status: "stored",
       stored: 0,
+      deleted: 0,
     });
     await send({ messages: [message(1, "Invented hello, edited")] });
     expect(await stored()).toEqual([
@@ -166,6 +167,44 @@ describe("V1-4 storing messages", () => {
     expect(await stored()).toEqual([]);
   });
 
+  it("applies the window on every request, and at each background start", async () => {
+    await send({ messages: [message(1, "Invented old by November")] });
+    // A month on: an unchanged or empty request still deletes it.
+    const later = new MessageCacheService(
+      settings,
+      undefined,
+      () => new Date("2026-11-01T10:00:00.000Z"),
+    );
+    await settings.set({ [MESSAGE_RETENTION_KEY]: 1 });
+    settings.items.delete(MESSAGE_REVISION_KEY);
+    const laterRouter = new MessageRouter();
+    registerMessageHandlers(laterRouter, {
+      messages: later,
+      activeAccountId: () => Promise.resolve(active),
+      settings,
+    });
+    await flush();
+    // Registering the handlers (a background start) already purged it.
+    expect(await stored()).toEqual([]);
+    expect(settings.items.get(MESSAGE_REVISION_KEY)).toBeDefined();
+    await repositories.cachedMessages.put("account-a", {
+      id: `message:${messageId(2)}`,
+      accountId: "account-a",
+      messageId: messageId(2),
+      conversationId: CONVERSATION,
+      memberId: "1234567",
+      direction: "received",
+      sentAt: "2026-09-20T18:00:00.000Z",
+      text: "Invented old",
+      createdAt: now,
+      updatedAt: now,
+    });
+    expect(await later.store("account-a", CONVERSATION, "1234567", [])).toEqual(
+      { status: "stored", stored: 0, deleted: 1 },
+    );
+    expect(await stored()).toEqual([]);
+  });
+
   it("rejects malformed input", async () => {
     for (const payload of [
       { conversationId: "7654321" },
@@ -212,6 +251,27 @@ describe("V1-4 searching stored messages", () => {
     expect((await service.search("account-a", "owl")).messages).toEqual([]);
     expect((await service.search("account-a", " ")).messages).toEqual([]);
     expect((await service.search("account-b", "heron")).messages).toEqual([]);
+  });
+
+  it("orders by the instant, whatever the offset or precision", async () => {
+    await send({
+      messages: [
+        // 08:00 UTC: older than 09:00 UTC, though its text sorts later.
+        message(4, "Invented owl one", {
+          sentAt: "2026-09-26T10:00:00+02:00",
+        }),
+        message(5, "Invented owl two", { sentAt: "2026-09-26T09:00:00Z" }),
+        message(6, "Invented owl three", {
+          sentAt: "2026-09-26T09:00:00.500Z",
+        }),
+      ],
+    });
+    const found = await service.search("account-a", "owl");
+    expect(found.messages.map((item) => item.messageId.slice(-2))).toEqual([
+      "06",
+      "05",
+      "04",
+    ]);
   });
 });
 

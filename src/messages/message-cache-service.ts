@@ -18,8 +18,8 @@ export interface SeenMessage {
 }
 
 export type CacheAnswer =
-  | { status: "stored"; stored: number }
-  | { status: "off" };
+  /** `deleted`: messages the purge window removed in the same request. */
+  { status: "stored"; stored: number; deleted: number } | { status: "off" };
 
 export interface SearchResult {
   /** Every match, newest first. */
@@ -87,8 +87,10 @@ export class MessageCacheService {
       });
       stored += 1;
     }
-    if (stored > 0) await this.prune();
-    return { status: "stored", stored };
+    // Every accepted request applies the window, also when nothing new was
+    // stored: a reload after the cutoff moved must still delete old text.
+    const deleted = await this.prune();
+    return { status: "stored", stored, deleted };
   }
 
   /**
@@ -102,9 +104,11 @@ export class MessageCacheService {
     return {
       messages: all
         .filter((message) => searchable(message.text).includes(needle))
+        // By instant, not by text: ISO dates with an offset or another
+        // precision do not sort as strings.
         .sort(
           (a, b) =>
-            messageTime(b).localeCompare(messageTime(a)) ||
+            Date.parse(messageTime(b)) - Date.parse(messageTime(a)) ||
             a.id.localeCompare(b.id),
         ),
     };

@@ -103,9 +103,10 @@ filed under the first conversation it was seen in and never moved. Messages are
 stored only while `joyfox.messageCaching` is not `false`. The purge window is
 `joyfox.messageRetentionMonths` (12 by default, 1 to 120): a message older than
 the window, by its send time or else by when it was stored, is not stored, and
-every store, a change of the window and an import delete the ones already older,
-in every account. `joyfox.messageRevision` is a change marker for open options
-pages.
+every store request (also one with nothing new), each background start, opening
+the "Messages" tab, a change of the window and an import delete the ones already
+older, in every account. `joyfox.messageRevision` is a change marker for open
+options pages.
 
 ## Schema versions
 
