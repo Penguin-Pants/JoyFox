@@ -228,7 +228,7 @@ owner's approval before the task starts. The others quote the PRD.
 | --- | --- | --- | --- | --- |
 | V1-1 | ~~Per-audience contact rules (PRD 6.1, 11.4)~~ **Dropped** by the owner (2026-09-26, ADR 0016): JoyClub's own contact settings already limit who can write, including by profile type; JoyFox adds its own conditions on top with one rule for all senders | None | None | None |
 | V1-2 | Compatibility Overlay: highlight the viewed profile's preferences that match the user's own on the profile page (PRD 6.2), a compatibility badge on every surface where a profile card shows (search results, the inbox, event attendee lists; PRD 8.3) and a sort-by-compatibility toggle on search results (PRD 10.1) | E1; E3; E4 (attendee lists); D5 (answered, ADR 0016) | Every tag marked as matching is independently verifiable by reading both checklists manually (PRD 6.2). **Proposed:** for two profiles that share preferences, every shared preference is highlighted and no other; two loaded results with different overlaps show different results and sort in overlap order; each profile card on search results, the inbox and event attendee lists shows the same compatibility result as that member's profile page (PRD 8.3), and the sort orders the loaded search results by it. | M |
-| V1-3 | Saved Searches: store a search's URL and filter state, replay it in one click (PRD 6.2, 8.2). **Done (2026-09-26):** a "JoyFox saved searches" bar above the member search results saves the page's address under a name and opens it again in one click (`src/content/saved-searches.ts`, `src/search/`); live check: `manual-acceptance.md`, items 108 to 110 | E1 (captured) | **Approved (owner, 2026-09-26, ADR 0016):** a saved search opens the same URL with the same filters. If JoyClub's search address no longer matches, JoyFox says so and opens nothing. | S |
+| V1-3 | Saved Searches: store a search's URL and filter state, replay it in one click (PRD 6.2, 8.2). **Built (2026-09-26), acceptance waits on live check 109 (URL-only replay):** a "JoyFox saved searches" bar above the member search results saves the page's address under a name and opens it again in one click (`src/content/saved-searches.ts`, `src/search/`); live check: `manual-acceptance.md`, items 108 to 110 | E1 (captured) | **Approved (owner, 2026-09-26, ADR 0016):** a saved search opens the same URL with the same filters. If JoyClub's search address no longer matches, JoyFox says so and opens nothing. | S |
 | V1-4 | Conversation History Search: full-text search over the user's own cached messages (PRD 6.2, 13.3) | E2; the message-caching toggle (ADR 0004, deferred to this caller by ADR 0015) | Cached message text is on by default, has a configurable auto-purge window, default 12 months, and is always manually deletable (PRD 13.3). **Proposed:** with caching on, every message shown in an opened conversation is cached; then every cached message that contains the query is found, and no cached message without it is shown; with caching off, nothing is stored. | M |
 | V1-5 | Personal Event Tracker: private notes, attendance and tags on event and venue listings, and a personal calendar of tracked events (PRD 6.3, 9.1, 9.2) | E4; D6 (answered, ADR 0016) | Event notes persist after the listing is removed from JoyClub's own calendar post-event (PRD 6.3). **Proposed:** notes, attendance and tags save and show again on event and venue listings; a filter by the user's own tags or notes shows only the matching events in JoyClub's already-loaded event list, with no new request to JoyClub (PRD 9.1, 10.1); the personal calendar lists every tracked event and filters the same way (PRD 9.1). | M |
 | V1-6 | Self-hosted sync: encrypted client-side (ADR 0002) to the user's own endpoint (PRD 13.4, 14.2, 15). **Deferred** by the owner (2026-09-26, ADR 0016) to the future roadmap: local export and import are enough for now. The row stays as the plan for later | F4 (done); D2 (deferred) | No network request goes anywhere but joyclub.de or joyce.app until the user has explicitly completed sync setup (PRD 21.1). The encrypted payload is pushed only with an explicit on-screen confirmation; nothing syncs silently (PRD 10.2). The key is derived from a user-held passphrase before anything leaves the device (PRD 13.4); neither the passphrase nor the derived key is stored (ADR 0002). Host access covers only the configured endpoint, is requested at runtime as an optional permission once the user configures sync, and is never in the static manifest; no `<all_urls>` or broad host wildcard (PRD 15, 15.1). When sync is enabled, every other entity also exists, encrypted, on the endpoint (PRD 12.3). **Proposed:** the endpoint receives only ciphertext, and a second browser restores the same data from it with the same passphrase, verified item by item against every entity except `SyncConfig` (as the M8 export test does); a restore with a wrong passphrase fails and changes no data; neither the passphrase nor the derived key appears in storage or in any upload. | L |
@@ -246,12 +246,16 @@ owner's approval before the task starts. The others quote the PRD.
   holds every filter, and opening it in a new tab gave the same results. Still
   open: whether the URL or filters stored on the account drove that replay,
   whether a result card shows profile text (V1-10's 50-word rule), and search →
-  profile navigation. Unblocks V1-3 and the search parts of V1-2 and V1-10.
+  profile navigation. V1-3 can be built from it, but its acceptance needs a
+  URL-only replay check: open a saved address after the account's filters
+  changed, and see the saved filters come back. Unblocks the search parts of
+  V1-2 and V1-10.
 - **E2:** captured 2026-09-26 (`live-evidence/12-messages.md`). Each message
   has `data-message-id` (`cm-message-` plus a UUID); sent and received bubbles
   carry `data-e2e="sent-message"` and `"received-message"`; the conversation
   URL is the owner's member ID, then the other member's. Still open: whether a
-  message ID stays the same after a reload. Unblocks V1-4, and M3 on pages.
+  message ID stays the same after a reload. V1-4 and M3 on pages stay blocked
+  until that reload check passes: a message cache needs a stable message ID.
 - **E3:** structure captured 2026-09-26 (`live-evidence/13-preferences.md`):
   a profile shows only its selected tags, grouped in six levels from "Unbedingt"
   to "Geht gar nicht", and a tag's German label is its only key. Still open:
@@ -302,11 +306,13 @@ owner's approval before the task starts. The others quote the PRD.
 A task with **proposed** criteria starts only after the owner approves them (see
 "Owner decisions needed"); each step below assumes that approval.
 
-1. Done: V1-3, V1-7, V1-8, V1-11 and V1-12. Their live checks are items 101
-   and 102 (V1-7), 103 and 104 (V1-12), 105 to 107 (V1-11) and 108 to 110
-   (V1-3).
+1. Done: V1-7, V1-8, V1-11 and V1-12; V1-3 is built. Their live checks are
+   items 101 and 102 (V1-7), 103 and 104 (V1-12), 105 to 107 (V1-11) and 108
+   to 110 (V1-3). V1-3 is accepted only when item 109, the URL-only replay
+   check, passes.
 2. Deferred to the future roadmap: V1-6 (and D2).
-3. Evidence captured (E1 to E4, 2026-09-26); each needs the owner's approval
-   of its proposed criteria: V1-4, V1-2, V1-5, V1-10, then V1-13 (after V1-5).
+3. Evidence captured (E1 to E4, 2026-09-26). V1-4 stays blocked until the
+   message ID reload check passes. The others need the owner's approval of
+   their proposed criteria first: V1-2, V1-5, V1-10, then V1-13 (after V1-5).
 4. Last: V1-9, after V1-2 to V1-5, V1-7, V1-8 and V1-10 to V1-13, the MVP
    release gate and F8's verification checklist.

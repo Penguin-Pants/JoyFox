@@ -1,13 +1,22 @@
 # Manual verification needed
 
-## Status (2026-09-23)
+## Status (2026-09-26)
 
-Item 3 is done, and items 1, 2, 6, 8 and 9 are partly done. The evidence is in
-`docs/live-evidence/`, and the inbox, conversation and profile selectors are
-verified from it. Still open:
+Item 3 is done, and items 1, 2, 4, 5, 6, 8 and 9 are partly done. The evidence
+is in `docs/live-evidence/`, and the inbox, conversation and profile selectors
+are verified from it. Files 11 to 16 (2026-09-26) add search, messages,
+preferences, events, venues and navigation. Still open:
 
 - **Item 1:** whether scrolling the inbox loads more conversations, and how.
-- **Item 2:** whether a message has a stable identifier.
+- **Item 2:** `12-messages.md` found a per-message ID (`data-message-id`) and
+  the sent and received markers. Still open: whether the message ID stays the
+  same after a reload.
+- **Item 4 (search):** `11-search.md`. Still open: whether opening a saved
+  results address restores its filters when the account's stored filters differ
+  (URL-only replay), whether a card shows profile text, and search → profile
+  navigation.
+- **Item 5 (events):** `14-events.md` and `15-venues.md`. Still open: the
+  venue's own events page.
 - **Item 6:** done for the standard composer on 2026-09-23. With JoyFox's
   `input` and `change` events, JoyClub registered an inserted template and its
   deletion by keyboard (`manual-acceptance.md`, item 33). The event ClubMail
@@ -48,8 +57,10 @@ verified from it. Still open:
   row leaves the list and a 5-second Undo notice appears. The address does not
   change in either case (`live-evidence/10-ignore.md`). M9's live driver uses
   this (ADR 0011).
-- **Item 9:** profile → Back, inbox → search and inbox → events.
-- **Items 4, 5, 6 (event ClubMail composer) and 10:** not started.
+- **Item 9:** inbox → search and inbox → events are done (`16-navigation.md`).
+  Still open: search → profile, and profile → Back.
+- **Item 6 (event ClubMail composer) and item 10:** not started. Item 10's
+  channel is chosen (ADR 0016); its verification checklist is open.
 
 Do not include another member's real name, profile text, preferences, messages,
 or images. Replace personal values with invented placeholders. For DOM fields,
