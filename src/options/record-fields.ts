@@ -141,23 +141,31 @@ function fields(
 ): HTMLDListElement {
   const list = document.createElement("dl");
   list.className = "joyfox-data__fields";
-  // JSON drops undefined fields, so the export never has them either.
-  const entries = Object.entries(record).filter(
-    ([, value]) => value !== undefined,
-  );
-  for (const [index, [key, value]] of entries.entries()) {
-    const term = document.createElement("dt");
-    const description = document.createElement("dd");
-    if (budget.left <= 0) {
-      term.textContent = "…";
-      description.append(more(document, entries.length - index));
-      list.append(term, description);
-      break;
+  // Keys are read one at a time, with no entry array per field, so a very
+  // wide imported object costs no more than a count past the budget.
+  let omitted = 0;
+  for (const key in record) {
+    if (!Object.hasOwn(record, key)) continue;
+    const value = record[key];
+    // JSON drops undefined fields, so the export never has them either.
+    if (value === undefined) continue;
+    if (omitted > 0 || budget.left <= 0) {
+      omitted += 1;
+      continue;
     }
+    const term = document.createElement("dt");
     const name = document.createElement("code");
     name.textContent = key;
     term.append(name);
+    const description = document.createElement("dd");
     description.append(renderValue(document, value, budget, key));
+    list.append(term, description);
+  }
+  if (omitted > 0) {
+    const term = document.createElement("dt");
+    term.textContent = "…";
+    const description = document.createElement("dd");
+    description.append(more(document, omitted));
     list.append(term, description);
   }
   return list;
