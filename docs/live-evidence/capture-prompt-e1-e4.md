@@ -64,10 +64,20 @@ For each page:
    selector with `querySelectorAll` and give the match count.
 4. Record how the page loads more content: scroll once or twice and note whether
    new items appear, whether the URL changes and whether a "more" button exists.
-5. Record navigation type for each move between pages: before the move, run
-   `window.__jf = 1`; after the move, check `window.__jf`. If it is still `1`,
-   the move was client-side (no full page load). If it is `undefined`, the page
-   fully reloaded.
+5. Record navigation type for each move between pages.
+   - **On every page, as soon as it opens,** run once:
+     `addEventListener("pageshow", (e) => { if (e.persisted) window.__jfRestored = (window.__jfRestored || 0) + 1; });`
+   - **Before each move,** set a new value that no earlier move used, for
+     example `window.__jf = "move-3"`.
+   - **After the move,** read `window.__jf` and `window.__jfRestored`:
+     - `window.__jf` equals the new value: client-side (the same document
+       stayed; no page load).
+     - `window.__jf` is `undefined`: full page load.
+     - `window.__jf` holds an older value, or `window.__jfRestored` went up: the
+       browser restored an earlier page from its back-forward cache (common
+       after Back). Record this as "restored from cache", not as client-side.
+   - If you are not sure, also record
+     `performance.getEntriesByType("navigation")[0].type`.
 
 ## E1: search (for saved searches, badges on result cards and sorting)
 
@@ -193,7 +203,8 @@ file name as a heading, so the owner can copy them into `docs/live-evidence/`:
 - `14-events.md` (E4: calendar, event page, attendees)
 - `15-venues.md` (E4: venue page)
 - `16-navigation.md` (every navigation move you tested, as a table: move, URL
-  changed?, `window.__jf` result, type)
+  changed?, `window.__jf` and `window.__jfRestored` results, type: client-side,
+  full page load or restored from cache)
 
 Use this structure in each file (the same as the existing evidence files):
 
