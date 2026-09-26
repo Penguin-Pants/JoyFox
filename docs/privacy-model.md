@@ -47,6 +47,16 @@ shows: it never deletes, archives, sends or changes anything on JoyClub. The
 sender name appears in the "Why" panel as JoyClub shows it and is never stored
 or logged.
 
+The Compatibility Overlay (V1-2) reads a profile's "Vorlieben" checklist and
+stores, with the profile's snapshot, the labels of the tags it lists at a
+positive level. Tags at "Mag ich nicht so" or "Geht gar nicht" are not stored.
+The viewer's own profile is recognized by the "Account" headline only it shows,
+and its snapshot is marked as the viewer's own. These labels are
+special-category data (PRD Section 13.1): they stay in this browser, follow the
+snapshot history limit (V1-12), are exported and deleted with the other
+snapshots, and are never logged. JoyFox shows how many tags two profiles share,
+never a percentage.
+
 Milestone D adds user control. The options page shows every stored record as
 text, per account and per data type, and deletes one record, one data type, one
 account's data or everything. "Delete all JoyFox data" empties every store and

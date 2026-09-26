@@ -163,3 +163,25 @@ repeats it. The owner can still choose a review before V1-9 ships.
    so and opens nothing. In the build, "matches" means that the saved address
    passes the verified search address in the selector registry (`11-search.md`)
    and still holds the filters stored with it.
+
+## Amendment: V1-2 build decisions (project owner, 2026-09-26)
+
+1. **The viewer's own preferences.** JoyFox reads them automatically each time
+   the viewer opens their own profile, so they stay current. The own profile is
+   recognized by the "Account" headline that JoyClub shows only there
+   (`13-preferences.md`). If JoyClub removes it, JoyFox asks the viewer to open
+   their own profile and shows no counts; it never guesses. The owner chose this
+   over a button on the own profile and over a button on every profile.
+2. **Couple profiles.** A tag counts as positive for a profile when any partner
+   lists it at a positive level ("either partner"). The owner chose this over
+   "every partner", with the risk stated: a tag one partner likes and the other
+   rejects still counts for the couple. On the profile page, only the partner's
+   positive entry is framed.
+3. **Storage.** The positive labels are stored with the profile snapshot
+   (`positivePreferences`), and the viewer's own snapshot is marked
+   (`ownProfile`), as the D5 amendment requires: they stay local and follow the
+   snapshot history limit (V1-12). Tags at a negative level are not stored.
+4. **Sort.** The compatibility sort sets a CSS `order` on JoyClub's loaded
+   result items and never moves or loads them. It works only when the result
+   list is a flex or grid container, which the evidence does not record; JoyFox
+   says so otherwise (live check, `manual-acceptance.md` item 119).

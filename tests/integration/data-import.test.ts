@@ -595,6 +595,41 @@ describe("M8 import: restoring and merging", () => {
       messageTemplates: [{ ...template("a", "t", "x"), name: "n".repeat(81) }],
     });
     expect(() => parseImportFile(longTemplate)).toThrow("longer than 80");
+    // V1-2: the limits a capture keeps to.
+    const snapshot = (positivePreferences: string[]) =>
+      fullFile({
+        extensionAccounts: [account("a", "me")],
+        profileSnapshots: [
+          {
+            id: "snap",
+            accountId: "a",
+            memberId: "1234567",
+            capturedAt: t0,
+            verification: "unknown",
+            photoCount: "unknown",
+            profileWordCount: "unknown",
+            joinedAt: "unknown",
+            positivePreferences,
+            ownProfile: true,
+            createdAt: t0,
+            updatedAt: t0,
+          },
+        ],
+      });
+    expect(() => parseImportFile(snapshot(["Synthetic A"]))).not.toThrow();
+    expect(() =>
+      parseImportFile(snapshot(Array.from({ length: 501 }, (_, i) => `t${i}`))),
+    ).toThrow("more than 500 preferences");
+    expect(() => parseImportFile(snapshot(["x".repeat(101)]))).toThrow(
+      "longer than 100",
+    );
+    // Compared by exact label, so a padded, unsorted or repeated list is
+    // refused rather than stored as a silent mismatch.
+    for (const labels of [[" Bondage "], ["B", "A"], ["A", "A"]])
+      expect(
+        () => parseImportFile(snapshot(labels)),
+        JSON.stringify(labels),
+      ).toThrow("is invalid");
     // V1-5: the event tracker's note and tag limits, so the editor can
     // save an imported record again.
     const listing = (fields: Record<string, unknown>) =>

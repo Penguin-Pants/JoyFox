@@ -1,5 +1,6 @@
 import { AccountService } from "../accounts/account-service";
 import { ActionLogService } from "../actions/action-log-service";
+import { CompatibilityService } from "../compatibility/compatibility-service";
 import { MessageRouter } from "../messaging/router";
 import { runtimeSessionArea } from "../storage/session-area";
 import { EventTrackerService } from "../events/event-service";
@@ -10,6 +11,7 @@ import { TriageService } from "../triage/triage-service";
 import { TrustService } from "../trust/trust-service";
 import { registerActionHandlers } from "./action-handlers";
 import { incrementPersistentWakeCounter } from "./lifecycle";
+import { registerCompatibilityHandlers } from "./compatibility-handlers";
 import { registerListingHandlers } from "./listing-handlers";
 import { registerNotesHandlers } from "./notes-handlers";
 import { registerOnboarding } from "./onboarding";
@@ -36,6 +38,10 @@ registerTriageHandlers(router, {
   openOptions: () => browser.runtime.openOptionsPage(),
 });
 registerNotesHandlers(router, { notes: new NotesService(), activeAccountId });
+registerCompatibilityHandlers(router, {
+  compatibility: new CompatibilityService(),
+  activeAccountId,
+});
 // M9's ActionLog and the hand-off marker for its move to the profile page.
 registerActionHandlers(router, {
   actions: new ActionLogService(),

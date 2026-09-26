@@ -83,6 +83,14 @@ note or attendance, and a badge marks them. The options page's "Events" tab is
 your personal calendar of every tracked event, also after JoyClub removes it
 (V1-5, `docs/manual-acceptance.md`, items 111 to 115).
 
+The Compatibility Overlay compares a profile's "Vorlieben" with your own. JoyFox
+reads your own preferences when you open your own profile. On another member's
+profile it frames the tags you both like and lists them; on search results,
+inbox rows and event guest lists it shows "N shared" for each member whose
+profile you opened before, and it can sort the loaded search results by that
+number. It never shows a percentage (V1-2, `docs/manual-acceptance.md`, items
+116 to 120).
+
 The options page also holds message templates and "Your data", where every
 stored record can be inspected field by field, exported as JSON and deleted, per
 account or for the whole extension. It also sets how many profile snapshots

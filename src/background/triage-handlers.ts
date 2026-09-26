@@ -3,7 +3,13 @@ import type { MessageRouter } from "../messaging/router";
 import type { ProfileFacts } from "../qualification/facts";
 import { MAX_PREVIEW_LENGTH } from "../rules/message-phrase";
 import {
+  MAX_PREFERENCE_LABEL_LENGTH,
+  MAX_PREFERENCE_TAGS,
+  normalizeLabel,
+} from "../extraction/preferences";
+import {
   MAX_MEMBERS_PER_REQUEST,
+  type ProfileCaptureExtras,
   type TriageRequestMember,
   type TriageService,
 } from "../triage/triage-service";
@@ -43,6 +49,37 @@ function preview(value: unknown): { preview?: string } {
   if (typeof value !== "string" || value.length > MAX_PREVIEW_LENGTH)
     throw invalid("message preview");
   return { preview: value };
+}
+
+/**
+ * V1-2: the positive preference labels a profile page showed, each a
+ * bounded, non-empty label; stored normalized, sorted and unique.
+ */
+function captureExtras(
+  preferences: unknown,
+  ownProfile: unknown,
+): ProfileCaptureExtras {
+  if (ownProfile !== undefined && typeof ownProfile !== "boolean")
+    throw invalid("own profile flag");
+  const extras: ProfileCaptureExtras = ownProfile ? { ownProfile: true } : {};
+  if (preferences === undefined) return extras;
+  if (
+    !Array.isArray(preferences) ||
+    preferences.length > MAX_PREFERENCE_TAGS ||
+    preferences.some(
+      (label) =>
+        typeof label !== "string" ||
+        normalizeLabel(label).length === 0 ||
+        label.length > MAX_PREFERENCE_LABEL_LENGTH,
+    )
+  )
+    throw invalid("preferences");
+  return {
+    ...extras,
+    preferences: [
+      ...new Set((preferences as string[]).map(normalizeLabel)),
+    ].sort(),
+  };
 }
 
 function members(value: unknown): TriageRequestMember[] {
@@ -130,12 +167,13 @@ export function registerTriageHandlers(
   router.register("snapshot.capture", async (payload) => {
     const id = memberId(payload?.memberId);
     const facts = observed(payload?.observed);
+    const extras = captureExtras(payload?.preferences, payload?.ownProfile);
     return lockedWrite<{ stored: boolean }>(
       deps,
       payload?.accountId,
       { stored: false },
       async (accountId) => ({
-        stored: await deps.triage.captureSnapshot(accountId, id, facts),
+        stored: await deps.triage.captureSnapshot(accountId, id, facts, extras),
       }),
     );
   });

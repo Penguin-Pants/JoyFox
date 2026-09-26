@@ -435,6 +435,43 @@ export const en = {
   "eventFilter.badge": "JoyFox",
   "eventFilter.hasNote": "note",
 
+  // Content script: compatibility overlay (V1-2)
+  "compat.heading": "Shared preferences",
+  "compat.shared": (p: { count: number }, f: Format) =>
+    `You share ${f.plural(p.count, {
+      one: "1 preference",
+      other: `${f.number(p.count)} preferences`,
+    })} with this member:`,
+  "compat.none": "You share no preferences with this member.",
+  "compat.own": (p: { count: number }, f: Format) =>
+    `This is your profile. JoyFox compares other profiles with its ${f.plural(
+      p.count,
+      {
+        one: "1 positive preference",
+        other: `${f.number(p.count)} positive preferences`,
+      },
+    )}.`,
+  "compat.ownUnknown":
+    "Open your own JoyClub profile once, so JoyFox knows your preferences.",
+  "compat.unreadable": "JoyFox could not read this profile's preferences yet.",
+  "compat.missing": "This profile shows no preferences to compare.",
+  "compat.readFailed":
+    "JoyFox could not load your preferences. Reload the page to try again.",
+  "compat.noAccount":
+    "Select or add an account in the JoyFox options to compare preferences.",
+  "compat.badge": (p: { count: number }, f: Format) =>
+    `${f.number(p.count)} shared`,
+  "compat.badgeLabel": (p: { count: number }, f: Format) =>
+    `JoyFox: ${f.plural(p.count, {
+      one: "1 shared preference",
+      other: `${f.number(p.count)} shared preferences`,
+    })}`,
+  "compat.sort.button": "Sort by shared preferences",
+  "compat.sort.on":
+    "Sorted by shared preferences. Members whose profile you have not opened come last.",
+  "compat.sort.unavailable":
+    "JoyFox cannot sort this list: its layout does not allow it.",
+
   // Content script: saved searches (V1-3)
   "searches.heading": "JoyFox saved searches",
   "searches.loading": "Loading saved searches…",

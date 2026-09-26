@@ -17,6 +17,7 @@ export const MEMBER_STRIP = "member-strip";
 /** The order of the sections inside the strip. */
 const SECTION_ORDER: readonly string[] = [
   "member-panel",
+  "compatibility",
   "member-notes",
   "quick-action",
 ];

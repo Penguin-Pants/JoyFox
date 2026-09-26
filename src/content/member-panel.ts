@@ -2,11 +2,13 @@ import { extractConversation, extractProfile } from "../extraction/joyclub";
 import type { PlainKey } from "../i18n/catalog/en";
 import { message } from "../i18n/message";
 import { t } from "../i18n/translator";
+import { isOwnProfile, readPreferences } from "../extraction/preferences";
 import { resolveMemberIdentity } from "../identity/member-identity";
 import type { ProfileFacts } from "../qualification/facts";
 import { selectorRegistry } from "../selectors/registry";
 import type {
   MemberTriage,
+  ProfileCaptureExtras,
   TriageResponse,
   TrustResponse,
 } from "../triage/triage-service";
@@ -80,6 +82,8 @@ interface Target {
   page: MemberPage;
   memberId: string;
   observed: Partial<ProfileFacts>;
+  /** V1-2: what a profile page shows beyond the rule facts. */
+  extras: ProfileCaptureExtras;
   anchor: Element;
   key: string;
   /** The member's profile page, on a conversation page only. */
@@ -204,6 +208,15 @@ export class MemberPanel {
       member.page === "conversation"
         ? observedFromConversation(member.extraction)
         : observedFromProfile(member.extraction);
+    // V1-2: the checklist is read only when every label could be read; a
+    // partial reading is not stored.
+    const extras: ProfileCaptureExtras = {};
+    if (member.page === "profile") {
+      const preferences = readPreferences(this.document);
+      if (preferences.status === "found")
+        extras.preferences = preferences.positive;
+      if (isOwnProfile(this.document)) extras.ownProfile = true;
+    }
     const profileUrl =
       member.page === "conversation" &&
       member.extraction.profileUrl.status === "found"
@@ -213,8 +226,9 @@ export class MemberPanel {
       page,
       memberId: member.memberId,
       observed,
+      extras,
       anchor: member.anchor,
-      key: `${page}|${member.memberId}|${factsKey(observed)}`,
+      key: `${page}|${member.memberId}|${factsKey(observed)}|${JSON.stringify(extras)}`,
       ...(profileUrl ? { profileUrl } : {}),
     };
   }
@@ -224,13 +238,15 @@ export class MemberPanel {
     const key = `${accountId}|${target.key}`;
     if (this.#captured === key) return;
     this.#captured = key;
-    const { memberId, observed } = target;
+    const { memberId, observed, extras } = target;
     this.#captureQueue = this.#captureQueue.then(() =>
-      this.client.captureSnapshot(accountId, memberId, observed).catch(() => {
-        // A failed cache write loses nothing the page still shows. Retry
-        // only if no newer reading has been queued since.
-        if (this.#captured === key) this.#captured = "";
-      }),
+      this.client
+        .captureSnapshot(accountId, memberId, observed, extras)
+        .catch(() => {
+          // A failed cache write loses nothing the page still shows. Retry
+          // only if no newer reading has been queued since.
+          if (this.#captured === key) this.#captured = "";
+        }),
     );
   }
 
