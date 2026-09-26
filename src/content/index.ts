@@ -26,6 +26,7 @@ import {
 import { EventListFilter } from "./event-list-filter";
 import { MessageCache, runtimeMessageCacheClient } from "./message-cache";
 import { PreferenceRetry } from "./preference-retry";
+import { runtimeSharedEventsClient, SharedEvents } from "./shared-events";
 import { ListingPanel, runtimeListingClient } from "./listing-panel";
 import { MemberNotes, runtimeNotesClient } from "./member-notes";
 import { MemberPanel } from "./member-panel";
@@ -95,6 +96,12 @@ if (hasVerifiedSelectors() && VERIFIED_HOSTS.includes(location.hostname)) {
     runtimeMessageCacheClient(),
     () => activeAccountId,
   );
+  // V1-13: guest lists of tracked events, and shared events on profiles.
+  const sharedEvents = new SharedEvents(
+    document,
+    runtimeSharedEventsClient(),
+    () => activeAccountId,
+  );
   const updateMessageCache = () => {
     if (lastType === "conversation")
       messageCache.update(messageCaching.enabled);
@@ -135,6 +142,8 @@ if (hasVerifiedSelectors() && VERIFIED_HOSTS.includes(location.hostname)) {
     eventFilter.localeChanged();
     compatibility.localeChanged();
     cardSignals.localeChanged();
+    sharedEvents.localeChanged();
+    sharedEvents.update(lastType);
   });
   const preferenceRetry = new PreferenceRetry(() => coordinator.refresh());
   let lastType: string | undefined;
@@ -178,6 +187,8 @@ if (hasVerifiedSelectors() && VERIFIED_HOSTS.includes(location.hostname)) {
     compatibility.update(type);
     // Completeness, trust, note and tags on every card (V1-10).
     cardSignals.update(type);
+    // Guest lists of tracked events; shared events on profiles (V1-13).
+    sharedEvents.update(type);
     // Labels still drawing in their shadow roots wake no observer.
     preferenceRetry.check(
       document.URL,
@@ -249,6 +260,9 @@ if (hasVerifiedSelectors() && VERIFIED_HOSTS.includes(location.hostname)) {
       );
       messageCache.reset();
       updateMessageCache();
+      // Another account's shared events must never stay on a profile.
+      sharedEvents.invalidate();
+      sharedEvents.update(lastType);
     } else if (TRIAGE_REVISION_KEY in changes) {
       // Also set by every delete in the data inspector, so a deleted note,
       // tag or saved search leaves an open page at once.
@@ -262,6 +276,9 @@ if (hasVerifiedSelectors() && VERIFIED_HOSTS.includes(location.hostname)) {
       // A snapshot capture: a profile's preferences, or the viewer's own.
       compatibility.invalidate();
       cardSignals.invalidate();
+      // A deletion in the data inspector can remove a tracked event.
+      sharedEvents.invalidate();
+      sharedEvents.update(lastType);
     } else if (NOTES_REVISION_KEY in changes) {
       // A note or tag saved in another tab, or from a card.
       notes.invalidate();
@@ -269,10 +286,17 @@ if (hasVerifiedSelectors() && VERIFIED_HOSTS.includes(location.hostname)) {
     }
     // A search saved or deleted in another tab.
     if (SAVED_SEARCH_REVISION_KEY in changes) searches.invalidate();
-    // Event or venue notes saved in another tab.
+    // Event or venue notes saved in another tab, or a guest list stored.
     if (EVENT_REVISION_KEY in changes) {
       listing.invalidate();
       eventFilter.invalidate();
+      sharedEvents.invalidate();
+      sharedEvents.update(lastType);
+      // Attendance and guest lists decide the shared-event exception (V1-13).
+      if (!(TRIAGE_REVISION_KEY in changes)) {
+        inbox.invalidate();
+        panel.invalidate();
+      }
     }
   });
   // Start after the initial flag and language are known, so the first event

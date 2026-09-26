@@ -195,6 +195,10 @@ stay as they are.
 | `triage.placementLine` | Placement: {placement} ({source}). | Einordnung: {placement} ({source}). |
 | `triage.source.override` | your manual choice | deine eigene Wahl |
 | `triage.source.rule` | your contact rule | deine Kontaktregel |
+| `triage.source.sharedEvent` | the shared-event exception | die Ausnahme für gemeinsame Events |
+| `triage.sharedEvent.attending` | On the guest list of "{event}" ({when}), which you marked Attending. | Auf der Gästeliste von „{event}“ ({when}), das du mit „Ich gehe hin“ markiert hast. |
+| `triage.sharedEvent.attended` | On the guest list of "{event}" ({when}), which you marked Attended. | Auf der Gästeliste von „{event}“ ({when}), das du mit „War dort“ markiert hast. |
+| `triage.sharedEvent.optOut` | Don't use the shared event for this sender | Das gemeinsame Event für diese Person nicht verwenden |
 | `triage.movedOn` | You moved this sender on {date}. Your rule alone would place it in {placement}. | Du hast diese Person am {date} verschoben. Deine Regel allein würde sie in „{placement}“ einordnen. |
 | `triage.move.group` | Move this sender | Diese Person verschieben |
 | `triage.move.to` | Move to {placement} | Nach „{placement}“ verschieben |
@@ -226,6 +230,7 @@ stay as they are.
 | --- | --- | --- |
 | `bar.placementPrefix` | Placement: | Einordnung: |
 | `bar.yourChoice` | (your choice) | (deine Wahl) |
+| `bar.sharedEvent` | (shared event) | (gemeinsames Event) |
 | `bar.openProfile` | Open profile | Profil öffnen |
 | `bar.log` | Log: | Erfassen: |
 | `bar.positive` | Positive | Positiv |
@@ -337,6 +342,17 @@ stay as they are.
 | `events.past` | {when} (past) | {when} (vorbei) |
 | `events.venue` | Venue: {venue} | Ort: {venue} |
 | `events.venuesHeading` | My venues | Meine Clubs |
+| `events.guests` | 1 guest stored / {count} guests stored | 1 Gast gespeichert / {count} Gäste gespeichert |
+| `events.exception.label` | Shared-event exception: place a sender in Qualified when they are on the guest list of an event I marked Attending or Attended | Ausnahme für gemeinsame Events: eine Person als „Qualifiziert“ einordnen, wenn sie auf der Gästeliste eines Events steht, das ich mit „Ich gehe hin“ oder „War dort“ markiert habe |
+| `events.exception.hint` | Off by default. JoyFox stores a tracked event's guest list when you open the event page, as far as JoyClub has loaded it, and deletes it when you stop tracking the event. A sender you moved yourself keeps your choice, and the "Why" panel can turn the exception off for one sender. | Standardmäßig aus. JoyFox speichert die Gästeliste eines verfolgten Events, wenn du die Event-Seite öffnest, so weit JoyClub sie geladen hat, und löscht sie, wenn du das Event nicht mehr verfolgst. Eine Person, die du selbst verschoben hast, behält deine Wahl, und im Bereich „Warum“ kannst du die Ausnahme für eine Person abschalten. |
+| `events.exception.saved` | Saved. | Gespeichert. |
+
+## sharedEvents
+
+| Key | English | Deutsch |
+| --- | --- | --- |
+| `sharedEvents.heading` | Shared events | Gemeinsame Events |
+| `sharedEvents.intro` | This member is on the stored guest list of these events you track: | Dieses Mitglied steht auf der gespeicherten Gästeliste dieser Events, die du verfolgst: |
 
 ## eventFilter
 

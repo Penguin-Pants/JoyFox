@@ -129,6 +129,7 @@ describe("M5 note and tag editor", () => {
       logTrust: () => Promise.resolve(),
       undoTrust: () => Promise.resolve(),
       captureSnapshot: () => Promise.resolve(),
+      optOutSharedEvent: () => Promise.resolve(),
       openOptions: () => Promise.resolve(),
     };
     new MemberPanel(document, triageClient).update("profile");

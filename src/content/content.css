@@ -745,3 +745,13 @@
 .joyfox-card-editor__status:empty {
   display: none;
 }
+
+/* V1-13: tracked events a member's guest list entry was seen on. */
+.joyfox-shared-events__list {
+  margin: 0.25em 0 0;
+  padding-inline-start: 1.25em;
+}
+
+.joyfox-explain__shared-event {
+  font-weight: 600;
+}

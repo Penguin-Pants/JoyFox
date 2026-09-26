@@ -98,6 +98,13 @@ right there. On the member search, "JoyFox: hide incomplete profiles" hides the
 loaded results known to be below 3 photos or 50 words (V1-10,
 `docs/manual-acceptance.md`, items 125 to 128).
 
+For an event you track, JoyFox stores the guest list the event page shows
+(member IDs only) and lists the shared events on each guest's profile. An
+optional exception, off by default, places a sender in Qualified when they are
+on the guest list of an event you marked Attending or Attended; the "Why" panel
+names the event and can turn it off for that sender (V1-13,
+`docs/manual-acceptance.md`, items 129 to 132).
+
 Conversation History Search stores the ClubMail messages you open, sent and
 received, and the options page's "Messages" tab searches them. It is on by
 default and can be turned off there; messages older than 12 months (you choose 1

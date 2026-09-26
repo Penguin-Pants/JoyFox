@@ -269,6 +269,12 @@ export const en = {
     `Placement: ${p.placement} (${p.source}).`,
   "triage.source.override": "your manual choice",
   "triage.source.rule": "your contact rule",
+  "triage.source.sharedEvent": "the shared-event exception",
+  "triage.sharedEvent.attending": (p: { event: string; when: string }) =>
+    `On the guest list of "${p.event}"${p.when ? ` (${p.when})` : ""}, which you marked Attending.`,
+  "triage.sharedEvent.attended": (p: { event: string; when: string }) =>
+    `On the guest list of "${p.event}"${p.when ? ` (${p.when})` : ""}, which you marked Attended.`,
+  "triage.sharedEvent.optOut": "Don't use the shared event for this sender",
   "triage.movedOn": (p: { date: string; placement: T }) =>
     `You moved this sender on ${p.date}. Your rule alone would place it in ${p.placement}.`,
   "triage.move.group": "Move this sender",
@@ -296,6 +302,7 @@ export const en = {
   "trust.log.undo": "Undo last outcome",
   "bar.placementPrefix": "Placement: ",
   "bar.yourChoice": "(your choice)",
+  "bar.sharedEvent": "(shared event)",
   "bar.openProfile": "Open profile",
   "bar.log": "Log:",
   "bar.positive": "Positive",
@@ -417,6 +424,19 @@ export const en = {
   "events.past": (p: { when: string }) => `${p.when} (past)`,
   "events.venue": (p: { venue: string }) => `Venue: ${p.venue}`,
   "events.venuesHeading": "My venues",
+  "events.guests": (p: { count: number }, f: Format) =>
+    f.plural(p.count, {
+      one: "1 guest stored",
+      other: `${f.number(p.count)} guests stored`,
+    }),
+  "events.exception.label":
+    "Shared-event exception: place a sender in Qualified when they are on the guest list of an event I marked Attending or Attended",
+  "events.exception.hint":
+    'Off by default. JoyFox stores a tracked event\'s guest list when you open the event page, as far as JoyClub has loaded it, and deletes it when you stop tracking the event. A sender you moved yourself keeps your choice, and the "Why" panel can turn the exception off for one sender.',
+  "events.exception.saved": "Saved.",
+  "sharedEvents.heading": "Shared events",
+  "sharedEvents.intro":
+    "This member is on the stored guest list of these events you track:",
 
   // Content script: event list filter (V1-5)
   "eventFilter.label": "JoyFox: show",

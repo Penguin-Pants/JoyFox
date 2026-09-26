@@ -129,6 +129,14 @@ export interface EventMetadata extends AccountScopedEntity {
     | "not-attending"
     | "attended"
     | "unknown";
+  /**
+   * V1-13: the member IDs the event's guest list showed the user, sorted and
+   * unique, gathered over visits. Kept only while the event is tracked: the
+   * record goes, and they with it, when the notes are cleared.
+   */
+  attendees?: string[];
+  /** When the guest list was last read. */
+  attendeesSeenAt?: string;
 }
 export interface SpendLogEntry extends AccountScopedEntity {
   occurredAt: string;

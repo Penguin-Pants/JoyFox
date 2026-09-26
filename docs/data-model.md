@@ -91,6 +91,20 @@ committed note or tag write sets `joyfox.notesRevision` in `storage.local` to a
 random token, so another open page reloads its editor at once. It is separate
 from the triage revision, so a note does not make open inboxes re-evaluate.
 
+## Guest lists and the shared-event exception (V1-13)
+
+A tracked event's EventMetadata may carry `attendees`, the member IDs its guest
+list showed the user, sorted and unique, gathered over visits (at most 2,000),
+and `attendeesSeenAt`. Only a tracked event keeps them: clearing the notes
+removes the record and the list with it, and a save of the notes keeps the list.
+Storing the list does not change `updatedAt`, so an open notes editor does not
+see a false conflict. The shared-event exception is the `storage.local` setting
+`joyfox.sharedEventException` (off unless `true`; not imported). Turning it off
+for one sender stores an ExtensionPreference with the key `sharedEventOptOut`,
+the member ID as its value and the ID `shared-event-opt-out:<memberId>`;
+deleting that record under "Your data" turns the exception on again for that
+sender.
+
 ## Cached messages (V1-4)
 
 CachedMessage holds one ClubMail message the user had on screen, for

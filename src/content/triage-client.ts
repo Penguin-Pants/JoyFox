@@ -44,6 +44,8 @@ export interface TriageClient {
     observed: Partial<ProfileFacts>,
     extras?: ProfileCaptureExtras,
   ): Promise<void>;
+  /** V1-13: the shared-event exception no longer applies to this sender. */
+  optOutSharedEvent(accountId: string, memberId: string): Promise<void>;
   openOptions(): Promise<void>;
 }
 
@@ -71,6 +73,12 @@ export function messageTriageClient(sender: MessageSender): TriageClient {
         memberId,
         observed,
         ...extras,
+      });
+    },
+    async optOutSharedEvent(accountId, memberId) {
+      await request(sender, "triage.sharedEventOptOut", {
+        accountId,
+        memberId,
       });
     },
     async openOptions() {
