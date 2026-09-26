@@ -84,7 +84,8 @@
   no minimum length is documented, so none is enforced.
 - No default rule is shipped, because the PRD states the thresholds as
   user-configured values. Until the user saves a rule, JoyFox does not sort the
-  inbox. Presets (PRD Section 11.3) are not built.
+  inbox. The PRD Section 11.3 presets fill in the rule for the user, who applies
+  one (V1-11, ADR 0016).
 - Inbox triage groups rows by hiding them in place (ADR 0006). Within a group
   the rows keep JoyClub's order. Live acceptance passed on 2026-09-23
   (`manual-acceptance.md`, items 19 to 26). Triage also runs on a conversation
@@ -113,7 +114,9 @@
   and each classification cost grows with the stored record count.
 - Background persistence is proven by an automated database-backed wake-counter
   test and by the manual forced event-page restart (passed 2026-09-23).
-- Encryption is an isolated proof of concept. There is no sync transport.
+- Encryption is an isolated proof of concept. There is no sync transport: the
+  owner deferred sync (V1-6) to the future roadmap (ADR 0016). Local export and
+  import move data between browsers.
 - Firefox signing and AMO distribution have not been implemented or claimed.
 - Onboarding is minimal: the options page opens once on a fresh install, and
   "Get started" tracks the account and the rule. JoyFox cannot see whether the

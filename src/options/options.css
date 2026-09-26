@@ -189,6 +189,26 @@
   }
 }
 
+/* The preset choice and its button share a line, and wrap when narrow. */
+.joyfox-rule__preset-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--joyfox-space-2);
+  align-items: center;
+}
+
+.joyfox-rule__preset {
+  max-width: 100%;
+}
+
+.joyfox-rule__presets .joyfox-panel__hint {
+  margin: 0;
+}
+
+.joyfox-rule__preset-description:empty {
+  display: none;
+}
+
 .joyfox-rule__switch-row {
   display: flex;
   flex-wrap: wrap;

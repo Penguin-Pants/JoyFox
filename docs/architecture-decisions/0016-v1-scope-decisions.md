@@ -1,4 +1,4 @@
-# 0016: V1 scope decisions: no per-audience rules, license, presets
+# 0016: V1 scope decisions: no per-audience rules, license, presets, no sync yet
 
 ## Status
 
@@ -71,3 +71,20 @@ The permanent Firefox extension ID (`browser_specific_settings.gecko.id` in
 change after the first signed release, since Firefox keys an extension's storage
 to it. A build loaded with the placeholder ID keeps its data under that ID:
 export it under "Your data" before the switch and import it after.
+
+## Amendment: V1-11 criteria and V1-6 deferral (project owner, 2026-09-26)
+
+1. **V1-11 criteria approved.** The proposed criteria are accepted as written:
+   each preset fills the builder with the conditions in the preset table above;
+   the user can then edit the result like any other rule; Custom opens the
+   builder with no conditions set. In the build, a preset sets only the
+   conditions, all in the ALL box, each sending the sender to Needs Review when
+   JoyFox cannot see the fact. The on switch and the placement of a sender who
+   does not meet the rule stay as the user set them. A preset saves at once,
+   like every other rule change, so it asks for a second click before it
+   replaces conditions already shown.
+2. **V1-6 (self-hosted sync) is deferred** to the future roadmap. Local export
+   and import (M8) are enough for now. This overrides the sync item in PRD
+   Section 20's V1 list. D2 (the sync protocol) is deferred with it. V1-9 no
+   longer depends on V1-6. The encryption decision (ADR 0002) and its proof of
+   concept stay as they are, for when sync is built.

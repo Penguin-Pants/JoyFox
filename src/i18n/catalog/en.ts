@@ -462,6 +462,39 @@ export const en = {
     "Changes are saved automatically: a box or choice at once, a number or text when you leave its field.",
   "rule.firstMessageHint":
     '"First message contains" reads the message preview in your inbox, ignoring upper and lower case. The inbox shows only the latest message, so when a sender sent more than one, the preview may not be the first. If the preview does not contain your text, the condition counts as your "If JoyFox cannot see this" choice. Once JoyFox sees your text, it stays met.',
+  "rule.preset.label": "Start from a preset",
+  "rule.preset.choose": "Choose a preset…",
+  "rule.preset.apply": "Apply preset",
+  "rule.preset.confirm": "Replace conditions",
+  "rule.preset.confirmPrompt":
+    'The preset replaces every condition below. Click "Replace conditions" to confirm.',
+  "rule.preset.hint":
+    "A preset fills in the conditions below and saves them. You can then change them like any other rule.",
+  "rule.preset.open": "Open",
+  "rule.preset.complete": "Complete profiles only",
+  "rule.preset.verified": "Verified members",
+  "rule.preset.highTrust": "High-trust members",
+  "rule.preset.custom": "Custom",
+  "rule.preset.describe.open": "No conditions: every sender qualifies.",
+  "rule.preset.describe.complete": (
+    p: { photos: number; words: number },
+    f: Format,
+  ) =>
+    `A sender needs at least ${f.number(p.photos)} photos and at least ${f.number(p.words)} words of profile text.`,
+  "rule.preset.describe.verified": "A sender needs to be verified by JoyClub.",
+  "rule.preset.describe.highTrust": (
+    p: { photos: number; words: number; days: number },
+    f: Format,
+  ) =>
+    `A sender needs to be verified by JoyClub, with at least ${f.number(p.photos)} photos, at least ${f.number(p.words)} words of profile text and an account at least ${f.number(p.days)} days old.`,
+  "rule.preset.describe.custom":
+    "Clears all conditions, so you can tick the ones you want.",
+  "rule.preset.applied": (p: { preset: T }) =>
+    `Preset "${p.preset}" applied and saved. You can change its conditions below.`,
+  "rule.preset.appliedOpen":
+    'Preset "Open" applied and saved. The rule has no conditions, so every sender qualifies.',
+  "rule.preset.appliedCustom":
+    "All conditions cleared and saved. Tick the conditions you want. Until you do, every sender qualifies.",
   "rule.editor": "Editor:",
   "rule.simple": "Simple",
   "rule.advanced": "Advanced",

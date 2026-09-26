@@ -64,6 +64,12 @@ and in a conversation with them, below the JoyFox panel. They are stored only
 for a verified member ID, never a display name. See `docs/manual-acceptance.md`,
 items 36 to 42.
 
+The contact rule is built on the options page in plain language, in a Simple or
+an Advanced editor, and saves on each change. "Start from a preset" fills it
+with one of the PRD's presets: Open, Complete profiles only, Verified members,
+High-trust members or Custom (ADR 0016, `docs/manual-acceptance.md`, items 105
+to 107).
+
 The options page also holds message templates and "Your data", where every
 stored record can be inspected field by field, exported as JSON and deleted, per
 account or for the whole extension. It also sets how many profile snapshots

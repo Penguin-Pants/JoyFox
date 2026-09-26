@@ -33,6 +33,15 @@ import {
   MAX_NORMALIZED_PHRASE_LENGTH,
   normalizePhrase,
 } from "../rules/message-phrase";
+import {
+  COMPLETE_PROFILE,
+  HIGH_TRUST_ACCOUNT_DAYS,
+  isRulePresetId,
+  PRESET_TEXT,
+  presetForm,
+  RULE_PRESET_IDS,
+  type RulePresetId,
+} from "../rules/presets";
 import { RuleService } from "../rules/rule-service";
 import { withAccountLock } from "../storage/account-lock";
 import { StatusLine } from "./status-line";
@@ -233,6 +242,34 @@ const NEW_VALUE: Partial<Record<ConditionKind, number>> = {
   minimumTrustScore: 1,
 };
 
+/** What a preset sets, in words, shown under the preset choice. */
+function presetDescription(id: RulePresetId): string {
+  const { photos, words } = COMPLETE_PROFILE;
+  switch (id) {
+    case "open":
+      return t("rule.preset.describe.open");
+    case "complete":
+      return t("rule.preset.describe.complete", { photos, words });
+    case "verified":
+      return t("rule.preset.describe.verified");
+    case "highTrust":
+      return t("rule.preset.describe.highTrust", {
+        photos,
+        words,
+        days: HIGH_TRUST_ACCOUNT_DAYS,
+      });
+    case "custom":
+      return t("rule.preset.describe.custom");
+  }
+}
+
+/** The status after a preset is saved. */
+function presetNotice(id: RulePresetId): Message {
+  if (id === "open") return message("rule.preset.appliedOpen");
+  if (id === "custom") return message("rule.preset.appliedCustom");
+  return message("rule.preset.applied", { preset: message(PRESET_TEXT[id]) });
+}
+
 /**
  * The M4 rule builder: one global contact rule for the active account, shown
  * as PRD Section 11.5's two boxes in plain language, never as logic
@@ -257,6 +294,8 @@ export class RulePanel {
   /** The line saying whether a rule is saved, updated after an autosave. */
   #note?: HTMLParagraphElement;
   #form?: HTMLFormElement;
+  /** Puts the preset button back from "Replace conditions" to "Apply". */
+  #disarmPreset: () => void = () => undefined;
   /** The account the form was drawn for, and whether a rule is saved. */
   #accountId?: string;
   #saved = false;
@@ -461,6 +500,7 @@ export class RulePanel {
     node.append(
       enabledLabel,
       placementWrapper,
+      this.#renderPresets(document, accountId),
       this.#renderSwitch(document),
       this.#editor,
       element(document, "p", "joyfox-panel__hint", t("rule.spamHint")),
@@ -479,9 +519,16 @@ export class RulePanel {
       void this.#serial(() => this.#save(accountId, form, version));
     };
     node.addEventListener("change", (event) => {
-      // Adding a condition is a change of its own, handled by its select.
-      if ((event.target as Element).matches(".joyfox-rule__add-condition"))
+      // Adding a condition and choosing a preset are changes of their own,
+      // handled by their selects.
+      if (
+        (event.target as Element).matches(
+          ".joyfox-rule__add-condition, .joyfox-rule__preset",
+        )
+      )
         return;
+      // A preset confirmation covers the conditions as they were.
+      this.#disarmPreset();
       this.#updateSimpleReason();
       this.#autosave();
     });
@@ -495,6 +542,112 @@ export class RulePanel {
   }
 
   #autosave: () => void = () => undefined;
+
+  /**
+   * PRD 11.3's presets (V1-11, ADR 0016). A preset fills the Simple editor
+   * with its conditions and saves at once; the user can then change them
+   * like any other rule. Replacing conditions already shown takes a second
+   * click, as the autosave leaves no other way back.
+   */
+  #renderPresets(document: Document, accountId: string): HTMLElement {
+    const wrapper = element(
+      document,
+      "div",
+      "joyfox-panel__field joyfox-rule__presets",
+    );
+    const label = element(document, "label", "", t("rule.preset.label"));
+    label.htmlFor = "joyfox-rule-preset";
+    const choice = document.createElement("select");
+    choice.id = "joyfox-rule-preset";
+    choice.className = "joyfox-rule__preset";
+    choice.append(new Option(t("rule.preset.choose"), "", true, true));
+    for (const id of RULE_PRESET_IDS)
+      choice.append(new Option(t(PRESET_TEXT[id]), id));
+    const apply = element(
+      document,
+      "button",
+      "joyfox-rule__preset-apply",
+      t("rule.preset.apply"),
+    );
+    apply.type = "button";
+    apply.disabled = true;
+    const description = element(
+      document,
+      "p",
+      "joyfox-panel__hint joyfox-rule__preset-description",
+    );
+    description.id = "joyfox-rule-preset-description";
+    choice.setAttribute("aria-describedby", description.id);
+    let armed = false;
+    this.#disarmPreset = () => {
+      armed = false;
+      apply.textContent = t("rule.preset.apply");
+    };
+    const show = () => {
+      this.#disarmPreset();
+      const id = choice.value;
+      apply.disabled = !isRulePresetId(id);
+      description.textContent = isRulePresetId(id) ? presetDescription(id) : "";
+    };
+    choice.addEventListener("change", show);
+    apply.addEventListener("click", () => {
+      const id = choice.value;
+      if (!isRulePresetId(id)) return;
+      if (!armed && this.#shownConditionCount() > 0) {
+        armed = true;
+        apply.textContent = t("rule.preset.confirm");
+        this.#setStatus(message("rule.preset.confirmPrompt"), "info");
+        return;
+      }
+      // Focus stays on the choice, as the button turns disabled.
+      choice.focus();
+      choice.value = "";
+      show();
+      this.#applyPreset(document, accountId, id);
+    });
+    const row = element(document, "div", "joyfox-rule__preset-row");
+    row.append(choice, apply);
+    wrapper.append(
+      label,
+      row,
+      description,
+      element(document, "p", "joyfox-panel__hint", t("rule.preset.hint")),
+    );
+    return wrapper;
+  }
+
+  /** How many conditions the shown editor holds, valid or not. */
+  #shownConditionCount(): number {
+    if (this.#rules)
+      return this.#readAdvanced(numberOrNone).rules.reduce(
+        (count, rule) => count + Object.keys(rule.conditions).length,
+        0,
+      );
+    const form = this.#readSimple(numberOrNone);
+    return Object.keys(form.all).length + Object.keys(form.any).length;
+  }
+
+  /** Show a preset in the Simple editor and save it. */
+  #applyPreset(document: Document, accountId: string, id: RulePresetId): void {
+    const form = presetForm(id, {
+      enabled: this.#enabled?.checked ?? true,
+      defaultPlacement: (this.#placement?.value ??
+        "quarantined") as FailPlacement,
+    });
+    this.#view = "simple";
+    this.#showSimple(document, form);
+    const version = this.#version();
+    const read: ReadRule = {
+      definition: fromBuilderForm(form),
+      notice: presetNotice(id),
+    };
+    void this.#serial(() => this.#save(accountId, read, version));
+    // Custom has no conditions yet: start at the first box to tick.
+    if (id === "custom")
+      this.#editor
+        ?.querySelector<HTMLInputElement>("input[type=checkbox]")
+        ?.focus();
+  }
 
   /** The Simple / Advanced switch, and why Simple is not available. */
   #renderSwitch(document: Document): HTMLElement {
