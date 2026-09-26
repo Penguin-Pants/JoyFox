@@ -59,6 +59,13 @@ export class NavigationCoordinator {
     }, 250);
     globalThis.addEventListener("popstate", this.#onPopState);
   }
+  /**
+   * Ask every listener to read the page again, for a change no observer can
+   * see (V1-2: labels drawn inside a shadow root).
+   */
+  refresh(): void {
+    if (this.#started) this.#emit("mutation");
+  }
   stop(): void {
     if (!this.#started) return;
     this.#observer?.disconnect();

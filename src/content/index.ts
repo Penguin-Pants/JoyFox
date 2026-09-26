@@ -1,4 +1,5 @@
 import { ACTIVE_ACCOUNT_SETTING_KEY } from "../accounts/account-service";
+import { readPreferences } from "../extraction/preferences";
 import { extractInboxRows } from "../extraction/joyclub";
 import { LOCALE_KEY, localeFromSetting, readLocale } from "../i18n/locale";
 import { onLocaleChange, setLocale } from "../i18n/translator";
@@ -21,6 +22,7 @@ import {
   runtimeCompatibilityClient,
 } from "./compatibility";
 import { EventListFilter } from "./event-list-filter";
+import { PreferenceRetry } from "./preference-retry";
 import { ListingPanel, runtimeListingClient } from "./listing-panel";
 import { MemberNotes, runtimeNotesClient } from "./member-notes";
 import { MemberPanel } from "./member-panel";
@@ -96,6 +98,7 @@ if (hasVerifiedSelectors() && VERIFIED_HOSTS.includes(location.hostname)) {
     eventFilter.localeChanged();
     compatibility.localeChanged();
   });
+  const preferenceRetry = new PreferenceRetry(() => coordinator.refresh());
   let lastType: string | undefined;
   const updatePicker = () => {
     if (lastType === "conversation" && templatePicker.enabled) picker.update();
@@ -135,6 +138,11 @@ if (hasVerifiedSelectors() && VERIFIED_HOSTS.includes(location.hostname)) {
     else eventFilter.leave();
     // Profile, search results, the inbox list and event guest lists (V1-2).
     compatibility.update(type);
+    // Labels still drawing in their shadow roots wake no observer.
+    preferenceRetry.check(
+      document.URL,
+      type === "profile" && readPreferences(document).status === "unreadable",
+    );
     lastType = type;
     updatePicker();
     updateQuickAction();

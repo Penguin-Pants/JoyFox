@@ -201,7 +201,9 @@
   so if JoyClub removes that headline, JoyFox asks to open the own profile and
   shows no counts. A card shows a count only for a member whose profile was
   opened before, and the count is the one from the last visit. A profile without
-  a "Vorlieben" list, or one whose tag labels have not drawn yet, shows no
-  count. Tags are matched by their German label only (`13-preferences.md`). The
-  sort orders only the results JoyClub has loaded, and works only if JoyClub
-  lays the list out as a flex or grid container.
+  a "Vorlieben" list shows no count. While its tag labels are still drawing,
+  JoyFox reads the page again every half second, up to 10 times; a profile whose
+  labels take longer shows no count until the page changes. Tags are matched by
+  their German label only (`13-preferences.md`). The sort orders only the
+  results JoyClub has loaded, and works only if JoyClub lays the list out as a
+  flex or grid container.

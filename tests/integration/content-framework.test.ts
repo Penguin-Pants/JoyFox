@@ -69,6 +69,19 @@ describe("F2 content framework", () => {
     vi.useRealTimers();
   });
 
+  it("reads the page again on request, only while started", () => {
+    const listener = vi.fn();
+    const coordinator = new NavigationCoordinator(detectPage);
+    coordinator.subscribe(listener);
+    coordinator.refresh();
+    expect(listener).not.toHaveBeenCalled();
+    coordinator.start();
+    coordinator.refresh();
+    expect(listener).toHaveBeenCalledTimes(2);
+    expect(listener.mock.calls[1]?.[0].reason).toBe("mutation");
+    coordinator.stop();
+  });
+
   it("wakes on an in-place change to a watched attribute, not on JoyFox's own", async () => {
     vi.useFakeTimers();
     const shield = document.createElement("j-veri-icon");
