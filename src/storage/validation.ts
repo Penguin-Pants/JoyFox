@@ -170,6 +170,11 @@ function validateProfileSnapshot(record: Record<string, unknown>): void {
   }
   if (record.ownProfile !== undefined && record.ownProfile !== true)
     throw new ValidationError("ownProfile must be true when present");
+  if (
+    record.personallyKnown !== undefined &&
+    typeof record.personallyKnown !== "boolean"
+  )
+    throw new ValidationError("personallyKnown must be a boolean when present");
 }
 
 function validateSyncConfig(record: Record<string, unknown>): void {

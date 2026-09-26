@@ -205,6 +205,35 @@ describe("V1-10 signals on every card", () => {
     }
   });
 
+  it('gives a guest entry the same trust as a card with the "met in person" shield', async () => {
+    // The profile page last showed the green shield (code 3): met in person.
+    await repositories.profileSnapshots.put("account-a", {
+      id: `snapshot:${FULL}`,
+      accountId: "account-a",
+      memberId: FULL,
+      capturedAt: now,
+      verification: true,
+      photoCount: 5,
+      profileWordCount: 120,
+      joinedAt: "unknown",
+      personallyKnown: true,
+      createdAt: now,
+      updatedAt: now,
+    });
+    window.history.replaceState(null, "", "/member/");
+    document.body.innerHTML = `<div class="member_search_list"><div class="grid"><div class="item"><a data-e2e="result-item" href="/profile/${FULL}.synthetic.html"><j-member-card verification-status="3"></j-member-card></a></div></div></div>`;
+    signals.update("search");
+    await flush();
+    const withShield = shown(FULL).trust;
+    // The mark counts: without it, the two positive outcomes give +2.
+    expect(withShield).not.toBe("Trust +2");
+    // A guest entry shows no shield (14-events.md); the stored mark fills it.
+    guestPage([FULL]);
+    signals.update("event");
+    await flush();
+    expect(shown(FULL).trust).toBe(withShield);
+  });
+
   it("marks an unknown member unknown, never incomplete", async () => {
     searchPage([NEW]);
     signals.update("search");

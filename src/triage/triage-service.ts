@@ -131,6 +131,7 @@ const SNAPSHOT_FIELDS = [
   "joinedLatest",
   "positivePreferences",
   "ownProfile",
+  "personallyKnown",
 ] as const;
 
 /** What a profile page showed beyond the rule facts (V1-2). */
@@ -462,6 +463,7 @@ export class TriageService {
       | "joinedLatest"
       | "positivePreferences"
       | "ownProfile"
+      | "personallyKnown"
     > = {
       verification: facts.verification,
       photoCount: facts.photoCount,
@@ -474,9 +476,14 @@ export class TriageService {
         ? { positivePreferences: [...extras.preferences] }
         : {}),
       ...(extras.ownProfile ? { ownProfile: true as const } : {}),
+      // Kept for card signals only (V1-10); triage never reads it back.
+      ...(facts.personallyKnown === "unknown"
+        ? {}
+        : { personallyKnown: facts.personallyKnown }),
     };
     const seen =
       values.positivePreferences !== undefined ||
+      values.personallyKnown !== undefined ||
       values.verification !== "unknown" ||
       values.photoCount !== "unknown" ||
       values.profileWordCount !== "unknown" ||
@@ -513,6 +520,11 @@ export class TriageService {
       if (!values.positivePreferences && newest.positivePreferences)
         values.positivePreferences = newest.positivePreferences;
       if (newest.ownProfile) values.ownProfile = true;
+      if (
+        values.personallyKnown === undefined &&
+        newest.personallyKnown !== undefined
+      )
+        values.personallyKnown = newest.personallyKnown;
     }
     if (
       newest &&

@@ -33,8 +33,8 @@
 - "Personally known" is its own criterion (`requirePersonallyKnown`), higher
   trust than verification. Code `3` is "yes" and code `1` is "no" (the owner
   confirmed that green replaces grey). A missing shield and other codes read as
-  unknown. It is read live on each page and never cached, as the user can change
-  the mark.
+  unknown. Qualification reads it live on each page and never from a snapshot,
+  as the user can change the mark.
 - Conversation header data is used only when its member ID matches a number in
   the conversation URL. If those URL numbers turn out not to be member IDs,
   header data will always read as missing.
@@ -212,11 +212,11 @@
   the card itself shows neither (`11-search.md`). Such a member shows
   "Completeness unknown" and is never hidden by "hide incomplete profiles". A
   guest-list entry shows no shield code (`14-events.md`), so on it the
-  verification comes from the snapshot and "personally known", which is never
-  cached, is not counted: for a member you marked as met in person, the trust
-  score on a guest entry is 1 lower than on the profile page. The note and tag
-  editor opens as a panel at the bottom right of the window, because a card is a
-  link. The filter hides only results JoyClub has loaded.
+  verification and the "met in person" mark come from the snapshot, as the
+  profile page last showed them (owner, 2026-09-26). If you change the mark, a
+  guest entry shows the old trust score until you open that profile again. The
+  note and tag editor opens as a panel at the bottom right of the window,
+  because a card is a link. The filter hides only results JoyClub has loaded.
 - The shared-event exception (V1-13) knows only the guests JoyClub had loaded
   when the event page was open; the event page shows a first batch (37 of
   several hundred in `14-events.md`), and JoyFox never loads more, so a real

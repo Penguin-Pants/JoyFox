@@ -74,10 +74,17 @@ export class SignalsService {
     const notSpam = new Set(overrides.map((item) => item.memberId));
     const answer: Record<string, MemberSignals> = {};
     for (const { memberId, observed } of members) {
-      const { facts } = mergeProfileFacts(
-        observed,
-        newestSnapshot(snapshotsBy.get(memberId) ?? []),
-      );
+      const newest = newestSnapshot(snapshotsBy.get(memberId) ?? []);
+      const { facts } = mergeProfileFacts(observed, newest);
+      // A card with no shield (a guest-list entry) cannot show the viewer's
+      // "met in person" mark. The profile page's last reading fills it, so
+      // the card's trust score matches the profile page (V1-10). Triage
+      // never does this: it reads the live mark only.
+      if (
+        facts.personallyKnown === "unknown" &&
+        newest?.personallyKnown !== undefined
+      )
+        facts.personallyKnown = newest.personallyKnown;
       answer[memberId] = {
         completeness: completeness(facts),
         trust: computeTrustScore({
