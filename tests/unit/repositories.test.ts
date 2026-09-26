@@ -173,6 +173,10 @@ describe("F6 repositories", () => {
       ["positivePreferences", "Synthetic A"],
       ["positivePreferences", [" "]],
       ["positivePreferences", [3]],
+      ["positivePreferences", [" Synthetic A "]],
+      ["positivePreferences", ["Synthetic  A"]],
+      ["positivePreferences", ["B", "A"]],
+      ["positivePreferences", ["A", "A"]],
       ["ownProfile", false],
     ] as const)
       await expect(

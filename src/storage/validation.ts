@@ -1,6 +1,7 @@
 import { isStrictIsoDate } from "../domain/iso-date";
 import type { AccountScopedEntity, EntityName } from "../domain/types";
 import { isWallTime } from "../events/event-date";
+import { normalizeLabel } from "../extraction/preferences";
 import { isMessage } from "../i18n/message";
 import { contactRuleProblem } from "../rules/contact-rule";
 import { MAX_NORMALIZED_PHRASE_LENGTH } from "../rules/message-phrase";
@@ -143,16 +144,24 @@ function validateProfileSnapshot(record: Record<string, unknown>): void {
         "joinedEarliest must not be after joinedLatest",
       );
   }
-  if (
-    record.positivePreferences !== undefined &&
-    (!Array.isArray(record.positivePreferences) ||
-      record.positivePreferences.some(
-        (label) => typeof label !== "string" || label.trim().length === 0,
-      ))
-  )
-    throw new ValidationError(
-      "positivePreferences must be a list of non-empty labels",
-    );
+  if (record.positivePreferences !== undefined) {
+    const labels: unknown = record.positivePreferences;
+    // As a capture stores them: normalized, sorted and unique, because
+    // compatibility compares labels by exact string equality.
+    if (
+      !Array.isArray(labels) ||
+      labels.some(
+        (label, index) =>
+          typeof label !== "string" ||
+          label.length === 0 ||
+          label !== normalizeLabel(label) ||
+          (index > 0 && !((labels[index - 1] as string) < label)),
+      )
+    )
+      throw new ValidationError(
+        "positivePreferences must be normalized labels, sorted and unique",
+      );
+  }
   if (record.ownProfile !== undefined && record.ownProfile !== true)
     throw new ValidationError("ownProfile must be true when present");
 }

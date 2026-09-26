@@ -623,6 +623,13 @@ describe("M8 import: restoring and merging", () => {
     expect(() => parseImportFile(snapshot(["x".repeat(101)]))).toThrow(
       "longer than 100",
     );
+    // Compared by exact label, so a padded, unsorted or repeated list is
+    // refused rather than stored as a silent mismatch.
+    for (const labels of [[" Bondage "], ["B", "A"], ["A", "A"]])
+      expect(
+        () => parseImportFile(snapshot(labels)),
+        JSON.stringify(labels),
+      ).toThrow("is invalid");
     // V1-5: the event tracker's note and tag limits, so the editor can
     // save an imported record again.
     const listing = (fields: Record<string, unknown>) =>
