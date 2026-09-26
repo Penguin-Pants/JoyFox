@@ -32,7 +32,10 @@ start (`startLocal`, the event's local time as shown), path and venue, copied
 from the page when the user saves, so a tracked event stays readable after
 JoyClub removes the listing. A venue has no attendance. Clearing the note, tags
 and attendance removes the record. These optional fields need no schema version:
-older records stay valid.
+older records stay valid. An older record with another ID is found by its event
+ID, and the next save moves it to `event:<n>`. Each save gives a new
+`updatedAt`, later than the stored one, so two saves in one clock tick still
+give two versions.
 
 One named repository exists per entity and exposes get, list, put, and delete.
 Cross-account writes are rejected. Export includes the schema version and every

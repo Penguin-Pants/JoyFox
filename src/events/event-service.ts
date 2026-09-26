@@ -25,12 +25,44 @@ export class EventTrackerService {
     private readonly now: () => string = () => new Date().toISOString(),
   ) {}
 
-  get(
+  async get(
     accountId: string,
     kind: ListingKind,
     id: string,
   ): Promise<EventMetadata | undefined> {
-    return this.listings.get(accountId, listingRecordId(kind, id));
+    return (await this.#find(accountId, kind, id))?.record;
+  }
+
+  /**
+   * The stored record for one listing. A record from before V1-5 (imported,
+   * with no `kind`) can have another key than `event:<id>`; it is found by
+   * its event ID, and `save` moves it to the new key.
+   */
+  async #find(
+    accountId: string,
+    kind: ListingKind,
+    id: string,
+  ): Promise<{ key: string; record: EventMetadata } | undefined> {
+    const key = listingRecordId(kind, id);
+    const record = await this.listings.get(accountId, key);
+    if (record) return { key, record };
+    if (kind !== "event") return undefined;
+    const legacy = (await this.listings.list(accountId)).find(
+      (item) => item.kind === undefined && item.eventId === id,
+    );
+    return legacy ? { key: legacy.id, record: legacy } : undefined;
+  }
+
+  /**
+   * The new version of a record: the time now, but always later than the
+   * stored version. Two saves in one clock tick then still give two
+   * versions, so a stale editor cannot match the second one.
+   */
+  #version(existing: EventMetadata | undefined): string {
+    const now = this.now();
+    const stored = existing ? Date.parse(existing.updatedAt) : Number.NaN;
+    if (Number.isNaN(stored) || Date.parse(now) > stored) return now;
+    return new Date(stored + 1).toISOString();
   }
 
   async list(accountId: string): Promise<EventMetadata[]> {
@@ -52,7 +84,8 @@ export class EventTrackerService {
     expectedUpdatedAt: string | null,
   ): Promise<SaveListingResult> {
     const recordId = listingRecordId(kind, id);
-    const existing = await this.listings.get(accountId, recordId);
+    const found = await this.#find(accountId, kind, id);
+    const existing = found?.record;
     if ((existing?.updatedAt ?? null) !== expectedUpdatedAt)
       return { status: "conflict", record: existing };
     const note = notes.note.trim();
@@ -60,10 +93,10 @@ export class EventTrackerService {
     const attendance: Attendance =
       kind === "venue" ? "unknown" : notes.attendance;
     if (!note && tags.length === 0 && attendance === "unknown") {
-      if (existing) await this.listings.delete(accountId, recordId);
+      if (found) await this.listings.delete(accountId, found.key);
       return { status: "removed" };
     }
-    const timestamp = this.now();
+    const timestamp = this.#version(existing);
     const title = cutListingText(facts.title) ?? existing?.title;
     const startLocal = facts.startLocal ?? existing?.startLocal;
     const path = facts.path ?? existing?.path;
@@ -86,6 +119,8 @@ export class EventTrackerService {
       updatedAt: timestamp,
     };
     await this.listings.put(accountId, record);
+    if (found && found.key !== recordId)
+      await this.listings.delete(accountId, found.key);
     return { status: "saved", record };
   }
 }

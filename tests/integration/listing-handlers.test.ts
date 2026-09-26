@@ -119,6 +119,64 @@ describe("V1-5 listing handlers", () => {
     });
   });
 
+  it("finds a record from before V1-5 and moves it to the new key on save", async () => {
+    await repositories.eventMetadata.put("account-a", {
+      id: "1234567",
+      accountId: "account-a",
+      eventId: "1234567",
+      note: "Imported note",
+      tags: [],
+      attendance: "interested",
+      createdAt: now,
+      updatedAt: now,
+    });
+    expect(
+      await send("listing.get", { kind: "event", eventId: "1234567" }),
+    ).toMatchObject({ listing: { note: "Imported note", updatedAt: now } });
+    await expect(save({ expectedUpdatedAt: null })).resolves.toMatchObject({
+      status: "conflict",
+    });
+    await save({ expectedUpdatedAt: now });
+    const records = await repositories.eventMetadata.list("account-a");
+    expect(records.map((record) => record.id)).toEqual(["event:1234567"]);
+    expect(records[0]).toMatchObject({ note: "Bring a mask", createdAt: now });
+  });
+
+  it("gives each save its own version, even in one clock tick", async () => {
+    const service = new EventTrackerService(undefined, () => now);
+    const notes = { note: "One", tags: [], attendance: "attending" as const };
+    const first = await service.save(
+      "account-a",
+      "event",
+      "1",
+      notes,
+      {},
+      null,
+    );
+    if (first.status !== "saved") throw new Error(first.status);
+    const second = await service.save(
+      "account-a",
+      "event",
+      "1",
+      { ...notes, note: "Two" },
+      {},
+      first.record.updatedAt,
+    );
+    if (second.status !== "saved") throw new Error(second.status);
+    expect(second.record.updatedAt > first.record.updatedAt).toBe(true);
+    // An editor still drawn from the first version cannot overwrite "Two".
+    expect(
+      await service.save(
+        "account-a",
+        "event",
+        "1",
+        { ...notes, note: "Stale" },
+        {},
+        first.record.updatedAt,
+      ),
+    ).toMatchObject({ status: "conflict", record: { note: "Two" } });
+  });
+
   it("refuses to overwrite a change made in another tab", async () => {
     await save();
     const answer = await save({ note: "Stale", expectedUpdatedAt: null });

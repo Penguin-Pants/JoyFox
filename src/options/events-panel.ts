@@ -50,12 +50,13 @@ function matches(
     record.attendance !== filter
   )
     return false;
-  if (!search) return true;
+  const needle = search.trim().toLowerCase();
+  if (!needle) return true;
   const haystack = [record.title, record.note, record.venueName, ...record.tags]
     .filter(Boolean)
     .join("\n")
     .toLowerCase();
-  return haystack.includes(search.toLowerCase());
+  return haystack.includes(needle);
 }
 
 /**
@@ -202,7 +203,9 @@ export class EventsPanel {
     searchLabel.htmlFor = search.id;
     search.value = this.#search;
     search.addEventListener("input", () => {
-      this.#search = search.value.trim();
+      // Kept as typed, so a space before the next word is not lost when
+      // the list is drawn again; `matches` trims it.
+      this.#search = search.value;
       const start = search.selectionStart;
       this.#draw(accountId, records);
       const again = this.root.querySelector<HTMLInputElement>(

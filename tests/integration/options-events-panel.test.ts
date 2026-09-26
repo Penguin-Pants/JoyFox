@@ -130,6 +130,15 @@ describe("V1-5 personal event calendar", () => {
     search.value = "MASK";
     search.dispatchEvent(new Event("input"));
     expect(titles()).toEqual(["Masquerade"]);
+    // A space typed before the next word stays in the field.
+    const typed = () =>
+      root.querySelector<HTMLInputElement>("#joyfox-events-search")!;
+    typed().value = "Garden ";
+    typed().dispatchEvent(new Event("input"));
+    expect(typed().value).toBe("Garden ");
+    expect(titles()).toEqual(["Garden party"]);
+    typed().value = "MASK";
+    typed().dispatchEvent(new Event("input"));
     expect(root.textContent).toContain("1 of 2 tracked events shown.");
   });
 
