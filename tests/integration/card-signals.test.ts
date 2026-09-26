@@ -314,7 +314,7 @@ describe("V1-10 signals on every card", () => {
     setLocale("de");
     signals.localeChanged();
     expect(shown(FULL).completeness).toBe(
-      "Vollständig: 5 Fotos, 120 Wörter, geprüft",
+      "Vollständig: 5 Fotos, 120 Wörter, verifiziert",
     );
     active = "account-b";
     signals.accountChanged();
@@ -322,7 +322,7 @@ describe("V1-10 signals on every card", () => {
     await flush();
     // Account B knows nothing of this member.
     expect(shown(FULL).completeness).toBe(
-      "Vollständigkeit unbekannt: Fotos unbekannt, Wörter unbekannt, geprüft",
+      "Vollständigkeit unbekannt: Fotos unbekannt, Wörter unbekannt, verifiziert",
     );
   });
 

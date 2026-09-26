@@ -246,7 +246,7 @@ export const de: Catalog = {
   "triage.sharedEvent.attending": (p) =>
     `Auf der Gästeliste von „${p.event}“${p.when ? ` (${p.when})` : ""}, das du mit „Ich gehe hin“ markiert hast.`,
   "triage.sharedEvent.attended": (p) =>
-    `Auf der Gästeliste von „${p.event}“${p.when ? ` (${p.when})` : ""}, das du mit „War dort“ markiert hast.`,
+    `Auf der Gästeliste von „${p.event}“${p.when ? ` (${p.when})` : ""}, das du mit „Ich war dort“ markiert hast.`,
   "triage.sharedEvent.optOut":
     "Das gemeinsame Event für diese Person nicht verwenden",
   "triage.movedOn": (p) =>
@@ -358,7 +358,7 @@ export const de: Catalog = {
   "listing.attendance.interested": "Interessiert",
   "listing.attendance.attending": "Ich gehe hin",
   "listing.attendance.not-attending": "Ich gehe nicht hin",
-  "listing.attendance.attended": "War dort",
+  "listing.attendance.attended": "Ich war dort",
   "listing.noteLabel": "Meine Notiz",
   "listing.saveNote": "Notiz speichern",
   "listing.tagsLabel": "Meine Tags",
@@ -374,7 +374,7 @@ export const de: Catalog = {
   "listing.removed":
     "Hier ist nichts mehr eingetragen, deshalb verfolgt JoyFox diesen Eintrag nicht mehr.",
   "listing.conflict":
-    "Diese Notizen wurden in einem anderen Tab geändert, deshalb hat JoyFox nicht gespeichert. Jetzt werden die gespeicherten Notizen gezeigt; deine eingegebene Notiz steht noch im Feld.",
+    "Diese Notizen wurden in einem anderen Tab geändert, deshalb hat JoyFox nicht gespeichert. Jetzt werden die gespeicherten Notizen angezeigt; deine eingegebene Notiz steht noch im Feld.",
   "listing.refused":
     "Das aktive JoyFox-Konto hat sich geändert, deshalb wurde nichts gespeichert.",
   "events.heading": "Meine Events",
@@ -387,14 +387,14 @@ export const de: Catalog = {
   "events.empty":
     "Noch keine verfolgten Events. Öffne ein Event auf JoyClub und trage eine Notiz, einen Tag oder deine Teilnahme ein.",
   "events.count": (p, f) =>
-    `${f.number(p.shown)} von ${f.number(p.total)} verfolgten Events gezeigt.`,
+    `${f.number(p.shown)} von ${f.number(p.total)} verfolgten Events angezeigt.`,
   "events.filterLabel": "Zeigen",
   "events.filter.all": "Alle verfolgten Events",
   "events.searchLabel": "In meinen Notizen, Tags und Titeln suchen",
   "events.noDate": "Kein Datum",
   "events.untitled": (p) => `Event ${p.id}`,
   "events.past": (p) => `${p.when} (vorbei)`,
-  "events.venue": (p) => `Ort: ${p.venue}`,
+  "events.venue": (p) => `Club: ${p.venue}`,
   "events.venuesHeading": "Meine Clubs",
   "events.guests": (p, f) =>
     f.plural(p.count, {
@@ -402,7 +402,7 @@ export const de: Catalog = {
       other: `${f.number(p.count)} Gäste gespeichert`,
     }),
   "events.exception.label":
-    "Ausnahme für gemeinsame Events: eine Person als „Qualifiziert“ einordnen, wenn sie auf der Gästeliste eines Events steht, das ich mit „Ich gehe hin“ oder „War dort“ markiert habe",
+    "Ausnahme für gemeinsame Events: eine Person als „Qualifiziert“ einordnen, wenn sie auf der Gästeliste eines Events steht, das ich mit „Ich gehe hin“ oder „Ich war dort“ markiert habe",
   "events.exception.hint":
     "Standardmäßig aus. JoyFox speichert die Gästeliste eines verfolgten Events, wenn du die Event-Seite öffnest, so weit JoyClub sie geladen hat, und löscht sie, wenn du das Event nicht mehr verfolgst. Eine Person, die du selbst verschoben hast, behält deine Wahl, und im Bereich „Warum“ kannst du die Ausnahme für eine Person abschalten.",
   "events.exception.saved": "Gespeichert.",
@@ -417,7 +417,7 @@ export const de: Catalog = {
   "eventFilter.interested": "Nur Events, die mich interessieren",
   "eventFilter.tag": (p) => `Nur mein Tag: ${p.tag}`,
   "eventFilter.count": (p, f) =>
-    `${f.number(p.shown)} von ${f.number(p.loaded)} geladenen Events gezeigt. Später geladene Events werden auch geprüft.`,
+    `${f.number(p.shown)} von ${f.number(p.loaded)} geladenen Events angezeigt. Später geladene Events werden auch geprüft.`,
   "eventFilter.readFailed":
     "JoyFox konnte deine Event-Notizen nicht lesen. Lade die Seite neu, um es noch einmal zu versuchen.",
   "eventFilter.noAccount":
@@ -444,7 +444,7 @@ export const de: Catalog = {
           other: `${f.number(p.deleted)} ältere Nachrichten wurden`,
         })} gelöscht.`,
   "messages.retentionInvalid": (p, f) =>
-    `Gib eine ganze Zahl von ${f.number(p.minimum)} bis ${f.number(p.maximum)} ein. Nichts wurde geändert.`,
+    `Gib eine ganze Zahl von ${f.number(p.minimum)} bis ${f.number(p.maximum)} ein. Es wurde nichts geändert.`,
   "messages.noAccount": "Wähle zuerst ein Konto aus oder füge eines hinzu.",
   "messages.readFailed":
     "JoyFox konnte deine gespeicherten Nachrichten nicht lesen. Lade die Seite neu, um es noch einmal zu versuchen.",
@@ -457,7 +457,7 @@ export const de: Catalog = {
           other: `${f.number(p.count)} Nachrichten`,
         })} gefunden.`,
   "messages.countLimited": (p, f) =>
-    `${f.number(p.count)} Nachrichten gefunden. Die neuesten ${f.number(p.shown)} werden gezeigt.`,
+    `${f.number(p.count)} Nachrichten gefunden. Die neuesten ${f.number(p.shown)} werden angezeigt.`,
   "messages.sentTo": (p) => `Du an Mitglied ${p.member} · ${p.when}`,
   "messages.receivedFrom": (p) => `Mitglied ${p.member} an dich · ${p.when}`,
   "messages.storedAt": (p) => `gespeichert ${p.when}`,
@@ -476,9 +476,9 @@ export const de: Catalog = {
       other: `${f.number(p.count)} Wörter`,
     }),
   "signals.wordsUnknown": "Wörter unbekannt",
-  "signals.verified": "geprüft",
-  "signals.notVerified": "nicht geprüft",
-  "signals.verificationUnknown": "Prüfung unbekannt",
+  "signals.verified": "verifiziert",
+  "signals.notVerified": "nicht verifiziert",
+  "signals.verificationUnknown": "Verifizierung unbekannt",
   "signals.heading": "Vollständigkeit des Profils",
   "signals.trust": (p, f) =>
     `Vertrauen ${p.score > 0 ? "+" : ""}${f.number(p.score)}`,
@@ -493,10 +493,10 @@ export const de: Catalog = {
   "signals.editor.noAccount":
     "Wähle in den JoyFox-Einstellungen ein Konto aus oder füge eines hinzu, um Notizen zu führen.",
   "signals.editor.readFailed":
-    "JoyFox konnte die Notizen zu diesem Mitglied nicht lesen. Schließe und versuche es noch einmal.",
+    "JoyFox konnte die Notizen zu diesem Mitglied nicht lesen. Schließe dieses Fenster und versuche es noch einmal.",
   "signals.filter.label": "JoyFox: unvollständige Profile ausblenden",
   "signals.filter.count": (p, f) =>
-    `${f.number(p.hidden)} von ${f.number(p.loaded)} geladenen Profilen ausgeblendet. Profile, über die JoyFox nichts weiß, bleiben.`,
+    `${f.number(p.hidden)} von ${f.number(p.loaded)} geladenen Profilen ausgeblendet. Profile, über die JoyFox nichts weiß, bleiben sichtbar.`,
   "compat.heading": "Gemeinsame Vorlieben",
   "compat.shared": (p, f) =>
     `Du teilst ${f.plural(p.count, {
@@ -505,11 +505,11 @@ export const de: Catalog = {
     })} mit diesem Mitglied:`,
   "compat.none": "Du teilst keine Vorlieben mit diesem Mitglied.",
   "compat.own": (p, f) =>
-    `Das ist dein Profil. JoyFox vergleicht andere Profile mit seinen ${f.plural(
+    `Das ist dein Profil. JoyFox vergleicht andere Profile mit ${f.plural(
       p.count,
       {
-        one: "1 positiven Vorliebe",
-        other: `${f.number(p.count)} positiven Vorlieben`,
+        one: "deiner 1 positiven Vorliebe",
+        other: `deinen ${f.number(p.count)} positiven Vorlieben`,
       },
     )}.`,
   "compat.ownUnknown":
@@ -531,7 +531,7 @@ export const de: Catalog = {
   "compat.sort.on":
     "Nach gemeinsamen Vorlieben sortiert. Mitglieder, deren Profil du noch nicht geöffnet hast, stehen am Ende.",
   "compat.sort.unavailable":
-    "JoyFox kann diese Liste nicht sortieren: Ihr Layout erlaubt es nicht.",
+    "JoyFox kann diese Liste nicht sortieren, weil ihr Aufbau das nicht zulässt.",
   "searches.heading": "Gespeicherte JoyFox-Suchen",
   "searches.loading": "Gespeicherte Suchen werden geladen …",
   "searches.readFailed":
