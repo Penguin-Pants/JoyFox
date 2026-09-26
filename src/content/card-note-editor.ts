@@ -27,6 +27,8 @@ export class CardNoteEditor {
   /** Bumped on open and close, so a late answer is dropped. */
   #session = 0;
   #loadSequence = 0;
+  /** Set while the shown notice is a failed read's. */
+  #readFailed = false;
   #busy = false;
   /**
    * Typed text not saved yet, and the stored note it was typed over. A save
@@ -79,6 +81,7 @@ export class CardNoteEditor {
     this.#busy = false;
     this.#noteDraft = undefined;
     this.#tagDraft = "";
+    this.#readFailed = false;
     const focus = this.#returnFocus;
     this.#returnFocus = undefined;
     if (focus?.isConnected) focus.focus({ preventScroll: true });
@@ -105,15 +108,30 @@ export class CardNoteEditor {
     try {
       const answer = await this.client.getNotes(memberId);
       if (!current()) return;
+      const account = answer.status === "ok" ? answer.accountId : undefined;
+      // Text typed for one account must never be saved into another: a
+      // reload that answers for another account drops it, as the profile
+      // page's editor does.
+      if (this.#data && this.#data.accountId !== account) {
+        this.#noteDraft = undefined;
+        this.#tagDraft = "";
+        this.#status = undefined;
+      }
       if (answer.status !== "ok") {
         this.#data = undefined;
         this.#status = {
           text: message("signals.editor.noAccount"),
           error: true,
         };
-      } else this.#data = answer;
+      } else {
+        this.#data = answer;
+        // A read that works again clears the notice of the one that failed.
+        if (this.#readFailed) this.#status = undefined;
+      }
+      this.#readFailed = false;
     } catch {
       if (!current()) return;
+      this.#readFailed = true;
       this.#status = {
         text: message("signals.editor.readFailed"),
         error: true,

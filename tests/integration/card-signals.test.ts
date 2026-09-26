@@ -391,6 +391,42 @@ describe("V1-10 signals on every card", () => {
 });
 
 describe("V1-10 card note editor", () => {
+  it("drops typed text when a reload answers for another account, and clears a read error that recovered", async () => {
+    const answers: unknown[] = [
+      Promise.reject(new Error("offline")),
+      { status: "ok", accountId: "account-a", note: "A's note", tags: [] },
+      { status: "ok", accountId: "account-b", note: null, tags: [] },
+    ];
+    const cardEditor = new CardNoteEditor(document, {
+      getNotes: () => Promise.resolve(answers.shift()),
+      saveNote: () => Promise.reject(new Error("unused")),
+      addTag: () => Promise.resolve(true),
+      removeTag: () => Promise.resolve(true),
+    } as never);
+    cardEditor.open(FULL);
+    await flush();
+    expect(editor().textContent).toContain("could not read");
+    cardEditor.invalidate();
+    await flush();
+    expect(editor().textContent).not.toContain("could not read");
+    const note = () =>
+      editor().querySelector<HTMLTextAreaElement>(".joyfox-card-editor__note")!;
+    type(note(), "Private to account A");
+    type(
+      editor().querySelector<HTMLInputElement>(".joyfox-card-editor__tag")!,
+      "A tag",
+    );
+    // The account changed before this tab heard of it.
+    cardEditor.invalidate();
+    await flush();
+    expect(note().value).toBe("");
+    expect(
+      editor().querySelector<HTMLInputElement>(".joyfox-card-editor__tag")!
+        .value,
+    ).toBe("");
+    cardEditor.close();
+  });
+
   it("reports a note saved in another tab while typing, instead of overwriting it", async () => {
     searchPage([FULL]);
     signals.update("search");
