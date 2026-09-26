@@ -38,6 +38,12 @@ function readableDate(key: string | undefined, value: string) {
   return value.includes("T") ? formatDateTime(value) : formatDate(value);
 }
 
+/** True when an object has no own field; stops at the first one it finds. */
+function hasNoFields(value: object): boolean {
+  for (const key in value) if (Object.hasOwn(value, key)) return false;
+  return true;
+}
+
 function isEmpty(value: unknown): boolean {
   return (
     value === null ||
@@ -46,7 +52,7 @@ function isEmpty(value: unknown): boolean {
     (typeof value === "object" &&
       value !== null &&
       !Array.isArray(value) &&
-      Object.keys(value).length === 0)
+      hasNoFields(value))
   );
 }
 
