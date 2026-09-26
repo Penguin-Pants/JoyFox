@@ -25,6 +25,15 @@ inferred from the code.
 Version 3 adds MessagePhraseMatch, for the "First message contains" rule
 condition (ADR 0013).
 
+EventMetadata (V1-5) holds the user's notes on one event or venue listing. Its
+ID is `event:<n>` or `venue:<n>`, and `kind` says which (a record without it is
+an event). Besides the note, tags and attendance, it keeps the listing's title,
+start (`startLocal`, the event's local time as shown), path and venue, copied
+from the page when the user saves, so a tracked event stays readable after
+JoyClub removes the listing. A venue has no attendance. Clearing the note, tags
+and attendance removes the record. These optional fields need no schema version:
+older records stay valid.
+
 One named repository exists per entity and exposes get, list, put, and delete.
 Cross-account writes are rejected. Export includes the schema version and every
 entity collection. Account deletion removes only records in the requested scope.

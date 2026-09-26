@@ -237,6 +237,29 @@ export function validateEntity(
       break;
     case "eventMetadata":
       requireString(record, "eventId");
+      if (record.kind !== undefined)
+        requireEnum(record, "kind", ["event", "venue"]);
+      optionalString(record, "title");
+      if (
+        record.startLocal !== undefined &&
+        !/^\d{4}-\d{2}-\d{2}(T\d{2}:\d{2})?$/u.test(
+          requireString(record, "startLocal"),
+        )
+      )
+        throw new ValidationError("startLocal must be YYYY-MM-DD[THH:mm]");
+      if (
+        record.path !== undefined &&
+        !/^\/(event|club)\/\d{1,12}\.[^/]+\.html$/u.test(
+          requireString(record, "path"),
+        )
+      )
+        throw new ValidationError("path must be a JoyClub event or venue path");
+      if (
+        record.venueId !== undefined &&
+        !/^\d{1,12}$/u.test(requireString(record, "venueId"))
+      )
+        throw new ValidationError("venueId must be JoyClub's number");
+      optionalString(record, "venueName");
       optionalString(record, "note");
       requireStringArray(record, "tags");
       requireEnum(record, "attendance", [

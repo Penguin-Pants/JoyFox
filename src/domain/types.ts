@@ -92,8 +92,25 @@ export interface SavedSearch extends AccountScopedEntity {
   url: string;
   filters: unknown;
 }
+/**
+ * The user's own notes on one event or venue listing (V1-5). The record ID
+ * is `event:<id>` or `venue:<id>`. The listing facts (title, start, address
+ * and venue) are copied from the page when the user saves, so a tracked
+ * event stays readable after JoyClub removes the listing (PRD 6.3).
+ */
 export interface EventMetadata extends AccountScopedEntity {
+  /** JoyClub's number for the event or venue (`/event/<n>…`, `/club/<n>…`). */
   eventId: string;
+  /** Absent in records from before V1-5, which were events. */
+  kind?: "event" | "venue";
+  /** The event title or venue name as the page showed it. */
+  title?: string;
+  /** The event's start in its local time, `YYYY-MM-DD` or `YYYY-MM-DDTHH:mm`. */
+  startLocal?: string;
+  /** The listing's path on JoyClub, for example `/event/<n>.<slug>.html`. */
+  path?: string;
+  venueId?: string;
+  venueName?: string;
   note?: string;
   tags: string[];
   /** The user's own plan or record, never sent to JoyClub (D6, ADR 0016). */

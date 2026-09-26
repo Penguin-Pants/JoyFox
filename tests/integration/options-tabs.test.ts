@@ -43,6 +43,7 @@ describe("options tabs", () => {
       "#accounts",
       "#rule",
       "#templates",
+      "#events",
       "#data",
     ]);
     for (const [name, section] of [
@@ -50,6 +51,7 @@ describe("options tabs", () => {
       ["accounts", "joyfox-accounts"],
       ["rule", "joyfox-rule"],
       ["templates", "joyfox-templates"],
+      ["events", "joyfox-events"],
       ["data", "joyfox-data"],
     ] as const) {
       expect(panel(name).querySelector(`#${section}`)).not.toBeNull();

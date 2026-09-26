@@ -598,3 +598,27 @@ sending-page check does not refuse the normal hand-off.
      asks you to click again. Click ✕ again and confirm the search is gone. Open
      the inbox and a profile, and confirm the box appears only on the search
      page. Switch the language to German and confirm the box is German.
+
+## Event tracker (V1-5)
+
+111. Open an event page on JoyClub. Confirm a "JoyFox: my notes on this event"
+     box appears after the event's date and place, with "My attendance", "My
+     note" and "My tags". Set attendance to "Attending", type a note and click
+     "Save note", and add a tag. Confirm each says "Saved." and that JoyClub's
+     own "Anmelden" and "Event merken" did not change.
+112. Reload the page and confirm the attendance, note and tag are still shown.
+     Open the event's venue page and confirm a venue box with a note and tags,
+     but no attendance.
+113. Open "Dates & Events" and find the event in the list. Confirm it shows a
+     JoyFox badge with "Attending", the tag and "note". Choose "Only my tag:
+     <tag>" in "JoyFox: show" and confirm only matching events stay, with a line
+     saying how many are shown. Scroll to load more and confirm new items follow
+     the filter. Choose "All loaded events and dates" and confirm the list is
+     back as JoyClub showed it.
+114. Open the JoyFox options, tab "Events". Confirm the event is listed with its
+     date, title, venue, attendance, tags and note, and the venue under "My
+     venues". Try the filter and the search.
+115. Clear the note (save it empty), remove the tag and set "No status". Confirm
+     the message says JoyFox no longer tracks it, and the event leaves "Events".
+     After an event you tracked has passed, confirm it stays in "Events" marked
+     "(past)". Switch the language to German and confirm every box is German.

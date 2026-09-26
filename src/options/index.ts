@@ -15,7 +15,9 @@ import {
 import { runtimeSettingsArea } from "../storage/local-settings";
 import { TRIAGE_REVISION_KEY } from "../storage/triage-revision";
 import { mountAccountPanel, type AccountPanel } from "./account-panel";
+import { EVENT_REVISION_KEY } from "../storage/event-revision";
 import { DataPanel } from "./data-panel";
+import { EventsPanel } from "./events-panel";
 import { GetStartedPanel } from "./get-started";
 import { RulePanel } from "./rule-panel";
 import { OptionsTabs } from "./tabs";
@@ -55,6 +57,10 @@ const templates = templateRoot
   : undefined;
 const renderTemplates = quietly(async () => templates?.render());
 
+const eventsRoot = find("joyfox-events");
+const events = eventsRoot ? new EventsPanel(eventsRoot) : undefined;
+const renderEvents = quietly(async () => events?.render());
+
 const ruleRoot = find("joyfox-rule");
 const rules = ruleRoot ? new RulePanel(ruleRoot) : undefined;
 const renderRules = quietly(async () => rules?.render());
@@ -80,6 +86,7 @@ function refreshAll(): void {
   renderStart();
   renderRules();
   renderTemplates();
+  renderEvents();
 }
 
 /**
@@ -107,6 +114,7 @@ onLocaleChange((locale) => {
   renderStart();
   if (rules) void rules.localeChanged().catch(() => undefined);
   renderTemplates();
+  renderEvents();
   renderData();
 });
 
@@ -125,6 +133,7 @@ browser.storage.onChanged.addListener((changes, area) => {
     renderStart();
     renderRules();
     renderTemplates();
+    renderEvents();
     renderData();
   }
   // Another tab may have saved or removed the rule. Redraw only if the
@@ -133,6 +142,12 @@ browser.storage.onChanged.addListener((changes, area) => {
     // Also set by a rule save, which "Get started" reports.
     renderStart();
     if (rules) void rules.refreshIfChanged().catch(() => undefined);
+    renderEvents();
+    renderData();
+  }
+  // Event notes saved on a JoyClub page.
+  if (EVENT_REVISION_KEY in changes) {
+    renderEvents();
     renderData();
   }
 });
@@ -149,5 +164,6 @@ void readLocale(runtimeSettingsArea).then((locale) => {
   renderStart();
   renderRules();
   renderTemplates();
+  renderEvents();
   renderData();
 });

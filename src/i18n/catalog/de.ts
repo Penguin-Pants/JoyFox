@@ -338,6 +338,71 @@ export const de: Catalog = {
     })})`,
 
   // Content script: template picker
+  "listing.heading.event": "JoyFox: meine Notizen zu diesem Event",
+  "listing.heading.venue": "JoyFox: meine Notizen zu diesem Club",
+  "listing.loading": "Deine Notizen werden geladen …",
+  "listing.readFailed":
+    "JoyFox konnte deine Notizen zu dieser Seite nicht lesen. Lade die Seite neu, um es noch einmal zu versuchen.",
+  "listing.noAccount":
+    "Wähle in den JoyFox-Einstellungen ein Konto aus oder füge eines hinzu, um Notizen zu Events zu speichern.",
+  "listing.attendanceLabel": "Meine Teilnahme",
+  "listing.attendance.unknown": "Kein Status",
+  "listing.attendance.interested": "Interessiert",
+  "listing.attendance.attending": "Ich gehe hin",
+  "listing.attendance.not-attending": "Ich gehe nicht hin",
+  "listing.attendance.attended": "War dort",
+  "listing.noteLabel": "Meine Notiz",
+  "listing.saveNote": "Notiz speichern",
+  "listing.tagsLabel": "Meine Tags",
+  "listing.tagLabel": "Neuer Tag",
+  "listing.addTag": "Tag hinzufügen",
+  "listing.removeTag": (p) => `Tag ${p.tag} entfernen`,
+  "listing.emptyTag": "Gib zuerst einen Tag ein. Es wurde nichts hinzugefügt.",
+  "listing.tooManyTags": (p, f) =>
+    `Ein Eintrag kann höchstens ${f.number(p.maximum)} Tags haben. Entferne zuerst einen.`,
+  "listing.privacy":
+    "Privat: nur in diesem Browser gespeichert. JoyClub sieht nichts, und deine Anmeldung bei JoyClub ändert sich nicht.",
+  "listing.saved": "Gespeichert.",
+  "listing.removed":
+    "Hier ist nichts mehr eingetragen, deshalb verfolgt JoyFox diesen Eintrag nicht mehr.",
+  "listing.conflict":
+    "Diese Notizen wurden in einem anderen Tab geändert, deshalb hat JoyFox nicht gespeichert. Jetzt werden die gespeicherten Notizen gezeigt; deine eingegebene Notiz steht noch im Feld.",
+  "listing.refused":
+    "Das aktive JoyFox-Konto hat sich geändert, deshalb wurde nichts gespeichert.",
+  "events.heading": "Meine Events",
+  "events.hint":
+    "Alle Events und Clubs, zu denen du auf JoyClub eine Notiz, einen Tag oder deine Teilnahme eingetragen hast, nach Datum. JoyFox behält sie, auch wenn JoyClub ein Event entfernt. Um einen Eintrag zu ändern, öffne ihn auf JoyClub.",
+  "events.readFailed":
+    "JoyFox konnte deine Events nicht lesen. Lade die Seite neu, um es noch einmal zu versuchen.",
+  "events.noAccount":
+    "Wähle zuerst ein Konto aus oder füge eines hinzu. Jedes Konto hat eigene Events.",
+  "events.empty":
+    "Noch keine verfolgten Events. Öffne ein Event auf JoyClub und trage eine Notiz, einen Tag oder deine Teilnahme ein.",
+  "events.count": (p, f) =>
+    `${f.number(p.shown)} von ${f.number(p.total)} verfolgten Events gezeigt.`,
+  "events.filterLabel": "Zeigen",
+  "events.filter.all": "Alle verfolgten Events",
+  "events.searchLabel": "In meinen Notizen, Tags und Titeln suchen",
+  "events.noDate": "Kein Datum",
+  "events.untitled": (p) => `Event ${p.id}`,
+  "events.past": (p) => `${p.when} (vorbei)`,
+  "events.venue": (p) => `Ort: ${p.venue}`,
+  "events.venuesHeading": "Meine Clubs",
+  "eventFilter.label": "JoyFox: zeigen",
+  "eventFilter.all": "Alle geladenen Events und Dates",
+  "eventFilter.tracked": "Nur meine verfolgten Events",
+  "eventFilter.note": "Nur Events mit meiner Notiz",
+  "eventFilter.attending": "Nur Events, zu denen ich gehe",
+  "eventFilter.interested": "Nur Events, die mich interessieren",
+  "eventFilter.tag": (p) => `Nur mein Tag: ${p.tag}`,
+  "eventFilter.count": (p, f) =>
+    `${f.number(p.shown)} von ${f.number(p.loaded)} geladenen Events gezeigt. Später geladene Events werden auch geprüft.`,
+  "eventFilter.readFailed":
+    "JoyFox konnte deine Event-Notizen nicht lesen. Lade die Seite neu, um es noch einmal zu versuchen.",
+  "eventFilter.noAccount":
+    "Wähle in den JoyFox-Einstellungen ein Konto aus oder füge eines hinzu, um nach deinen Notizen zu filtern.",
+  "eventFilter.badge": "JoyFox",
+  "eventFilter.hasNote": "Notiz",
   "searches.heading": "Gespeicherte JoyFox-Suchen",
   "searches.loading": "Gespeicherte Suchen werden geladen …",
   "searches.readFailed":
@@ -393,6 +458,7 @@ export const de: Catalog = {
   "options.tabs.accounts": "Konten",
   "options.tabs.rule": "Kontaktregel",
   "options.tabs.templates": "Vorlagen",
+  "options.tabs.events": "Events",
   "options.tabs.data": "Deine Daten",
   "options.importRegion": "JoyFox-Daten importieren",
 

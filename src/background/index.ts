@@ -2,6 +2,7 @@ import { AccountService } from "../accounts/account-service";
 import { ActionLogService } from "../actions/action-log-service";
 import { MessageRouter } from "../messaging/router";
 import { runtimeSessionArea } from "../storage/session-area";
+import { EventTrackerService } from "../events/event-service";
 import { NotesService } from "../notes/notes-service";
 import { SavedSearchService } from "../search/saved-search-service";
 import { TemplateService } from "../templates/template-service";
@@ -9,6 +10,7 @@ import { TriageService } from "../triage/triage-service";
 import { TrustService } from "../trust/trust-service";
 import { registerActionHandlers } from "./action-handlers";
 import { incrementPersistentWakeCounter } from "./lifecycle";
+import { registerListingHandlers } from "./listing-handlers";
 import { registerNotesHandlers } from "./notes-handlers";
 import { registerOnboarding } from "./onboarding";
 import { registerSearchHandlers } from "./search-handlers";
@@ -46,6 +48,10 @@ registerTemplateHandlers(router, {
 });
 registerSearchHandlers(router, {
   searches: new SavedSearchService(),
+  activeAccountId,
+});
+registerListingHandlers(router, {
+  listings: new EventTrackerService(),
   activeAccountId,
 });
 registerOnboarding(browser.runtime);

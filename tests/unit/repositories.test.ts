@@ -181,6 +181,33 @@ describe("F6 repositories", () => {
       }),
     ).rejects.toThrow("attendance");
   });
+  it("validates the V1-5 listing facts", async () => {
+    const base = entity("eventMetadata", "account-a", "event:1234567");
+    await repositories.eventMetadata.put("account-a", {
+      ...base,
+      eventId: "1234567",
+      kind: "event",
+      title: "Synthetic party",
+      startLocal: "2026-09-27T21:00",
+      path: "/event/1234567.synthetic-party.html",
+      venueId: "123",
+      venueName: "Synthetic club",
+    });
+    for (const [field, value] of [
+      ["kind", "party"],
+      ["startLocal", "2026-09-27 21:00"],
+      ["path", "/profile/1234567.name.html"],
+      ["venueId", "club"],
+      ["title", ""],
+    ] as const)
+      await expect(
+        repositories.eventMetadata.put("account-a", {
+          ...base,
+          [field]: value,
+        } as never),
+        field,
+      ).rejects.toThrow(field);
+  });
   it("refuses a phrase match longer than a rule phrase can normalize to", async () => {
     const long = {
       ...entity("messagePhraseMatches", "account-a", "match"),

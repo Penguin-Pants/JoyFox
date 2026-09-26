@@ -24,6 +24,26 @@ export interface TemplateSummary {
   body: string;
 }
 
+/** One tracked event or venue, as a page or the list filter needs it (V1-5). */
+export interface ListingSummary {
+  kind: "event" | "venue";
+  eventId: string;
+  title?: string;
+  startLocal?: string;
+  path?: string;
+  venueId?: string;
+  venueName?: string;
+  note?: string;
+  tags: string[];
+  attendance:
+    | "unknown"
+    | "interested"
+    | "attending"
+    | "not-attending"
+    | "attended";
+  updatedAt: string;
+}
+
 /** What the search page needs of one saved search (V1-3). */
 export interface SavedSearchSummary {
   id: string;
@@ -262,6 +282,48 @@ export interface MessageContract {
   "search.delete": {
     request: { accountId: string; id: string };
     response: { status: "deleted" | "refused" };
+  };
+  /** V1-5: the user's notes on one event or venue, under the active account. */
+  "listing.get": {
+    request: { kind: "event" | "venue"; eventId: string };
+    response:
+      | { status: "no-account" }
+      | { status: "ok"; accountId: string; listing: ListingSummary | null };
+  };
+  /** Every tracked event and venue of the active account, for the list filter. */
+  "listing.list": {
+    request: Record<string, never>;
+    response: { accountId?: string; listings: ListingSummary[] };
+  };
+  /**
+   * Save the user's notes on one listing, with the facts the page shows.
+   * `expectedUpdatedAt` is the version the editor was drawn from (`null`:
+   * none); a record changed since is not overwritten (`conflict`, with the
+   * stored one). Empty notes remove the record (`removed`). `refused` means
+   * the account is no longer active.
+   */
+  "listing.save": {
+    request: {
+      accountId: string;
+      kind: "event" | "venue";
+      eventId: string;
+      note: string;
+      tags: string[];
+      attendance: ListingSummary["attendance"];
+      facts: {
+        title?: string;
+        startLocal?: string;
+        path?: string;
+        venueId?: string;
+        venueName?: string;
+      };
+      expectedUpdatedAt: string | null;
+    };
+    response:
+      | { status: "saved"; listing: ListingSummary }
+      | { status: "removed" }
+      | { status: "conflict"; listing: ListingSummary | null }
+      | { status: "refused" };
   };
   /** Content scripts cannot open the options page themselves. */
   "options.open": {

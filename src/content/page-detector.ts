@@ -18,6 +18,9 @@ const DETECTION_ORDER: readonly KnownPage[] = [
   "inbox",
   "profile",
   "search",
+  "event",
+  "event-calendar",
+  "venue",
 ];
 
 /**

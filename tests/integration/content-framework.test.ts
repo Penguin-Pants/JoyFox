@@ -12,12 +12,16 @@ import inboxEvidence from "../../docs/live-evidence/01-inbox.md?raw";
 import conversationEvidence from "../../docs/live-evidence/02-conversation.md?raw";
 import profileEvidence from "../../docs/live-evidence/03-profile.md?raw";
 import searchEvidence from "../../docs/live-evidence/11-search.md?raw";
+import eventsEvidence from "../../docs/live-evidence/14-events.md?raw";
+import venuesEvidence from "../../docs/live-evidence/15-venues.md?raw";
 
 const EVIDENCE: Record<string, string> = {
   "01-inbox.md": inboxEvidence,
   "02-conversation.md": conversationEvidence,
   "03-profile.md": profileEvidence,
   "11-search.md": searchEvidence,
+  "14-events.md": eventsEvidence,
+  "15-venues.md": venuesEvidence,
 };
 
 describe("F2 content framework", () => {

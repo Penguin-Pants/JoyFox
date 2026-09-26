@@ -450,3 +450,35 @@
 .joyfox-tabpanel h2:first-child {
   margin-top: 0;
 }
+
+/* V1-5: the personal event calendar. */
+.joyfox-events__filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--joyfox-space-2);
+  align-items: center;
+  margin: var(--joyfox-space-2) 0;
+}
+
+.joyfox-events__list {
+  padding-inline-start: 1.5em;
+}
+
+.joyfox-events__item {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 var(--joyfox-space-2);
+  margin-bottom: var(--joyfox-space-2);
+}
+
+.joyfox-events__details,
+.joyfox-events__when {
+  font-size: 0.875em;
+}
+
+.joyfox-events__note {
+  flex-basis: 100%;
+  margin: 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
