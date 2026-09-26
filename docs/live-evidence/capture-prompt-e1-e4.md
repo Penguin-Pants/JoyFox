@@ -121,6 +121,12 @@ Capture:
   and its shape as `TEXT`) or "Absent". JoyFox's incomplete-profile filter needs
   at least 50 words of profile text, so it must know whether a card can show
   this.
+- **Compatibility input on a card:** does a card show any preference tags, tag
+  keys or an overlap or match signal of JoyClub's own? Write "Present" (with
+  primary and fallback selectors and the missing state) or "Absent". Record
+  structure only: write every tag label as `TAG` and never which tags a member
+  has. JoyFox's compatibility badge and sort need this; if it is absent, a card
+  can only use preferences cached from a profile the owner opened before.
 - Where on a card a small badge could go (the card's header or name row
   element).
 - The filter panel root, the "search" button and any sort control, with their
@@ -151,11 +157,14 @@ Capture:
   two numbers and did not say which is which. Compare each number with the
   owner's own member ID (from the link to the owner's own profile) and with the
   other member's ID (from the conversation header's profile link). Report which
-  segment is the owner, which is the other member and whether either or neither
-  is a separate conversation ID. Also check the page for any other conversation
-  identifier (a `data-*` attribute or an `id`). If you cannot tell, write
-  "Unresolved". Write every ID with its digits as `0`, and describe the result
-  by position ("first segment matches the owner's member ID").
+  segment is the owner and which is the other member. JoyFox already treats the
+  whole token `personal-<n>-<n>` as the conversation ID
+  (`src/extraction/joyclub.ts`), so also report whether that token is the same
+  every time this conversation opens (from the inbox, after a reload) and
+  whether it differs for another conversation. Also check the page for any other
+  conversation identifier (a `data-*` attribute or an `id`). If you cannot tell,
+  write "Unresolved". Write every ID with its digits as `0`, and describe the
+  result by position ("first segment matches the owner's member ID").
 
 - Per-message root, and the element that holds a message's text (the text itself
   is `TEXT`). Earlier evidence found
@@ -173,9 +182,13 @@ Capture:
 - **Key question:** does each message have a stable identifier? Check the `id`
   attribute and every `data-*` attribute on the message root and its children.
   Report present (where, and its shape) or absent.
-- **If an identifier is present, test that it is stable.** Note the identifier
-  of the newest message in the conversation (keep the real value only in your
-  working memory; write it with digits as `0`). Then:
+- **If an identifier is present, check that it is per message.** Read it on at
+  least three message roots. It must be nonempty and different on each. A value
+  that repeats (for example a conversation or sender ID) is not a message ID:
+  report it as such and keep looking.
+- **Then test that it is stable.** Note the identifier of the newest message in
+  the conversation (keep the real value only in your working memory; write it
+  with digits as `0`). Then:
   1. Scroll up once to load older messages, and check that the newest message
      still has the same identifier.
   2. Reload the conversation page, and check the newest message again. Report
