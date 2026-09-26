@@ -136,16 +136,18 @@ export interface MessageContract {
   };
   /**
    * V1-4: store the messages an open conversation shows, while message
-   * caching is on (ADR 0016), in the active account. `messages` holds at
-   * most 100 per request.
+   * caching is on (ADR 0016). `accountId` is the account active when the
+   * page was read; the write is refused unless it is still active.
+   * `messages` holds at most 100 per request.
    */
   "messages.cache": {
     request: {
+      accountId: string;
       conversationId: string;
       memberId: string;
       messages: SeenMessage[];
     };
-    response: CacheAnswer | { status: "no-account" };
+    response: CacheAnswer | { status: "refused" };
   };
   /** V1-2: the viewer's own preferences and each member's shared count. */
   "compat.lookup": {

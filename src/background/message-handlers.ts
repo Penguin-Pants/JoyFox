@@ -52,22 +52,18 @@ function seenMessages(value: unknown): SeenMessage[] {
 
 /**
  * V1-4: the write that stores what a conversation page showed. Every field
- * comes from a content script, so each is checked here first. The messages
- * belong to whoever is logged in to JoyClub, not to a JoyFox account, so
- * they go to the account active at the write, under its lock.
+ * comes from a content script, so each is checked here first. The write
+ * names the account that was active when the page was read and does nothing
+ * unless that account is still active: a request queued before an account
+ * switch never lands in the new account.
  */
 export function registerMessageHandlers(
   router: MessageRouter,
   deps: MessageHandlerDeps,
 ): void {
   // The window also applies while no conversation is opened: each start of
-  // the background deletes what has expired since.
-  void deps.messages
-    .prune()
-    .then((deleted) =>
-      deleted > 0 ? bumpMessageRevision(deps.settings) : undefined,
-    )
-    .catch(() => undefined);
+  // the background deletes what has expired since (and announces it).
+  void deps.messages.prune().catch(() => undefined);
   router.register("messages.cache", async (payload) => {
     const conversationId = payload?.conversationId;
     if (
@@ -79,18 +75,16 @@ export function registerMessageHandlers(
     if (!conversationId.split("-").slice(1).includes(member))
       throw invalid("member ID");
     const messages = seenMessages(payload?.messages);
-    const active = await deps.activeAccountId();
-    if (!active) return { status: "no-account" as const };
-    const answer = await lockedWrite<CacheAnswer | { status: "no-account" }>(
+    const answer = await lockedWrite<CacheAnswer | { status: "refused" }>(
       deps,
-      active,
-      { status: "no-account" },
+      payload?.accountId,
+      { status: "refused" },
       (accountId) =>
         deps.messages.store(accountId, conversationId, member, messages),
     );
-    // Open options pages show the new messages in search, and lose the
-    // ones the window removed.
-    if (answer.status === "stored" && answer.stored + answer.deleted > 0)
+    // Open options pages show the new messages in search. The purge window
+    // announces its own deletions.
+    if (answer.status === "stored" && answer.stored > 0)
       await bumpMessageRevision(deps.settings).catch(() => undefined);
     return answer;
   });

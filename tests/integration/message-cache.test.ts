@@ -63,6 +63,7 @@ async function send(payload: Record<string, unknown>) {
     type: "messages.cache",
     requestId: `r${Math.random()}`,
     payload: {
+      accountId: "account-a",
       conversationId: CONVERSATION,
       memberId: "1234567",
       messages: [],
@@ -128,17 +129,34 @@ describe("V1-4 storing messages", () => {
     expect(only?.conversationId).toBe(CONVERSATION);
   });
 
-  it("stores nothing while caching is off or no account is active", async () => {
+  it("stores nothing while caching is off, or for an account no longer active", async () => {
     await settings.set({ [MESSAGE_CACHING_KEY]: false });
     expect(await send({ messages: [message(1, "Invented")] })).toEqual({
       status: "off",
     });
     await settings.set({ [MESSAGE_CACHING_KEY]: true });
+    // Read while account A was active, arriving after a switch to B.
+    active = "account-b";
+    expect(await send({ messages: [message(1, "Invented")] })).toEqual({
+      status: "refused",
+    });
     active = undefined;
     expect(await send({ messages: [message(1, "Invented")] })).toEqual({
-      status: "no-account",
+      status: "refused",
     });
     expect(await stored()).toEqual([]);
+    expect(await stored("account-b")).toEqual([]);
+  });
+
+  it("keeps a known send time when a later read cannot show it", async () => {
+    await send({ messages: [message(1, "Invented hello")] });
+    expect(
+      await send({
+        messages: [message(1, "Invented hello", { sentAt: undefined })],
+      }),
+    ).toMatchObject({ stored: 0 });
+    const [kept] = await repositories.cachedMessages.list("account-a");
+    expect(kept?.sentAt).toBe("2026-09-20T18:00:00.000Z");
   });
 
   it("keeps messages only inside the purge window, 12 months by default", async () => {
@@ -163,7 +181,10 @@ describe("V1-4 storing messages", () => {
       undefined,
       () => new Date("2026-11-01T10:00:00.000Z"),
     );
+    settings.items.delete(MESSAGE_REVISION_KEY);
     expect(await later.prune()).toBe(2);
+    // Open options pages ("Messages", "Your data") hear of the deletion.
+    expect(settings.items.get(MESSAGE_REVISION_KEY)).toBeDefined();
     expect(await stored()).toEqual([]);
   });
 
@@ -295,7 +316,7 @@ describe("V1-4 capture on a conversation page", () => {
       { id: messageId(2), direction: "sent", html: "Invented reply" },
     ]);
     const spy = vi.spyOn(client, "cache");
-    const cache = new MessageCache(document, client);
+    const cache = new MessageCache(document, client, () => active);
     cache.update(true);
     await flush();
     expect(await stored()).toEqual([
@@ -312,7 +333,7 @@ describe("V1-4 capture on a conversation page", () => {
       { id: messageId(1), direction: "received", html: "Invented hello" },
     ]);
     const spy = vi.spyOn(client, "cache");
-    new MessageCache(document, client).update(false);
+    new MessageCache(document, client, () => active).update(false);
     await flush();
     expect(spy).not.toHaveBeenCalled();
     expect(await stored()).toEqual([]);
@@ -322,7 +343,7 @@ describe("V1-4 capture on a conversation page", () => {
     conversationPage(document, "1234567", [
       { id: messageId(1), direction: "received", html: "Invented first chat" },
     ]);
-    const cache = new MessageCache(document, client);
+    const cache = new MessageCache(document, client, () => active);
     cache.update(true);
     await flush();
     // JoyClub routed to another member; the old item is still in the list.
@@ -347,13 +368,19 @@ describe("V1-4 capture on a conversation page", () => {
     expect(byId.get("02")).toBe("personal-1111111-7654321");
   });
 
-  it("stops asking after a refusal until the account changes", async () => {
-    active = undefined;
+  it("sends nothing without an account, and stops after a refusal until the account changes", async () => {
     conversationPage(document, "1234567", [
       { id: messageId(1), direction: "received", html: "Invented hello" },
     ]);
     const spy = vi.spyOn(client, "cache");
-    const cache = new MessageCache(document, client);
+    let pageAccount: string | undefined = undefined;
+    const cache = new MessageCache(document, client, () => pageAccount);
+    cache.update(true);
+    await flush();
+    expect(spy).not.toHaveBeenCalled();
+    // The page names account A; the background has B active.
+    pageAccount = "account-a";
+    active = "account-b";
     cache.update(true);
     await flush();
     cache.update(true);

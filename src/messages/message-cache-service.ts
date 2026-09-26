@@ -1,5 +1,6 @@
 import type { CachedMessage } from "../domain/types";
 import type { SettingsArea } from "../storage/local-settings";
+import { bumpMessageRevision } from "../storage/message-revision";
 import { CachedMessageRepository } from "../storage/repositories";
 import {
   isMessageRetention,
@@ -59,10 +60,13 @@ export class MessageCacheService {
     const cutoff = Date.parse(retentionCutoff(now, retentionMonths));
     let stored = 0;
     for (const message of seen) {
-      // A message older than the window is not stored at all.
-      if (message.sentAt && Date.parse(message.sentAt) < cutoff) continue;
       const id = `message:${message.messageId}`;
       const existing = await this.messages.get(accountId, id);
+      // A time not shown now (its shadow root not drawn yet) is unknown, not
+      // gone: the time an earlier visit read is kept.
+      const sentAt = message.sentAt ?? existing?.sentAt;
+      // A message older than the window is not stored at all.
+      if (sentAt && Date.parse(sentAt) < cutoff) continue;
       // A message belongs to one conversation. One already stored under
       // another is never moved: while JoyClub switches conversations, the
       // old list can still be on screen under the new address.
@@ -70,7 +74,7 @@ export class MessageCacheService {
       if (
         existing &&
         existing.text === message.text &&
-        existing.sentAt === message.sentAt
+        existing.sentAt === sentAt
       )
         continue;
       await this.messages.put(accountId, {
@@ -80,7 +84,7 @@ export class MessageCacheService {
         conversationId,
         memberId,
         direction: message.direction,
-        ...(message.sentAt ? { sentAt: message.sentAt } : {}),
+        ...(sentAt ? { sentAt } : {}),
         text: message.text,
         createdAt: existing?.createdAt ?? timestamp,
         updatedAt: timestamp,
@@ -114,12 +118,18 @@ export class MessageCacheService {
     };
   }
 
-  /** Deletes every message older than the window now in effect. */
+  /**
+   * Deletes every message older than the window now in effect. A deletion
+   * sets the message revision, so open options pages ("Messages" and "Your
+   * data") drop what is gone.
+   */
   async prune(): Promise<number> {
     const { retentionMonths } = await readMessageSettings(this.settings);
-    return this.messages.pruneOlderThan(
+    const deleted = await this.messages.pruneOlderThan(
       retentionCutoff(this.now(), retentionMonths),
     );
+    if (deleted > 0) await bumpMessageRevision(this.settings);
+    return deleted;
   }
 
   /** Saves the window, then deletes what is older at once. */

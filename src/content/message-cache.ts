@@ -55,6 +55,8 @@ export class MessageCache {
   constructor(
     private readonly document: Document,
     private readonly client: MessageCacheClient,
+    /** The account active now, as `storage.local` holds it. */
+    private readonly activeAccount: () => string | undefined,
   ) {}
 
   /** A conversation page changed; `enabled` is the caching switch. */
@@ -66,6 +68,10 @@ export class MessageCache {
       this.#failed = false;
     }
     if (this.#failed) return;
+    // Read with the page, so a request queued before an account switch
+    // names the account it was read for, and the background refuses it.
+    const accountId = this.activeAccount();
+    if (!accountId) return;
     const page = extractConversation(this.document, url);
     // The header must belong to the address, so the list is this
     // conversation's and not the one just left (09-navigation.md).
@@ -91,10 +97,10 @@ export class MessageCache {
       const batch = fresh.slice(start, start + BATCH);
       this.#queue = this.#queue.then(() =>
         this.client
-          .cache({ conversationId, memberId, messages: batch })
+          .cache({ accountId, conversationId, memberId, messages: batch })
           .then((answer) => {
-            // Caching off or no account: stop until that changes, then
-            // send these again.
+            // Caching off, or the account changed: stop until that
+            // changes, then send these again.
             if (answer.status === "stored") return;
             this.#forget(batch);
             this.#failed = true;
