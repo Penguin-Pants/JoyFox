@@ -106,6 +106,8 @@ export class CardSignals {
   #pending = new Set<string>();
   #reload = false;
   #failed = false;
+  /** The cards shown when the lookup failed. */
+  #failedFor = "";
   #session = 0;
   #version = 0;
   #hide = false;
@@ -132,7 +134,11 @@ export class CardSignals {
         (!this.#data.has(requestKey(item)) &&
           !this.#pending.has(requestKey(item))),
     );
-    if (missing.length > 0 && !this.#failed) void this.#load(missing);
+    // After a failed lookup, a redraw alone does not ask again; another page
+    // or another set of cards does.
+    const shownKey = JSON.stringify(wanted.map(requestKey).sort());
+    if (this.#failed && shownKey !== this.#failedFor) this.#failed = false;
+    if (missing.length > 0 && !this.#failed) void this.#load(missing, shownKey);
     this.#draw();
   }
 
@@ -195,7 +201,7 @@ export class CardSignals {
     };
   }
 
-  async #load(members: SignalRequest[]): Promise<void> {
+  async #load(members: SignalRequest[], shownKey: string): Promise<void> {
     const session = this.#session;
     for (const item of members) this.#pending.add(requestKey(item));
     for (let start = 0; start < members.length; start += MAX_SIGNAL_MEMBERS) {
@@ -205,8 +211,10 @@ export class CardSignals {
         answer = await this.client.lookup(chunk);
       } catch {
         if (session !== this.#session) return;
-        // Not asked again on every mutation; the next change asks again.
+        // Not asked again on every mutation; the next change of the page
+        // or of its cards asks again.
         this.#failed = true;
+        this.#failedFor = shownKey;
         for (const item of chunk) this.#pending.delete(requestKey(item));
         continue;
       }

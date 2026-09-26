@@ -26,6 +26,7 @@ export class CardNoteEditor {
   #returnFocus?: HTMLElement;
   /** Bumped on open and close, so a late answer is dropped. */
   #session = 0;
+  #loadSequence = 0;
   #busy = false;
   /** Typed text not saved yet; kept across redraws and a conflict. */
   #noteDraft?: string;
@@ -90,11 +91,16 @@ export class CardNoteEditor {
 
   async #load(): Promise<void> {
     const session = this.#session;
+    // Each read has its own number: an older read that finishes last must
+    // not replace a newer one.
+    const sequence = (this.#loadSequence += 1);
+    const current = () =>
+      session === this.#session && sequence === this.#loadSequence;
     const memberId = this.#memberId;
     if (!memberId) return;
     try {
       const answer = await this.client.getNotes(memberId);
-      if (session !== this.#session) return;
+      if (!current()) return;
       if (answer.status !== "ok") {
         this.#data = undefined;
         this.#status = {
@@ -103,7 +109,7 @@ export class CardNoteEditor {
         };
       } else this.#data = answer;
     } catch {
-      if (session !== this.#session) return;
+      if (!current()) return;
       this.#status = {
         text: message("signals.editor.readFailed"),
         error: true,

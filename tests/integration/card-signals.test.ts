@@ -9,6 +9,7 @@ import {
   INCOMPLETE_ATTRIBUTE,
   messageSignalsClient,
 } from "../../src/content/card-signals";
+import { CardNoteEditor } from "../../src/content/card-note-editor";
 import { messageNotesClient } from "../../src/content/member-notes";
 import { setLocale } from "../../src/i18n/translator";
 import { MessageRouter } from "../../src/messaging/router";
@@ -355,5 +356,73 @@ describe("V1-10 signals on every card", () => {
       } as never);
       expect(response.ok, JSON.stringify(members).slice(0, 30)).toBe(false);
     }
+  });
+
+  it("asks again after a failed lookup once the shown cards change, not on a redraw", async () => {
+    let calls = 0;
+    let fail = true;
+    const flaky = new CardSignals(
+      document,
+      {
+        lookup: (members) => {
+          calls += 1;
+          if (fail) return Promise.reject(new Error("offline"));
+          return messageSignalsClient((message) =>
+            router.route(message),
+          ).lookup(members);
+        },
+      },
+      messageNotesClient((message) => router.route(message)),
+    );
+    searchPage([FULL]);
+    flaky.update("search");
+    await flush();
+    flaky.update("search");
+    await flush();
+    expect(calls).toBe(1);
+    fail = false;
+    // JoyClub loads more results: another set of cards.
+    searchPage([FULL, THIN]);
+    flaky.update("search");
+    await flush();
+    expect(calls).toBe(2);
+    expect(shown(THIN).completeness).toContain("Incomplete");
+  });
+});
+
+describe("V1-10 card note editor", () => {
+  it("keeps the newest read when an older one finishes last", async () => {
+    const reads: Array<(answer: unknown) => void> = [];
+    const editorClient = {
+      getNotes: () =>
+        new Promise((resolve) => {
+          reads.push(resolve);
+        }),
+      saveNote: () => Promise.reject(new Error("unused")),
+      addTag: () => Promise.resolve(true),
+      removeTag: () => Promise.resolve(true),
+    } as never;
+    const cardEditor = new CardNoteEditor(document, editorClient);
+    cardEditor.open(FULL);
+    const answer = (note: string) => ({
+      status: "ok",
+      accountId: "account-a",
+      note,
+      tags: [],
+    });
+    reads[0]!(answer("First"));
+    await flush();
+    cardEditor.invalidate();
+    cardEditor.invalidate();
+    // The newer read answers first, then the older one.
+    reads[2]!(answer("Newest"));
+    await flush();
+    reads[1]!(answer("Older"));
+    await flush();
+    expect(
+      document.querySelector<HTMLTextAreaElement>(".joyfox-card-editor__note")
+        ?.value,
+    ).toBe("Newest");
+    cardEditor.close();
   });
 });
