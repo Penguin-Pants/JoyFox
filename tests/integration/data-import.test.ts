@@ -665,6 +665,51 @@ describe("M8 import: restoring and merging", () => {
     expect(settings.items.has("joyfox.snapshotRetention")).toBe(false);
   });
 
+  it("applies the snapshot limit to imported snapshots at once (V1-12)", async () => {
+    const snapshots = Array.from({ length: 4 }, (_, index) => ({
+      id: `snap-${index}`,
+      accountId: "a",
+      memberId: "1234567",
+      capturedAt: new Date(Date.parse(t0) + index * 1000).toISOString(),
+      verification: "unknown",
+      photoCount: index,
+      profileWordCount: "unknown",
+      joinedAt: "unknown",
+      createdAt: t0,
+      updatedAt: t0,
+    }));
+    const ids = async () =>
+      (await repositories.profileSnapshots.list("a"))
+        .map(({ id }) => id)
+        .sort();
+    // A limit that comes with the file applies to the file's snapshots.
+    await importText(
+      fullFile(
+        {
+          extensionAccounts: [account("a", "me")],
+          profileSnapshots: snapshots,
+        },
+        { "joyfox.snapshotRetention": 2 },
+      ),
+    );
+    expect(await ids()).toEqual(["snap-2", "snap-3"]);
+    // A limit already stored applies too, when the file brings none.
+    await freshDatabase();
+    settings = new MemorySettingsArea();
+    data = new DataService(
+      new AccountService(repositories.extensionAccounts, settings),
+      settings,
+    );
+    await settings.set({ "joyfox.snapshotRetention": 1 });
+    await importText(
+      fullFile({
+        extensionAccounts: [account("a", "me")],
+        profileSnapshots: snapshots,
+      }),
+    );
+    expect(await ids()).toEqual(["snap-3"]);
+  });
+
   it("keeps the imported records when saving settings fails afterwards", async () => {
     const text = fullFile({ extensionAccounts: [account("a", "me")] });
     const plan = await data.previewImport(text);

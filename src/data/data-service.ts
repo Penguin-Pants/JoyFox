@@ -198,7 +198,7 @@ export class DataService {
    * overlaps it, and plans again from current data: if the result differs
    * from the preview, nothing is written. All records are written in one
    * transaction, so a failure leaves stored records unchanged.
-   * Settings follow as a best-effort second step.
+   * Settings, then the snapshot limit (V1-12), follow as best-effort steps.
    */
   async applyImport(
     text: string,
@@ -223,6 +223,17 @@ export class DataService {
         } catch {
           settingsSaved = false;
         }
+      // Records are written without retention, and the file may bring a
+      // lower snapshot limit: apply the limit now in effect, so no member
+      // stays above it until their next capture (V1-12). Best effort like
+      // the settings: the imported records are already committed.
+      try {
+        await repositories.profileSnapshots.pruneAll(
+          await readSnapshotRetention(this.settings),
+        );
+      } catch {
+        // The next capture of each member applies the limit.
+      }
       return { ...current, settingsSaved };
     });
     await bumpTriageRevision(this.settings);

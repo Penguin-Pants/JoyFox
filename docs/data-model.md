@@ -272,7 +272,10 @@ file is checked record by record against the same validation every repository
 write uses, and any problem refuses the whole file. Accounts are matched by
 JoyClub identifier; conflicts follow ADR 0009. All records are written in one
 transaction through `putRecords` in `src/storage/repositories.ts`, the only
-writer besides the repository classes. Retention is not applied during import.
+writer besides the repository classes. Retention is not applied while the
+records are written. Right after an import, the profile snapshot limit in effect
+is applied to every member (V1-12); the cached-message window applies on the
+next write.
 
 Exports carry `schemaVersion: 4`. Import still accepts versions 1 to 3 and
 converts their English reasons as the version 4 upgrade does, before the file is
