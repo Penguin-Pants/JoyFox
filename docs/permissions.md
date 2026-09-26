@@ -13,6 +13,12 @@ script match patterns.
 There is no `<all_urls>`, tabs, history, cookies, downloads, remote endpoint, or
 optional sync permission. The extension contains no network client.
 
+The manifest declares
+`browser_specific_settings.gecko.data_collection_permissions` as
+`{"required": ["none"]}`: JoyFox collects and transmits no data (F8,
+`docs/distribution.md`). Review this value before any feature sends data off the
+device, for example sync (V1-6).
+
 The UI language (ADR 0014) calls `browser.i18n.getUILanguage()` only to pick the
 default language. The `i18n` API needs no permission, so the allowlist does not
 change.

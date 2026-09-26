@@ -124,10 +124,12 @@ what it matches, or a screenshot with DOM inspection notes.
     self-distribution with automatic updates (owner, 2026-09-26, ADR 0016).
     Current Mozilla signing requirements then need verification against official
     documentation before release packaging is claimed. A research draft with the
-    steps, the manifest gaps (the missing `data_collection_permissions`; the
-    extension ID is decided, ADR 0016) and a verification checklist is in
-    `docs/distribution.md` (2026-09-25); it could not be checked against the
-    live pages from this environment.
+    steps and a verification checklist is in `docs/distribution.md`. On
+    2026-09-26, checklist items 2 to 4 were verified with Mozilla's own tools
+    and the manifest gap (`data_collection_permissions`) is fixed. Items 1, 5
+    and 6 need someone who can open the Mozilla pages: the unlisted flow and its
+    review timing, what to upload as source code, and the `updates.json` field
+    names.
 
 ## Phase gate
 
