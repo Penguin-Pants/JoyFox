@@ -207,6 +207,16 @@
   their German label only (`13-preferences.md`). The sort orders only the
   results JoyClub has loaded, and works only if JoyClub lays the list out as a
   flex or grid container.
+- Profile signals on cards (V1-10) know a member's photo count and word count
+  only from a snapshot, so only for a member whose profile was opened before;
+  the card itself shows neither (`11-search.md`). Such a member shows
+  "Completeness unknown" and is never hidden by "hide incomplete profiles". A
+  guest-list entry shows no shield code (`14-events.md`), so on it the
+  verification comes from the snapshot and "personally known", which is never
+  cached, is not counted: for a member you marked as met in person, the trust
+  score on a guest entry is 1 lower than on the profile page. The note and tag
+  editor opens as a panel at the bottom right of the window, because a card is a
+  link. The filter hides only results JoyClub has loaded.
 - Conversation History Search (V1-4) finds only messages JoyFox stored: the ones
   a conversation showed on screen while message caching was on. It never loads
   older messages, so a message never scrolled into view is not searchable. A

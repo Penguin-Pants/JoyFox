@@ -12,6 +12,7 @@ import type {
   SeenMessage,
 } from "../messages/message-cache-service";
 import type { Message } from "../i18n/message";
+import type { MemberSignals, SignalRequest } from "../signals/signals-service";
 import type { ProfileFacts } from "../qualification/facts";
 import type {
   TriageRequestMember,
@@ -148,6 +149,17 @@ export interface MessageContract {
       messages: SeenMessage[];
     };
     response: CacheAnswer | { status: "refused" };
+  };
+  /** V1-10: what each card shows about its member, for the active account. */
+  "signals.lookup": {
+    request: { members: SignalRequest[] };
+    response:
+      | { status: "no-account" }
+      | {
+          status: "ok";
+          accountId: string;
+          signals: Record<string, MemberSignals>;
+        };
   };
   /** V1-2: the viewer's own preferences and each member's shared count. */
   "compat.lookup": {

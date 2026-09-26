@@ -18,6 +18,7 @@ import {
   summarizeInbox,
 } from "./diagnostics";
 import { InboxTriage, inboxListShown, inboxListState } from "./inbox-triage";
+import { CardSignals, runtimeSignalsClient } from "./card-signals";
 import {
   CompatibilityOverlay,
   runtimeCompatibilityClient,
@@ -107,6 +108,11 @@ if (hasVerifiedSelectors() && VERIFIED_HOSTS.includes(location.hostname)) {
   const listingClient = runtimeListingClient();
   const listing = new ListingPanel(document, listingClient);
   const eventFilter = new EventListFilter(document, listingClient);
+  const cardSignals = new CardSignals(
+    document,
+    runtimeSignalsClient(),
+    runtimeNotesClient(),
+  );
   const compatibility = new CompatibilityOverlay(
     document,
     runtimeCompatibilityClient(),
@@ -128,6 +134,7 @@ if (hasVerifiedSelectors() && VERIFIED_HOSTS.includes(location.hostname)) {
     listing.localeChanged();
     eventFilter.localeChanged();
     compatibility.localeChanged();
+    cardSignals.localeChanged();
   });
   const preferenceRetry = new PreferenceRetry(() => coordinator.refresh());
   let lastType: string | undefined;
@@ -169,6 +176,8 @@ if (hasVerifiedSelectors() && VERIFIED_HOSTS.includes(location.hostname)) {
     else eventFilter.leave();
     // Profile, search results, the inbox list and event guest lists (V1-2).
     compatibility.update(type);
+    // Completeness, trust, note and tags on every card (V1-10).
+    cardSignals.update(type);
     // Labels still drawing in their shadow roots wake no observer.
     preferenceRetry.check(
       document.URL,
@@ -233,6 +242,7 @@ if (hasVerifiedSelectors() && VERIFIED_HOSTS.includes(location.hostname)) {
       listing.accountChanged();
       eventFilter.accountChanged();
       compatibility.accountChanged();
+      cardSignals.accountChanged();
       accountHeard = true;
       activeAccountId = accountIdOf(
         changes[ACTIVE_ACCOUNT_SETTING_KEY]?.newValue,
@@ -251,9 +261,11 @@ if (hasVerifiedSelectors() && VERIFIED_HOSTS.includes(location.hostname)) {
       eventFilter.invalidate();
       // A snapshot capture: a profile's preferences, or the viewer's own.
       compatibility.invalidate();
+      cardSignals.invalidate();
     } else if (NOTES_REVISION_KEY in changes) {
-      // A note or tag saved in another tab.
+      // A note or tag saved in another tab, or from a card.
       notes.invalidate();
+      cardSignals.invalidate();
     }
     // A search saved or deleted in another tab.
     if (SAVED_SEARCH_REVISION_KEY in changes) searches.invalidate();

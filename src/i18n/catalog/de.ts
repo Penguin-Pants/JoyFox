@@ -440,6 +440,42 @@ export const de: Catalog = {
   "messages.sentTo": (p) => `Du an Mitglied ${p.member} · ${p.when}`,
   "messages.receivedFrom": (p) => `Mitglied ${p.member} an dich · ${p.when}`,
   "messages.storedAt": (p) => `gespeichert ${p.when}`,
+  "signals.state.complete": "Vollständig",
+  "signals.state.incomplete": "Unvollständig",
+  "signals.state.unknown": "Vollständigkeit unbekannt",
+  "signals.photos": (p, f) =>
+    f.plural(p.count, {
+      one: "1 Foto",
+      other: `${f.number(p.count)} Fotos`,
+    }),
+  "signals.photosUnknown": "Fotos unbekannt",
+  "signals.words": (p, f) =>
+    f.plural(p.count, {
+      one: "1 Wort",
+      other: `${f.number(p.count)} Wörter`,
+    }),
+  "signals.wordsUnknown": "Wörter unbekannt",
+  "signals.verified": "geprüft",
+  "signals.notVerified": "nicht geprüft",
+  "signals.verificationUnknown": "Prüfung unbekannt",
+  "signals.heading": "Vollständigkeit des Profils",
+  "signals.trust": (p, f) =>
+    `Vertrauen ${p.score > 0 ? "+" : ""}${f.number(p.score)}`,
+  "signals.trustNone": "Kein Vertrauensverlauf",
+  "signals.noteAdd": "Notiz hinzufügen",
+  "signals.noteEdit": "Notiz",
+  "signals.tagsLabel": "Meine Tags",
+  "signals.editor.label": (p) =>
+    `JoyFox: Notiz und Tags für Mitglied ${p.member}`,
+  "signals.editor.loading": "Wird geladen …",
+  "signals.editor.close": "Schließen",
+  "signals.editor.noAccount":
+    "Wähle in den JoyFox-Einstellungen ein Konto aus oder füge eines hinzu, um Notizen zu führen.",
+  "signals.editor.readFailed":
+    "JoyFox konnte die Notizen zu diesem Mitglied nicht lesen. Schließe und versuche es noch einmal.",
+  "signals.filter.label": "JoyFox: unvollständige Profile ausblenden",
+  "signals.filter.count": (p, f) =>
+    `${f.number(p.hidden)} von ${f.number(p.loaded)} geladenen Profilen ausgeblendet. Profile, über die JoyFox nichts weiß, bleiben.`,
   "compat.heading": "Gemeinsame Vorlieben",
   "compat.shared": (p, f) =>
     `Du teilst ${f.plural(p.count, {
