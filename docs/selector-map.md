@@ -28,8 +28,9 @@ Rules:
 | Conversation             | Verified   | `02-conversation.md` | Detected and extracted  |
 | Profile                  | Verified   | `03-profile.md`      | Detected and extracted  |
 | Search                   | Verified   | `11-search.md`       | Saved searches (V1-3)   |
-| Event                    | Unverified | None                 | Disabled                |
-| Event calendar           | Unverified | None                 | Disabled                |
+| Event                    | Verified   | `14-events.md`       | Event notes (V1-5)      |
+| Event calendar           | Verified   | `14-events.md`       | Event filter (V1-5)     |
+| Venue                    | Verified   | `15-venues.md`       | Venue notes (V1-5)      |
 | Standard composer        | Verified   | `02-conversation.md` | Template picker (M10)   |
 | Conversation Delete item | Verified   | `02-conversation.md` | M9 Delete step, flag on |
 | Profile Ignore item      | Verified   | `10-ignore.md`       | M9 Ignore step, flag on |
@@ -46,6 +47,9 @@ half-rendered page is reported as missing rather than read.
 | Inbox        | `/clubmail/`                                                    | `.cm-conversation-list`                 |
 | Profile      | `/profile/<n>.<nickname>.html`                                  | `[data-e2e="profile-header-base-info"]` |
 | Search       | `/member/` and `/member/<segment>/…/`                           | `div.member_search_list`                |
+| Event        | `/event/<n>.<slug>.html`                                        | `h1.event_name`                         |
+| Event list   | `/dates_partys/…`                                               | `div.card-list-ui`                      |
+| Venue        | `/club/<n>.<slug>.html`                                         | `h1.profile_name`                       |
 
 Conversation is checked before inbox, because both are client-side routes of one
 app (`09-navigation.md`) and the inbox list can stay in the DOM.
@@ -77,6 +81,15 @@ app (`09-navigation.md`) and the inbox list can stay in the DOM.
 | Search       | Result list       | `div.member_search_list`                                                           | Saved-search bar goes before it                      |
 | Search       | Filter button     | `[data-e2e="search-filter-button"]`                                                | Recorded only                                        |
 | Search       | Result link       | `a[data-e2e="result-item"]`                                                        | Recorded only; no member is read                     |
+| Event        | Event ID          | URL path                                                                           | Digits before the first `.`                          |
+| Event        | Title             | `h1.event_name`                                                                    | Kept with the user's notes                           |
+| Event        | Start             | `.event_info_box .event-time`                                                      | "Samstag, 27. September 2026 - ab 21:00", local time |
+| Event        | Venue link        | `.event_location_detail a.event_club`                                              | `/club/<n>.<slug>.html` and the venue's name         |
+| Event list   | Item              | `div.card-list-ui-list-item`                                                       | Event and date cards alike                           |
+| Event list   | Event item        | `div.card-list-ui-list-item.event-card-ui[data-element-id]`                        | `data-element-id` is the event ID                    |
+| Event list   | Headline          | `.card-ui-detail-right-headline`                                                   | The badge goes here                                  |
+| Venue        | Venue ID          | URL path                                                                           | Digits before the first `.`                          |
+| Venue        | Name              | `h1.profile_name`                                                                  | Kept with the user's notes                           |
 
 ## Layout dependency (ADR 0010)
 

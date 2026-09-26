@@ -290,6 +290,71 @@ stay as they are.
 | `notes.summary.tags` | Your notes and tags (1 tag / {count} tags) | Deine Notizen und Tags (1 Tag / {count} Tags) |
 | `notes.summary.noteAndTags` | Your notes and tags (a note and 1 tag / {count} tags) | Deine Notizen und Tags (eine Notiz und 1 Tag / {count} Tags) |
 
+## listing
+
+| Key | English | Deutsch |
+| --- | --- | --- |
+| `listing.heading.event` | JoyFox: my notes on this event | JoyFox: meine Notizen zu diesem Event |
+| `listing.heading.venue` | JoyFox: my notes on this venue | JoyFox: meine Notizen zu diesem Club |
+| `listing.loading` | Loading your notes… | Deine Notizen werden geladen … |
+| `listing.readFailed` | JoyFox could not read your notes on this page. Reload the page to try again. | JoyFox konnte deine Notizen zu dieser Seite nicht lesen. Lade die Seite neu, um es noch einmal zu versuchen. |
+| `listing.noAccount` | Select or add an account in the JoyFox options to keep notes on events. | Wähle in den JoyFox-Einstellungen ein Konto aus oder füge eines hinzu, um Notizen zu Events zu speichern. |
+| `listing.attendanceLabel` | My attendance | Meine Teilnahme |
+| `listing.attendance.unknown` | No status | Kein Status |
+| `listing.attendance.interested` | Interested | Interessiert |
+| `listing.attendance.attending` | Attending | Ich gehe hin |
+| `listing.attendance.not-attending` | Not attending | Ich gehe nicht hin |
+| `listing.attendance.attended` | Attended | War dort |
+| `listing.noteLabel` | My note | Meine Notiz |
+| `listing.saveNote` | Save note | Notiz speichern |
+| `listing.tagsLabel` | My tags | Meine Tags |
+| `listing.tagLabel` | New tag | Neuer Tag |
+| `listing.addTag` | Add tag | Tag hinzufügen |
+| `listing.removeTag` | Remove tag {tag} | Tag {tag} entfernen |
+| `listing.emptyTag` | Type a tag first. Nothing was added. | Gib zuerst einen Tag ein. Es wurde nichts hinzugefügt. |
+| `listing.tooManyTags` | A listing can have at most {maximum} tags. Remove one first. | Ein Eintrag kann höchstens {maximum} Tags haben. Entferne zuerst einen. |
+| `listing.privacy` | Private: stored only in this browser. JoyClub sees nothing, and your sign-up on JoyClub does not change. | Privat: nur in diesem Browser gespeichert. JoyClub sieht nichts, und deine Anmeldung bei JoyClub ändert sich nicht. |
+| `listing.saved` | Saved. | Gespeichert. |
+| `listing.removed` | Nothing is left on this listing, so JoyFox no longer tracks it. | Hier ist nichts mehr eingetragen, deshalb verfolgt JoyFox diesen Eintrag nicht mehr. |
+| `listing.conflict` | These notes changed in another tab, so JoyFox did not save. The stored notes are shown now; your typed note is still in the box. | Diese Notizen wurden in einem anderen Tab geändert, deshalb hat JoyFox nicht gespeichert. Jetzt werden die gespeicherten Notizen gezeigt; deine eingegebene Notiz steht noch im Feld. |
+| `listing.refused` | The active JoyFox account changed, so nothing was saved. | Das aktive JoyFox-Konto hat sich geändert, deshalb wurde nichts gespeichert. |
+
+## events
+
+| Key | English | Deutsch |
+| --- | --- | --- |
+| `events.heading` | My events | Meine Events |
+| `events.hint` | Every event and venue you added a note, tag or attendance to on JoyClub, in date order. JoyFox keeps them after JoyClub removes an event. To change one, open it on JoyClub. | Alle Events und Clubs, zu denen du auf JoyClub eine Notiz, einen Tag oder deine Teilnahme eingetragen hast, nach Datum. JoyFox behält sie, auch wenn JoyClub ein Event entfernt. Um einen Eintrag zu ändern, öffne ihn auf JoyClub. |
+| `events.readFailed` | JoyFox could not read your events. Reload the page to try again. | JoyFox konnte deine Events nicht lesen. Lade die Seite neu, um es noch einmal zu versuchen. |
+| `events.noAccount` | Select or add an account first. Each account has its own events. | Wähle zuerst ein Konto aus oder füge eines hinzu. Jedes Konto hat eigene Events. |
+| `events.empty` | No tracked events yet. Open an event on JoyClub and add a note, a tag or your attendance. | Noch keine verfolgten Events. Öffne ein Event auf JoyClub und trage eine Notiz, einen Tag oder deine Teilnahme ein. |
+| `events.count` | {shown} of {total} tracked events shown. | {shown} von {total} verfolgten Events gezeigt. |
+| `events.filterLabel` | Show | Zeigen |
+| `events.filter.all` | All tracked events | Alle verfolgten Events |
+| `events.searchLabel` | Search my notes, tags and titles | In meinen Notizen, Tags und Titeln suchen |
+| `events.noDate` | No date | Kein Datum |
+| `events.untitled` | Event {id} | Event {id} |
+| `events.past` | {when} (past) | {when} (vorbei) |
+| `events.venue` | Venue: {venue} | Ort: {venue} |
+| `events.venuesHeading` | My venues | Meine Clubs |
+
+## eventFilter
+
+| Key | English | Deutsch |
+| --- | --- | --- |
+| `eventFilter.label` | JoyFox: show | JoyFox: zeigen |
+| `eventFilter.all` | All loaded events and dates | Alle geladenen Events und Dates |
+| `eventFilter.tracked` | Only my tracked events | Nur meine verfolgten Events |
+| `eventFilter.note` | Only events with my note | Nur Events mit meiner Notiz |
+| `eventFilter.attending` | Only events I attend | Nur Events, zu denen ich gehe |
+| `eventFilter.interested` | Only events I am interested in | Nur Events, die mich interessieren |
+| `eventFilter.tag` | Only my tag: {tag} | Nur mein Tag: {tag} |
+| `eventFilter.count` | {shown} of {loaded} loaded events shown. Events loaded later are checked too. | {shown} von {loaded} geladenen Events gezeigt. Später geladene Events werden auch geprüft. |
+| `eventFilter.readFailed` | JoyFox could not read your event notes. Reload the page to try again. | JoyFox konnte deine Event-Notizen nicht lesen. Lade die Seite neu, um es noch einmal zu versuchen. |
+| `eventFilter.noAccount` | Select or add an account in the JoyFox options to filter by your notes. | Wähle in den JoyFox-Einstellungen ein Konto aus oder füge eines hinzu, um nach deinen Notizen zu filtern. |
+| `eventFilter.badge` | JoyFox | JoyFox |
+| `eventFilter.hasNote` | note | Notiz |
+
 ## searches
 
 | Key | English | Deutsch |
@@ -346,6 +411,7 @@ stay as they are.
 | `options.tabs.accounts` | Accounts | Konten |
 | `options.tabs.rule` | Contact rule | Kontaktregel |
 | `options.tabs.templates` | Templates | Vorlagen |
+| `options.tabs.events` | Events | Events |
 | `options.tabs.data` | Your data | Deine Daten |
 | `options.importRegion` | Import JoyFox data | JoyFox-Daten importieren |
 

@@ -49,6 +49,8 @@ const numberFormats = new Map<Locale, Intl.NumberFormat>();
 const dateFormats = new Map<Locale, Intl.DateTimeFormat>();
 const dateTimeFormats = new Map<Locale, Intl.DateTimeFormat>();
 const pluralRules = new Map<Locale, Intl.PluralRules>();
+const wallDateFormats = new Map<Locale, Intl.DateTimeFormat>();
+const wallDateTimeFormats = new Map<Locale, Intl.DateTimeFormat>();
 
 function cached<V>(map: Map<Locale, V>, make: (tag: string) => V): V {
   let value = map.get(locale);
@@ -126,6 +128,45 @@ export function formatDateTime(iso: string): string {
         timeZone: "UTC",
         timeZoneName: "short",
       }),
+  ).format(time);
+}
+
+/**
+ * An event's start in its own local time (`YYYY-MM-DD` or
+ * `YYYY-MM-DDTHH:mm`, as JoyClub shows it), with the weekday and no time
+ * zone: de Sa., 27. Sept. 2026, 21:00; en Sat, Sep 27, 2026, 09:00 PM. Any
+ * other value is shown as it is.
+ */
+export function formatWallTime(local: string): string {
+  const parts = /^(\d{4})-(\d{2})-(\d{2})(?:T(\d{2}):(\d{2}))?$/u.exec(local);
+  if (!parts) return local;
+  const [, year, month, day, hour, minute] = parts;
+  const time = Date.UTC(
+    Number(year),
+    Number(month) - 1,
+    Number(day),
+    Number(hour ?? 0),
+    Number(minute ?? 0),
+  );
+  const withTime = hour !== undefined;
+  return cached(withTime ? wallDateTimeFormats : wallDateFormats, (tag) =>
+    withTime
+      ? new Intl.DateTimeFormat(tag, {
+          weekday: "short",
+          year: "numeric",
+          month: "short",
+          day: "numeric",
+          hour: "2-digit",
+          minute: "2-digit",
+          timeZone: "UTC",
+        })
+      : new Intl.DateTimeFormat(tag, {
+          weekday: "short",
+          year: "numeric",
+          month: "short",
+          day: "numeric",
+          timeZone: "UTC",
+        }),
   ).format(time);
 }
 

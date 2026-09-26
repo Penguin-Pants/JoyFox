@@ -8,9 +8,9 @@ are verified from it. Files 11 to 16 (2026-09-26) add search, messages,
 preferences, events, venues and navigation. Still open:
 
 - **Item 1:** whether scrolling the inbox loads more conversations, and how.
-- **Item 2:** `12-messages.md` found a per-message ID (`data-message-id`) and
-  the sent and received markers. Still open: whether the message ID stays the
-  same after a reload.
+- **Item 2, done (2026-09-26):** `12-messages.md` found a per-message ID
+  (`data-message-id`) and the sent and received markers. The owner confirmed
+  that the message ID stays the same after a reload.
 - **Item 4 (search):** `11-search.md`. Still open: whether opening a saved
   results address restores its filters when the account's stored filters differ
   (URL-only replay), whether a card shows profile text, and search → profile

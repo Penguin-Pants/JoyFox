@@ -595,6 +595,50 @@ describe("M8 import: restoring and merging", () => {
       messageTemplates: [{ ...template("a", "t", "x"), name: "n".repeat(81) }],
     });
     expect(() => parseImportFile(longTemplate)).toThrow("longer than 80");
+    // V1-5: the event tracker's note and tag limits, so the editor can
+    // save an imported record again.
+    const listing = (fields: Record<string, unknown>) =>
+      fullFile({
+        extensionAccounts: [account("a", "me")],
+        eventMetadata: [
+          {
+            id: "event:1234567",
+            accountId: "a",
+            eventId: "1234567",
+            tags: [],
+            attendance: "attending",
+            createdAt: t0,
+            updatedAt: t0,
+            ...fields,
+          },
+        ],
+      });
+    expect(() => parseImportFile(listing({ tags: ["Friends"] }))).not.toThrow();
+    expect(() =>
+      parseImportFile(
+        listing({ tags: Array.from({ length: 21 }, (_, i) => `t${i}`) }),
+      ),
+    ).toThrow("more than 20 tags");
+    expect(() => parseImportFile(listing({ tags: ["x".repeat(65)] }))).toThrow(
+      "longer than 64",
+    );
+    // Padding counts: the limits apply to the text as it would be stored.
+    expect(() =>
+      parseImportFile(listing({ tags: [`x${" ".repeat(64)}`] })),
+    ).toThrow("longer than 64");
+    expect(() =>
+      parseImportFile(listing({ note: `x${" ".repeat(4000)}` })),
+    ).toThrow("longer than 4000");
+    expect(() =>
+      parseImportFile(listing({ tags: Array.from({ length: 21 }, () => "") })),
+    ).toThrow("more than 20 tags");
+    expect(() => parseImportFile(listing({ note: "x".repeat(4001) }))).toThrow(
+      "longer than 4000",
+    );
+    for (const field of ["title", "venueName"])
+      expect(() =>
+        parseImportFile(listing({ [field]: "x".repeat(301) })),
+      ).toThrow(`${field} is longer than 300`);
   });
 
   it("refuses cached message text that is not normalized", () => {
@@ -630,6 +674,8 @@ describe("M8 import: restoring and merging", () => {
           "joyfox.quickIgnoreDelete": true,
           "joyfox.diagnostics": true,
           "joyfox.triageRevision": "x",
+          "joyfox.savedSearchRevision": "x",
+          "joyfox.eventRevision": "x",
         },
       ),
     );

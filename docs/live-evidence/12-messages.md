@@ -85,3 +85,8 @@ Slots in order: `avatar`, `header`, `quote`, `media`, `special`, default (text),
   top of the thread showed the quick-actions block, not a system message.
 - Inbox entry ID attribute: none found on `[data-e2e="conversation-list-entry"]`
   (only class, `data-e2e`, `data-testid`).
+
+## Confirmation (2026-09-26)
+
+The project owner reloaded a conversation and confirmed that a message's
+`data-message-id` stays the same after the reload.

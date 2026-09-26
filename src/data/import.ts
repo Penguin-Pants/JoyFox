@@ -13,6 +13,7 @@ import type {
 import { ExtensionError } from "../errors";
 import { isLocale, LOCALE_KEY } from "../i18n/locale";
 import { message, type Message } from "../i18n/message";
+import { MAX_EVENT_TAGS, MAX_LISTING_TEXT_LENGTH } from "../events/listing";
 import { MAX_NOTE_LENGTH, MAX_TAG_LENGTH } from "../notes/limits";
 import {
   MAX_NORMALIZED_PHRASE_LENGTH,
@@ -27,6 +28,8 @@ import {
 import { DATABASE_VERSION, ENTITY_NAMES } from "../storage/database";
 import { migrateReasons } from "../storage/reason-migration";
 import type { RecordWrite } from "../storage/repositories";
+import { EVENT_REVISION_KEY } from "../storage/event-revision";
+import { SAVED_SEARCH_REVISION_KEY } from "../storage/saved-search-revision";
 import { TRIAGE_REVISION_KEY } from "../storage/triage-revision";
 import { validateEntity, ValidationError } from "../storage/validation";
 
@@ -111,6 +114,8 @@ const CHANGE_MARKERS: ReadonlySet<string> = new Set([
   TRIAGE_REVISION_KEY,
   "joyfox.actionRevision",
   "joyfox.notesRevision",
+  SAVED_SEARCH_REVISION_KEY,
+  EVENT_REVISION_KEY,
 ]);
 
 const IMPORTED_SETTINGS: Readonly<Record<string, (value: unknown) => boolean>> =
@@ -159,7 +164,18 @@ const ENTITY_FIELDS: Readonly<Record<EntityName, readonly string[]>> = {
     "reasons",
   ],
   savedSearches: ["name", "url", "filters"],
-  eventMetadata: ["eventId", "note", "tags", "attendance"],
+  eventMetadata: [
+    "eventId",
+    "kind",
+    "title",
+    "startLocal",
+    "path",
+    "venueId",
+    "venueName",
+    "note",
+    "tags",
+    "attendance",
+  ],
   spendLogEntries: ["occurredAt", "amountMinor", "currency", "category"],
   syncConfigs: ["endpoint", "lastSyncedAt", "keyDerivation"],
   extensionPreferences: ["key", "value"],
@@ -291,6 +307,29 @@ function domainProblem(
         normalizePhrase(record.phrase) !== record.phrase
         ? { text: "phrase is not in normalized form" }
         : tooLong("phrase", MAX_NORMALIZED_PHRASE_LENGTH);
+    case "eventMetadata": {
+      // The tracker's own limits, on the values as stored, so the editor
+      // can save the record again and no padded text gets in. A save stores
+      // clean values, so an exported record always passes.
+      const tags = Array.isArray(record.tags) ? record.tags : [];
+      if (tags.length > MAX_EVENT_TAGS)
+        return { text: `more than ${MAX_EVENT_TAGS} tags` };
+      if (
+        tags.some(
+          (tag) => typeof tag === "string" && tag.length > MAX_TAG_LENGTH,
+        )
+      )
+        return {
+          text: `a tag is longer than ${MAX_TAG_LENGTH} characters`,
+          field: "tags",
+          maximum: MAX_TAG_LENGTH,
+        };
+      return (
+        tooLong("note", MAX_NOTE_LENGTH) ??
+        tooLong("title", MAX_LISTING_TEXT_LENGTH) ??
+        tooLong("venueName", MAX_LISTING_TEXT_LENGTH)
+      );
+    }
     default:
       return undefined;
   }

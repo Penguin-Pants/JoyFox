@@ -29,8 +29,8 @@ What each partial item still lacks:
 
 - **1:** loading behavior. Scrolling was not exercised, and a search for a
   sentinel class cannot detect a scroll listener or a virtualized list.
-- **2:** `12-messages.md` found a per-message ID (`data-message-id`); whether it
-  survives a reload is not tested.
+- **2:** done. `12-messages.md` found a per-message ID (`data-message-id`), and
+  the owner confirmed it survives a reload (2026-09-26).
 - **6:** the standard composer accepts a programmatic change followed by `input`
   and `change` (confirmed live on 2026-09-23, `manual-acceptance.md` item 33).
   The event ClubMail composer is not captured.
@@ -43,7 +43,6 @@ Files 11 to 16 (2026-09-26) came from the first version of
 without the fallback, validation and missing-state columns the later version
 asks for.
 
-Not yet captured: whether a message's identifier survives a reload (2, E2), the
-event ClubMail composer (6), the rest of item 7 (only the trash notice's HTML;
-everything M9 uses is in `10-ignore.md`), search → profile and Back (9) and the
-distribution channel (10).
+Not yet captured: the event ClubMail composer (6), the rest of item 7 (only the
+trash notice's HTML; everything M9 uses is in `10-ignore.md`), search → profile
+and Back (9) and the distribution channel (10).

@@ -2,9 +2,10 @@
 
 JoyFox is a local-first Firefox extension that enhances pages a user opens on
 JoyClub. It does not fetch profiles or call undocumented APIs. It works on the
-inbox, conversation, profile and member search pages of www.joyclub.de, whose
-selectors are verified from live evidence (`docs/selector-map.md`). Events and
-JOYCE are not verified yet, and JoyFox stays inactive there.
+inbox, conversation, profile, member search, event and venue pages of
+www.joyclub.de, whose selectors are verified from live evidence
+(`docs/selector-map.md`). JOYCE is not verified yet, and JoyFox stays inactive
+there.
 
 ## Development
 
@@ -74,6 +75,13 @@ On JoyClub's member search, a "JoyFox saved searches" bar above the results
 saves the search's address, which holds every filter, under a name, and opens it
 again in one click. A saved search whose address no longer matches JoyClub's
 search is not opened (V1-3, `docs/manual-acceptance.md`, items 108 to 110).
+
+On an event page, a JoyFox box keeps your own attendance, note and tags for the
+event; on a venue page, a note and tags. JoyClub's own sign-up is never touched.
+On "Dates & Events", a filter shows only the loaded events that carry your tags,
+note or attendance, and a badge marks them. The options page's "Events" tab is
+your personal calendar of every tracked event, also after JoyClub removes it
+(V1-5, `docs/manual-acceptance.md`, items 111 to 115).
 
 The options page also holds message templates and "Your data", where every
 stored record can be inspected field by field, exported as JSON and deleted, per

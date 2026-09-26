@@ -1,9 +1,9 @@
 # Known limitations
 
-- Only the inbox, conversation, profile and member search pages on
-  `www.joyclub.de` are verified (`docs/selector-map.md`). Inbox triage and the
-  conversation and profile panel render there, and saved searches on the member
-  search. Events and JOYCE stay disabled.
+- Only the inbox, conversation, profile, member search, event, event list and
+  venue pages on `www.joyclub.de` are verified (`docs/selector-map.md`). Inbox
+  triage and the conversation and profile panel render there, saved searches on
+  the member search and event notes on the event pages. JOYCE stays disabled.
 - The member ID is the number in the profile URL. Whether JoyClub ever reuses
   such a number is unconfirmed. Account, event and message identity sources are
   still unknown. Features must not use display names as identifiers.
@@ -189,3 +189,10 @@
   with no results is not known. A replay opens the saved address; whether
   JoyClub also applies filters stored on the account is not known
   (`live-evidence/11-search.md`, caveat).
+- Event notes (V1-5) keep an event's title, start, venue and path from the page
+  when the user saves. An event saved before its details loaded keeps what the
+  page showed. The start is JoyClub's local time as shown ("Ortszeit"), with no
+  time zone. The calendar on the options page has no links to JoyClub: a link
+  would put a remote address in the extension's code, which the network
+  isolation check forbids. The list filter works only on the events JoyClub has
+  already loaded; it never loads more. The attendee list is not read (V1-13).

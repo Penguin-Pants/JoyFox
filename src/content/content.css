@@ -504,3 +504,95 @@
 .joyfox-saved-searches__status {
   margin: var(--joyfox-space) 0 0;
 }
+
+/* V1-5: the user's notes on an event or venue page. */
+.joyfox-listing__row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--joyfox-space);
+  align-items: center;
+  margin: 0 0 var(--joyfox-space);
+}
+
+.joyfox-listing__row > label,
+.joyfox-listing__label {
+  flex-basis: 100%;
+  margin: 0;
+  font-weight: 600;
+}
+
+.joyfox-listing__note {
+  box-sizing: border-box;
+  width: 100%;
+  resize: vertical;
+}
+
+.joyfox-listing__note,
+.joyfox-listing__tag-input,
+.joyfox-listing__attendance {
+  padding: 0.25em 0.5em;
+  border: 1px solid var(--joyfox-line);
+  border-radius: var(--joyfox-radius);
+  background: var(--joyfox-field);
+  color: inherit;
+  font: inherit;
+}
+
+.joyfox-listing__tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25em;
+  flex-basis: 100%;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.joyfox-listing__tag {
+  display: inline-flex;
+  gap: 0.25em;
+  align-items: center;
+  padding: 0 0 0 0.5em;
+  border: 1px solid var(--joyfox-line);
+  border-radius: var(--joyfox-radius);
+}
+
+.joyfox-listing__status:empty {
+  display: none;
+}
+
+.joyfox-listing__status {
+  margin: 0;
+}
+
+/* V1-5: the event list filter hides what does not match, in place. */
+[data-joyfox-event-filter="on"] [data-joyfox-event-match="no"] {
+  display: none !important;
+}
+
+.joyfox-event-filter {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--joyfox-space);
+  align-items: center;
+}
+
+.joyfox-event-filter__select {
+  max-width: 100%;
+  padding: 0.25em 0.5em;
+  border: 1px solid var(--joyfox-line);
+  border-radius: var(--joyfox-radius);
+  background: var(--joyfox-field);
+  color: inherit;
+  font: inherit;
+}
+
+.joyfox-event-filter p {
+  flex-basis: 100%;
+  margin: 0;
+}
+
+.joyfox-event-badge {
+  display: inline-block;
+  margin: 0.25em 0 0;
+}

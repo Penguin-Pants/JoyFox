@@ -1,5 +1,6 @@
 import { isStrictIsoDate } from "../domain/iso-date";
 import type { AccountScopedEntity, EntityName } from "../domain/types";
+import { isWallTime } from "../events/event-date";
 import { isMessage } from "../i18n/message";
 import { contactRuleProblem } from "../rules/contact-rule";
 import { MAX_NORMALIZED_PHRASE_LENGTH } from "../rules/message-phrase";
@@ -237,6 +238,36 @@ export function validateEntity(
       break;
     case "eventMetadata":
       requireString(record, "eventId");
+      if (record.kind !== undefined) {
+        // A V1-5 record is found by this key (`event-service.ts`); only an
+        // older record without `kind` may have another one.
+        requireEnum(record, "kind", ["event", "venue"]);
+        if (!/^\d{1,12}$/u.test(record.eventId as string))
+          throw new ValidationError("eventId must be JoyClub's number");
+        if (
+          record.id !== `${record.kind as string}:${record.eventId as string}`
+        )
+          throw new ValidationError("id must be <kind>:<eventId>");
+      }
+      optionalString(record, "title");
+      if (
+        record.startLocal !== undefined &&
+        !isWallTime(requireString(record, "startLocal"))
+      )
+        throw new ValidationError("startLocal must be YYYY-MM-DD[THH:mm]");
+      if (
+        record.path !== undefined &&
+        !/^\/(event|club)\/\d{1,12}\.[^/]+\.html$/u.test(
+          requireString(record, "path"),
+        )
+      )
+        throw new ValidationError("path must be a JoyClub event or venue path");
+      if (
+        record.venueId !== undefined &&
+        !/^\d{1,12}$/u.test(requireString(record, "venueId"))
+      )
+        throw new ValidationError("venueId must be JoyClub's number");
+      optionalString(record, "venueName");
       optionalString(record, "note");
       requireStringArray(record, "tags");
       requireEnum(record, "attendance", [

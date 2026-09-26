@@ -5,6 +5,7 @@ export type PageType =
   | "search"
   | "event"
   | "event-calendar"
+  | "venue"
   | "unknown";
 export type SelectorStatus = "unverified" | "verified";
 
@@ -24,11 +25,6 @@ export interface PageSelectorDefinition {
  * profile page carries its member ID only in the URL (03-profile.md).
  */
 export const FROM_URL = "url:pathname";
-
-const unverified = (): PageSelectorDefinition => ({
-  status: "unverified",
-  fields: {},
-});
 
 /**
  * Only hosts the evidence was captured on. JOYCE (joyce.app) is permitted by
@@ -110,8 +106,44 @@ export const selectorRegistry: Readonly<
       resultLink: 'a[data-e2e="result-item"]',
     },
   },
-  event: unverified(),
-  "event-calendar": unverified(),
+  event: {
+    status: "verified",
+    evidence: "14-events.md",
+    // The event ID is the number in the path; no attribute holds it.
+    path: "^/event/(\\d+)\\.[^/]+\\.html$",
+    root: "h1.event_name",
+    fields: {
+      eventId: FROM_URL,
+      title: "h1.event_name",
+      infoBox: ".event_info_box",
+      startText: ".event_info_box .event-time",
+      venueLink: ".event_location_detail a.event_club",
+    },
+  },
+  // "Dates & Events" and its sub-tabs; one list holds event and date cards.
+  "event-calendar": {
+    status: "verified",
+    evidence: "14-events.md",
+    path: "^/dates_partys/",
+    root: "div.card-list-ui",
+    fields: {
+      list: "div.card-list-ui",
+      item: "div.card-list-ui-list-item",
+      eventItem: "div.card-list-ui-list-item.event-card-ui[data-element-id]",
+      headline: ".card-ui-detail-right-headline",
+    },
+  },
+  // A venue ("Club") uses the profile template; its ID is a member ID.
+  venue: {
+    status: "verified",
+    evidence: "15-venues.md",
+    path: "^/club/(\\d+)\\.[^/]+\\.html$",
+    root: "h1.profile_name",
+    fields: {
+      venueId: FROM_URL,
+      name: "h1.profile_name",
+    },
+  },
 };
 
 export function verifiedSelector(

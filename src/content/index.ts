@@ -5,6 +5,7 @@ import { onLocaleChange, setLocale } from "../i18n/translator";
 import { hasVerifiedSelectors, VERIFIED_HOSTS } from "../selectors/registry";
 import { runtimeSettingsArea } from "../storage/local-settings";
 import { ACTION_REVISION_KEY } from "../storage/action-revision";
+import { EVENT_REVISION_KEY } from "../storage/event-revision";
 import { NOTES_REVISION_KEY } from "../storage/notes-revision";
 import { SAVED_SEARCH_REVISION_KEY } from "../storage/saved-search-revision";
 import { TRIAGE_REVISION_KEY } from "../storage/triage-revision";
@@ -15,6 +16,8 @@ import {
   summarizeInbox,
 } from "./diagnostics";
 import { InboxTriage, inboxListShown, inboxListState } from "./inbox-triage";
+import { EventListFilter } from "./event-list-filter";
+import { ListingPanel, runtimeListingClient } from "./listing-panel";
 import { MemberNotes, runtimeNotesClient } from "./member-notes";
 import { MemberPanel } from "./member-panel";
 import { NavigationCoordinator } from "./navigation-coordinator";
@@ -64,6 +67,9 @@ if (hasVerifiedSelectors() && VERIFIED_HOSTS.includes(location.hostname)) {
   const notes = new MemberNotes(document, runtimeNotesClient());
   const picker = new TemplatePicker(document, runtimeTemplateClient());
   const searches = new SavedSearchBar(document, runtimeSavedSearchClient());
+  const listingClient = runtimeListingClient();
+  const listing = new ListingPanel(document, listingClient);
+  const eventFilter = new EventListFilter(document, listingClient);
   const quick = new QuickIgnoreDelete(
     document,
     runtimeQuickActionClient(),
@@ -78,6 +84,8 @@ if (hasVerifiedSelectors() && VERIFIED_HOSTS.includes(location.hostname)) {
     picker.localeChanged();
     quick.localeChanged();
     searches.localeChanged();
+    listing.localeChanged();
+    eventFilter.localeChanged();
   });
   let lastType: string | undefined;
   const updatePicker = () => {
@@ -112,6 +120,10 @@ if (hasVerifiedSelectors() && VERIFIED_HOSTS.includes(location.hostname)) {
     }
     if (type === "search") searches.update();
     else searches.leave();
+    if (type === "event" || type === "venue") listing.update(type);
+    else listing.leave();
+    if (type === "event-calendar") eventFilter.update();
+    else eventFilter.leave();
     lastType = type;
     updatePicker();
     updateQuickAction();
@@ -160,6 +172,8 @@ if (hasVerifiedSelectors() && VERIFIED_HOSTS.includes(location.hostname)) {
       picker.accountChanged();
       quick.accountChanged();
       searches.accountChanged();
+      listing.accountChanged();
+      eventFilter.accountChanged();
     } else if (TRIAGE_REVISION_KEY in changes) {
       // Also set by every delete in the data inspector, so a deleted note,
       // tag or saved search leaves an open page at once.
@@ -168,12 +182,19 @@ if (hasVerifiedSelectors() && VERIFIED_HOSTS.includes(location.hostname)) {
       notes.invalidate();
       quick.invalidate();
       searches.invalidate();
+      listing.invalidate();
+      eventFilter.invalidate();
     } else if (NOTES_REVISION_KEY in changes) {
       // A note or tag saved in another tab.
       notes.invalidate();
     }
     // A search saved or deleted in another tab.
     if (SAVED_SEARCH_REVISION_KEY in changes) searches.invalidate();
+    // Event or venue notes saved in another tab.
+    if (EVENT_REVISION_KEY in changes) {
+      listing.invalidate();
+      eventFilter.invalidate();
+    }
   });
   // Start after the initial flag and language are known, so the first event
   // is not missed and the first drawing is already in the right language.

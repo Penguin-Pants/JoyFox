@@ -365,6 +365,76 @@ export const en = {
       other: `${f.number(p.count)} tags`,
     })})`,
 
+  // Content script: event and venue notes (V1-5)
+  "listing.heading.event": "JoyFox: my notes on this event",
+  "listing.heading.venue": "JoyFox: my notes on this venue",
+  "listing.loading": "Loading your notes…",
+  "listing.readFailed":
+    "JoyFox could not read your notes on this page. Reload the page to try again.",
+  "listing.noAccount":
+    "Select or add an account in the JoyFox options to keep notes on events.",
+  "listing.attendanceLabel": "My attendance",
+  "listing.attendance.unknown": "No status",
+  "listing.attendance.interested": "Interested",
+  "listing.attendance.attending": "Attending",
+  "listing.attendance.not-attending": "Not attending",
+  "listing.attendance.attended": "Attended",
+  "listing.noteLabel": "My note",
+  "listing.saveNote": "Save note",
+  "listing.tagsLabel": "My tags",
+  "listing.tagLabel": "New tag",
+  "listing.addTag": "Add tag",
+  "listing.removeTag": (p: { tag: string }) => `Remove tag ${p.tag}`,
+  "listing.emptyTag": "Type a tag first. Nothing was added.",
+  "listing.tooManyTags": (p: { maximum: number }, f: Format) =>
+    `A listing can have at most ${f.number(p.maximum)} tags. Remove one first.`,
+  "listing.privacy":
+    "Private: stored only in this browser. JoyClub sees nothing, and your sign-up on JoyClub does not change.",
+  "listing.saved": "Saved.",
+  "listing.removed":
+    "Nothing is left on this listing, so JoyFox no longer tracks it.",
+  "listing.conflict":
+    "These notes changed in another tab, so JoyFox did not save. The stored notes are shown now; your typed note is still in the box.",
+  "listing.refused": "The active JoyFox account changed, so nothing was saved.",
+
+  // Options page: personal event calendar (V1-5)
+  "events.heading": "My events",
+  "events.hint":
+    "Every event and venue you added a note, tag or attendance to on JoyClub, in date order. JoyFox keeps them after JoyClub removes an event. To change one, open it on JoyClub.",
+  "events.readFailed":
+    "JoyFox could not read your events. Reload the page to try again.",
+  "events.noAccount":
+    "Select or add an account first. Each account has its own events.",
+  "events.empty":
+    "No tracked events yet. Open an event on JoyClub and add a note, a tag or your attendance.",
+  "events.count": (p: { shown: number; total: number }, f: Format) =>
+    `${f.number(p.shown)} of ${f.number(p.total)} tracked events shown.`,
+  "events.filterLabel": "Show",
+  "events.filter.all": "All tracked events",
+  "events.searchLabel": "Search my notes, tags and titles",
+  "events.noDate": "No date",
+  "events.untitled": (p: { id: string }) => `Event ${p.id}`,
+  "events.past": (p: { when: string }) => `${p.when} (past)`,
+  "events.venue": (p: { venue: string }) => `Venue: ${p.venue}`,
+  "events.venuesHeading": "My venues",
+
+  // Content script: event list filter (V1-5)
+  "eventFilter.label": "JoyFox: show",
+  "eventFilter.all": "All loaded events and dates",
+  "eventFilter.tracked": "Only my tracked events",
+  "eventFilter.note": "Only events with my note",
+  "eventFilter.attending": "Only events I attend",
+  "eventFilter.interested": "Only events I am interested in",
+  "eventFilter.tag": (p: { tag: string }) => `Only my tag: ${p.tag}`,
+  "eventFilter.count": (p: { shown: number; loaded: number }, f: Format) =>
+    `${f.number(p.shown)} of ${f.number(p.loaded)} loaded events shown. Events loaded later are checked too.`,
+  "eventFilter.readFailed":
+    "JoyFox could not read your event notes. Reload the page to try again.",
+  "eventFilter.noAccount":
+    "Select or add an account in the JoyFox options to filter by your notes.",
+  "eventFilter.badge": "JoyFox",
+  "eventFilter.hasNote": "note",
+
   // Content script: saved searches (V1-3)
   "searches.heading": "JoyFox saved searches",
   "searches.loading": "Loading saved searches…",
@@ -423,6 +493,7 @@ export const en = {
   "options.tabs.accounts": "Accounts",
   "options.tabs.rule": "Contact rule",
   "options.tabs.templates": "Templates",
+  "options.tabs.events": "Events",
   "options.tabs.data": "Your data",
   "options.importRegion": "Import JoyFox data",
 
