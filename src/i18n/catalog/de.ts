@@ -436,6 +436,35 @@ export const de: Catalog = {
     "Änderungen werden automatisch gespeichert: ein Kästchen oder eine Auswahl sofort, eine Zahl oder ein Text, sobald du das Feld verlässt.",
   "rule.firstMessageHint":
     "„Erste Nachricht enthält“ liest die Nachrichtenvorschau in deinem Posteingang und beachtet keine Groß- und Kleinschreibung. Der Posteingang zeigt nur die neueste Nachricht. Wenn eine Person mehr als eine Nachricht gesendet hat, ist die Vorschau deshalb vielleicht nicht die erste. Wenn die Vorschau deinen Text nicht enthält, zählt die Bedingung nach deiner Wahl unter „Wenn JoyFox das nicht sehen kann“. Sobald JoyFox deinen Text sieht, bleibt die Bedingung erfüllt.",
+  "rule.preset.label": "Mit einer Vorgabe beginnen",
+  "rule.preset.choose": "Vorgabe wählen …",
+  "rule.preset.apply": "Vorgabe übernehmen",
+  "rule.preset.confirm": "Bedingungen ersetzen",
+  "rule.preset.confirmPrompt":
+    "Die Vorgabe ersetzt alle Bedingungen unten. Klicke zur Bestätigung auf „Bedingungen ersetzen“.",
+  "rule.preset.hint":
+    "Eine Vorgabe setzt die Bedingungen unten und speichert sie. Danach kannst du sie wie jede andere Regel ändern.",
+  "rule.preset.open": "Offen",
+  "rule.preset.complete": "Nur vollständige Profile",
+  "rule.preset.verified": "Verifizierte Mitglieder",
+  "rule.preset.highTrust": "Mitglieder mit hohem Vertrauen",
+  "rule.preset.custom": "Eigene",
+  "rule.preset.describe.open":
+    "Keine Bedingungen: Jede Person ist qualifiziert.",
+  "rule.preset.describe.complete": (p, f) =>
+    `Eine Person braucht mindestens ${f.number(p.photos)} Fotos und mindestens ${f.number(p.words)} Wörter im Profil.`,
+  "rule.preset.describe.verified":
+    "Eine Person muss von JoyClub verifiziert sein.",
+  "rule.preset.describe.highTrust": (p, f) =>
+    `Eine Person muss von JoyClub verifiziert sein und braucht mindestens ${f.number(p.photos)} Fotos, mindestens ${f.number(p.words)} Wörter im Profil und ein Konto, das mindestens ${f.number(p.days)} Tage alt ist.`,
+  "rule.preset.describe.custom":
+    "Entfernt alle Bedingungen, damit du die gewünschten ankreuzen kannst.",
+  "rule.preset.applied": (p) =>
+    `Vorgabe „${p.preset}“ übernommen und gespeichert. Du kannst ihre Bedingungen unten ändern.`,
+  "rule.preset.appliedOpen":
+    "Vorgabe „Offen“ übernommen und gespeichert. Die Regel hat keine Bedingungen, deshalb ist jede Person qualifiziert.",
+  "rule.preset.appliedCustom":
+    "Alle Bedingungen entfernt und gespeichert. Kreuze die gewünschten Bedingungen an. Bis dahin ist jede Person qualifiziert.",
   "rule.editor": "Editor:",
   "rule.simple": "Einfach",
   "rule.advanced": "Erweitert",

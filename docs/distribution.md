@@ -81,8 +81,9 @@ owner has chosen a channel.
   extensions"; Extension Workshop, "Firefox built-in consent for data collection
   and transmission"). JoyFox sends nothing off the device
   (`docs/permissions.md`), so `"none"` matches its design today. **Verify** the
-  exact format first. Sync (V1-6) sends encrypted data to the user's own server,
-  so the value must be reviewed before sync ships.
+  exact format first. Sync (V1-6, deferred by ADR 0016) would send encrypted
+  data to the user's own server, so the value must be reviewed before sync
+  ships.
 - **Self-hosted updates.** Optional.
   `browser_specific_settings.gecko.update_url` points to an `updates.json` that
   must be served over HTTPS. It is keyed by the extension ID and lists each

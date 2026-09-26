@@ -558,3 +558,24 @@ sending-page check does not refuse the normal hand-off.
      per member, and the member's triage still shows their latest facts. Set it
      back to 20 and confirm the message says no snapshot needed deleting. Enter
      0 and confirm the error says nothing was changed.
+
+## Rule presets (V1-11)
+
+105. On the contact rule, with no rule saved, open "Start from a preset" and
+     choose each preset in turn. Confirm the line under it says what the preset
+     sets, and that nothing is saved yet ("No rule is saved" stays). Choose
+     "High-trust members" and click "Apply preset". Confirm the message says it
+     was applied and saved, and the Simple editor shows "Verified by JoyClub",
+     "Minimum photos" 3, "Minimum profile words" 50 and "Minimum account age in
+     days" 180 ticked in the ALL box, each with "Send to Needs Review", and
+     "Minimum local trust score" not ticked. Confirm an open JoyClub inbox tab
+     sorts again at once.
+106. Change "Minimum photos" to 5 and leave the field. Confirm "Rule saved".
+     Choose "Complete profiles only" and click "Apply preset". Confirm the
+     button turns to "Replace conditions" and nothing changes yet; click it and
+     confirm the editor shows only 3 photos and 50 words. Confirm the "Sort my
+     JoyClub inbox" box and the placement choice kept their values.
+107. Apply "Open" (click twice) and confirm the message says every sender
+     qualifies and the editor shows no ticked box. Apply "Custom" and confirm
+     the editor stays empty and the focus is on the first box to tick. Switch
+     the language to German and confirm the preset names and texts are German.

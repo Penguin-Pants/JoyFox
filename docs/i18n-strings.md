@@ -381,6 +381,25 @@ stay as they are.
 | `rule.spamHint` | Spam status is unknown for now: JoyFox does not check messages for templates yet. Only your own "not spam" corrections count. The inbox shows only the verification shield; photos, profile words and account age come from profiles you opened before. | Der Spam-Status ist vorerst unbekannt: JoyFox prüft Nachrichten noch nicht auf Vorlagen. Nur deine eigenen Korrekturen „kein Spam“ zählen. Der Posteingang zeigt nur das Verifizierungssymbol. Fotos, Wörter im Profil und Kontoalter stammen aus Profilen, die du vorher geöffnet hast. |
 | `rule.autosaveHint` | Changes are saved automatically: a box or choice at once, a number or text when you leave its field. | Änderungen werden automatisch gespeichert: ein Kästchen oder eine Auswahl sofort, eine Zahl oder ein Text, sobald du das Feld verlässt. |
 | `rule.firstMessageHint` | "First message contains" reads the message preview in your inbox, ignoring upper and lower case. The inbox shows only the latest message, so when a sender sent more than one, the preview may not be the first. If the preview does not contain your text, the condition counts as your "If JoyFox cannot see this" choice. Once JoyFox sees your text, it stays met. | „Erste Nachricht enthält“ liest die Nachrichtenvorschau in deinem Posteingang und beachtet keine Groß- und Kleinschreibung. Der Posteingang zeigt nur die neueste Nachricht. Wenn eine Person mehr als eine Nachricht gesendet hat, ist die Vorschau deshalb vielleicht nicht die erste. Wenn die Vorschau deinen Text nicht enthält, zählt die Bedingung nach deiner Wahl unter „Wenn JoyFox das nicht sehen kann“. Sobald JoyFox deinen Text sieht, bleibt die Bedingung erfüllt. |
+| `rule.preset.label` | Start from a preset | Mit einer Vorgabe beginnen |
+| `rule.preset.choose` | Choose a preset… | Vorgabe wählen … |
+| `rule.preset.apply` | Apply preset | Vorgabe übernehmen |
+| `rule.preset.confirm` | Replace conditions | Bedingungen ersetzen |
+| `rule.preset.confirmPrompt` | The preset replaces every condition below. Click "Replace conditions" to confirm. | Die Vorgabe ersetzt alle Bedingungen unten. Klicke zur Bestätigung auf „Bedingungen ersetzen“. |
+| `rule.preset.hint` | A preset fills in the conditions below and saves them. You can then change them like any other rule. | Eine Vorgabe setzt die Bedingungen unten und speichert sie. Danach kannst du sie wie jede andere Regel ändern. |
+| `rule.preset.open` | Open | Offen |
+| `rule.preset.complete` | Complete profiles only | Nur vollständige Profile |
+| `rule.preset.verified` | Verified members | Verifizierte Mitglieder |
+| `rule.preset.highTrust` | High-trust members | Mitglieder mit hohem Vertrauen |
+| `rule.preset.custom` | Custom | Eigene |
+| `rule.preset.describe.open` | No conditions: every sender qualifies. | Keine Bedingungen: Jede Person ist qualifiziert. |
+| `rule.preset.describe.complete` | A sender needs at least {photos} photos and at least {words} words of profile text. | Eine Person braucht mindestens {photos} Fotos und mindestens {words} Wörter im Profil. |
+| `rule.preset.describe.verified` | A sender needs to be verified by JoyClub. | Eine Person muss von JoyClub verifiziert sein. |
+| `rule.preset.describe.highTrust` | A sender needs to be verified by JoyClub, with at least {photos} photos, at least {words} words of profile text and an account at least {days} days old. | Eine Person muss von JoyClub verifiziert sein und braucht mindestens {photos} Fotos, mindestens {words} Wörter im Profil und ein Konto, das mindestens {days} Tage alt ist. |
+| `rule.preset.describe.custom` | Clears all conditions, so you can tick the ones you want. | Entfernt alle Bedingungen, damit du die gewünschten ankreuzen kannst. |
+| `rule.preset.applied` | Preset "{preset}" applied and saved. You can change its conditions below. | Vorgabe „{preset}“ übernommen und gespeichert. Du kannst ihre Bedingungen unten ändern. |
+| `rule.preset.appliedOpen` | Preset "Open" applied and saved. The rule has no conditions, so every sender qualifies. | Vorgabe „Offen“ übernommen und gespeichert. Die Regel hat keine Bedingungen, deshalb ist jede Person qualifiziert. |
+| `rule.preset.appliedCustom` | All conditions cleared and saved. Tick the conditions you want. Until you do, every sender qualifies. | Alle Bedingungen entfernt und gespeichert. Kreuze die gewünschten Bedingungen an. Bis dahin ist jede Person qualifiziert. |
 | `rule.editor` | Editor: | Editor: |
 | `rule.simple` | Simple | Einfach |
 | `rule.advanced` | Advanced | Erweitert |

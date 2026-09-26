@@ -151,6 +151,13 @@ export const MESSAGE_PARAMS: {
   "rule.addConditionLabel": { number: "number" },
   "rule.ruleCount": { count: "number", maximum: "number" },
   "rule.notSaved": { problem: "message" },
+  "rule.preset.describe.complete": { photos: "number", words: "number" },
+  "rule.preset.describe.highTrust": {
+    photos: "number",
+    words: "number",
+    days: "number",
+  },
+  "rule.preset.applied": { preset: "message" },
   "templates.inFolder": { folder: "string" },
   "templates.editLabel": { name: "string" },
   "templates.editing": { name: "string" },

@@ -643,3 +643,201 @@ describe("First message contains (ADR 0013)", () => {
     ).toContain('"text":"🦊"');
   });
 });
+
+describe("rule presets (V1-11, ADR 0016)", () => {
+  const preset = () => select("joyfox-rule-preset");
+  const apply = () =>
+    root.querySelector<HTMLButtonElement>(".joyfox-rule__preset-apply")!;
+  const applied = () =>
+    status()?.textContent?.includes("applied and saved") ?? false;
+
+  function choose(id: string) {
+    preset().value = id;
+    change(preset());
+  }
+
+  it("fills the Simple editor with High-trust members and saves it", async () => {
+    const account = await accounts.createAccount({ joyClubAccountId: "a" });
+    await panel.render();
+    expect(apply().disabled).toBe(true);
+    choose("highTrust");
+    expect(apply().disabled).toBe(false);
+    expect(root.textContent).toContain(
+      "verified by JoyClub, with at least 3 photos, at least 50 words of profile text and an account at least 180 days old",
+    );
+    // Choosing alone saves nothing.
+    expect(await rules.getGlobalRule(account.id)).toBeUndefined();
+    apply().click();
+    await settle(applied);
+    expect(status()?.textContent).toContain(
+      'Preset "High-trust members" applied and saved',
+    );
+    const stored = await rules.getGlobalRule(account.id);
+    // The Simple editor's shape: the ALL box is the root's first group.
+    expect(stored?.root.children).toHaveLength(1);
+    expect(stored?.root.children[0]).toEqual({
+      type: "group",
+      match: "all",
+      children: [
+        { type: "condition", kind: "verified", whenUnknown: "needs-review" },
+        {
+          type: "condition",
+          kind: "minimumPhotos",
+          value: 3,
+          whenUnknown: "needs-review",
+        },
+        {
+          type: "condition",
+          kind: "minimumProfileWords",
+          value: 50,
+          whenUnknown: "needs-review",
+        },
+        {
+          type: "condition",
+          kind: "minimumAccountAgeDays",
+          value: 180,
+          whenUnknown: "needs-review",
+        },
+      ],
+    });
+    expect(input("joyfox-rule-all-verified-on").checked).toBe(true);
+    expect(input("joyfox-rule-all-minimumAccountAgeDays-value").value).toBe(
+      "180",
+    );
+    expect(input("joyfox-rule-all-minimumTrustScore-on").checked).toBe(false);
+    // The choice resets, so it never claims to describe an edited rule.
+    expect(preset().value).toBe("");
+    expect(apply().disabled).toBe(true);
+  });
+
+  it("lets the user edit the preset like any other rule", async () => {
+    const account = await accounts.createAccount({ joyClubAccountId: "a" });
+    await panel.render();
+    choose("complete");
+    apply().click();
+    await settle(applied);
+    status()!.textContent = "";
+    const photos = input("joyfox-rule-all-minimumPhotos-value");
+    photos.value = "5";
+    change(photos);
+    await settle(
+      () => status()?.textContent?.startsWith("Rule saved") ?? false,
+    );
+    expect(
+      JSON.stringify((await rules.getGlobalRule(account.id))?.root),
+    ).toContain('"kind":"minimumPhotos","value":5');
+  });
+
+  it("keeps the on switch and the failing placement", async () => {
+    const account = await accounts.createAccount({ joyClubAccountId: "a" });
+    await panel.render();
+    input("joyfox-rule-enabled").checked = false;
+    select("joyfox-rule-placement").value = "needs-review";
+    choose("verified");
+    apply().click();
+    await settle(applied);
+    expect(await rules.getGlobalRule(account.id)).toMatchObject({
+      enabled: false,
+      defaultPlacement: "needs-review",
+    });
+    expect(kindsOf((await rules.getGlobalRule(account.id))?.root)).toEqual([
+      "verified",
+    ]);
+  });
+
+  it("asks before it replaces conditions already shown", async () => {
+    const account = await accounts.createAccount({ joyClubAccountId: "a" });
+    await rules.saveGlobalRule(account.id, {
+      schemaVersion: 1,
+      audience: "all",
+      enabled: true,
+      defaultPlacement: "quarantined",
+      root: {
+        type: "group",
+        match: "all",
+        children: [
+          { type: "condition", kind: "personallyKnown", whenUnknown: "met" },
+        ],
+      },
+    });
+    const before = await rules.getGlobalRule(account.id);
+    await panel.render();
+    choose("open");
+    apply().click();
+    expect(apply().textContent).toBe("Replace conditions");
+    expect(status()?.textContent).toContain(
+      "The preset replaces every condition below",
+    );
+    expect(await rules.getGlobalRule(account.id)).toEqual(before);
+    // Another choice asks again.
+    choose("verified");
+    expect(apply().textContent).toBe("Apply preset");
+    apply().click();
+    expect(apply().textContent).toBe("Replace conditions");
+    apply().click();
+    await settle(applied);
+    expect(kindsOf((await rules.getGlobalRule(account.id))?.root)).toEqual([
+      "verified",
+    ]);
+  });
+
+  it("replaces an Advanced rule and shows the Simple editor", async () => {
+    const account = await accounts.createAccount({ joyClubAccountId: "a" });
+    await panel.render();
+    root.querySelector<HTMLButtonElement>('[data-view="advanced"]')!.click();
+    const add = root.querySelector<HTMLSelectElement>(
+      ".joyfox-rule__add-condition",
+    )!;
+    add.value = "verified";
+    change(add);
+    await settle(
+      () => status()?.textContent?.startsWith("Rule saved") ?? false,
+    );
+    root
+      .querySelector<HTMLInputElement>(
+        '[data-kind="verified"] .joyfox-rule__negate',
+      )!
+      .click();
+    choose("complete");
+    apply().click();
+    apply().click();
+    await settle(applied);
+    expect(root.querySelector("[data-rule]")).toBeNull();
+    expect(input("joyfox-rule-all-minimumPhotos-on").checked).toBe(true);
+    expect(kindsOf((await rules.getGlobalRule(account.id))?.root)).toEqual([
+      "minimumPhotos",
+      "minimumProfileWords",
+    ]);
+  });
+
+  it("saves Open and Custom with no conditions, each with its own message", async () => {
+    const account = await accounts.createAccount({ joyClubAccountId: "a" });
+    await panel.render();
+    choose("open");
+    apply().click();
+    await settle(applied);
+    expect(status()?.textContent).toContain("every sender qualifies");
+    expect(kindsOf((await rules.getGlobalRule(account.id))?.root)).toEqual([]);
+    choose("custom");
+    apply().click();
+    await settle(
+      () =>
+        status()?.textContent?.startsWith("All conditions cleared") ?? false,
+    );
+    expect(kindsOf((await rules.getGlobalRule(account.id))?.root)).toEqual([]);
+    expect(document.activeElement).toBe(input("joyfox-rule-all-verified-on"));
+  });
+
+  it("does not save a preset from a form drawn for another account", async () => {
+    const first = await accounts.createAccount({ joyClubAccountId: "a" });
+    const second = await accounts.createAccount({ joyClubAccountId: "b" });
+    await panel.render();
+    await accounts.setActiveAccount(second.id);
+    choose("verified");
+    apply().click();
+    await settle(() => status()?.getAttribute("data-kind") === "error");
+    expect(status()?.textContent).toContain("The active account changed");
+    expect(await rules.getGlobalRule(first.id)).toBeUndefined();
+    expect(await rules.getGlobalRule(second.id)).toBeUndefined();
+  });
+});
