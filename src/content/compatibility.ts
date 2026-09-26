@@ -1,8 +1,4 @@
 import {
-  extractInboxRows,
-  memberIdFromProfileHref,
-} from "../extraction/joyclub";
-import {
   isOwnProfile,
   POSITIVE_LEVELS,
   readPreferences,
@@ -18,7 +14,13 @@ import type {
 import { request, type MessageSender } from "../messaging/request";
 import { verifiedSelector, type PageType } from "../selectors/registry";
 import { MAX_COMPATIBILITY_MEMBERS } from "../compatibility/limits";
-import { inboxListShown } from "./inbox-triage";
+import {
+  COMPAT_BADGE,
+  memberCards,
+  resultItems,
+  type MemberCard,
+  type Surface,
+} from "./member-cards";
 import { pageMember } from "./member-panel";
 import { isPlaced, placeInStrip, removeEmptyStrip } from "./member-strip";
 import { button, element, UI_ATTRIBUTE } from "./triage-ui";
@@ -48,20 +50,10 @@ export function runtimeCompatibilityClient(): CompatibilityClient {
 export const SHARED_ATTRIBUTE = "data-joyfox-shared";
 /** The section in the member strip on a profile page. */
 export const COMPAT_SECTION = "compatibility";
-const BADGE = "compat-badge";
+const BADGE = COMPAT_BADGE;
 const SORT_BAR = "compat-sort";
 /** Set on each loaded search result while the sort is on: its new place. */
 export const RANK_ATTRIBUTE = "data-joyfox-rank";
-
-type Surface = "search" | "inbox" | "attendees";
-
-interface Card {
-  memberId: string;
-  /** Where the badge goes. */
-  place: (badge: HTMLElement) => void;
-  /** The element that holds the badge, to find one already placed. */
-  host: Element;
-}
 
 type Own =
   | { status: "no-account" }
@@ -215,87 +207,8 @@ export class CompatibilityOverlay {
   }
 
   /** The cards each active surface shows, with the members they name. */
-  #cards(): Array<[Surface, Card[]]> {
-    const surfaces: Array<[Surface, Card[]]> = [];
-    if (this.#type === "search") surfaces.push(["search", this.#searchCards()]);
-    if (inboxListShown(this.document))
-      surfaces.push(["inbox", this.#inboxCards()]);
-    if (this.#type === "event")
-      surfaces.push(["attendees", this.#attendeeCards()]);
-    return surfaces;
-  }
-
-  #linkMember(link: Element, source: string): string | undefined {
-    const id = memberIdFromProfileHref(
-      link.getAttribute("href"),
-      this.document.URL,
-      source,
-    );
-    return id.status === "found" ? id.value : undefined;
-  }
-
-  #searchCards(): Card[] {
-    const linkSelector = verifiedSelector("search", "resultLink");
-    const cardSelector = verifiedSelector("search", "resultCard");
-    if (!linkSelector) return [];
-    const cards: Card[] = [];
-    for (const link of Array.from(
-      this.document.querySelectorAll(linkSelector),
-    )) {
-      const memberId = this.#linkMember(link, "search.resultLink");
-      if (!memberId) continue;
-      const host = (cardSelector && link.querySelector(cardSelector)) || link;
-      cards.push({
-        memberId,
-        host,
-        // A light-DOM child with this slot draws over the card's photo
-        // (11-search.md, "Badge slots").
-        place: (badge) => {
-          badge.setAttribute("slot", "badge-top-right");
-          host.append(badge);
-        },
-      });
-    }
-    return cards;
-  }
-
-  #inboxCards(): Card[] {
-    const nameSelector = verifiedSelector("inbox", "senderName");
-    const cards: Card[] = [];
-    for (const row of extractInboxRows(this.document, this.document.URL)) {
-      if (row.memberId.status !== "found") continue;
-      const host = row.row;
-      cards.push({
-        memberId: row.memberId.value,
-        host,
-        place: (badge) => {
-          // After the triage badge when there is one, else after the name.
-          const after =
-            host.querySelector(`[${UI_ATTRIBUTE}="badge"]`) ??
-            (nameSelector ? host.querySelector(nameSelector) : null);
-          if (after) after.after(badge);
-          else host.append(badge);
-        },
-      });
-    }
-    return cards;
-  }
-
-  #attendeeCards(): Card[] {
-    const entrySelector = verifiedSelector("event", "attendeeEntry");
-    const nameSelector = verifiedSelector("event", "attendeeName");
-    if (!entrySelector) return [];
-    const cards: Card[] = [];
-    for (const entry of Array.from(
-      this.document.querySelectorAll(entrySelector),
-    )) {
-      const memberId = this.#linkMember(entry, "event.attendeeEntry");
-      if (!memberId) continue;
-      const name = nameSelector ? entry.querySelector(nameSelector) : null;
-      const host = name ?? entry;
-      cards.push({ memberId, host, place: (badge) => host.append(badge) });
-    }
-    return cards;
+  #cards(): Array<[Surface, MemberCard[]]> {
+    return memberCards(this.document, this.#type);
   }
 
   /** The shared count JoyFox knows for a member, or `null`. */
@@ -320,8 +233,10 @@ export class CompatibilityOverlay {
     else this.#removeSection();
   }
 
-  #badge(surface: Surface, card: Card): void {
-    const existing = card.host.querySelector(`[${UI_ATTRIBUTE}="${BADGE}"]`);
+  #badge(surface: Surface, card: MemberCard): void {
+    const existing = card.badgeHost.querySelector(
+      `[${UI_ATTRIBUTE}="${BADGE}"]`,
+    );
     const count = this.#count(card.memberId);
     if (count === null) return existing?.remove();
     const version = `${card.memberId}|${count}|${this.#version}`;
@@ -339,7 +254,7 @@ export class CompatibilityOverlay {
     badge.title = label;
     badge.setAttribute("aria-label", label);
     if (existing) existing.replaceWith(badge);
-    else card.place(badge);
+    else card.placeBadge(badge);
   }
 
   #clear(surfaces: readonly Surface[]): void {
@@ -462,28 +377,6 @@ export class CompatibilityOverlay {
     );
   }
 
-  /**
-   * The element that holds the loaded results, and each result's own item
-   * in it: the child of that element that contains the result's link.
-   */
-  #resultItems(): { container: Element; items: Element[] } | undefined {
-    const linkSelector = verifiedSelector("search", "resultLink");
-    if (!linkSelector) return undefined;
-    const links = Array.from(this.document.querySelectorAll(linkSelector));
-    let container = links[0]?.parentElement ?? null;
-    while (container && !links.every((link) => container?.contains(link)))
-      container = container.parentElement;
-    if (!container) return undefined;
-    const items: Element[] = [];
-    for (const link of links) {
-      let item: Element | null = link;
-      while (item && item.parentElement !== container)
-        item = item.parentElement;
-      if (item && !items.includes(item)) items.push(item);
-    }
-    return { container, items };
-  }
-
   /** CSS `order` moves items only in a flex or grid container. */
   #canSort(container: Element): boolean {
     const display =
@@ -491,7 +384,7 @@ export class CompatibilityOverlay {
     return /^(inline-)?(flex|grid)$/u.test(display);
   }
 
-  #drawSort(shown: Array<[Surface, Card[]]>): void {
+  #drawSort(shown: Array<[Surface, MemberCard[]]>): void {
     const listSelector = verifiedSelector("search", "resultList");
     const list = listSelector
       ? this.document.querySelector(listSelector)
@@ -499,7 +392,7 @@ export class CompatibilityOverlay {
     if (!list) return this.#unsort();
     const own = this.#own;
     const ready = own?.status === "ok" && own.own !== null;
-    const results = this.#resultItems();
+    const results = resultItems(this.document);
     const sortable = results ? this.#canSort(results.container) : false;
     let status: Message | undefined;
     if (own?.status === "no-account") status = message("compat.noAccount");
@@ -547,7 +440,7 @@ export class CompatibilityOverlay {
     // change).
     const counts = new Map(
       (shown.find(([surface]) => surface === "search")?.[1] ?? []).map(
-        (card) => [card.host, this.#count(card.memberId)] as const,
+        (card) => [card.badgeHost, this.#count(card.memberId)] as const,
       ),
     );
     const countOf = (item: Element) => {
