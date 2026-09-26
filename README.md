@@ -52,3 +52,8 @@ move to the profile is cancelled, the conversation page withdraws the hand-off
 after 15 seconds and says Ignore was not done (item 98). If another JoyClub page
 loads in the tab first, that page drops the hand-off at once (item 100). Both
 are covered by synthetic tests; item 99, a normal run, checks the hand-off live.
+
+## License
+
+JoyFox is free software under the GNU General Public License, version 3 or (at
+your option) any later version (`GPL-3.0-or-later`). See `LICENSE`.

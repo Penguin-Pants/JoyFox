@@ -120,8 +120,8 @@ buttons sit in open shadow roots; the driver clicks them there.
   code and a missing shield read as unknown, never as "not verified".
 - **Gender codes.** Confirmed by the project owner on 2026-09-23: `1` man, `2`
   woman, `3` couple (a male and a female icon side by side). Other codes read as
-  unknown. No feature filters by profile type yet; per-audience rules are V1
-  scope.
+  unknown. No feature filters by profile type. Per-audience rules were dropped
+  from V1 (ADR 0016).
 - **Conversation header.** Switching conversations is client-side, so the URL
   can change before the header re-renders. Header data is used only when the
   header's member ID is one of the numbers in the conversation ID. This assumes
