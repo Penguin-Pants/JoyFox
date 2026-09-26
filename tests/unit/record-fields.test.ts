@@ -5,7 +5,11 @@ import {
   formatDateTime,
   setLocale,
 } from "../../src/i18n/translator";
-import { DATE_FIELDS, renderFields } from "../../src/options/record-fields";
+import {
+  DATE_FIELDS,
+  MAX_SHOWN_VALUES,
+  renderFields,
+} from "../../src/options/record-fields";
 import schema from "../../src/domain/types.ts?raw";
 
 afterEach(() => setLocale("en"));
@@ -183,6 +187,35 @@ describe("record fields (V1-7)", () => {
       ["large", "1E21"],
       ["negative", "-123.456,789"],
     ]);
+  });
+
+  it("draws at most a fixed number of values for one record", () => {
+    const huge = Array.from({ length: 100_000 }, (_, index) => index);
+    const list = renderFields(document, { id: "x", filters: { values: huge } });
+    const items = list.querySelectorAll("li");
+    // "id", "filters" and "values" use three values of the budget.
+    expect(items).toHaveLength(MAX_SHOWN_VALUES - 3 + 1);
+    const shown = MAX_SHOWN_VALUES - 3;
+    expect(items[items.length - 1]!.textContent).toBe(
+      `…and ${(100_000 - shown).toLocaleString("en-US")} more (see "Stored JSON")`,
+    );
+    expect(list.querySelectorAll("span, time").length).toBeLessThanOrEqual(
+      MAX_SHOWN_VALUES + 1,
+    );
+  });
+
+  it("limits many fields and nested lists the same way", () => {
+    const wide = Object.fromEntries(
+      Array.from({ length: 5_000 }, (_, index) => [`key${index}`, [index]]),
+    );
+    const list = renderFields(document, wide);
+    const terms = list.querySelectorAll(":scope > dt");
+    // Each field uses two values: its list and the number in it.
+    expect(terms).toHaveLength(MAX_SHOWN_VALUES / 2 + 1);
+    expect(terms[terms.length - 1]!.textContent).toBe("…");
+    expect(terms[terms.length - 1]!.nextElementSibling?.textContent).toBe(
+      `…and ${(5_000 - MAX_SHOWN_VALUES / 2).toLocaleString("en-US")} more (see "Stored JSON")`,
+    );
   });
 
   it("sets stored text as text, never as markup", () => {

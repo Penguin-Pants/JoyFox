@@ -518,6 +518,7 @@ stay as they are.
 | `data.valueNo` | no | nein |
 | `data.valueEmpty` | (empty) | (leer) |
 | `data.rawJson` | Stored JSON | Gespeichertes JSON |
+| `data.moreValues` | …and {count} more (see "Stored JSON") | …und {count} weitere (siehe „Gespeichertes JSON“) |
 | `data.delete` | Delete | Löschen |
 | `data.deleteRecordLabel` | Delete record {id} | Datensatz {id} löschen |
 | `data.deleteRecordPrompt` | Click "Confirm" to delete record {id}. | Klicke auf „Bestätigen“, um den Datensatz {id} zu löschen. |

@@ -59,6 +59,26 @@ function span(document: Document, className: string, text: string) {
 }
 
 /**
+ * The most values drawn for one record. An imported record can hold a list of
+ * any length (imports allow up to 50 MiB), and drawing every item would freeze
+ * the options page. Past the limit, a line says how many more there are; the
+ * full record is always in "Stored JSON".
+ */
+export const MAX_SHOWN_VALUES = 200;
+
+interface Budget {
+  left: number;
+}
+
+function more(document: Document, count: number): HTMLElement {
+  return span(
+    document,
+    "joyfox-data__value--more",
+    t("data.moreValues", { count }),
+  );
+}
+
+/**
  * One stored value, readable: numbers and dates in the UI language, yes or no
  * for booleans, lists as lists and objects as nested fields. Field names are
  * the stored keys, never translated (i18n spec: export JSON keys stay as they
@@ -67,8 +87,10 @@ function span(document: Document, className: string, text: string) {
 function renderValue(
   document: Document,
   value: unknown,
+  budget: Budget,
   key?: string,
 ): HTMLElement {
+  budget.left -= 1;
   if (isEmpty(value))
     return span(document, "joyfox-data__value--empty", t("data.valueEmpty"));
   if (typeof value === "boolean")
@@ -94,40 +116,61 @@ function renderValue(
   if (Array.isArray(value)) {
     const list = document.createElement("ul");
     list.className = "joyfox-data__list";
-    for (const item of value) {
+    for (const [index, item] of value.entries()) {
       const entry = document.createElement("li");
-      entry.append(renderValue(document, item));
+      if (budget.left <= 0) {
+        entry.append(more(document, value.length - index));
+        list.append(entry);
+        break;
+      }
+      entry.append(renderValue(document, item, budget));
       list.append(entry);
     }
     return list;
   }
   if (typeof value === "object" && value !== null)
-    return renderFields(document, value as Record<string, unknown>);
+    return fields(document, value as Record<string, unknown>, budget);
   // JSON has no other types; anything else is shown as its text.
   return span(document, "joyfox-data__value", String(value));
 }
 
+function fields(
+  document: Document,
+  record: Readonly<Record<string, unknown>>,
+  budget: Budget,
+): HTMLDListElement {
+  const list = document.createElement("dl");
+  list.className = "joyfox-data__fields";
+  // JSON drops undefined fields, so the export never has them either.
+  const entries = Object.entries(record).filter(
+    ([, value]) => value !== undefined,
+  );
+  for (const [index, [key, value]] of entries.entries()) {
+    const term = document.createElement("dt");
+    const description = document.createElement("dd");
+    if (budget.left <= 0) {
+      term.textContent = "…";
+      description.append(more(document, entries.length - index));
+      list.append(term, description);
+      break;
+    }
+    const name = document.createElement("code");
+    name.textContent = key;
+    term.append(name);
+    description.append(renderValue(document, value, budget, key));
+    list.append(term, description);
+  }
+  return list;
+}
+
 /**
  * A stored record as a list of its fields (V1-7, PRD 13.5): each field name
- * with its value, so the user can read a record without reading JSON. Every
- * field of the record is shown, in stored order.
+ * with its value, so the user can read a record without reading JSON. Fields
+ * are shown in stored order, up to MAX_SHOWN_VALUES values.
  */
 export function renderFields(
   document: Document,
   record: Readonly<Record<string, unknown>>,
 ): HTMLDListElement {
-  const list = document.createElement("dl");
-  list.className = "joyfox-data__fields";
-  for (const [key, value] of Object.entries(record)) {
-    // JSON drops undefined fields, so the export never has them either.
-    if (value === undefined) continue;
-    const term = document.createElement("dt");
-    const name = document.createElement("code");
-    name.textContent = key;
-    term.append(name);
-    const description = document.createElement("dd");
-    description.append(renderValue(document, value, key));
-    list.append(term, description);
-  }
-  return list;
+  return fields(document, record, { left: MAX_SHOWN_VALUES });
 }

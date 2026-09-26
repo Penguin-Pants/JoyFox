@@ -171,6 +171,7 @@ export const MESSAGE_PARAMS: {
   "data.deleteRecordPrompt": { id: "string" },
   "data.deletedRecord": { id: "string" },
   "data.showMore": { count: "number" },
+  "data.moreValues": { count: "number" },
   "data.confirmLabel": { label: "message" },
   "data.import.summary.all": {
     matched: "number",

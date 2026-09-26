@@ -598,6 +598,8 @@ export const de: Catalog = {
   "data.valueNo": "nein",
   "data.valueEmpty": "(leer)",
   "data.rawJson": "Gespeichertes JSON",
+  "data.moreValues": (p, f) =>
+    `…und ${f.number(p.count)} weitere (siehe „Gespeichertes JSON“)`,
   "data.delete": "Löschen",
   "data.deleteRecordLabel": (p) => `Datensatz ${p.id} löschen`,
   "data.deleteRecordPrompt": (p) =>

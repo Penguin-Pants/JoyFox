@@ -344,7 +344,8 @@
   overflow-wrap: anywhere;
 }
 
-.joyfox-data__value--empty {
+.joyfox-data__value--empty,
+.joyfox-data__value--more {
   font-style: italic;
 }
 
