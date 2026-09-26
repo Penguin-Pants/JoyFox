@@ -172,6 +172,32 @@ describe("F6 repositories", () => {
       repositories.profileSnapshots.put("account-a", malformed),
     ).rejects.toThrow("photoCount");
   });
+  it("validates a tracked event's guest list (V1-13)", async () => {
+    const base = {
+      ...entity("eventMetadata", "account-a", "event:1234567"),
+      eventId: "1234567",
+      kind: "event" as const,
+    };
+    await repositories.eventMetadata.put("account-a", {
+      ...base,
+      attendees: ["1111111", "2222222"],
+      attendeesSeenAt: now,
+    });
+    for (const attendees of [
+      ["2222222", "1111111"],
+      ["1111111", "1111111"],
+      ["member"],
+      "1111111",
+      Array.from({ length: 2001 }, (_, i) => String(1000000 + i)),
+    ])
+      await expect(
+        repositories.eventMetadata.put("account-a", {
+          ...base,
+          attendees,
+        } as never),
+        JSON.stringify(attendees).slice(0, 30),
+      ).rejects.toThrow("attendees");
+  });
   it("validates the V1-2 preferences on a snapshot", async () => {
     const base = entity("profileSnapshots", "account-a", "snapshot");
     await repositories.profileSnapshots.put("account-a", {

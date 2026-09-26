@@ -107,6 +107,7 @@ function serviceClient(): TriageClient & {
       client.writes.push(`capture:${accountId}`);
       await triage.captureSnapshot(accountId, memberId, observed);
     },
+    optOutSharedEvent: () => Promise.resolve(),
     openOptions: () => Promise.resolve(),
   };
   return client;

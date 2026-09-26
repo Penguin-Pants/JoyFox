@@ -72,6 +72,13 @@ ID; the background compares it with the phrases in the user's own rule and drops
 it. It is never stored and never logged. When a preview holds a phrase, only
 that result is stored: the member ID, the rule's normalized phrase and the time.
 
+The shared-event exception (V1-13, ADR 0016) stores the member IDs a tracked
+event's guest list shows, as far as JoyClub has loaded it; JoyFox never clicks
+"Mehr Ergebnisse". Which members go to which event is sensitive information
+about other people: only member IDs are kept, never names, only for events the
+user tracks, and they are deleted when the event is no longer tracked. The
+exception is off by default.
+
 Conversation History Search (V1-4, ADR 0016) reads the message bubbles of a
 conversation the user opens, sent and received, and stores each message's text
 as shown, JoyClub's message ID, the conversation ID, the other member's ID, the

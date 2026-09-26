@@ -686,3 +686,18 @@ sending-page check does not refuse the normal hand-off.
      line says how many, and the one never opened stays, marked "Completeness
      unknown". Untick and confirm all are back. Switch the language to German
      and confirm the texts are German.
+
+## Shared-event exception (V1-13)
+
+129. Track an event (set "Attending"), then open its "Gäste" tab. In the JoyFox
+     options, tab "Events", confirm the event shows "N guests stored". Open the
+     profile of one guest and confirm a "Shared events" section names the event.
+130. Confirm "Shared-event exception" on the "Events" tab is off. With a contact
+     rule that places that guest in Needs Review or Quarantined, open the inbox
+     or a conversation with them and confirm the rule's placement.
+131. Turn the exception on. Confirm the guest is now Qualified, the bar says
+     "(shared event)", and the "Why" panel names the event. Click "Don't use the
+     shared event for this sender" and confirm the rule's placement is back.
+132. Clear the event's notes so it is no longer tracked. Confirm "Shared events"
+     is gone from the guest's profile. Switch the language to German and confirm
+     the texts are German.

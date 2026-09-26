@@ -97,7 +97,7 @@ app (`09-navigation.md`) and the inbox list can stay in the DOM.
 | Event        | Title             | `h1.event_name`                                                                    | Kept with the user's notes                           |
 | Event        | Start             | `.event_info_box .event-time`                                                      | "Samstag, 27. September 2026 - ab 21:00", local time |
 | Event        | Venue link        | `.event_location_detail a.event_club`                                              | `/club/<n>.<slug>.html` and the venue's name         |
-| Event        | Guest entry       | `.tab-pane[id^="guest_"] a.card.normal`                                            | Profile link; shared-count badge (V1-2)              |
+| Event        | Guest entry       | `.tab-pane[id^="guest_"] a.card.normal`                                            | Profile link; badges; stored guest list (V1-13)      |
 | Event        | Guest name        | `div.date_moreinfo`                                                                | The badge goes here                                  |
 | Event list   | Item              | `div.card-list-ui-list-item`                                                       | Event and date cards alike                           |
 | Event list   | Event item        | `div.card-list-ui-list-item.event-card-ui[data-element-id]`                        | `data-element-id` is the event ID                    |

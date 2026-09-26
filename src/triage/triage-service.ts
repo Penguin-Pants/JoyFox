@@ -30,6 +30,8 @@ import { registerMember } from "../storage/member-directory";
 import {
   ContactRuleRepository,
   ConversationClassificationRepository,
+  EventMetadataRepository,
+  ExtensionPreferenceRepository,
   JoyClubMemberRepository,
   MessagePhraseMatchRepository,
   ProfileSnapshotRepository,
@@ -37,6 +39,13 @@ import {
   TrustSignalRepository,
 } from "../storage/repositories";
 import { bumpTriageRevision } from "../storage/triage-revision";
+import {
+  SHARED_EVENT_EXCEPTION_KEY,
+  SHARED_EVENT_OPT_OUT_KEY,
+  sharedEventOptOutId,
+  sharedEventsByMember,
+  type SharedEvent,
+} from "./shared-event";
 import { computeTrustScore, type TrustScore } from "../trust/trust-score";
 
 /**
@@ -73,9 +82,12 @@ export interface TriageRequestMember {
 export interface MemberTriage {
   memberId: string;
   placement: TriagePlacement;
-  source: "rule" | "override";
+  /** `shared-event`: the V1-13 exception placed this sender Qualified. */
+  source: "rule" | "override" | "shared-event";
   /** The user's manual placement, when one is stored. */
   override?: { placement: TriagePlacement; decidedAt: string };
+  /** The event the shared-event exception names, when it applies (V1-13). */
+  sharedEvent?: SharedEvent;
   /** What the rule decides, shown even under an override for transparency. */
   automatic: RuleEvaluation;
   trust: TrustScore | "unknown";
@@ -148,7 +160,58 @@ export class TriageService {
     private readonly now: () => Date = () => new Date(),
     private readonly newId: () => string = () => crypto.randomUUID(),
     private readonly phraseMatches = new MessagePhraseMatchRepository(),
+    private readonly listings = new EventMetadataRepository(),
+    private readonly preferences = new ExtensionPreferenceRepository(),
   ) {}
+
+  /**
+   * V1-13: who is on the guest list of a counted event, when the exception
+   * is on; an empty map when it is off or cannot be read.
+   */
+  async #sharedEvents(accountId: string): Promise<Map<string, SharedEvent>> {
+    let on = false;
+    try {
+      on =
+        (await this.settings.get([SHARED_EVENT_EXCEPTION_KEY]))[
+          SHARED_EVENT_EXCEPTION_KEY
+        ] === true;
+    } catch {
+      // Unknown means off: the exception is never applied on a guess.
+    }
+    if (!on) return new Map();
+    const [records, preferences] = await Promise.all([
+      this.listings.list(accountId),
+      this.preferences.list(accountId),
+    ]);
+    const shared = sharedEventsByMember(records);
+    for (const preference of preferences)
+      if (
+        preference.key === SHARED_EVENT_OPT_OUT_KEY &&
+        typeof preference.value === "string"
+      )
+        shared.delete(preference.value);
+    return shared;
+  }
+
+  /**
+   * V1-13: turn the shared-event exception off for one sender, so the rule
+   * decides again. The user undoes it by deleting the record under "Your
+   * data".
+   */
+  async optOutSharedEvent(accountId: string, memberId: string): Promise<void> {
+    requireAccountId(accountId);
+    requireMemberId(memberId);
+    const timestamp = this.now().toISOString();
+    await this.preferences.put(accountId, {
+      id: sharedEventOptOutId(memberId),
+      accountId,
+      key: SHARED_EVENT_OPT_OUT_KEY,
+      value: memberId,
+      createdAt: timestamp,
+      updatedAt: timestamp,
+    });
+    await bumpTriageRevision(this.settings);
+  }
 
   async evaluate(
     accountId: string | undefined,
@@ -165,7 +228,7 @@ export class TriageService {
 
     const phrases = rulePhrases(rule.root);
     // One read per store for the whole batch, grouped by member.
-    const [snapshots, overrides, spamOverrides, signals, matches] =
+    const [snapshots, overrides, spamOverrides, signals, matches, shared] =
       await Promise.all([
         this.snapshots.list(accountId),
         this.classifications.list(accountId),
@@ -174,6 +237,7 @@ export class TriageService {
         phrases.size > 0
           ? this.phraseMatches.list(accountId)
           : Promise.resolve([] as MessagePhraseMatch[]),
+        this.#sharedEvents(accountId),
       ]);
     const matchesByMember = groupBy(matches, (item) => item.memberId);
     const snapshotsByMember = groupBy(snapshots, (item) => item.memberId);
@@ -220,6 +284,18 @@ export class TriageService {
         now,
       });
       const override = overrideByMember.get(member.memberId);
+      const sharedEvent = shared.get(member.memberId);
+      // The user's own move wins; the exception only lifts a sender the
+      // rule did not already qualify.
+      if (!override && sharedEvent && automatic.placement !== "qualified")
+        return {
+          memberId: member.memberId,
+          placement: "qualified",
+          source: "shared-event",
+          sharedEvent,
+          automatic,
+          trust,
+        };
       return override
         ? {
             memberId: member.memberId,

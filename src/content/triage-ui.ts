@@ -1,7 +1,7 @@
 import type { TriagePlacement } from "../domain/types";
 import type { PlainKey } from "../i18n/catalog/en";
 import { message, type Message } from "../i18n/message";
-import { formatDate, t } from "../i18n/translator";
+import { formatDate, formatWallTime, t } from "../i18n/translator";
 import {
   CONDITION_TEXT,
   PLACEMENT_TEXT,
@@ -86,6 +86,8 @@ export function reopenSections(root: Element, open: Set<string>): void {
 
 export interface ExplanationActions {
   onOverride(placement: TriagePlacement | null): void;
+  /** V1-13: turn the shared-event exception off for this sender. */
+  onSharedEventOptOut?(): void;
   /** Present where the user can log outcomes (conversation, profile). */
   onTrust?(kind: TrustOutcomeKind): void;
   onUndoTrust?(): void;
@@ -204,11 +206,45 @@ export function explanation(
         source: message(
           result.source === "override"
             ? "triage.source.override"
-            : "triage.source.rule",
+            : result.source === "shared-event"
+              ? "triage.source.sharedEvent"
+              : "triage.source.rule",
         ),
       }),
     ),
   );
+  if (result.sharedEvent) {
+    const event = result.sharedEvent;
+    root.append(
+      element(
+        document,
+        "p",
+        "joyfox-explain__shared-event",
+        t(
+          message(
+            event.attendance === "attended"
+              ? "triage.sharedEvent.attended"
+              : "triage.sharedEvent.attending",
+            {
+              event:
+                event.title ??
+                t(message("events.untitled", { id: event.eventId })),
+              when: event.startLocal ? formatWallTime(event.startLocal) : "",
+            },
+          ),
+        ),
+      ),
+    );
+    if (actions.onSharedEventOptOut)
+      root.append(
+        button(
+          document,
+          "joyfox-button",
+          t("triage.sharedEvent.optOut"),
+          actions.onSharedEventOptOut,
+        ),
+      );
+  }
   if (result.override)
     root.append(
       element(
@@ -340,6 +376,10 @@ export function memberBar(
     bar.append(pill);
     if (result.source === "override")
       bar.append(element(document, "span", "joyfox-note", t("bar.yourChoice")));
+    if (result.source === "shared-event")
+      bar.append(
+        element(document, "span", "joyfox-note", t("bar.sharedEvent")),
+      );
     if (input.openProfile) {
       const group = element(document, "span", "joyfox-bar__group");
       const link = element(
@@ -410,7 +450,12 @@ export function memberBar(
     // which live in the bar. The drawer keeps the reasons, the conditions,
     // the move controls and the score breakdown.
     drawer.append(
-      explanation(document, result, { onOverride: actions.onOverride }),
+      explanation(document, result, {
+        onOverride: actions.onOverride,
+        ...(actions.onSharedEventOptOut
+          ? { onSharedEventOptOut: actions.onSharedEventOptOut }
+          : {}),
+      }),
     );
   } else if (trust !== undefined) {
     drawer.append(trustSection(document, trust, {}));

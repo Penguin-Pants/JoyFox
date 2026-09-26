@@ -217,6 +217,12 @@
   score on a guest entry is 1 lower than on the profile page. The note and tag
   editor opens as a panel at the bottom right of the window, because a card is a
   link. The filter hides only results JoyClub has loaded.
+- The shared-event exception (V1-13) knows only the guests JoyClub had loaded
+  when the event page was open; the event page shows a first batch (37 of
+  several hundred in `14-events.md`), and JoyFox never loads more, so a real
+  co-attendee can be missed. It applies only while a contact rule is on, as an
+  exception to that rule, and never over the user's own move. Turning it off for
+  one sender is undone by deleting that record under "Your data".
 - Conversation History Search (V1-4) finds only messages JoyFox stored: the ones
   a conversation showed on screen while message caching was on. It never loads
   older messages, so a message never scrolled into view is not searchable. A

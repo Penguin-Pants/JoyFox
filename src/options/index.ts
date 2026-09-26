@@ -22,6 +22,7 @@ import {
   MESSAGE_RETENTION_KEY,
 } from "../messages/message-settings";
 import { MESSAGE_REVISION_KEY } from "../storage/message-revision";
+import { SHARED_EVENT_EXCEPTION_KEY } from "../triage/shared-event";
 import { EventsPanel } from "./events-panel";
 import { MessagesPanel } from "./messages-panel";
 import { GetStartedPanel } from "./get-started";
@@ -168,8 +169,8 @@ browser.storage.onChanged.addListener((changes, area) => {
     renderMessages();
     if (MESSAGE_REVISION_KEY in changes) renderData();
   }
-  // Event notes saved on a JoyClub page.
-  if (EVENT_REVISION_KEY in changes) {
+  // Event notes saved on a JoyClub page, or the shared-event exception.
+  if (EVENT_REVISION_KEY in changes || SHARED_EVENT_EXCEPTION_KEY in changes) {
     renderEvents();
     renderData();
   }

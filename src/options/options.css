@@ -512,3 +512,14 @@
   white-space: pre-wrap;
   overflow-wrap: anywhere;
 }
+
+/* V1-13: the shared-event exception. */
+.joyfox-events__exception {
+  margin: var(--joyfox-space-2) 0 var(--joyfox-space-3);
+}
+
+.joyfox-events__exception-label {
+  display: flex;
+  gap: var(--joyfox-space-2);
+  align-items: flex-start;
+}

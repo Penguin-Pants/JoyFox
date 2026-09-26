@@ -5,6 +5,11 @@ import { kindOf, type Attendance } from "../events/listing";
 import type { PlainKey } from "../i18n/catalog/en";
 import { message } from "../i18n/message";
 import { formatWallTime, t } from "../i18n/translator";
+import {
+  runtimeSettingsArea,
+  type SettingsArea,
+} from "../storage/local-settings";
+import { SHARED_EVENT_EXCEPTION_KEY } from "../triage/shared-event";
 
 const ATTENDANCE_TEXT: Record<Attendance, PlainKey> = {
   unknown: "listing.attendance.unknown",
@@ -71,12 +76,16 @@ export class EventsPanel {
   #accountId: string | undefined;
   #filter: Filter = "all";
   #search = "";
+  /** V1-13: the shared-event exception; off unless turned on. */
+  #exception = false;
+  #exceptionSaved = false;
 
   constructor(
     private readonly root: HTMLElement,
     private readonly listings = new EventTrackerService(),
     private readonly accounts = new AccountService(),
     private readonly now: () => Date = () => new Date(),
+    private readonly settings: SettingsArea = runtimeSettingsArea,
   ) {}
 
   async render(): Promise<void> {
@@ -86,6 +95,11 @@ export class EventsPanel {
     try {
       accountId = (await this.accounts.getActiveAccount())?.id;
       records = accountId ? await this.listings.list(accountId) : [];
+      // A setting that cannot be read counts as off.
+      this.#exception = await Promise.resolve()
+        .then(() => this.settings.get([SHARED_EVENT_EXCEPTION_KEY]))
+        .then((stored) => stored[SHARED_EVENT_EXCEPTION_KEY] === true)
+        .catch(() => false);
     } catch {
       if (generation === this.#generation)
         this.root.textContent = t("events.readFailed");
@@ -116,6 +130,7 @@ export class EventsPanel {
     this.root.append(
       heading,
       element(document, "p", "joyfox-panel__hint", t("events.hint")),
+      this.#exceptionControl(document),
     );
     if (!accountId) {
       this.root.append(
@@ -252,6 +267,10 @@ export class EventsPanel {
         );
       const details = [t(ATTENDANCE_TEXT[record.attendance])];
       if (record.tags.length > 0) details.push(record.tags.join(", "));
+      if (record.attendees && record.attendees.length > 0)
+        details.push(
+          t(message("events.guests", { count: record.attendees.length })),
+        );
       item.append(
         element(
           document,
@@ -295,5 +314,44 @@ export class EventsPanel {
       list.append(item);
     }
     return list;
+  }
+
+  /** V1-13: the switch for the shared-event exception, off by default. */
+  #exceptionControl(document: Document): HTMLElement {
+    const box = element(document, "div", "joyfox-events__exception");
+    const toggle = element(document, "input", "");
+    toggle.type = "checkbox";
+    toggle.id = "joyfox-shared-event-exception";
+    toggle.checked = this.#exception;
+    const label = element(document, "label", "joyfox-events__exception-label");
+    label.htmlFor = toggle.id;
+    label.append(toggle, " ", t("events.exception.label"));
+    toggle.addEventListener("change", () => {
+      void this.settings
+        .set({ [SHARED_EVENT_EXCEPTION_KEY]: toggle.checked })
+        .then(() => {
+          this.#exceptionSaved = true;
+          return this.render();
+        })
+        .catch(() => {
+          toggle.checked = this.#exception;
+        });
+    });
+    box.append(
+      label,
+      element(document, "p", "joyfox-panel__hint", t("events.exception.hint")),
+    );
+    if (this.#exceptionSaved) {
+      const status = element(
+        document,
+        "p",
+        "joyfox-panel__status",
+        t("events.exception.saved"),
+      );
+      status.setAttribute("role", "status");
+      box.append(status);
+      this.#exceptionSaved = false;
+    }
+    return box;
   }
 }

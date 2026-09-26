@@ -4,6 +4,7 @@ import type { EventTrackerService } from "../events/event-service";
 import {
   ATTENDANCE_VALUES,
   kindOf,
+  MAX_EVENT_ATTENDEES,
   notesProblem,
   type ListingFacts,
   type ListingKind,
@@ -15,6 +16,7 @@ import type { SettingsArea } from "../storage/local-settings";
 import {
   invalid,
   lockedWrite,
+  memberId,
   type ActiveAccountSource,
 } from "./handler-guards";
 
@@ -156,5 +158,32 @@ export function registerListingHandlers(
     if (answer.status === "saved" || answer.status === "removed")
       await bumpEventRevision(deps.settings);
     return answer;
+  });
+  // V1-13: the guest list a tracked event's page shows. Only member IDs.
+  router.register("listing.attendees", async (payload) => {
+    const id = listingId(payload?.eventId);
+    const ids: unknown = payload?.memberIds;
+    if (!Array.isArray(ids) || ids.length > MAX_EVENT_ATTENDEES)
+      throw invalid("member list");
+    const members = ids.map(memberId);
+    const answer = await lockedWrite<{
+      status: "stored" | "unchanged" | "untracked" | "refused";
+    }>(deps, payload?.accountId, { status: "refused" }, async (accountId) => ({
+      status: await deps.listings.recordAttendees(accountId, id, members),
+    }));
+    // Open profile pages and the calendar show the shared events at once.
+    if (answer.status === "stored") await bumpEventRevision(deps.settings);
+    return answer;
+  });
+  router.register("listing.forMember", async (payload) => {
+    const member = memberId(payload?.memberId);
+    const accountId = await deps.activeAccountId();
+    if (!accountId) return { status: "no-account" as const };
+    const records = await deps.listings.forMember(accountId, member);
+    return {
+      status: "ok" as const,
+      accountId,
+      listings: records.map(summarize),
+    };
   });
 }

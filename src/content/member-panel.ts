@@ -367,6 +367,10 @@ export class MemberPanel {
               this.#write(() =>
                 this.client.setOverride(data.accountId, memberId, placement),
               ),
+            onSharedEventOptOut: () =>
+              this.#write(() =>
+                this.client.optOutSharedEvent(data.accountId, memberId),
+              ),
             ...trustActions,
           },
           drawerOpen: this.#drawerOpen,

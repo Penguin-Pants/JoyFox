@@ -590,6 +590,21 @@ export class InboxTriage {
               }),
           );
         },
+        onSharedEventOptOut: () => {
+          if (!accountId) return;
+          this.#writeQueue = this.#writeQueue.then(() =>
+            this.client
+              .optOutSharedEvent(accountId, memberId)
+              .then(() => {
+                this.#failedFor = undefined;
+                this.invalidate();
+              })
+              .catch(() => {
+                this.#failedFor = memberId;
+                this.#showError();
+              }),
+          );
+        },
       }),
       close,
     );

@@ -242,6 +242,13 @@ export const de: Catalog = {
   "triage.placementLine": (p) => `Einordnung: ${p.placement} (${p.source}).`,
   "triage.source.override": "deine eigene Wahl",
   "triage.source.rule": "deine Kontaktregel",
+  "triage.source.sharedEvent": "die Ausnahme für gemeinsame Events",
+  "triage.sharedEvent.attending": (p) =>
+    `Auf der Gästeliste von „${p.event}“${p.when ? ` (${p.when})` : ""}, das du mit „Ich gehe hin“ markiert hast.`,
+  "triage.sharedEvent.attended": (p) =>
+    `Auf der Gästeliste von „${p.event}“${p.when ? ` (${p.when})` : ""}, das du mit „War dort“ markiert hast.`,
+  "triage.sharedEvent.optOut":
+    "Das gemeinsame Event für diese Person nicht verwenden",
   "triage.movedOn": (p) =>
     `Du hast diese Person am ${p.date} verschoben. Deine Regel allein würde sie in „${p.placement}“ einordnen.`,
   "triage.move.group": "Diese Person verschieben",
@@ -269,6 +276,7 @@ export const de: Catalog = {
   "trust.log.undo": "Letzte Erfahrung zurücknehmen",
   "bar.placementPrefix": "Einordnung: ",
   "bar.yourChoice": "(deine Wahl)",
+  "bar.sharedEvent": "(gemeinsames Event)",
   "bar.openProfile": "Profil öffnen",
   "bar.log": "Erfassen:",
   "bar.positive": "Positiv",
@@ -388,6 +396,19 @@ export const de: Catalog = {
   "events.past": (p) => `${p.when} (vorbei)`,
   "events.venue": (p) => `Ort: ${p.venue}`,
   "events.venuesHeading": "Meine Clubs",
+  "events.guests": (p, f) =>
+    f.plural(p.count, {
+      one: "1 Gast gespeichert",
+      other: `${f.number(p.count)} Gäste gespeichert`,
+    }),
+  "events.exception.label":
+    "Ausnahme für gemeinsame Events: eine Person als „Qualifiziert“ einordnen, wenn sie auf der Gästeliste eines Events steht, das ich mit „Ich gehe hin“ oder „War dort“ markiert habe",
+  "events.exception.hint":
+    "Standardmäßig aus. JoyFox speichert die Gästeliste eines verfolgten Events, wenn du die Event-Seite öffnest, so weit JoyClub sie geladen hat, und löscht sie, wenn du das Event nicht mehr verfolgst. Eine Person, die du selbst verschoben hast, behält deine Wahl, und im Bereich „Warum“ kannst du die Ausnahme für eine Person abschalten.",
+  "events.exception.saved": "Gespeichert.",
+  "sharedEvents.heading": "Gemeinsame Events",
+  "sharedEvents.intro":
+    "Dieses Mitglied steht auf der gespeicherten Gästeliste dieser Events, die du verfolgst:",
   "eventFilter.label": "JoyFox: zeigen",
   "eventFilter.all": "Alle geladenen Events und Dates",
   "eventFilter.tracked": "Nur meine verfolgten Events",

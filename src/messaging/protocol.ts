@@ -108,6 +108,11 @@ export interface MessageContract {
     };
     response: { done: boolean };
   };
+  /** V1-13: turn the shared-event exception off for one sender. */
+  "triage.sharedEventOptOut": {
+    request: { accountId: string; memberId: string };
+    response: { done: boolean };
+  };
   "trust.log": {
     request: { accountId: string; memberId: string; kind: TrustOutcomeKind };
     response: { done: boolean };
@@ -333,6 +338,24 @@ export interface MessageContract {
     response:
       | { status: "no-account" }
       | { status: "ok"; accountId: string; listing: ListingSummary | null };
+  };
+  /**
+   * V1-13: the member IDs a tracked event's guest list shows. `stored` when
+   * new IDs were added; `untracked` when the event has no notes, so nothing
+   * is kept.
+   */
+  "listing.attendees": {
+    request: { accountId: string; eventId: string; memberIds: string[] };
+    response: {
+      status: "stored" | "unchanged" | "untracked" | "refused";
+    };
+  };
+  /** V1-13: the tracked events whose guest list names one member. */
+  "listing.forMember": {
+    request: { memberId: string };
+    response:
+      | { status: "no-account" }
+      | { status: "ok"; accountId: string; listings: ListingSummary[] };
   };
   /** Every tracked event and venue of the active account, for the list filter. */
   "listing.list": {

@@ -25,6 +25,8 @@ export const ATTENDANCE_VALUES: readonly Attendance[] = [
 
 /** A storage guard chosen by this implementation, like the note limit. */
 export const MAX_EVENT_TAGS = 20;
+/** The most guest-list members kept for one event (V1-13); a storage guard. */
+export const MAX_EVENT_ATTENDEES = 2000;
 export const MAX_LISTING_TEXT_LENGTH = 300;
 
 /** The listing facts read from the page when the user saves. */

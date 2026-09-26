@@ -26,6 +26,7 @@ import {
 import { EventListFilter } from "./event-list-filter";
 import { MessageCache, runtimeMessageCacheClient } from "./message-cache";
 import { PreferenceRetry } from "./preference-retry";
+import { runtimeSharedEventsClient, SharedEvents } from "./shared-events";
 import { ListingPanel, runtimeListingClient } from "./listing-panel";
 import { MemberNotes, runtimeNotesClient } from "./member-notes";
 import { MemberPanel } from "./member-panel";
@@ -95,6 +96,12 @@ if (hasVerifiedSelectors() && VERIFIED_HOSTS.includes(location.hostname)) {
     runtimeMessageCacheClient(),
     () => activeAccountId,
   );
+  // V1-13: guest lists of tracked events, and shared events on profiles.
+  const sharedEvents = new SharedEvents(
+    document,
+    runtimeSharedEventsClient(),
+    () => activeAccountId,
+  );
   const updateMessageCache = () => {
     if (lastType === "conversation")
       messageCache.update(messageCaching.enabled);
@@ -135,6 +142,8 @@ if (hasVerifiedSelectors() && VERIFIED_HOSTS.includes(location.hostname)) {
     eventFilter.localeChanged();
     compatibility.localeChanged();
     cardSignals.localeChanged();
+    sharedEvents.localeChanged();
+    sharedEvents.update(lastType);
   });
   const preferenceRetry = new PreferenceRetry(() => coordinator.refresh());
   let lastType: string | undefined;
@@ -178,6 +187,8 @@ if (hasVerifiedSelectors() && VERIFIED_HOSTS.includes(location.hostname)) {
     compatibility.update(type);
     // Completeness, trust, note and tags on every card (V1-10).
     cardSignals.update(type);
+    // Guest lists of tracked events; shared events on profiles (V1-13).
+    sharedEvents.update(type);
     // Labels still drawing in their shadow roots wake no observer.
     preferenceRetry.check(
       document.URL,
@@ -229,6 +240,8 @@ if (hasVerifiedSelectors() && VERIFIED_HOSTS.includes(location.hostname)) {
     if (MESSAGE_CACHING_KEY in changes) {
       messageCache.reset();
       updateMessageCache();
+      sharedEvents.invalidate();
+      sharedEvents.update(lastType);
     }
     // A Quick Ignore and Delete run moved, in this tab or another one.
     if (ACTION_REVISION_KEY in changes) quick.invalidate();
@@ -273,6 +286,8 @@ if (hasVerifiedSelectors() && VERIFIED_HOSTS.includes(location.hostname)) {
     if (EVENT_REVISION_KEY in changes) {
       listing.invalidate();
       eventFilter.invalidate();
+      sharedEvents.invalidate();
+      sharedEvents.update(lastType);
     }
   });
   // Start after the initial flag and language are known, so the first event

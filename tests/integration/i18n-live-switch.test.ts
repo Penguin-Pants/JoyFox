@@ -346,6 +346,7 @@ describe("content surfaces (docs/i18n-spec.md, Sections 3.7 and 6)", () => {
         triage
           .captureSnapshot(accountId, memberId, observed)
           .then(() => undefined),
+      optOutSharedEvent: () => Promise.resolve(),
       openOptions: () => Promise.resolve(),
     };
   }

@@ -132,6 +132,18 @@ export function registerTriageHandlers(
       },
     );
   });
+  router.register("triage.sharedEventOptOut", async (payload) => {
+    const id = memberId(payload?.memberId);
+    return lockedWrite<{ done: boolean }>(
+      deps,
+      payload?.accountId,
+      { done: false },
+      async (accountId) => {
+        await deps.triage.optOutSharedEvent(accountId, id);
+        return { done: true };
+      },
+    );
+  });
   router.register("trust.log", async (payload) => {
     const id = memberId(payload?.memberId);
     if (!OUTCOMES.includes(payload?.kind)) throw invalid("outcome");

@@ -19,6 +19,7 @@ const SECTION_ORDER: readonly string[] = [
   "member-panel",
   "completeness",
   "compatibility",
+  "shared-events",
   "member-notes",
   "quick-action",
 ];

@@ -1,6 +1,7 @@
 import { isStrictIsoDate } from "../domain/iso-date";
 import type { AccountScopedEntity, EntityName } from "../domain/types";
 import { isWallTime } from "../events/event-date";
+import { MAX_EVENT_ATTENDEES } from "../events/listing";
 import { normalizeLabel } from "../extraction/preferences";
 import {
   CONVERSATION_ID_PATTERN,
@@ -303,6 +304,25 @@ export function validateEntity(
         "attended",
         "unknown",
       ]);
+      if (record.attendees !== undefined) {
+        const ids: unknown = record.attendees;
+        // As a capture stores them: member IDs, sorted and unique.
+        if (
+          !Array.isArray(ids) ||
+          ids.length > MAX_EVENT_ATTENDEES ||
+          ids.some(
+            (id, index) =>
+              typeof id !== "string" ||
+              !/^\d{1,12}$/u.test(id) ||
+              (index > 0 && !((ids[index - 1] as string) < id)),
+          )
+        )
+          throw new ValidationError(
+            `attendees must be up to ${MAX_EVENT_ATTENDEES} member IDs, sorted and unique`,
+          );
+      }
+      if (record.attendeesSeenAt !== undefined)
+        requireDate(record, "attendeesSeenAt");
       break;
     case "spendLogEntries":
       requireDate(record, "occurredAt");

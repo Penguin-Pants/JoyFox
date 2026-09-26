@@ -3,6 +3,8 @@ import { EventMetadataRepository } from "../storage/repositories";
 import {
   cleanTags,
   compareListings,
+  kindOf,
+  MAX_EVENT_ATTENDEES,
   cutListingText,
   listingRecordId,
   type Attendance,
@@ -115,6 +117,11 @@ export class EventTrackerService {
       ...(note ? { note } : {}),
       tags,
       attendance,
+      // The guest list read earlier stays while the event is tracked.
+      ...(existing?.attendees ? { attendees: existing.attendees } : {}),
+      ...(existing?.attendeesSeenAt
+        ? { attendeesSeenAt: existing.attendeesSeenAt }
+        : {}),
       createdAt: existing?.createdAt ?? timestamp,
       updatedAt: timestamp,
     };
@@ -122,5 +129,50 @@ export class EventTrackerService {
     if (found && found.key !== recordId)
       await this.listings.delete(accountId, found.key);
     return { status: "saved", record };
+  }
+
+  /**
+   * V1-13: add the member IDs a tracked event's guest list showed to the
+   * ones read before (PRD 9.3). Only a tracked event keeps them. The notes'
+   * version (`updatedAt`) does not change, so an open editor is not told of a
+   * conflict it could not see.
+   */
+  async recordAttendees(
+    accountId: string,
+    eventId: string,
+    memberIds: readonly string[],
+  ): Promise<"stored" | "unchanged" | "untracked"> {
+    const found = await this.#find(accountId, "event", eventId);
+    if (!found || kindOf(found.record) !== "event") return "untracked";
+    const known = found.record.attendees ?? [];
+    const merged = [...new Set([...known, ...memberIds])].sort();
+    const kept =
+      merged.length > MAX_EVENT_ATTENDEES
+        ? [
+            ...known,
+            ...merged
+              .filter((id) => !known.includes(id))
+              .slice(0, MAX_EVENT_ATTENDEES - known.length),
+          ].sort()
+        : merged;
+    if (kept.length === known.length) return "unchanged";
+    await this.listings.put(accountId, {
+      ...found.record,
+      attendees: kept,
+      attendeesSeenAt: this.now(),
+    });
+    return "stored";
+  }
+
+  /** V1-13: the tracked events whose stored guest list names a member. */
+  async forMember(
+    accountId: string,
+    memberId: string,
+  ): Promise<EventMetadata[]> {
+    return (await this.list(accountId)).filter(
+      (record) =>
+        kindOf(record) === "event" &&
+        (record.attendees ?? []).includes(memberId),
+    );
   }
 }
