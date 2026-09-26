@@ -138,9 +138,26 @@ describe("V1-3 saved-search handlers", () => {
       await expect(send("search.save", payload)).rejects.toThrow(
         "HANDLER_FAILED",
       );
-    await expect(
-      send("search.delete", { accountId: "account-a", id: "template:1" }),
-    ).rejects.toThrow("HANDLER_FAILED");
+    for (const id of ["", 7, "x".repeat(201)])
+      await expect(
+        send("search.delete", { accountId: "account-a", id }),
+      ).rejects.toThrow("HANDLER_FAILED");
+  });
+
+  it("deletes an imported saved search whatever its ID", async () => {
+    await repositories.savedSearches.put("account-a", {
+      id: "imported-7",
+      accountId: "account-a",
+      name: "Imported",
+      url: URL_A,
+      filters: { path: [], query: [] },
+      createdAt: now,
+      updatedAt: now,
+    });
+    expect(
+      await send("search.delete", { accountId: "account-a", id: "imported-7" }),
+    ).toEqual({ status: "deleted" });
+    expect(await repositories.savedSearches.list("account-a")).toEqual([]);
   });
 
   it("deletes a saved search, and only for the active account", async () => {

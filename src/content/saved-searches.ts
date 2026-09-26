@@ -84,6 +84,11 @@ export class SavedSearchBar {
   #draft = "";
   /** The saved search whose ✕ was clicked once; a second click deletes. */
   #armed?: string;
+  /**
+   * A save or delete is on its way. A second Enter, double click or ✕
+   * meanwhile is ignored, so one action never stores or deletes twice.
+   */
+  #busy = false;
 
   constructor(
     private readonly document: Document,
@@ -313,6 +318,7 @@ export class SavedSearchBar {
   }
 
   async #save(): Promise<void> {
+    if (this.#busy) return;
     const accountId = this.#data?.accountId;
     if (!accountId) return;
     const name = normalizeSearchName(this.#draft);
@@ -330,12 +336,15 @@ export class SavedSearchBar {
       return this.#setStatus(message("searches.notSearchAddress"), true);
     const session = this.#session;
     let answer: SaveSearchAnswer;
+    this.#busy = true;
     try {
       answer = await this.client.save(accountId, name, address.url);
     } catch {
       if (session === this.#session)
         this.#setStatus(message("common.saveFailed"), true);
       return;
+    } finally {
+      this.#busy = false;
     }
     if (session !== this.#session) return;
     if (answer.status === "saved") {
@@ -359,6 +368,7 @@ export class SavedSearchBar {
   }
 
   async #remove(search: SavedSearchSummary): Promise<void> {
+    if (this.#busy) return;
     const accountId = this.#data?.accountId;
     if (!accountId) return;
     if (this.#armed !== search.id) {
@@ -371,12 +381,15 @@ export class SavedSearchBar {
     this.#armed = undefined;
     const session = this.#session;
     let answer: DeleteSearchAnswer;
+    this.#busy = true;
     try {
       answer = await this.client.remove(accountId, search.id);
     } catch {
       if (session === this.#session)
         this.#setStatus(message("common.saveFailed"), true);
       return;
+    } finally {
+      this.#busy = false;
     }
     if (session !== this.#session) return;
     if (answer.status === "deleted") {

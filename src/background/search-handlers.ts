@@ -37,8 +37,12 @@ function searchUrl(value: unknown): string {
   return value;
 }
 
+/**
+ * Any stored ID: records this build saves start with `search:`, but an
+ * imported record may carry any non-empty ID, and it must stay deletable.
+ */
 function searchId(value: unknown): string {
-  if (typeof value !== "string" || !value.startsWith("search:"))
+  if (typeof value !== "string" || value.length === 0 || value.length > 200)
     throw invalid("saved search");
   return value;
 }

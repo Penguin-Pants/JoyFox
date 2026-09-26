@@ -154,6 +154,28 @@ describe("V1-3 saved-search bar", () => {
     expect(status()).toBe('Saved "Weekend".');
   });
 
+  it("saves once when Enter or Save is pressed again while saving", async () => {
+    bar.update();
+    await flush();
+    let answer: (value: unknown) => void = () => undefined;
+    client.save.mockImplementation(
+      () => new Promise((resolve) => (answer = resolve)),
+    );
+    buttonNamed("Save this search").click();
+    const input = document.querySelector<HTMLInputElement>(
+      ".joyfox-saved-searches__name",
+    )!;
+    input.value = "Weekend";
+    input.dispatchEvent(new Event("input"));
+    input.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter" }));
+    input.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter" }));
+    buttonNamed("Save").click();
+    expect(client.save).toHaveBeenCalledTimes(1);
+    answer({ status: "saved", id: "search:2" });
+    await flush();
+    expect(status()).toBe('Saved "Weekend".');
+  });
+
   it("does not save an address that is not a search", async () => {
     bar = new SavedSearchBar(
       document,
