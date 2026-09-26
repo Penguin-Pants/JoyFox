@@ -162,6 +162,9 @@ export class SavedSearchBar {
     }
     if (!current()) return;
     this.#data = answer;
+    // A read failure is over once a read works; other notices stay.
+    if (this.#status?.text.key === "searches.readFailed")
+      this.#status = undefined;
     // A search deleted elsewhere cannot stay armed for deletion.
     if (!answer.searches.some((search) => search.id === this.#armed))
       this.#armed = undefined;

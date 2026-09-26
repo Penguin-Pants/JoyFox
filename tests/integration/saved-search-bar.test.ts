@@ -236,6 +236,17 @@ describe("V1-3 saved-search bar", () => {
     expect(root()?.textContent).toContain("No saved searches yet.");
   });
 
+  it("drops the read error once a later read works", async () => {
+    client.list.mockRejectedValueOnce(new Error("offline"));
+    bar.update();
+    await flush();
+    expect(status()).toContain("could not read your saved searches");
+    bar.invalidate();
+    await flush();
+    expect(status()).toBe("");
+    expect(buttonNamed("Nearby")).toBeDefined();
+  });
+
   it("asks for an account first", async () => {
     listAnswer = { searches: [] };
     bar.update();
