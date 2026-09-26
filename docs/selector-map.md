@@ -27,7 +27,7 @@ Rules:
 | Inbox                    | Verified   | `01-inbox.md`        | Detected and extracted  |
 | Conversation             | Verified   | `02-conversation.md` | Detected and extracted  |
 | Profile                  | Verified   | `03-profile.md`      | Detected and extracted  |
-| Search                   | Unverified | None                 | Disabled                |
+| Search                   | Verified   | `11-search.md`       | Saved searches (V1-3)   |
 | Event                    | Unverified | None                 | Disabled                |
 | Event calendar           | Unverified | None                 | Disabled                |
 | Standard composer        | Verified   | `02-conversation.md` | Template picker (M10)   |
@@ -45,6 +45,7 @@ half-rendered page is reported as missing rather than read.
 | Conversation | `/clubmail/conversation/conversation-wrapper-personal-<n>-<n>/` | `.cm-conversation-header`               |
 | Inbox        | `/clubmail/`                                                    | `.cm-conversation-list`                 |
 | Profile      | `/profile/<n>.<nickname>.html`                                  | `[data-e2e="profile-header-base-info"]` |
+| Search       | `/member/` and `/member/<segment>/…/`                           | `div.member_search_list`                |
 
 Conversation is checked before inbox, because both are client-side routes of one
 app (`09-navigation.md`) and the inbox list can stay in the DOM.
@@ -73,6 +74,9 @@ app (`09-navigation.md`) and the inbox list can stay in the DOM.
 | Profile      | Photo count       | `.amount-badge[aria-label]`                                                        | `"<n> Fotos"` or `"1 Foto"`                          |
 | Profile      | Profile text      | `.profile-description-maintext__text`                                              | Word count of the main text only (motto not counted) |
 | Profile      | Account age       | `.profile-sidebar-container__badge-list j-list-item` with text "Angemeldet seit …" | Join window from a rounded duration                  |
+| Search       | Result list       | `div.member_search_list`                                                           | Saved-search bar goes before it                      |
+| Search       | Filter button     | `[data-e2e="search-filter-button"]`                                                | Recorded only                                        |
+| Search       | Result link       | `a[data-e2e="result-item"]`                                                        | Recorded only; no member is read                     |
 
 ## Layout dependency (ADR 0010)
 

@@ -96,7 +96,20 @@ export const selectorRegistry: Readonly<
       profileMainText: ".profile-description-maintext__text",
     },
   },
-  search: unverified(),
+  search: {
+    status: "verified",
+    evidence: "11-search.md",
+    // `/member/` and its filtered form `/member/<place>-as-r/is-<genders>/`.
+    // Filters apply in place: the address changes without a page load.
+    path: "^/member/(?:[^/]+/)*$",
+    root: "div.member_search_list",
+    fields: {
+      resultList: "div.member_search_list",
+      filterButton: '[data-e2e="search-filter-button"]',
+      // Display only for now: saved searches read no member.
+      resultLink: 'a[data-e2e="result-item"]',
+    },
+  },
   event: unverified(),
   "event-calendar": unverified(),
 };

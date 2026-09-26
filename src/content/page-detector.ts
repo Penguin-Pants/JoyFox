@@ -17,6 +17,7 @@ const DETECTION_ORDER: readonly KnownPage[] = [
   "conversation",
   "inbox",
   "profile",
+  "search",
 ];
 
 /**

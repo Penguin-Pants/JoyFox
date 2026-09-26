@@ -579,3 +579,22 @@ sending-page check does not refuse the normal hand-off.
      qualifies and the editor shows no ticked box. Apply "Custom" and confirm
      the editor stays empty and the focus is on the first box to tick. Switch
      the language to German and confirm the preset names and texts are German.
+
+## Saved searches (V1-3)
+
+108. Open JoyClub's member search ("Mitglieder"). Confirm a "JoyFox saved
+     searches" box appears above the results, saying "No saved searches yet."
+     Apply one or two filters with "Anwenden", click "Save this search", type a
+     name and press Enter. Confirm the message says it was saved and a button
+     with that name appears.
+109. URL-only replay (the acceptance check for V1-3). Change the filters with
+     "Anwenden", so JoyClub's stored filters differ from the saved ones. Then
+     click the saved search's button. Confirm the page loads with the saved
+     filters (open the filter panel to check them) and the results match them.
+     If JoyClub shows the changed filters instead, V1-3 fails: record it
+     (`11-search.md`, caveat). Open the search in a second tab and confirm the
+     saved search is listed there too.
+110. Click ✕ beside the saved search. Confirm nothing is deleted and the message
+     asks you to click again. Click ✕ again and confirm the search is gone. Open
+     the inbox and a profile, and confirm the box appears only on the search
+     page. Switch the language to German and confirm the box is German.

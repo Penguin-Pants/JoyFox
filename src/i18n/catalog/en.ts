@@ -365,6 +365,36 @@ export const en = {
       other: `${f.number(p.count)} tags`,
     })})`,
 
+  // Content script: saved searches (V1-3)
+  "searches.heading": "JoyFox saved searches",
+  "searches.loading": "Loading saved searches…",
+  "searches.readFailed":
+    "JoyFox could not read your saved searches. Reload the page to try again.",
+  "searches.empty": "No saved searches yet.",
+  "searches.noAccount":
+    "Select or add an account in the JoyFox options to save searches.",
+  "searches.save": "Save this search",
+  "searches.nameLabel": "Name for this search",
+  "searches.confirmSave": "Save",
+  "searches.cancel": "Cancel",
+  "searches.noName": "Type a name first. Nothing was saved.",
+  "searches.nameTooLong": (p: { maximum: number }, f: Format) =>
+    `A name can have at most ${f.number(p.maximum)} characters. Nothing was saved.`,
+  "searches.notSearchAddress":
+    "This page's address is not a search JoyFox can save. Nothing was saved.",
+  "searches.full": (p: { maximum: number }, f: Format) =>
+    `You have ${f.number(p.maximum)} saved searches, the most JoyFox keeps. Delete one first.`,
+  "searches.refused":
+    "The active JoyFox account changed, so nothing was changed.",
+  "searches.saved": (p: { name: string }) => `Saved "${p.name}".`,
+  "searches.noMatch": (p: { name: string }) =>
+    `"${p.name}" no longer matches JoyClub's search address, so JoyFox did not open it. Run the search again and save it again.`,
+  "searches.deleteLabel": (p: { name: string }) =>
+    `Delete saved search ${p.name}`,
+  "searches.confirmDelete": (p: { name: string }) =>
+    `Click ✕ again to delete "${p.name}".`,
+  "searches.deleted": (p: { name: string }) => `Deleted "${p.name}".`,
+
   // Content script: template picker
   "picker.toggle": "JoyFox templates",
   "picker.loading": "Loading templates…",

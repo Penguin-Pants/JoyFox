@@ -338,6 +338,33 @@ export const de: Catalog = {
     })})`,
 
   // Content script: template picker
+  "searches.heading": "Gespeicherte JoyFox-Suchen",
+  "searches.loading": "Gespeicherte Suchen werden geladen …",
+  "searches.readFailed":
+    "JoyFox konnte deine gespeicherten Suchen nicht lesen. Lade die Seite neu, um es noch einmal zu versuchen.",
+  "searches.empty": "Noch keine gespeicherten Suchen.",
+  "searches.noAccount":
+    "Wähle in den JoyFox-Einstellungen ein Konto aus oder füge eines hinzu, um Suchen zu speichern.",
+  "searches.save": "Diese Suche speichern",
+  "searches.nameLabel": "Name für diese Suche",
+  "searches.confirmSave": "Speichern",
+  "searches.cancel": "Abbrechen",
+  "searches.noName": "Gib zuerst einen Namen ein. Es wurde nichts gespeichert.",
+  "searches.nameTooLong": (p, f) =>
+    `Ein Name darf höchstens ${f.number(p.maximum)} Zeichen haben. Es wurde nichts gespeichert.`,
+  "searches.notSearchAddress":
+    "Die Adresse dieser Seite ist keine Suche, die JoyFox speichern kann. Es wurde nichts gespeichert.",
+  "searches.full": (p, f) =>
+    `Du hast ${f.number(p.maximum)} gespeicherte Suchen, mehr behält JoyFox nicht. Lösche zuerst eine.`,
+  "searches.refused":
+    "Das aktive JoyFox-Konto hat sich geändert, deshalb wurde nichts geändert.",
+  "searches.saved": (p) => `„${p.name}“ gespeichert.`,
+  "searches.noMatch": (p) =>
+    `„${p.name}“ passt nicht mehr zur Suchadresse von JoyClub, deshalb hat JoyFox die Suche nicht geöffnet. Führe die Suche noch einmal aus und speichere sie neu.`,
+  "searches.deleteLabel": (p) => `Gespeicherte Suche ${p.name} löschen`,
+  "searches.confirmDelete": (p) =>
+    `Klicke noch einmal auf ✕, um „${p.name}“ zu löschen.`,
+  "searches.deleted": (p) => `„${p.name}“ gelöscht.`,
   "picker.toggle": "JoyFox-Vorlagen",
   "picker.loading": "Vorlagen werden geladen …",
   "picker.readFailed":
