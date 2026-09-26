@@ -1,4 +1,4 @@
-# 0016: V1 scope decisions: no per-audience rules, license, presets, no sync yet
+# 0016: V1 scope decisions: no per-audience rules, license, presets, no sync yet, overlay and attendance
 
 ## Status
 
@@ -88,3 +88,24 @@ export it under "Your data" before the switch and import it after.
    Section 20's V1 list. D2 (the sync protocol) is deferred with it. V1-9 no
    longer depends on V1-6. The encryption decision (ADR 0002) and its proof of
    concept stay as they are, for when sync is built.
+
+## Amendment: D5 and D6 (project owner, 2026-09-26)
+
+1. **D5, the Compatibility Overlay (V1-2).** It compares every preference
+   section that JoyClub's preference checklist shows the viewer. The exact list
+   of sections and tags is confirmed from evidence E3, before V1-2 starts. On
+   the profile page, the shared tags are highlighted inside JoyClub's own
+   checklist. On search-result cards, inbox rows and attendee-list entries, a
+   badge shows the number of shared tags ("N shared"), and the compatibility
+   sort orders the loaded search results by that number. JoyFox shows no
+   percentage, so the result does not read as a match score (PRD Section 8.5). A
+   card shows a count only for a member whose profile the user opened before, as
+   for the other cached facts. Preference fields are special-category data (PRD
+   Section 13.1); they stay local and are covered by the snapshot history limit
+   (V1-12).
+2. **D6, the attendance values (V1-5).** Interested, Attending, Not attending,
+   Attended and no status (`unknown`). "Attended" records an event the user went
+   to, so past events keep a history. `EventMetadata.attendance` and its import
+   validation accept the new value now; no screen writes it until V1-5. V1-13's
+   shared-event exception uses Attending, as its criteria say, and the V1-13
+   task decides whether Attended also counts.
