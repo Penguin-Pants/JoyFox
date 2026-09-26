@@ -535,7 +535,7 @@ export const en = {
     "JoyFox could not read this member's notes. Close and try again.",
   "signals.filter.label": "JoyFox: hide incomplete profiles",
   "signals.filter.count": (p: { hidden: number; loaded: number }, f: Format) =>
-    `${f.number(p.hidden)} of ${f.number(p.loaded)} loaded profiles hidden. Profiles JoyFox knows nothing about stay.`,
+    `${f.number(p.hidden)} of ${f.number(p.loaded)} loaded profiles hidden. Profiles JoyFox knows nothing about stay visible.`,
 
   // Content script: compatibility overlay (V1-2)
   "compat.heading": "Shared preferences",
@@ -546,7 +546,7 @@ export const en = {
     })} with this member:`,
   "compat.none": "You share no preferences with this member.",
   "compat.own": (p: { count: number }, f: Format) =>
-    `This is your profile. JoyFox compares other profiles with its ${f.plural(
+    `This is your profile. JoyFox compares other profiles with your ${f.plural(
       p.count,
       {
         one: "1 positive preference",

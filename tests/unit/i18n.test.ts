@@ -239,6 +239,16 @@ describe("translator", () => {
     ).toBe("Du hast diese Person nach „Quarantäne“ verschoben.");
   });
 
+  it("makes the possessive agree with the count in German", () => {
+    setLocale("de");
+    expect(t("compat.own", { count: 1 })).toBe(
+      "Das ist dein Profil. JoyFox vergleicht andere Profile mit deiner 1 positiven Vorliebe.",
+    );
+    expect(t("compat.own", { count: 3 })).toBe(
+      "Das ist dein Profil. JoyFox vergleicht andere Profile mit deinen 3 positiven Vorlieben.",
+    );
+  });
+
   it("keeps a string param literal, even when it equals a key", () => {
     setLocale("de");
     expect(t("legacy.text", { text: "options.tabs.start" })).toBe(

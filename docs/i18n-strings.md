@@ -2,7 +2,8 @@
 
 Generated from `src/i18n/catalog/en.ts` and `src/i18n/catalog/de.ts` for
 the owner's review (docs/i18n-spec.md, Section 1). The owner approved
-every string on 2026-09-25; a changed string needs a new review. Do not
+every string on 2026-09-25 and reviewed the strings added later on
+2026-09-26; a changed string needs a new review. Do not
 edit by hand:
 change the catalogs, then run
 `UPDATE_I18N_TABLE=1 npx vitest run tests/unit/i18n-table.test.ts`.
@@ -197,7 +198,7 @@ stay as they are.
 | `triage.source.rule` | your contact rule | deine Kontaktregel |
 | `triage.source.sharedEvent` | the shared-event exception | die Ausnahme für gemeinsame Events |
 | `triage.sharedEvent.attending` | On the guest list of "{event}" ({when}), which you marked Attending. | Auf der Gästeliste von „{event}“ ({when}), das du mit „Ich gehe hin“ markiert hast. |
-| `triage.sharedEvent.attended` | On the guest list of "{event}" ({when}), which you marked Attended. | Auf der Gästeliste von „{event}“ ({when}), das du mit „War dort“ markiert hast. |
+| `triage.sharedEvent.attended` | On the guest list of "{event}" ({when}), which you marked Attended. | Auf der Gästeliste von „{event}“ ({when}), das du mit „Ich war dort“ markiert hast. |
 | `triage.sharedEvent.optOut` | Don't use the shared event for this sender | Das gemeinsame Event für diese Person nicht verwenden |
 | `triage.movedOn` | You moved this sender on {date}. Your rule alone would place it in {placement}. | Du hast diese Person am {date} verschoben. Deine Regel allein würde sie in „{placement}“ einordnen. |
 | `triage.move.group` | Move this sender | Diese Person verschieben |
@@ -309,7 +310,7 @@ stay as they are.
 | `listing.attendance.interested` | Interested | Interessiert |
 | `listing.attendance.attending` | Attending | Ich gehe hin |
 | `listing.attendance.not-attending` | Not attending | Ich gehe nicht hin |
-| `listing.attendance.attended` | Attended | War dort |
+| `listing.attendance.attended` | Attended | Ich war dort |
 | `listing.noteLabel` | My note | Meine Notiz |
 | `listing.saveNote` | Save note | Notiz speichern |
 | `listing.tagsLabel` | My tags | Meine Tags |
@@ -321,7 +322,7 @@ stay as they are.
 | `listing.privacy` | Private: stored only in this browser. JoyClub sees nothing, and your sign-up on JoyClub does not change. | Privat: nur in diesem Browser gespeichert. JoyClub sieht nichts, und deine Anmeldung bei JoyClub ändert sich nicht. |
 | `listing.saved` | Saved. | Gespeichert. |
 | `listing.removed` | Nothing is left on this listing, so JoyFox no longer tracks it. | Hier ist nichts mehr eingetragen, deshalb verfolgt JoyFox diesen Eintrag nicht mehr. |
-| `listing.conflict` | These notes changed in another tab, so JoyFox did not save. The stored notes are shown now; your typed note is still in the box. | Diese Notizen wurden in einem anderen Tab geändert, deshalb hat JoyFox nicht gespeichert. Jetzt werden die gespeicherten Notizen gezeigt; deine eingegebene Notiz steht noch im Feld. |
+| `listing.conflict` | These notes changed in another tab, so JoyFox did not save. The stored notes are shown now; your typed note is still in the box. | Diese Notizen wurden in einem anderen Tab geändert, deshalb hat JoyFox nicht gespeichert. Jetzt werden die gespeicherten Notizen angezeigt; deine eingegebene Notiz steht noch im Feld. |
 | `listing.refused` | The active JoyFox account changed, so nothing was saved. | Das aktive JoyFox-Konto hat sich geändert, deshalb wurde nichts gespeichert. |
 
 ## events
@@ -333,17 +334,17 @@ stay as they are.
 | `events.readFailed` | JoyFox could not read your events. Reload the page to try again. | JoyFox konnte deine Events nicht lesen. Lade die Seite neu, um es noch einmal zu versuchen. |
 | `events.noAccount` | Select or add an account first. Each account has its own events. | Wähle zuerst ein Konto aus oder füge eines hinzu. Jedes Konto hat eigene Events. |
 | `events.empty` | No tracked events yet. Open an event on JoyClub and add a note, a tag or your attendance. | Noch keine verfolgten Events. Öffne ein Event auf JoyClub und trage eine Notiz, einen Tag oder deine Teilnahme ein. |
-| `events.count` | {shown} of {total} tracked events shown. | {shown} von {total} verfolgten Events gezeigt. |
+| `events.count` | {shown} of {total} tracked events shown. | {shown} von {total} verfolgten Events angezeigt. |
 | `events.filterLabel` | Show | Zeigen |
 | `events.filter.all` | All tracked events | Alle verfolgten Events |
 | `events.searchLabel` | Search my notes, tags and titles | In meinen Notizen, Tags und Titeln suchen |
 | `events.noDate` | No date | Kein Datum |
 | `events.untitled` | Event {id} | Event {id} |
 | `events.past` | {when} (past) | {when} (vorbei) |
-| `events.venue` | Venue: {venue} | Ort: {venue} |
+| `events.venue` | Venue: {venue} | Club: {venue} |
 | `events.venuesHeading` | My venues | Meine Clubs |
 | `events.guests` | 1 guest stored / {count} guests stored | 1 Gast gespeichert / {count} Gäste gespeichert |
-| `events.exception.label` | Shared-event exception: place a sender in Qualified when they are on the guest list of an event I marked Attending or Attended | Ausnahme für gemeinsame Events: eine Person als „Qualifiziert“ einordnen, wenn sie auf der Gästeliste eines Events steht, das ich mit „Ich gehe hin“ oder „War dort“ markiert habe |
+| `events.exception.label` | Shared-event exception: place a sender in Qualified when they are on the guest list of an event I marked Attending or Attended | Ausnahme für gemeinsame Events: eine Person als „Qualifiziert“ einordnen, wenn sie auf der Gästeliste eines Events steht, das ich mit „Ich gehe hin“ oder „Ich war dort“ markiert habe |
 | `events.exception.hint` | Off by default. JoyFox stores a tracked event's guest list when you open the event page, as far as JoyClub has loaded it, and deletes it when you stop tracking the event. A sender you moved yourself keeps your choice, and the "Why" panel can turn the exception off for one sender. | Standardmäßig aus. JoyFox speichert die Gästeliste eines verfolgten Events, wenn du die Event-Seite öffnest, so weit JoyClub sie geladen hat, und löscht sie, wenn du das Event nicht mehr verfolgst. Eine Person, die du selbst verschoben hast, behält deine Wahl, und im Bereich „Warum“ kannst du die Ausnahme für eine Person abschalten. |
 | `events.exception.saved` | Saved. | Gespeichert. |
 
@@ -365,7 +366,7 @@ stay as they are.
 | `eventFilter.attending` | Only events I attend | Nur Events, zu denen ich gehe |
 | `eventFilter.interested` | Only events I am interested in | Nur Events, die mich interessieren |
 | `eventFilter.tag` | Only my tag: {tag} | Nur mein Tag: {tag} |
-| `eventFilter.count` | {shown} of {loaded} loaded events shown. Events loaded later are checked too. | {shown} von {loaded} geladenen Events gezeigt. Später geladene Events werden auch geprüft. |
+| `eventFilter.count` | {shown} of {loaded} loaded events shown. Events loaded later are checked too. | {shown} von {loaded} geladenen Events angezeigt. Später geladene Events werden auch geprüft. |
 | `eventFilter.readFailed` | JoyFox could not read your event notes. Reload the page to try again. | JoyFox konnte deine Event-Notizen nicht lesen. Lade die Seite neu, um es noch einmal zu versuchen. |
 | `eventFilter.noAccount` | Select or add an account in the JoyFox options to filter by your notes. | Wähle in den JoyFox-Einstellungen ein Konto aus oder füge eines hinzu, um nach deinen Notizen zu filtern. |
 | `eventFilter.badge` | JoyFox | JoyFox |
@@ -385,12 +386,12 @@ stay as they are.
 | `messages.retentionLabel` | Keep messages for (months) | Nachrichten behalten für (Monate) |
 | `messages.retentionSave` | Save | Speichern |
 | `messages.retentionSaved` | Saved. 1 older message was / {deleted} older messages were deleted. | Gespeichert. 1 ältere Nachricht wurde / {deleted} ältere Nachrichten wurden gelöscht. |
-| `messages.retentionInvalid` | Enter a whole number from {minimum} to {maximum}. Nothing was changed. | Gib eine ganze Zahl von {minimum} bis {maximum} ein. Nichts wurde geändert. |
+| `messages.retentionInvalid` | Enter a whole number from {minimum} to {maximum}. Nothing was changed. | Gib eine ganze Zahl von {minimum} bis {maximum} ein. Es wurde nichts geändert. |
 | `messages.noAccount` | Select or add an account first. | Wähle zuerst ein Konto aus oder füge eines hinzu. |
 | `messages.readFailed` | JoyFox could not read your stored messages. Reload the page to try again. | JoyFox konnte deine gespeicherten Nachrichten nicht lesen. Lade die Seite neu, um es noch einmal zu versuchen. |
 | `messages.searchLabel` | Search my messages | Meine Nachrichten durchsuchen |
 | `messages.count` | 1 message / {count} messages found. | 1 Nachricht / {count} Nachrichten gefunden. |
-| `messages.countLimited` | {count} messages found. The newest {shown} are shown. | {count} Nachrichten gefunden. Die neuesten {shown} werden gezeigt. |
+| `messages.countLimited` | {count} messages found. The newest {shown} are shown. | {count} Nachrichten gefunden. Die neuesten {shown} werden angezeigt. |
 | `messages.sentTo` | You to member {member} · {when} | Du an Mitglied {member} · {when} |
 | `messages.receivedFrom` | Member {member} to you · {when} | Mitglied {member} an dich · {when} |
 | `messages.storedAt` | stored {when} | gespeichert {when} |
@@ -406,9 +407,9 @@ stay as they are.
 | `signals.photosUnknown` | photos unknown | Fotos unbekannt |
 | `signals.words` | 1 word / {count} words | 1 Wort / {count} Wörter |
 | `signals.wordsUnknown` | words unknown | Wörter unbekannt |
-| `signals.verified` | verified | geprüft |
-| `signals.notVerified` | not verified | nicht geprüft |
-| `signals.verificationUnknown` | verification unknown | Prüfung unbekannt |
+| `signals.verified` | verified | verifiziert |
+| `signals.notVerified` | not verified | nicht verifiziert |
+| `signals.verificationUnknown` | verification unknown | Verifizierung unbekannt |
 | `signals.heading` | Profile completeness | Vollständigkeit des Profils |
 | `signals.trust` | Trust {score} | Vertrauen {score} |
 | `signals.trustNone` | No trust history | Kein Vertrauensverlauf |
@@ -419,9 +420,9 @@ stay as they are.
 | `signals.editor.loading` | Loading… | Wird geladen … |
 | `signals.editor.close` | Close | Schließen |
 | `signals.editor.noAccount` | Select or add an account in the JoyFox options to keep notes. | Wähle in den JoyFox-Einstellungen ein Konto aus oder füge eines hinzu, um Notizen zu führen. |
-| `signals.editor.readFailed` | JoyFox could not read this member's notes. Close and try again. | JoyFox konnte die Notizen zu diesem Mitglied nicht lesen. Schließe und versuche es noch einmal. |
+| `signals.editor.readFailed` | JoyFox could not read this member's notes. Close and try again. | JoyFox konnte die Notizen zu diesem Mitglied nicht lesen. Schließe dieses Fenster und versuche es noch einmal. |
 | `signals.filter.label` | JoyFox: hide incomplete profiles | JoyFox: unvollständige Profile ausblenden |
-| `signals.filter.count` | {hidden} of {loaded} loaded profiles hidden. Profiles JoyFox knows nothing about stay. | {hidden} von {loaded} geladenen Profilen ausgeblendet. Profile, über die JoyFox nichts weiß, bleiben. |
+| `signals.filter.count` | {hidden} of {loaded} loaded profiles hidden. Profiles JoyFox knows nothing about stay visible. | {hidden} von {loaded} geladenen Profilen ausgeblendet. Profile, über die JoyFox nichts weiß, bleiben sichtbar. |
 
 ## compat
 
@@ -430,7 +431,7 @@ stay as they are.
 | `compat.heading` | Shared preferences | Gemeinsame Vorlieben |
 | `compat.shared` | You share 1 preference / {count} preferences with this member: | Du teilst 1 Vorliebe / {count} Vorlieben mit diesem Mitglied: |
 | `compat.none` | You share no preferences with this member. | Du teilst keine Vorlieben mit diesem Mitglied. |
-| `compat.own` | This is your profile. JoyFox compares other profiles with its 1 positive preference / {count} positive preferences. | Das ist dein Profil. JoyFox vergleicht andere Profile mit seinen 1 positiven Vorliebe / {count} positiven Vorlieben. |
+| `compat.own` | This is your profile. JoyFox compares other profiles with your 1 positive preference / {count} positive preferences. | Das ist dein Profil. JoyFox vergleicht andere Profile mit deiner 1 positiven Vorliebe / deinen {count} positiven Vorlieben. |
 | `compat.ownUnknown` | Open your own JoyClub profile once, so JoyFox knows your preferences. | Öffne einmal dein eigenes JoyClub-Profil, damit JoyFox deine Vorlieben kennt. |
 | `compat.unreadable` | JoyFox could not read this profile's preferences yet. | JoyFox konnte die Vorlieben dieses Profils noch nicht lesen. |
 | `compat.missing` | This profile shows no preferences to compare. | Dieses Profil zeigt keine Vorlieben zum Vergleichen. |
@@ -440,7 +441,7 @@ stay as they are.
 | `compat.badgeLabel` | JoyFox: 1 shared preference / {count} shared preferences | JoyFox: 1 gemeinsame Vorliebe / {count} gemeinsame Vorlieben |
 | `compat.sort.button` | Sort by shared preferences | Nach gemeinsamen Vorlieben sortieren |
 | `compat.sort.on` | Sorted by shared preferences. Members whose profile you have not opened come last. | Nach gemeinsamen Vorlieben sortiert. Mitglieder, deren Profil du noch nicht geöffnet hast, stehen am Ende. |
-| `compat.sort.unavailable` | JoyFox cannot sort this list: its layout does not allow it. | JoyFox kann diese Liste nicht sortieren: Ihr Layout erlaubt es nicht. |
+| `compat.sort.unavailable` | JoyFox cannot sort this list: its layout does not allow it. | JoyFox kann diese Liste nicht sortieren, weil ihr Aufbau das nicht zulässt. |
 
 ## searches
 

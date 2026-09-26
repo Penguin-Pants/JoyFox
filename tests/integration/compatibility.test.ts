@@ -207,7 +207,7 @@ describe("V1-2 compatibility on the profile page", () => {
     overlay.update("profile");
     await flush();
     expect(section()?.textContent).toContain(
-      "This is your profile. JoyFox compares other profiles with its 2 positive preferences.",
+      "This is your profile. JoyFox compares other profiles with your 2 positive preferences.",
     );
     expect(document.querySelector(`[${SHARED_ATTRIBUTE}]`)).toBeNull();
   });
