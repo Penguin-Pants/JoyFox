@@ -14,6 +14,12 @@ import { message, type Message } from "../i18n/message";
 import { errorDisplay, formatDate, formatNumber, t } from "../i18n/translator";
 import { ENTITY_NAMES } from "../storage/database";
 import type { EntityCounts } from "../storage/repositories";
+import {
+  DEFAULT_SNAPSHOT_RETENTION,
+  isSnapshotRetention,
+  MAX_SNAPSHOT_RETENTION,
+  MIN_SNAPSHOT_RETENTION,
+} from "../storage/snapshot-retention";
 import { confirmAllowed, confirmTiming } from "./confirm";
 import { renderFields } from "./record-fields";
 import { StatusLine } from "./status-line";
@@ -148,6 +154,8 @@ export class DataPanel {
     let selected: string | undefined;
     let counts: EntityCounts | undefined;
     let records: AnyEntity[] = [];
+    // Never fails: an unreadable setting reads as the default.
+    const retention = await this.data.snapshotRetention();
     try {
       accounts = await this.accounts.listAccounts();
       const activeId = (await this.accounts.getActiveAccount())?.id;
@@ -217,7 +225,11 @@ export class DataPanel {
         element(document, "p", "joyfox-panel__empty", t("data.noAccounts")),
       );
     }
-    this.root.append(this.#renderGlobalActions(document), this.#status.node);
+    this.root.append(
+      this.#renderRetention(document, retention),
+      this.#renderGlobalActions(document),
+      this.#status.node,
+    );
     this.importRoot?.replaceChildren(
       this.#renderImport(document),
       this.#importStatus.node,
@@ -462,6 +474,69 @@ export class DataPanel {
       ),
     );
     return actions;
+  }
+
+  /**
+   * How many profile snapshots are kept per member (V1-12, PRD 13.3). Saving a
+   * lower number deletes older snapshots at once, in every account.
+   */
+  #renderRetention(document: Document, current: number): HTMLElement {
+    const section = element(document, "div", "joyfox-data__retention");
+    const field = element(document, "p", "joyfox-panel__field");
+    const label = element(
+      document,
+      "label",
+      "joyfox-panel__field-label",
+      t("data.retentionLabel"),
+    );
+    label.htmlFor = "joyfox-data-retention";
+    const input = element(document, "input", "joyfox-data__retention-input");
+    input.id = "joyfox-data-retention";
+    input.type = "number";
+    input.step = "1";
+    input.min = String(MIN_SNAPSHOT_RETENTION);
+    input.max = String(MAX_SNAPSHOT_RETENTION);
+    input.value = String(current);
+    const hint = element(
+      document,
+      "p",
+      "joyfox-panel__hint",
+      t("data.retentionHint", {
+        minimum: MIN_SNAPSHOT_RETENTION,
+        maximum: MAX_SNAPSHOT_RETENTION,
+        default: DEFAULT_SNAPSHOT_RETENTION,
+      }),
+    );
+    hint.id = "joyfox-data-retention-hint";
+    input.setAttribute("aria-describedby", hint.id);
+    const save = this.#button(
+      document,
+      "joyfox-data__retention-save",
+      t("data.retentionSave"),
+      undefined,
+      () =>
+        void this.#guard(async () => {
+          // Any other action disarms a pending delete, at once.
+          this.#pending = undefined;
+          const keep = Number(input.value);
+          if (!isSnapshotRetention(keep)) {
+            this.#setStatus(
+              message("data.retentionInvalid", {
+                minimum: MIN_SNAPSHOT_RETENTION,
+                maximum: MAX_SNAPSHOT_RETENTION,
+              }),
+              "error",
+            );
+            return;
+          }
+          const deleted = await this.data.setSnapshotRetention(keep);
+          this.#setStatus(message("data.retentionSaved", { deleted }), "info");
+          this.onChange();
+        }),
+    );
+    field.append(label, " ", input, " ", save);
+    section.append(field, hint);
+    return section;
   }
 
   #renderGlobalActions(document: Document): HTMLElement {

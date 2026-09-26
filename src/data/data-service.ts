@@ -28,6 +28,13 @@ import {
   type EntityCounts,
   type FullDataExport,
 } from "../storage/repositories";
+import {
+  isSnapshotRetention,
+  MAX_SNAPSHOT_RETENTION,
+  MIN_SNAPSHOT_RETENTION,
+  readSnapshotRetention,
+  SNAPSHOT_RETENTION_KEY,
+} from "../storage/snapshot-retention";
 import { bumpTriageRevision } from "../storage/triage-revision";
 import {
   parseImportFile,
@@ -150,6 +157,31 @@ export class DataService {
         Object.keys(await this.settings.getAll()).length > 0
       )
         throw new Error("Data was written while deleting");
+    });
+  }
+
+  /** How many profile snapshots are kept per member (V1-12). */
+  snapshotRetention(): Promise<number> {
+    return readSnapshotRetention(this.settings);
+  }
+
+  /**
+   * Saves how many profile snapshots are kept per member, then deletes the
+   * older snapshots of every member in every account at once. Holds the
+   * exclusive data lock, so no capture or import overlaps the purge. Returns
+   * how many snapshots were deleted.
+   */
+  async setSnapshotRetention(keep: number): Promise<number> {
+    if (!isSnapshotRetention(keep))
+      throw new ExtensionError("StorageError", "Invalid snapshot retention", {
+        display: message("data.retentionInvalid", {
+          minimum: MIN_SNAPSHOT_RETENTION,
+          maximum: MAX_SNAPSHOT_RETENTION,
+        }),
+      });
+    return withExclusiveDataLock(async () => {
+      await this.settings.set({ [SNAPSHOT_RETENTION_KEY]: keep });
+      return repositories.profileSnapshots.pruneAll(keep);
     });
   }
 

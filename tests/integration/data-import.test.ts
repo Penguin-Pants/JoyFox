@@ -645,6 +645,26 @@ describe("M8 import: restoring and merging", () => {
     expect(settings.items.get("joyfox.templatePicker")).toBe(false);
   });
 
+  it("imports a valid snapshot retention setting, and skips an invalid one (V1-12)", async () => {
+    const plan = await importText(
+      fullFile(
+        { extensionAccounts: [account("a", "me")] },
+        { "joyfox.snapshotRetention": 5 },
+      ),
+    );
+    expect(plan.settingsAdded).toContain("joyfox.snapshotRetention");
+    expect(settings.items.get("joyfox.snapshotRetention")).toBe(5);
+    settings.items.delete("joyfox.snapshotRetention");
+    const invalid = await importText(
+      fullFile(
+        { extensionAccounts: [account("a", "me")] },
+        { "joyfox.snapshotRetention": 0 },
+      ),
+    );
+    expect(invalid.settingsAdded).not.toContain("joyfox.snapshotRetention");
+    expect(settings.items.has("joyfox.snapshotRetention")).toBe(false);
+  });
+
   it("keeps the imported records when saving settings fails afterwards", async () => {
     const text = fullFile({ extensionAccounts: [account("a", "me")] });
     const plan = await data.previewImport(text);

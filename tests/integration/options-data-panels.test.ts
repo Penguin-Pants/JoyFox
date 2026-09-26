@@ -179,6 +179,49 @@ describe("M8 data panel", () => {
     expect(record.querySelectorAll(".joyfox-data__raw")).toHaveLength(1);
   });
 
+  it("sets how many profile snapshots are kept, and prunes at once (V1-12)", async () => {
+    for (let index = 0; index < 4; index += 1)
+      await repositories.profileSnapshots.put(a, {
+        id: `snap-${index}`,
+        accountId: a,
+        memberId: "1234567",
+        capturedAt: new Date(Date.UTC(2026, 0, 1, 0, 0, index)).toISOString(),
+        verification: "unknown",
+        photoCount: index,
+        profileWordCount: "unknown",
+        joinedAt: "unknown",
+        createdAt: "2026-01-01T00:00:00.000Z",
+        updatedAt: "2026-01-01T00:00:00.000Z",
+      });
+    await panel.render();
+    const input = () =>
+      root.querySelector<HTMLInputElement>("#joyfox-data-retention")!;
+    expect(input().value).toBe("20");
+    expect(
+      root.querySelector("label[for='joyfox-data-retention']")?.textContent,
+    ).toBe("Profile snapshots kept per member");
+    expect(input().getAttribute("aria-describedby")).toBe(
+      "joyfox-data-retention-hint",
+    );
+    const save = () =>
+      root.querySelector<HTMLButtonElement>(".joyfox-data__retention-save")!;
+    input().value = "0";
+    save().click();
+    await settle(
+      () => status()?.textContent?.includes("whole number") ?? false,
+    );
+    expect(await repositories.profileSnapshots.list(a)).toHaveLength(4);
+    input().value = "1";
+    save().click();
+    await settle(() => status()?.textContent?.includes("Saved.") ?? false);
+    expect(status()?.textContent).toContain("3 older snapshots were deleted.");
+    expect(input().value).toBe("1");
+    expect(
+      (await repositories.profileSnapshots.list(a)).map(({ id }) => id),
+    ).toEqual(["snap-3"]);
+    expect(changes).toBeGreaterThan(0);
+  });
+
   it("keeps expanded records open when the panel redraws", async () => {
     await showRecords("Show Message templates");
     const record = () =>

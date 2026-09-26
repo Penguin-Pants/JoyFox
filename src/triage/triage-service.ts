@@ -25,6 +25,7 @@ import {
   runtimeSettingsArea,
   type SettingsArea,
 } from "../storage/local-settings";
+import { readSnapshotRetention } from "../storage/snapshot-retention";
 import { registerMember } from "../storage/member-directory";
 import {
   ContactRuleRepository,
@@ -438,7 +439,11 @@ export class TriageService {
       updatedAt: timestamp,
     };
     await registerMember(this.members, accountId, memberId, timestamp);
-    await this.snapshots.put(accountId, snapshot);
+    await this.snapshots.put(
+      accountId,
+      snapshot,
+      await readSnapshotRetention(this.settings),
+    );
     await bumpTriageRevision(this.settings);
     return true;
   }

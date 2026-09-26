@@ -646,6 +646,25 @@ export const en = {
   "data.deletedAccountData":
     "Deleted all data of this account. The account itself is kept.",
   "data.allAccounts": "All accounts",
+  "data.retentionLabel": "Profile snapshots kept per member",
+  "data.retentionHint": (
+    p: { minimum: number; maximum: number; default: number },
+    f: Format,
+  ) =>
+    `JoyFox keeps the newest snapshots of each member's profile facts, always at least the latest one. Lowering the number deletes older snapshots at once, in every account. From ${f.number(p.minimum)} to ${f.number(p.maximum)}; the default is ${f.number(p.default)}.`,
+  "data.retentionSave": "Save",
+  "data.retentionSaved": (p: { deleted: number }, f: Format) =>
+    p.deleted === 0
+      ? "Saved. No snapshot needed deleting."
+      : `Saved. ${f.plural(p.deleted, {
+          one: "1 older snapshot was",
+          other: `${f.number(p.deleted)} older snapshots were`,
+        })} deleted.`,
+  "data.retentionInvalid": (
+    p: { minimum: number; maximum: number },
+    f: Format,
+  ) =>
+    `Enter a whole number from ${f.number(p.minimum)} to ${f.number(p.maximum)}. Nothing was changed.`,
   "data.exportAll": "Export all JoyFox data (JSON)",
   "data.exportedAll": "Export of all JoyFox data created.",
   "data.deleteEverything": "Delete all JoyFox data",

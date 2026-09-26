@@ -546,3 +546,15 @@ sending-page check does not refuse the normal hand-off.
      as bullet points and nested values as indented fields, and that an empty
      value reads "(empty)". Switch the language to German and confirm yes or no
      values read "ja" or "nein" and numbers use German separators.
+
+## Profile snapshot history setting (V1-12)
+
+103. On "Your data", confirm "Profile snapshots kept per member" shows 20 and
+     its explanation. Open a test member's profile page several times after
+     their profile facts changed (or import a file with several snapshots of one
+     member), and note the "Profile snapshots" count.
+104. Set the number to 1 and click "Save". Confirm the message says how many
+     older snapshots were deleted, the "Profile snapshots" count drops to one
+     per member, and the member's triage still shows their latest facts. Set it
+     back to 20 and confirm the message says no snapshot needed deleting. Enter
+     0 and confirm the error says nothing was changed.

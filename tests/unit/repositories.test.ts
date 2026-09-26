@@ -218,6 +218,56 @@ describe("F6 repositories", () => {
       stored.filter(({ memberId }) => memberId === "member-2"),
     ).toHaveLength(1);
   });
+  it("keeps the number of snapshots a write asks for (V1-12)", async () => {
+    for (let index = 0; index < 6; index += 1)
+      await repositories.profileSnapshots.put(
+        "account-a",
+        {
+          ...entity("profileSnapshots", "account-a", `snapshot-${index}`),
+          capturedAt: new Date(Date.parse(now) + index * 1000).toISOString(),
+        },
+        3,
+      );
+    const ids = (await repositories.profileSnapshots.list("account-a"))
+      .map(({ id }) => id)
+      .sort();
+    expect(ids).toEqual(["snapshot-3", "snapshot-4", "snapshot-5"]);
+  });
+  it("prunes stored snapshots of every member in every account (V1-12)", async () => {
+    const at = (index: number) =>
+      new Date(Date.parse(now) + index * 1000).toISOString();
+    for (const account of ["account-a", "account-b"])
+      for (const member of ["member-1", "member-2"])
+        for (let index = 0; index < 4; index += 1)
+          await repositories.profileSnapshots.put(account, {
+            ...entity("profileSnapshots", account, `${member}-${index}`),
+            memberId: member,
+            capturedAt: at(index),
+          });
+    await repositories.profileSnapshots.put("account-a", {
+      ...entity("profileSnapshots", "account-a", "single"),
+      memberId: "member-3",
+    });
+    expect(await repositories.profileSnapshots.pruneAll(2)).toBe(8);
+    for (const account of ["account-a", "account-b"]) {
+      const stored = await repositories.profileSnapshots.list(account);
+      for (const member of ["member-1", "member-2"])
+        expect(
+          stored
+            .filter(({ memberId }) => memberId === member)
+            .map(({ id }) => id)
+            .sort(),
+        ).toEqual([`${member}-2`, `${member}-3`]);
+    }
+    // The latest snapshot is always kept, whatever the number.
+    expect(await repositories.profileSnapshots.pruneAll(0)).toBe(4);
+    const left = await repositories.profileSnapshots.list("account-a");
+    expect(left.map(({ id }) => id).sort()).toEqual([
+      "member-1-3",
+      "member-2-3",
+      "single",
+    ]);
+  });
   it("purges the oldest snapshot by instant when offsets differ", async () => {
     for (let index = 0; index < PROFILE_SNAPSHOT_RETENTION; index += 1)
       await repositories.profileSnapshots.put("account-a", {

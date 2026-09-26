@@ -35,11 +35,15 @@ specific entity before opening a write transaction. SyncConfig rejects any
 passphrase, secret, or derived-key property at runtime.
 
 ProfileSnapshot and MessageObservation are the entities with a retention policy.
-Each write keeps the newest 20 snapshots per member and purges older ones in the
-same transaction, so this time-series personal data stays bounded. The bound is
-by count only: a cached fact does not expire with age and counts until a newer
-observation replaces it (ADR 0005). Every other entity keeps each record until
-it is deleted explicitly.
+Each ProfileSnapshot write keeps the newest snapshots per member and purges
+older ones in the same transaction, so this time-series personal data stays
+bounded. The number is a setting (V1-12, `storage.local` key
+`joyfox.snapshotRetention`): 20 by default, from 1 to 100, and always at least
+the latest snapshot. Saving a lower number on the options page purges the older
+snapshots of every member in every account at once. MessageObservation keeps a
+365-day window instead. The bound is by count only: a cached fact does not
+expire with age and counts until a newer observation replaces it (ADR 0005).
+Every other entity keeps each record until it is deleted explicitly.
 
 Profile facts that cannot be observed are represented as `unknown`, never as a
 negative result. Sync configuration may store explicit derivation parameters,

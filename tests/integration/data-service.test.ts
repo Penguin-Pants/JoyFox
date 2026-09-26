@@ -162,6 +162,36 @@ beforeEach(async () => {
 });
 
 describe("M8 export", () => {
+  it("saves the snapshot retention and prunes stored snapshots at once (V1-12)", async () => {
+    for (let index = 0; index < 5; index += 1)
+      await repositories.profileSnapshots.put("a", {
+        id: `snap-${index}`,
+        accountId: "a",
+        memberId: "1234567",
+        capturedAt: new Date(Date.UTC(2026, 0, 1, 0, 0, index)).toISOString(),
+        verification: "unknown",
+        photoCount: index,
+        profileWordCount: "unknown",
+        joinedAt: "unknown",
+        createdAt: "2026-01-01T00:00:00.000Z",
+        updatedAt: "2026-01-01T00:00:00.000Z",
+      });
+    expect(await data.snapshotRetention()).toBe(20);
+    expect(await data.setSnapshotRetention(2)).toBe(3);
+    expect(await data.snapshotRetention()).toBe(2);
+    expect(settings.items.get("joyfox.snapshotRetention")).toBe(2);
+    expect(
+      (await repositories.profileSnapshots.list("a"))
+        .map(({ id }) => id)
+        .sort(),
+    ).toEqual(["snap-3", "snap-4"]);
+    // An invalid number changes nothing.
+    await expect(data.setSnapshotRetention(0)).rejects.toThrow();
+    await expect(data.setSnapshotRetention(2.5)).rejects.toThrow();
+    expect(await data.snapshotRetention()).toBe(2);
+    expect(await repositories.profileSnapshots.list("a")).toHaveLength(2);
+  });
+
   it("covers every entity, item by item, with the schema version", async () => {
     const exported = await data.exportAccount("account-a");
     expect(exported.schemaVersion).toBe(DATABASE_VERSION);
