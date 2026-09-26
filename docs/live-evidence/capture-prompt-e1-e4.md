@@ -116,6 +116,11 @@ Capture:
   present), gender icon (`j-gender-icon` / `universal-gender`, if present),
   photo count if shown, age and place line (shape only), online status and any
   other badge.
+- **Profile text on a card:** does a card show any profile text (a teaser or
+  motto) or a word count? Write "Present" (selector, whether the text is cut,
+  and its shape as `TEXT`) or "Absent". JoyFox's incomplete-profile filter needs
+  at least 50 words of profile text, so it must know whether a card can show
+  this.
 - Where on a card a small badge could go (the card's header or name row
   element).
 - The filter panel root, the "search" button and any sort control, with their
@@ -154,6 +159,15 @@ Capture:
   is `TEXT`). Earlier evidence found
   `li.cm-message-list-item.cm-message-list__item` and `div.cm-message-bubble`
   with `--left` and `--right` modifiers. Confirm these or correct them.
+- **Key question:** which modifier marks the owner's own (sent) messages and
+  which marks the other member's (received) messages? The side on screen is not
+  proof. Look for structure that names the sender: an avatar or profile link
+  inside or next to the bubble (compare its member ID with the owner's own
+  profile link and the other member's), an `aria-label`, a `data-*` attribute or
+  a class. If the structure does not settle it, ask the owner to look at the
+  screen and say which side shows the messages they wrote. Record the answer and
+  how it was found. Record no message content. If neither works, write
+  "Unresolved".
 - **Key question:** does each message have a stable identifier? Check the `id`
   attribute and every `data-*` attribute on the message root and its children.
   Report present (where, and its shape) or absent.
