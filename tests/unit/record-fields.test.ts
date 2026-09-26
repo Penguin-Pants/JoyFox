@@ -239,10 +239,21 @@ describe("record fields (V1-7)", () => {
     const shown = list.querySelector(".joyfox-data__value--text")!;
     const more = shown.querySelector(".joyfox-data__value--more")!;
     expect(more.textContent).toBe(
-      `…and ${(50_001).toLocaleString("en-US")} more characters (see "Stored JSON")`,
+      // The emoji's two UTF-16 units and the 50,000 letters after it.
+      `…and ${(50_002).toLocaleString("en-US")} more characters (see "Stored JSON")`,
     );
     const kept = shown.firstChild!.textContent!;
     expect(kept).toBe("a".repeat(MAX_SHOWN_CHARACTERS - 1));
+    // A field name is cut the same way.
+    const longKey = "k".repeat(MAX_SHOWN_CHARACTERS + 5_000);
+    const named = renderFields(document, { [longKey]: 1 });
+    const term = named.querySelector("dt")!;
+    expect(term.querySelector("code")!.textContent).toBe(
+      "k".repeat(MAX_SHOWN_CHARACTERS),
+    );
+    expect(term.querySelector(".joyfox-data__value--more")!.textContent).toBe(
+      `…and ${(5_000).toLocaleString("en-US")} more characters (see "Stored JSON")`,
+    );
     // A text at the limit is shown whole.
     const whole = "c".repeat(MAX_SHOWN_CHARACTERS);
     expect(pairs(renderFields(document, { value: whole }))).toEqual([

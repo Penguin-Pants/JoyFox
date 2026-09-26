@@ -80,34 +80,32 @@ export const MAX_SHOWN_VALUES = 200;
  */
 export const MAX_SHOWN_CHARACTERS = 1_000;
 
-/** Characters (code points) from `start` to the end, counted without copying. */
-function charactersFrom(text: string, start: number): number {
-  let count = 0;
-  for (let index = start; index < text.length; index += 1) {
-    const unit = text.charCodeAt(index);
-    // A low surrogate is the second half of a character already counted.
-    if (unit < 0xdc00 || unit > 0xdfff) count += 1;
-  }
-  return count;
+/**
+ * A text cut after MAX_SHOWN_CHARACTERS, never inside a character, and how
+ * many UTF-16 units were left out. The count takes no time however long the
+ * text is; it is exact for letters and digits, and counts an emoji as 2.
+ */
+function cut(text: string): { shown: string; omitted: number } {
+  if (text.length <= MAX_SHOWN_CHARACTERS) return { shown: text, omitted: 0 };
+  let end = MAX_SHOWN_CHARACTERS;
+  const last = text.charCodeAt(end - 1);
+  if (last >= 0xd800 && last <= 0xdbff) end -= 1;
+  return { shown: text.slice(0, end), omitted: text.length - end };
+}
+
+function moreCharacters(document: Document, count: number): HTMLElement {
+  return span(
+    document,
+    "joyfox-data__value--more",
+    t("data.moreCharacters", { count }),
+  );
 }
 
 /** A text value, cut after MAX_SHOWN_CHARACTERS with a line saying so. */
 function renderText(document: Document, text: string): HTMLElement {
-  if (text.length <= MAX_SHOWN_CHARACTERS)
-    return span(document, "joyfox-data__value--text", text);
-  let end = MAX_SHOWN_CHARACTERS;
-  // Never cut a character in half.
-  const last = text.charCodeAt(end - 1);
-  if (last >= 0xd800 && last <= 0xdbff) end -= 1;
-  const node = span(document, "joyfox-data__value--text", text.slice(0, end));
-  node.append(
-    " ",
-    span(
-      document,
-      "joyfox-data__value--more",
-      t("data.moreCharacters", { count: charactersFrom(text, end) }),
-    ),
-  );
+  const { shown, omitted } = cut(text);
+  const node = span(document, "joyfox-data__value--text", shown);
+  if (omitted > 0) node.append(" ", moreCharacters(document, omitted));
   return node;
 }
 
@@ -200,9 +198,14 @@ function fields(
       continue;
     }
     const term = document.createElement("dt");
+    // A free-form value can have a field name of any length; it is cut
+    // like a text value.
+    const shownKey = cut(key);
     const name = document.createElement("code");
-    name.textContent = key;
+    name.textContent = shownKey.shown;
     term.append(name);
+    if (shownKey.omitted > 0)
+      term.append(" ", moreCharacters(document, shownKey.omitted));
     const description = document.createElement("dd");
     description.append(
       renderValue(document, value, budget, path ? `${path}.${key}` : key),
