@@ -1,7 +1,12 @@
 // @vitest-environment jsdom
 import { afterEach, describe, expect, it } from "vitest";
-import { formatDateTime, setLocale } from "../../src/i18n/translator";
-import { renderFields } from "../../src/options/record-fields";
+import {
+  formatDate,
+  formatDateTime,
+  setLocale,
+} from "../../src/i18n/translator";
+import { DATE_FIELDS, renderFields } from "../../src/options/record-fields";
+import schema from "../../src/domain/types.ts?raw";
 
 afterEach(() => setLocale("en"));
 
@@ -67,6 +72,46 @@ describe("record fields (V1-7)", () => {
       ["text", stamp],
     ]);
     expect(list.querySelectorAll("time")).toHaveLength(1);
+  });
+
+  it("knows every date field of the stored schema", () => {
+    const named = new Set(
+      Array.from(
+        schema.matchAll(/\b(\w+)\??: string\b/gu),
+        (match) => match[1]!,
+      ).filter((name) => /^at$|At$|^joined/u.test(name)),
+    );
+    expect([...named].sort()).toEqual([...DATE_FIELDS].sort());
+  });
+
+  it("shows nested and differently named dates, such as ActionLog steps", () => {
+    const stamp = "2026-09-25T20:03:00.000Z";
+    const list = renderFields(document, {
+      steps: [{ name: "Delete", ok: true, at: stamp }],
+      joinedEarliest: "2024-01-01",
+      joinedLatest: "2024-06-30T00:00:00.000Z",
+    });
+    const times = Array.from(list.querySelectorAll("time"));
+    expect(times.map((time) => time.dateTime)).toEqual([
+      stamp,
+      "2024-01-01",
+      "2024-06-30T00:00:00.000Z",
+    ]);
+    expect(times[0]!.textContent).toBe(formatDateTime(stamp));
+    // A date without a time is shown without one.
+    expect(times[1]!.textContent).toBe(formatDate("2024-01-01"));
+  });
+
+  it("never shows a repaired date: an impossible date stays as stored", () => {
+    const list = renderFields(document, {
+      createdAt: "2026-02-30T00:00:00.000Z",
+      updatedAt: "2026-09-25T20:03:00.000Z trailing",
+    });
+    expect(list.querySelector("time")).toBeNull();
+    expect(pairs(list)).toEqual([
+      ["createdAt", "2026-02-30T00:00:00.000Z"],
+      ["updatedAt", "2026-09-25T20:03:00.000Z trailing"],
+    ]);
   });
 
   it("shows lists as lists and objects as nested fields", () => {

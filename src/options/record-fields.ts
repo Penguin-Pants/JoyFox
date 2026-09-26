@@ -1,21 +1,41 @@
-import { formatDateTime, formatNumber, t } from "../i18n/translator";
-
-/** An ISO 8601 timestamp, as JoyFox stores every date. */
-const ISO_TIMESTAMP = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/;
+import { isStrictIsoDate } from "../domain/iso-date";
+import {
+  formatDate,
+  formatDateTime,
+  formatNumber,
+  t,
+} from "../i18n/translator";
 
 /**
- * Stored date fields all end in "At" (`createdAt`, `capturedAt`, `joinedAt`
- * and so on). Only those are shown as dates, so a note whose text looks like a
- * date stays text. Other values of a date field, such as "unknown", are shown
- * as is.
+ * Every stored field that holds a date, by name (`src/domain/types.ts`).
+ * Only these are shown as dates, so a note whose text looks like a date stays
+ * text. A test keeps this list in step with the schema.
  */
-function isTimestamp(key: string | undefined, value: string): boolean {
-  return (
-    key !== undefined &&
-    key.endsWith("At") &&
-    ISO_TIMESTAMP.test(value) &&
-    Number.isFinite(Date.parse(value))
-  );
+export const DATE_FIELDS: ReadonlySet<string> = new Set([
+  "at",
+  "capturedAt",
+  "createdAt",
+  "decidedAt",
+  "joinedAt",
+  "joinedEarliest",
+  "joinedLatest",
+  "lastSyncedAt",
+  "matchedAt",
+  "observedAt",
+  "occurredAt",
+  "updatedAt",
+]);
+
+/**
+ * A date field's value as a readable date, or undefined to show it as stored.
+ * The check is strict: `Date.parse` alone repairs `2026-02-30` to 2 March,
+ * and the inspector must never show a date other than the stored one. Other
+ * values of a date field, such as "unknown", are shown as they are.
+ */
+function readableDate(key: string | undefined, value: string) {
+  if (key === undefined || !DATE_FIELDS.has(key) || !isStrictIsoDate(value))
+    return undefined;
+  return value.includes("T") ? formatDateTime(value) : formatDate(value);
 }
 
 function isEmpty(value: unknown): boolean {
@@ -60,12 +80,13 @@ function renderValue(
   if (typeof value === "number")
     return span(document, "joyfox-data__value", formatNumber(value));
   if (typeof value === "string") {
-    if (isTimestamp(key, value)) {
+    const date = readableDate(key, value);
+    if (date !== undefined) {
       const time = document.createElement("time");
       time.className = "joyfox-data__value";
       time.dateTime = value;
       time.title = value;
-      time.textContent = formatDateTime(value);
+      time.textContent = date;
       return time;
     }
     return span(document, "joyfox-data__value--text", value);
