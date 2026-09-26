@@ -48,6 +48,7 @@ export function onLocaleChange(listener: (locale: Locale) => void): () => void {
 const numberFormats = new Map<Locale, Intl.NumberFormat>();
 const dateFormats = new Map<Locale, Intl.DateTimeFormat>();
 const dateTimeFormats = new Map<Locale, Intl.DateTimeFormat>();
+const exactNumberFormats = new Map<Locale, Intl.NumberFormat>();
 const pluralRules = new Map<Locale, Intl.PluralRules>();
 
 function cached<V>(map: Map<Locale, V>, make: (tag: string) => V): V {
@@ -64,6 +65,22 @@ export function formatNumber(value: number): string {
   return cached(numberFormats, (tag) => new Intl.NumberFormat(tag)).format(
     value,
   );
+}
+
+/**
+ * A stored number with every digit kept: de 50,123456, en 50.123456. It
+ * formats the number's shortest exact text, so no rounding applies (the
+ * default keeps only three decimals) and binary noise never shows.
+ */
+export function formatExactNumber(value: number): string {
+  if (!Number.isFinite(value)) return String(value);
+  const exact = cached(
+    exactNumberFormats,
+    (tag) => new Intl.NumberFormat(tag, { maximumFractionDigits: 100 }),
+  );
+  // Intl formats a numeric string as an exact decimal (ES2023, Firefox 116
+  // and later). The ES2022 types this project uses have only the number form.
+  return exact.format(String(value) as unknown as number);
 }
 
 /**

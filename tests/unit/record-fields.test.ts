@@ -153,6 +153,31 @@ describe("record fields (V1-7)", () => {
     expect(formatDateTime(stamp)).toContain("20:03");
   });
 
+  it("shows stored numbers with every digit, in the UI language", () => {
+    const values = {
+      precise: 50.123456,
+      tenth: 0.1,
+      tiny: 1.23e-25,
+      large: 1e21,
+      negative: -123456.789,
+    };
+    expect(pairs(renderFields(document, values))).toEqual([
+      ["precise", "50.123456"],
+      ["tenth", "0.1"],
+      ["tiny", "0.000000000000000000000000123"],
+      ["large", "1,000,000,000,000,000,000,000"],
+      ["negative", "-123,456.789"],
+    ]);
+    setLocale("de");
+    expect(pairs(renderFields(document, values))).toEqual([
+      ["precise", "50,123456"],
+      ["tenth", "0,1"],
+      ["tiny", "0,000000000000000000000000123"],
+      ["large", "1.000.000.000.000.000.000.000"],
+      ["negative", "-123.456,789"],
+    ]);
+  });
+
   it("sets stored text as text, never as markup", () => {
     const list = renderFields(document, {
       text: '<img src=x onerror="alert(1)">',

@@ -2,7 +2,7 @@ import { isStrictIsoDate } from "../domain/iso-date";
 import {
   formatDate,
   formatDateTime,
-  formatNumber,
+  formatExactNumber,
   t,
 } from "../i18n/translator";
 
@@ -78,7 +78,7 @@ function renderValue(
       t(value ? "data.valueYes" : "data.valueNo"),
     );
   if (typeof value === "number")
-    return span(document, "joyfox-data__value", formatNumber(value));
+    return span(document, "joyfox-data__value", formatExactNumber(value));
   if (typeof value === "string") {
     const date = readableDate(key, value);
     if (date !== undefined) {
