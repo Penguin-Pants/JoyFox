@@ -1,12 +1,12 @@
 // @vitest-environment jsdom
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   formatDate,
   formatDateTime,
   setLocale,
 } from "../../src/i18n/translator";
 import {
-  DATE_FIELDS,
+  DATE_PATHS,
   MAX_SHOWN_VALUES,
   renderFields,
 } from "../../src/options/record-fields";
@@ -85,7 +85,20 @@ describe("record fields (V1-7)", () => {
         (match) => match[1]!,
       ).filter((name) => /^at$|At$|^joined/u.test(name)),
     );
-    expect([...named].sort()).toEqual([...DATE_FIELDS].sort());
+    const leaves = [...DATE_PATHS].map((path) => path.split(".").pop());
+    expect(leaves.sort()).toEqual([...named].sort());
+  });
+
+  it("shows dates only at their schema path, not in free-form values", () => {
+    const stamp = "2026-09-25T20:03:00.000Z";
+    const list = renderFields(document, {
+      // SavedSearch.filters and ExtensionPreference.value are free-form JSON.
+      filters: { at: stamp, createdAt: stamp, steps: [{ at: stamp }] },
+      value: stamp,
+      at: stamp,
+    });
+    expect(list.querySelector("time")).toBeNull();
+    expect(list.textContent).not.toContain(formatDateTime(stamp));
   });
 
   it("shows nested and differently named dates, such as ActionLog steps", () => {
@@ -224,5 +237,46 @@ describe("record fields (V1-7)", () => {
     });
     expect(list.querySelector("img")).toBeNull();
     expect(pairs(list)).toEqual([["text", '<img src=x onerror="alert(1)">']]);
+  });
+});
+
+describe("exact numbers on an older Intl (Firefox 121 minimum)", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    vi.resetModules();
+  });
+
+  it("needs no fraction-digit option above 20 and no string input", async () => {
+    const Original = Intl.NumberFormat;
+    // An engine without Intl.NumberFormat v3: a fraction-digit limit of 20,
+    // and format() takes numbers only.
+    function Older(
+      locale?: string | string[],
+      options?: Intl.NumberFormatOptions,
+    ) {
+      if ((options?.maximumFractionDigits ?? 0) > 20)
+        throw new RangeError("maximumFractionDigits value is out of range");
+      const inner = new Original(locale, options);
+      return {
+        format(value: number | bigint) {
+          if (typeof value === "string") throw new TypeError("number only");
+          return inner.format(value);
+        },
+        formatToParts: (value: number) => inner.formatToParts(value),
+      };
+    }
+    vi.stubGlobal("Intl", { ...Intl, NumberFormat: Older });
+    vi.resetModules();
+    const { formatExactNumber, setLocale: setFreshLocale } = await import(
+      "../../src/i18n/translator"
+    );
+    expect(
+      [50.123456, 0.1, 1234, 1e-200, 1e21, -123456.789].map(formatExactNumber),
+    ).toEqual(["50.123456", "0.1", "1,234", "1E-200", "1E21", "-123,456.789"]);
+    setFreshLocale("de");
+    expect([50.123456, -123456.789].map(formatExactNumber)).toEqual([
+      "50,123456",
+      "-123.456,789",
+    ]);
   });
 });

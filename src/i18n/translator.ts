@@ -48,8 +48,6 @@ export function onLocaleChange(listener: (locale: Locale) => void): () => void {
 const numberFormats = new Map<Locale, Intl.NumberFormat>();
 const dateFormats = new Map<Locale, Intl.DateTimeFormat>();
 const dateTimeFormats = new Map<Locale, Intl.DateTimeFormat>();
-const exactNumberFormats = new Map<Locale, Intl.NumberFormat>();
-const scientificNumberFormats = new Map<Locale, Intl.NumberFormat>();
 const pluralRules = new Map<Locale, Intl.PluralRules>();
 
 function cached<V>(map: Map<Locale, V>, make: (tag: string) => V): V {
@@ -69,28 +67,28 @@ export function formatNumber(value: number): string {
 }
 
 /**
- * A stored number with every digit kept: de 50,123456, en 50.123456. It
- * formats the number's shortest exact text, so no rounding applies (the
- * default keeps only three decimals) and binary noise never shows. A number
- * that JavaScript writes with an exponent (below 10^-6 or from 10^21) is
- * shown in scientific notation, 1E-200, since a plain decimal of it can need
- * more places than Intl allows.
+ * A stored number with every digit kept: de 50,123456, en 50.123456. It uses
+ * the digits of the number's shortest exact text, so no rounding applies (the
+ * default keeps only three decimals) and binary noise never shows. Intl only
+ * supplies the grouping and the decimal sign, with default options, so this
+ * needs no newer Intl feature. A number that JavaScript writes with an
+ * exponent (below 10^-6 or from 10^21) keeps it: 1E-200.
  */
 export function formatExactNumber(value: number): string {
-  if (!Number.isFinite(value)) return String(value);
   const text = String(value);
-  const scientific = /e/iu.test(text);
-  const exact = cached(
-    scientific ? scientificNumberFormats : exactNumberFormats,
-    (tag) =>
-      new Intl.NumberFormat(tag, {
-        maximumFractionDigits: 100,
-        ...(scientific ? { notation: "scientific" as const } : {}),
-      }),
+  const parts = /^(-?)(\d+)(?:\.(\d+))?(?:e([+-]\d+))?$/u.exec(text);
+  if (!parts) return text;
+  const [, sign, whole, fraction, exponent] = parts;
+  const format = cached(numberFormats, (tag) => new Intl.NumberFormat(tag));
+  const decimal =
+    format.formatToParts(1.5).find((part) => part.type === "decimal")?.value ??
+    ".";
+  return (
+    sign +
+    format.format(BigInt(whole!)) +
+    (fraction ? decimal + fraction : "") +
+    (exponent ? `E${Number(exponent)}` : "")
   );
-  // Intl formats a numeric string as an exact decimal (ES2023, Firefox 116
-  // and later). The ES2022 types this project uses have only the number form.
-  return exact.format(text as unknown as number);
 }
 
 /**

@@ -7,12 +7,13 @@ import {
 } from "../i18n/translator";
 
 /**
- * Every stored field that holds a date, by name (`src/domain/types.ts`).
- * Only these are shown as dates, so a note whose text looks like a date stays
- * text. A test keeps this list in step with the schema.
+ * Every stored date, by its path in a record (`src/domain/types.ts`): a
+ * top-level field, or `steps[].at` in an ActionLog. Only these are shown as
+ * dates. The same name elsewhere, such as an `at` inside a saved search's
+ * free-form filters, and a note whose text looks like a date stay as stored.
+ * A test keeps this list in step with the schema.
  */
-export const DATE_FIELDS: ReadonlySet<string> = new Set([
-  "at",
+export const DATE_PATHS: ReadonlySet<string> = new Set([
   "capturedAt",
   "createdAt",
   "decidedAt",
@@ -23,18 +24,18 @@ export const DATE_FIELDS: ReadonlySet<string> = new Set([
   "matchedAt",
   "observedAt",
   "occurredAt",
+  "steps[].at",
   "updatedAt",
 ]);
 
 /**
- * A date field's value as a readable date, or undefined to show it as stored.
- * The check is strict: `Date.parse` alone repairs `2026-02-30` to 2 March,
- * and the inspector must never show a date other than the stored one. Other
- * values of a date field, such as "unknown", are shown as they are.
+ * A date's value as a readable date, or undefined to show it as stored. The
+ * check is strict: `Date.parse` alone repairs `2026-02-30` to 2 March, and the
+ * inspector must never show a date other than the stored one. Other values of
+ * a date field, such as "unknown", are shown as they are.
  */
-function readableDate(key: string | undefined, value: string) {
-  if (key === undefined || !DATE_FIELDS.has(key) || !isStrictIsoDate(value))
-    return undefined;
+function readableDate(path: string, value: string) {
+  if (!DATE_PATHS.has(path) || !isStrictIsoDate(value)) return undefined;
   return value.includes("T") ? formatDateTime(value) : formatDate(value);
 }
 
@@ -94,7 +95,7 @@ function renderValue(
   document: Document,
   value: unknown,
   budget: Budget,
-  key?: string,
+  path: string,
 ): HTMLElement {
   budget.left -= 1;
   if (isEmpty(value))
@@ -108,7 +109,7 @@ function renderValue(
   if (typeof value === "number")
     return span(document, "joyfox-data__value", formatExactNumber(value));
   if (typeof value === "string") {
-    const date = readableDate(key, value);
+    const date = readableDate(path, value);
     if (date !== undefined) {
       const time = document.createElement("time");
       time.className = "joyfox-data__value";
@@ -129,13 +130,13 @@ function renderValue(
         list.append(entry);
         break;
       }
-      entry.append(renderValue(document, item, budget));
+      entry.append(renderValue(document, item, budget, `${path}[]`));
       list.append(entry);
     }
     return list;
   }
   if (typeof value === "object" && value !== null)
-    return fields(document, value as Record<string, unknown>, budget);
+    return fields(document, value as Record<string, unknown>, budget, path);
   // JSON has no other types; anything else is shown as its text.
   return span(document, "joyfox-data__value", String(value));
 }
@@ -144,6 +145,7 @@ function fields(
   document: Document,
   record: Readonly<Record<string, unknown>>,
   budget: Budget,
+  path = "",
 ): HTMLDListElement {
   const list = document.createElement("dl");
   list.className = "joyfox-data__fields";
@@ -164,7 +166,9 @@ function fields(
     name.textContent = key;
     term.append(name);
     const description = document.createElement("dd");
-    description.append(renderValue(document, value, budget, key));
+    description.append(
+      renderValue(document, value, budget, path ? `${path}.${key}` : key),
+    );
     list.append(term, description);
   }
   if (omitted > 0) {
