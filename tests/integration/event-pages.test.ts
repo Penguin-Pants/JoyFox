@@ -51,6 +51,7 @@ let client: ListingClient & {
   save: ReturnType<typeof vi.fn>;
 };
 const flush = () => new Promise((resolve) => setTimeout(resolve, 0));
+let panelRef: ListingPanel | undefined;
 const status = () =>
   document.querySelector(".joyfox-listing__status")?.textContent ?? "";
 const button = (text: string) =>
@@ -115,6 +116,7 @@ describe("V1-5 event panel", () => {
   ) => {
     document.body.innerHTML = html;
     const panel = new ListingPanel(document, client, () => path);
+    panelRef = panel;
     panel.update(html === VENUE_PAGE ? "venue" : "event");
     return panel;
   };
@@ -148,6 +150,46 @@ describe("V1-5 event panel", () => {
       expectedUpdatedAt: null,
     });
     expect(status()).toBe("Saved.");
+  });
+
+  it("disables the box while a save is on its way, so no change is dropped", async () => {
+    mount();
+    await flush();
+    let answer: (value: unknown) => void = () => undefined;
+    client.save.mockImplementationOnce(
+      () => new Promise((resolve) => (answer = resolve)),
+    );
+    const select = document.querySelector<HTMLSelectElement>(
+      "#joyfox-listing-attendance",
+    )!;
+    select.value = "interested";
+    select.dispatchEvent(new Event("change"));
+    const controls = document.querySelectorAll<HTMLButtonElement>(
+      ".joyfox-listing button, .joyfox-listing select, .joyfox-listing input, .joyfox-listing textarea",
+    );
+    expect(Array.from(controls).every((control) => control.disabled)).toBe(
+      true,
+    );
+    // Another tab's change redraws the box meanwhile: it stays disabled.
+    (panelRef as ListingPanel).invalidate();
+    await flush();
+    expect(
+      document.querySelector<HTMLSelectElement>("#joyfox-listing-attendance")!
+        .disabled,
+    ).toBe(true);
+    answer({
+      status: "saved",
+      listing: listing({
+        attendance: "interested",
+        updatedAt: "2026-09-26T10:06:00.000Z",
+      }),
+    });
+    await flush();
+    const after = document.querySelector<HTMLSelectElement>(
+      "#joyfox-listing-attendance",
+    )!;
+    expect(after.disabled).toBe(false);
+    expect(after.value).toBe("interested");
   });
 
   it("saves the note with its button and keeps a typed note across a conflict", async () => {

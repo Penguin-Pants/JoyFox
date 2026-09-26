@@ -103,6 +103,10 @@ export class ListingPanel {
   #draft?: string;
   #tagDraft = "";
   #status?: { text: Message; error: boolean };
+  /**
+   * A save is on its way. The box's controls are disabled meanwhile, so a
+   * second change can never be dropped or overwritten by the first answer.
+   */
   #busy = false;
   /** Bumped on teardown and on an account switch. */
   #session = 0;
@@ -290,6 +294,7 @@ export class ListingPanel {
       status.classList.toggle("joyfox-error", this.#status.error);
     }
     root.append(status);
+    this.#disableWhileBusy();
     if (focus) {
       const field = root.querySelector<HTMLInputElement | HTMLTextAreaElement>(
         `.${focus.field.split(" ")[0]}`,
@@ -400,6 +405,18 @@ export class ListingPanel {
     return row;
   }
 
+  #disableWhileBusy(): void {
+    for (const control of Array.from(
+      this.#root?.querySelectorAll<
+        | HTMLButtonElement
+        | HTMLInputElement
+        | HTMLSelectElement
+        | HTMLTextAreaElement
+      >("button, input, select, textarea") ?? [],
+    ))
+      control.disabled = this.#busy;
+  }
+
   #setStatus(text: Message, error: boolean): void {
     this.#status = { text, error };
     this.#draw();
@@ -422,6 +439,7 @@ export class ListingPanel {
     const session = this.#session;
     let answer: ListingSaveAnswer;
     this.#busy = true;
+    this.#disableWhileBusy();
     try {
       answer = await this.client.save({
         accountId: data.accountId,
@@ -439,6 +457,7 @@ export class ListingPanel {
       return;
     } finally {
       this.#busy = false;
+      this.#disableWhileBusy();
     }
     if (session !== this.#session) return;
     if (answer.status === "refused") {
