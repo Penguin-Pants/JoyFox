@@ -56,9 +56,12 @@ For each page:
 
 1. Record the URL pattern (sanitized) and a unique page signal: a path pattern
    and, if present, a stable root element or `data-e2e` hook.
-2. Find the stable identifiers (member ID, event ID, venue ID, message ID).
-   Check the URL, `href` values, `id` attributes and every `data-*` attribute.
-   Say where each one is, or that it is absent.
+2. Find the stable identifiers (member ID, conversation ID, event ID, venue ID,
+   message ID). Check the URL, `href` values, `id` attributes and every `data-*`
+   attribute. Say where each one is, or that it is absent. If a URL holds more
+   than one number, say which number is which and how you know (for example, it
+   matches the member ID in a profile link). If you cannot tell, write
+   "Unresolved" for that segment.
 3. For each field listed below, record (the project's evidence contract,
    `docs/Engineering-Build-Plan.md`, F1):
    - **Primary selector:** prefer `data-e2e` hooks and custom elements (`j-...`)
@@ -117,6 +120,14 @@ Capture:
   element).
 - The filter panel root, the "search" button and any sort control, with their
   labels.
+- **If the copied URL did not bring the same filters back,** capture every
+  filter you set: its control (primary and fallback selector), the control type
+  (select, checkbox, range slider, text field, custom element), how its current
+  value is stored (the `value` property, an attribute, a class or a hidden
+  input) with the value's shape, and whether setting the value and sending an
+  `input` or `change` event updates the panel. Also record where the page keeps
+  the filter state, if you can see it (the URL hash, a hidden form, local
+  storage key names only). Do not click "search" while you test this.
 - Pagination or infinite scroll: how more results load.
 - Navigation type: inbox → search, and search → one result's profile (ask the
   owner first, see rule 4), then browser Back to the results.
@@ -127,6 +138,17 @@ Open one existing conversation the owner chooses. Do not read or copy any
 message text.
 
 Capture:
+
+- **Conversation ID.** Earlier evidence found the URL
+  `/clubmail/conversation/conversation-wrapper-personal-0000000-0000000/` with
+  two numbers and did not say which is which. Compare each number with the
+  owner's own member ID (from the link to the owner's own profile) and with the
+  other member's ID (from the conversation header's profile link). Report which
+  segment is the owner, which is the other member and whether either or neither
+  is a separate conversation ID. Also check the page for any other conversation
+  identifier (a `data-*` attribute or an `id`). If you cannot tell, write
+  "Unresolved". Write every ID with its digits as `0`, and describe the result
+  by position ("first segment matches the owner's member ID").
 
 - Per-message root, and the element that holds a message's text (the text itself
   is `TEXT`). Earlier evidence found
