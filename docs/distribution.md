@@ -2,12 +2,12 @@
 
 ## Status
 
-Research draft, 2026-09-25. **Not verified against the live Mozilla pages.**
-This session's network policy refused every Mozilla host (and github.com), so
-the findings below come from web-search summaries of the official pages, not
-from the pages themselves. Each claim names its source. Before release packaging
-is claimed, verify every claim marked **Verify** against the live page (see
-"Verification checklist").
+Research draft, 2026-09-25. Partly verified on 2026-09-26 against Mozilla's own
+tools, which npm serves: `web-ext` 10.7.0 and the `addons-linter` 10.13.0 it
+runs (the validator AMO uses), plus `@mdn/browser-compat-data`. The Mozilla web
+pages are still out of reach from these sessions, so items 1, 5 and 6 of the
+"Verification checklist" stay open. Claims still marked **Verify** come from
+web-search summaries.
 
 F8's acceptance criterion ("documented steps to produce a signed, installable
 build outside AMO") is met only as a draft until that check is done. The owner
@@ -42,10 +42,9 @@ chose the channel: unlisted, with automatic updates (ADR 0016).
 2. On AMO's "Manage API Keys" page, create API credentials: a JWT issuer and a
    JWT secret. Keep them out of the repository, shell history and logs.
 3. Fix the manifest gaps below.
-4. Install `web-ext` at a pinned version, so every release signs the same way:
-   `npm install --save-dev --save-exact web-ext@<version>`, with the version
-   chosen in checklist item 3. The repository does not include `web-ext` yet,
-   because no version has been checked against its changelog from here.
+4. `web-ext` is pinned at 10.7.0 in `devDependencies`, so every release signs
+   the same way. `npm run lint:amo` runs Mozilla's validator on `dist/firefox`
+   as a self-hosted add-on, and CI runs it after every build.
 5. Build: `npm ci`, then `npm run build:firefox`, which writes `dist/firefox`.
 6. Make the source package (see "Source code"). Every build is bundled by
    esbuild, so every submission needs it, not only when AMO asks.
@@ -53,13 +52,15 @@ chose the channel: unlisted, with automatic updates (ADR 0016).
    shell history and the process list would show them: put them in the
    environment variables `WEB_EXT_API_KEY` and `WEB_EXT_API_SECRET`, loaded from
    a password manager or a protected prompt, never typed on the command line.
-   Then run `npx web-ext sign --channel=unlisted` and upload the source package
-   with the submission. The signed `.xpi` is downloaded when signing finishes.
-   **Verify** with `npx web-ext sign --help` that the installed version reads
-   those variables, how it uploads source code, and that `--channel=unlisted`
-   never creates a public listing: `web-ext` 8 reportedly changed the default
-   for new add-ons to create a listing (Extension Workshop, "web-ext command
-   reference"; `mozilla/web-ext` releases).
+   Then run
+   `npx web-ext sign --source-dir dist/firefox --channel=unlisted --upload-source-code <source package>`.
+   The signed `.xpi` is downloaded when signing finishes. Verified in `web-ext`
+   10.7.0 (`web-ext sign --help` and its source): every option also reads a
+   `WEB_EXT_` environment variable (`lib/program.js`), `--channel` is required,
+   and `--upload-source-code` attaches the source archive. Because the manifest
+   sets an ID, `web-ext` submits a version to that ID with the upload's channel
+   (`lib/util/submit-addon.js`); with `unlisted` it sends no listing metadata.
+   What AMO does on the server side was not checked.
 8. Publish the signed `.xpi` on the GitHub release (V1-9).
 
 ## Manifest gaps (`manifests/firefox.json`)
@@ -80,15 +81,24 @@ chose the channel: unlisted, with automatic updates (ADR 0016).
   2025-10-23, "Announcing data collection consent changes for new Firefox
   extensions"; Extension Workshop, "Firefox built-in consent for data collection
   and transmission"). JoyFox sends nothing off the device
-  (`docs/permissions.md`), so `"none"` matches its design today. **Verify** the
-  exact format first. Sync (V1-6, deferred by ADR 0016) would send encrypted
-  data to the user's own server, so the value must be reviewed before sync
-  ships.
+  (`docs/permissions.md`), so `"none"` matches its design today. **Done
+  (2026-09-26):** the manifest declares `{"required": ["none"]}`. The
+  `addons-linter` 10.13.0 schema accepts exactly this: `required` is an array of
+  at least one value, and `"none"` is allowed. The linter warned
+  `MISSING_DATA_COLLECTION_PERMISSIONS` before the change and reports no error
+  after it. It still gives 2 warnings: the key works from Firefox 140 (desktop)
+  and 142 (Android) (`@mdn/browser-compat-data`), and the minimum is 121. Older
+  Firefox skips an unknown key with a warning, so the minimum stays at 121 (PRD
+  Section 14.1). Sync (V1-6, deferred by ADR 0016) would send encrypted data to
+  the user's own server, so the value must be reviewed before sync ships.
 - **Self-hosted updates.** Optional.
   `browser_specific_settings.gecko.update_url` points to an `updates.json` that
   must be served over HTTPS. It is keyed by the extension ID and lists each
   version with its `update_link` (MDN, "Updates"; Extension Workshop, "Updating
-  your extension"). **Verify** the field names.
+  your extension"). **Verify** the `updates.json` field names. Verified with
+  `addons-linter` 10.13.0: a manifest with `update_url` passes as a self-hosted
+  add-on and fails with `MANIFEST_UPDATE_URL` as an AMO-listed one, so the
+  unlisted channel is the one that allows it.
 - `strict_min_version` is `121.0`, which the PRD requires (Section 14.1).
 
 ## Source code
@@ -129,7 +139,9 @@ rebuild match the submitted file.
 
 ## Verification checklist
 
-Do this with network access to the Mozilla hosts, or by hand:
+Do this with network access to the Mozilla hosts, or by hand. Status on
+2026-09-26: items 2, 3 and 4 are verified with Mozilla's own tools (see above).
+Items 1, 5 and 6 need the Mozilla web pages.
 
 1. Extension Workshop, "Signing and distribution overview" and "Distributing an
    add-on yourself": the unlisted flow, review and timing.
@@ -140,6 +152,9 @@ Do this with network access to the Mozilla hosts, or by hand:
 3. `web-ext sign --help` and the `web-ext` changelog: the version to pin, its
    current flags, how it uploads source code, and that `--channel=unlisted`
    creates no public listing.
-4. MDN, `browser_specific_settings`: the ID rules for Manifest V3.
+4. MDN, `browser_specific_settings`: the ID rules for Manifest V3. Verified in
+   `web-ext` 10.7.0 (`lib/cmd/sign.js`): signing a Manifest V3 extension with no
+   ID stops with "An extension ID must be specified in the manifest.json file".
+   The linter accepts `joyfox@drclaw`.
 5. Extension Workshop, "Source code submission": what to upload.
 6. MDN, "Updates": the `updates.json` field names.
