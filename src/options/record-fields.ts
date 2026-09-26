@@ -28,14 +28,46 @@ export const DATE_PATHS: ReadonlySet<string> = new Set([
   "updatedAt",
 ]);
 
+/** Every path that leads to a date: `steps`, `steps[]` and the dates. */
+const DATE_PATH_STEPS: ReadonlySet<string> = new Set(
+  [...DATE_PATHS].flatMap((path) => {
+    const steps = [path];
+    for (let index = 0; index < path.length; index += 1)
+      if (path[index] === "." || path.startsWith("[]", index))
+        steps.push(path.slice(0, index));
+    return steps;
+  }),
+);
+
+/** The longest name in any date path; a longer name can never lead to one. */
+const LONGEST_DATE_STEP = Math.max(
+  ...[...DATE_PATH_STEPS].map((step) => step.length),
+);
+
+/**
+ * A child's path, or undefined once it cannot lead to a date. Paths are built
+ * only along the schema's date paths, and never from a name longer than any
+ * date path's, so a field inside a free-form value costs no path at all.
+ */
+function childPath(
+  parent: string | undefined,
+  name: string,
+  separator = ".",
+): string | undefined {
+  if (parent === undefined || name.length > LONGEST_DATE_STEP) return undefined;
+  const path = parent === "" ? name : `${parent}${separator}${name}`;
+  return DATE_PATH_STEPS.has(path) ? path : undefined;
+}
+
 /**
  * A date's value as a readable date, or undefined to show it as stored. The
  * check is strict: `Date.parse` alone repairs `2026-02-30` to 2 March, and the
  * inspector must never show a date other than the stored one. Other values of
  * a date field, such as "unknown", are shown as they are.
  */
-function readableDate(path: string, value: string) {
-  if (!DATE_PATHS.has(path) || !isStrictIsoDate(value)) return undefined;
+function readableDate(path: string | undefined, value: string) {
+  if (path === undefined || !DATE_PATHS.has(path) || !isStrictIsoDate(value))
+    return undefined;
   return value.includes("T") ? formatDateTime(value) : formatDate(value);
 }
 
@@ -131,7 +163,7 @@ function renderValue(
   document: Document,
   value: unknown,
   budget: Budget,
-  path: string,
+  path: string | undefined,
 ): HTMLElement {
   budget.left -= 1;
   if (isEmpty(value))
@@ -166,7 +198,9 @@ function renderValue(
         list.append(entry);
         break;
       }
-      entry.append(renderValue(document, item, budget, `${path}[]`));
+      entry.append(
+        renderValue(document, item, budget, childPath(path, "[]", "")),
+      );
       list.append(entry);
     }
     return list;
@@ -181,7 +215,7 @@ function fields(
   document: Document,
   record: Readonly<Record<string, unknown>>,
   budget: Budget,
-  path = "",
+  path: string | undefined,
 ): HTMLDListElement {
   const list = document.createElement("dl");
   list.className = "joyfox-data__fields";
@@ -208,7 +242,7 @@ function fields(
       term.append(" ", moreCharacters(document, shownKey.omitted));
     const description = document.createElement("dd");
     description.append(
-      renderValue(document, value, budget, path ? `${path}.${key}` : key),
+      renderValue(document, value, budget, childPath(path, key)),
     );
     list.append(term, description);
   }
@@ -231,5 +265,5 @@ export function renderFields(
   document: Document,
   record: Readonly<Record<string, unknown>>,
 ): HTMLDListElement {
-  return fields(document, record, { left: MAX_SHOWN_VALUES });
+  return fields(document, record, { left: MAX_SHOWN_VALUES }, "");
 }

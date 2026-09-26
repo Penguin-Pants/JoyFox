@@ -132,6 +132,19 @@ describe("record fields (V1-7)", () => {
     ]);
   });
 
+  it("never builds a date path from a free-form field name", () => {
+    const has = vi.spyOn(DATE_PATHS as Set<string>, "has");
+    const huge = "k".repeat(1_000_000);
+    renderFields(document, {
+      filters: { [huge]: "2026-09-25T20:03:00.000Z" },
+      [huge]: "2026-09-25T20:03:00.000Z",
+    });
+    const longest = Math.max(...[...DATE_PATHS].map((path) => path.length));
+    for (const [path] of has.mock.calls)
+      expect(path.length).toBeLessThanOrEqual(longest);
+    has.mockRestore();
+  });
+
   it("shows lists as lists and objects as nested fields", () => {
     const list = renderFields(document, {
       tags: ["friendly", "local"],
