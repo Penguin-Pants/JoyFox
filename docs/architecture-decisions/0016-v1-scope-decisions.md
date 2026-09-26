@@ -62,3 +62,12 @@ these:
   `package.json` states `GPL-3.0-or-later`. The rest of V1-8 stays open.
 - V1-9 no longer depends on V1-1 or D1, and D3 is answered. It still depends on
   D4 (the ToS review and the GDPR consult) and the other items in its row.
+
+## Amendment: extension ID (project owner, 2026-09-26)
+
+The permanent Firefox extension ID (`browser_specific_settings.gecko.id` in
+`manifests/firefox.json`) is `joyfox@drclaw`. It replaces the placeholder
+`joyfox@example.invalid`, as V1-8's cleanup criterion requires. The ID cannot
+change after the first signed release, since Firefox keys an extension's storage
+to it. A build loaded with the placeholder ID keeps its data under that ID:
+export it under "Your data" before the switch and import it after.

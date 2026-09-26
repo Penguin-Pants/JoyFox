@@ -64,11 +64,13 @@ owner has chosen a channel.
 
 ## Manifest gaps (`manifests/firefox.json`)
 
-- **Extension ID.** `browser_specific_settings.gecko.id` is
-  `joyfox@example.invalid`, a placeholder. Manifest V3 extensions must set an ID
+- **Extension ID.** Decided (owner, 2026-09-26, ADR 0016):
+  `browser_specific_settings.gecko.id` is `joyfox@drclaw`, replacing the
+  placeholder `joyfox@example.invalid`. Manifest V3 extensions must set an ID
   for signing; AMO does not assign one (MDN, `browser_specific_settings`). The
   ID is permanent: changing it later makes a new extension with empty storage.
-  Owner decision before the first signing.
+  An installation loaded with the old placeholder ID keeps its data under that
+  ID, so export it under "Your data" before switching and import it after.
 - **Data collection declaration.** New extensions must declare what data they
   collect in `browser_specific_settings.gecko.data_collection_permissions`
   (since 2025-11-03 for new extensions; Mozilla said it would require it of all
@@ -118,7 +120,7 @@ rebuild match the submitted file.
 
 - **Channel:** temporary install only (personal use), unlisted signed build
   (matches PRD Section 20, V1), or AMO listing (PRD "Later").
-- **Extension ID:** the permanent value for `gecko.id`.
+- **Extension ID:** decided: `joyfox@drclaw` (ADR 0016).
 - **Updates:** a self-hosted `update_url`, or updates installed by hand.
 
 ## Verification checklist
