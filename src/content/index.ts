@@ -16,6 +16,10 @@ import {
   summarizeInbox,
 } from "./diagnostics";
 import { InboxTriage, inboxListShown, inboxListState } from "./inbox-triage";
+import {
+  CompatibilityOverlay,
+  runtimeCompatibilityClient,
+} from "./compatibility";
 import { EventListFilter } from "./event-list-filter";
 import { ListingPanel, runtimeListingClient } from "./listing-panel";
 import { MemberNotes, runtimeNotesClient } from "./member-notes";
@@ -70,6 +74,10 @@ if (hasVerifiedSelectors() && VERIFIED_HOSTS.includes(location.hostname)) {
   const listingClient = runtimeListingClient();
   const listing = new ListingPanel(document, listingClient);
   const eventFilter = new EventListFilter(document, listingClient);
+  const compatibility = new CompatibilityOverlay(
+    document,
+    runtimeCompatibilityClient(),
+  );
   const quick = new QuickIgnoreDelete(
     document,
     runtimeQuickActionClient(),
@@ -86,6 +94,7 @@ if (hasVerifiedSelectors() && VERIFIED_HOSTS.includes(location.hostname)) {
     searches.localeChanged();
     listing.localeChanged();
     eventFilter.localeChanged();
+    compatibility.localeChanged();
   });
   let lastType: string | undefined;
   const updatePicker = () => {
@@ -124,6 +133,8 @@ if (hasVerifiedSelectors() && VERIFIED_HOSTS.includes(location.hostname)) {
     else listing.leave();
     if (type === "event-calendar") eventFilter.update();
     else eventFilter.leave();
+    // Profile, search results, the inbox list and event guest lists (V1-2).
+    compatibility.update(type);
     lastType = type;
     updatePicker();
     updateQuickAction();
@@ -174,6 +185,7 @@ if (hasVerifiedSelectors() && VERIFIED_HOSTS.includes(location.hostname)) {
       searches.accountChanged();
       listing.accountChanged();
       eventFilter.accountChanged();
+      compatibility.accountChanged();
     } else if (TRIAGE_REVISION_KEY in changes) {
       // Also set by every delete in the data inspector, so a deleted note,
       // tag or saved search leaves an open page at once.
@@ -184,6 +196,8 @@ if (hasVerifiedSelectors() && VERIFIED_HOSTS.includes(location.hostname)) {
       searches.invalidate();
       listing.invalidate();
       eventFilter.invalidate();
+      // A snapshot capture: a profile's preferences, or the viewer's own.
+      compatibility.invalidate();
     } else if (NOTES_REVISION_KEY in changes) {
       // A note or tag saved in another tab.
       notes.invalidate();

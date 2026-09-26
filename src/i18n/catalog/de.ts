@@ -403,6 +403,41 @@ export const de: Catalog = {
     "Wähle in den JoyFox-Einstellungen ein Konto aus oder füge eines hinzu, um nach deinen Notizen zu filtern.",
   "eventFilter.badge": "JoyFox",
   "eventFilter.hasNote": "Notiz",
+  "compat.heading": "Gemeinsame Vorlieben",
+  "compat.shared": (p, f) =>
+    `Du teilst ${f.plural(p.count, {
+      one: "1 Vorliebe",
+      other: `${f.number(p.count)} Vorlieben`,
+    })} mit diesem Mitglied:`,
+  "compat.none": "Du teilst keine Vorlieben mit diesem Mitglied.",
+  "compat.own": (p, f) =>
+    `Das ist dein Profil. JoyFox vergleicht andere Profile mit seinen ${f.plural(
+      p.count,
+      {
+        one: "1 positiven Vorliebe",
+        other: `${f.number(p.count)} positiven Vorlieben`,
+      },
+    )}.`,
+  "compat.ownUnknown":
+    "Öffne einmal dein eigenes JoyClub-Profil, damit JoyFox deine Vorlieben kennt.",
+  "compat.unreadable":
+    "JoyFox konnte die Vorlieben dieses Profils noch nicht lesen.",
+  "compat.missing": "Dieses Profil zeigt keine Vorlieben zum Vergleichen.",
+  "compat.readFailed":
+    "JoyFox konnte deine Vorlieben nicht laden. Lade die Seite neu, um es noch einmal zu versuchen.",
+  "compat.noAccount":
+    "Wähle in den JoyFox-Einstellungen ein Konto aus oder füge eines hinzu, um Vorlieben zu vergleichen.",
+  "compat.badge": (p, f) => `${f.number(p.count)} gemeinsam`,
+  "compat.badgeLabel": (p, f) =>
+    `JoyFox: ${f.plural(p.count, {
+      one: "1 gemeinsame Vorliebe",
+      other: `${f.number(p.count)} gemeinsame Vorlieben`,
+    })}`,
+  "compat.sort.button": "Nach gemeinsamen Vorlieben sortieren",
+  "compat.sort.on":
+    "Nach gemeinsamen Vorlieben sortiert. Mitglieder, deren Profil du noch nicht geöffnet hast, stehen am Ende.",
+  "compat.sort.unavailable":
+    "JoyFox kann diese Liste nicht sortieren: Ihr Layout erlaubt es nicht.",
   "searches.heading": "Gespeicherte JoyFox-Suchen",
   "searches.loading": "Gespeicherte Suchen werden geladen …",
   "searches.readFailed":

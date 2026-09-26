@@ -117,7 +117,17 @@ const SNAPSHOT_FIELDS = [
   "joinedAt",
   "joinedEarliest",
   "joinedLatest",
+  "positivePreferences",
+  "ownProfile",
 ] as const;
+
+/** What a profile page showed beyond the rule facts (V1-2). */
+export interface ProfileCaptureExtras {
+  /** The positive preference labels, when the checklist was read. */
+  preferences?: string[];
+  /** Set when the page is the viewer's own profile. */
+  ownProfile?: boolean;
+}
 
 /**
  * The background side of triage (M2, M4, M6). It reads storage for the
@@ -350,7 +360,8 @@ export class TriageService {
   /**
    * Cache the profile facts a profile page showed, so the inbox can use them
    * later without opening the profile (build plan Section 8). Only counts,
-   * codes and dates are stored, never profile text. Returns whether a record
+   * codes and dates are stored, never profile text; V1-2 adds the labels of
+   * the tags the profile lists at a positive level. Returns whether a record
    * was written: nothing is written when no fact was seen or when the facts
    * match the newest snapshot.
    */
@@ -358,6 +369,7 @@ export class TriageService {
     accountId: string,
     memberId: string,
     observed: Partial<ProfileFacts>,
+    extras: ProfileCaptureExtras = {},
   ): Promise<boolean> {
     requireAccountId(accountId);
     requireMemberId(memberId);
@@ -372,6 +384,8 @@ export class TriageService {
       | "joinedAt"
       | "joinedEarliest"
       | "joinedLatest"
+      | "positivePreferences"
+      | "ownProfile"
     > = {
       verification: facts.verification,
       photoCount: facts.photoCount,
@@ -380,8 +394,13 @@ export class TriageService {
       ...(window
         ? { joinedEarliest: window.earliest, joinedLatest: window.latest }
         : {}),
+      ...(extras.preferences
+        ? { positivePreferences: [...extras.preferences] }
+        : {}),
+      ...(extras.ownProfile ? { ownProfile: true as const } : {}),
     };
     const seen =
+      values.positivePreferences !== undefined ||
       values.verification !== "unknown" ||
       values.photoCount !== "unknown" ||
       values.profileWordCount !== "unknown" ||
@@ -413,6 +432,11 @@ export class TriageService {
           joinedEarliest: newest.joinedEarliest,
           joinedLatest: newest.joinedLatest,
         });
+      // A checklist not read now (its labels draw late) keeps what an
+      // earlier visit read, as the other fields do.
+      if (!values.positivePreferences && newest.positivePreferences)
+        values.positivePreferences = newest.positivePreferences;
+      if (newest.ownProfile) values.ownProfile = true;
     }
     if (
       newest &&
@@ -464,6 +488,8 @@ function sameSnapshotValue(
     typeof fresh === "string"
   )
     return stored.slice(0, 10) === fresh.slice(0, 10);
+  if (field === "positivePreferences")
+    return JSON.stringify(stored) === JSON.stringify(fresh);
   return stored === fresh;
 }
 

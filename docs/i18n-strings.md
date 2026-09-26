@@ -355,6 +355,25 @@ stay as they are.
 | `eventFilter.badge` | JoyFox | JoyFox |
 | `eventFilter.hasNote` | note | Notiz |
 
+## compat
+
+| Key | English | Deutsch |
+| --- | --- | --- |
+| `compat.heading` | Shared preferences | Gemeinsame Vorlieben |
+| `compat.shared` | You share 1 preference / {count} preferences with this member: | Du teilst 1 Vorliebe / {count} Vorlieben mit diesem Mitglied: |
+| `compat.none` | You share no preferences with this member. | Du teilst keine Vorlieben mit diesem Mitglied. |
+| `compat.own` | This is your profile. JoyFox compares other profiles with its 1 positive preference / {count} positive preferences. | Das ist dein Profil. JoyFox vergleicht andere Profile mit seinen 1 positiven Vorliebe / {count} positiven Vorlieben. |
+| `compat.ownUnknown` | Open your own JoyClub profile once, so JoyFox knows your preferences. | Öffne einmal dein eigenes JoyClub-Profil, damit JoyFox deine Vorlieben kennt. |
+| `compat.unreadable` | JoyFox could not read this profile's preferences yet. | JoyFox konnte die Vorlieben dieses Profils noch nicht lesen. |
+| `compat.missing` | This profile shows no preferences to compare. | Dieses Profil zeigt keine Vorlieben zum Vergleichen. |
+| `compat.readFailed` | JoyFox could not load your preferences. Reload the page to try again. | JoyFox konnte deine Vorlieben nicht laden. Lade die Seite neu, um es noch einmal zu versuchen. |
+| `compat.noAccount` | Select or add an account in the JoyFox options to compare preferences. | Wähle in den JoyFox-Einstellungen ein Konto aus oder füge eines hinzu, um Vorlieben zu vergleichen. |
+| `compat.badge` | {count} shared | {count} gemeinsam |
+| `compat.badgeLabel` | JoyFox: 1 shared preference / {count} shared preferences | JoyFox: 1 gemeinsame Vorliebe / {count} gemeinsame Vorlieben |
+| `compat.sort.button` | Sort by shared preferences | Nach gemeinsamen Vorlieben sortieren |
+| `compat.sort.on` | Sorted by shared preferences. Members whose profile you have not opened come last. | Nach gemeinsamen Vorlieben sortiert. Mitglieder, deren Profil du noch nicht geöffnet hast, stehen am Ende. |
+| `compat.sort.unavailable` | JoyFox cannot sort this list: its layout does not allow it. | JoyFox kann diese Liste nicht sortieren: Ihr Layout erlaubt es nicht. |
+
 ## searches
 
 | Key | English | Deutsch |

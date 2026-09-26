@@ -90,6 +90,16 @@ export const selectorRegistry: Readonly<
       memberSinceBadge: ".profile-sidebar-container__badge-list j-list-item",
       // Only the main text is counted; the motto above it is not.
       profileMainText: ".profile-description-maintext__text",
+      // V1-2, from 13-preferences.md. The "Vorlieben" checklist: one level
+      // group per level that has tags, each tag a `j-tag` whose label is in
+      // its shadow root. Each person has a visible and a hidden copy.
+      preferenceSection: "div.profile-erotic-prefs",
+      preferenceLevel: "div.profile-erotic-prefs__category",
+      preferenceLevelTitle: "h4.profile-erotic-prefs__category-title",
+      preferenceTag: "div.profile-erotic-prefs__category-item-list > j-tag",
+      preferenceTagLabel: "a.j-tag",
+      // Only the viewer's own profile has the "Account" headline.
+      ownProfileHeadline: "h2.profile-headline",
     },
   },
   search: {
@@ -102,8 +112,9 @@ export const selectorRegistry: Readonly<
     fields: {
       resultList: "div.member_search_list",
       filterButton: '[data-e2e="search-filter-button"]',
-      // Display only for now: saved searches read no member.
+      // The member ID is in the link (V1-2 reads it for the shared count).
       resultLink: 'a[data-e2e="result-item"]',
+      resultCard: "j-member-card",
     },
   },
   event: {
@@ -118,6 +129,9 @@ export const selectorRegistry: Readonly<
       infoBox: ".event_info_box",
       startText: ".event_info_box .event-time",
       venueLink: ".event_location_detail a.event_club",
+      // V1-2: the guest list tabs; each entry is a link to a profile.
+      attendeeEntry: '.tab-pane[id^="guest_"] a.card.normal',
+      attendeeName: "div.date_moreinfo",
     },
   },
   // "Dates & Events" and its sub-tabs; one list holds event and date cards.

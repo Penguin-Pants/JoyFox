@@ -41,6 +41,15 @@ export interface ProfileSnapshot extends AccountScopedEntity {
    */
   joinedEarliest?: string;
   joinedLatest?: string;
+  /**
+   * V1-2: the tags the profile lists at a positive level (D5), by their
+   * German label, sorted and unique. Absent when the checklist was not read.
+   * Special-category data (PRD 13.1): it stays local and follows the
+   * snapshot history limit (V1-12).
+   */
+  positivePreferences?: string[];
+  /** V1-2: captured from the viewer's own profile. */
+  ownProfile?: true;
 }
 
 export interface UserNote extends AccountScopedEntity {

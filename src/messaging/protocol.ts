@@ -5,6 +5,7 @@ import type {
   ActionStep,
   OperationReport,
 } from "../actions/ignore-delete";
+import type { CompatibilityAnswer } from "../compatibility/compatibility-service";
 import type { ActionLog, TriagePlacement } from "../domain/types";
 import type { Message } from "../i18n/message";
 import type { ProfileFacts } from "../qualification/facts";
@@ -115,14 +116,26 @@ export interface MessageContract {
     request: { accountId: string; memberId: string };
     response: { removed: boolean };
   };
-  /** Cache the facts a profile page showed. Counts, codes and dates only. */
+  /**
+   * Cache the facts a profile page showed: counts, codes and dates, and
+   * (V1-2) the labels of the tags it lists at a positive level.
+   */
   "snapshot.capture": {
     request: {
       accountId: string;
       memberId: string;
       observed: Partial<ProfileFacts>;
+      preferences?: string[];
+      ownProfile?: boolean;
     };
     response: { stored: boolean };
+  };
+  /** V1-2: the viewer's own preferences and each member's shared count. */
+  "compat.lookup": {
+    request: { memberIds: string[] };
+    response:
+      | { status: "no-account" }
+      | ({ status: "ok" } & CompatibilityAnswer);
   };
   /**
    * The active account's message templates, for the composer picker (M10).

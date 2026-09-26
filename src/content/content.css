@@ -596,3 +596,62 @@
   display: inline-block;
   margin: 0.25em 0 0;
 }
+
+/*
+ * V1-2: a tag the viewer shares, inside JoyClub's own checklist. The label
+ * is in the tag's shadow root, so the host element is framed. The frame is a
+ * second cue: the JoyFox section lists the shared tags in words.
+ */
+[data-joyfox-shared="yes"] {
+  outline: 2px solid var(--joyfox-shared, #2ea663);
+  outline-offset: 2px;
+  border-radius: 999px;
+}
+
+.joyfox-compat__heading {
+  display: block;
+}
+
+.joyfox-compat__text {
+  margin: 0.25em 0;
+}
+
+.joyfox-compat__list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25em 0.5em;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.joyfox-compat__list li {
+  padding: 0 0.5em;
+  border: 1px solid var(--joyfox-line);
+  border-radius: var(--joyfox-radius);
+}
+
+/* A count, not a control: no pointer, and it never takes a click. */
+.joyfox-compat-badge {
+  display: inline-block;
+  margin: 0.25em;
+  border-color: var(--joyfox-qualified);
+  cursor: default;
+  pointer-events: none;
+  white-space: nowrap;
+}
+
+.joyfox-compat-sort {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--joyfox-space);
+}
+
+.joyfox-compat-sort .joyfox-note {
+  margin: 0;
+}
+
+.joyfox-compat-sort .joyfox-note:empty {
+  display: none;
+}

@@ -162,6 +162,27 @@ describe("F6 repositories", () => {
       repositories.profileSnapshots.put("account-a", malformed),
     ).rejects.toThrow("photoCount");
   });
+  it("validates the V1-2 preferences on a snapshot", async () => {
+    const base = entity("profileSnapshots", "account-a", "snapshot");
+    await repositories.profileSnapshots.put("account-a", {
+      ...base,
+      positivePreferences: ["Synthetic A"],
+      ownProfile: true,
+    });
+    for (const [field, value] of [
+      ["positivePreferences", "Synthetic A"],
+      ["positivePreferences", [" "]],
+      ["positivePreferences", [3]],
+      ["ownProfile", false],
+    ] as const)
+      await expect(
+        repositories.profileSnapshots.put("account-a", {
+          ...base,
+          [field]: value,
+        } as never),
+        `${field} ${JSON.stringify(value)}`,
+      ).rejects.toThrow(field);
+  });
   it("accepts the D6 attendance values and no other (ADR 0016)", async () => {
     for (const attendance of [
       "interested",

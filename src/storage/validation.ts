@@ -143,6 +143,18 @@ function validateProfileSnapshot(record: Record<string, unknown>): void {
         "joinedEarliest must not be after joinedLatest",
       );
   }
+  if (
+    record.positivePreferences !== undefined &&
+    (!Array.isArray(record.positivePreferences) ||
+      record.positivePreferences.some(
+        (label) => typeof label !== "string" || label.trim().length === 0,
+      ))
+  )
+    throw new ValidationError(
+      "positivePreferences must be a list of non-empty labels",
+    );
+  if (record.ownProfile !== undefined && record.ownProfile !== true)
+    throw new ValidationError("ownProfile must be true when present");
 }
 
 function validateSyncConfig(record: Record<string, unknown>): void {

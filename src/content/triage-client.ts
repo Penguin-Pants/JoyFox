@@ -6,6 +6,7 @@ import type {
 import { request, type MessageSender } from "../messaging/request";
 import type { ProfileFacts } from "../qualification/facts";
 import type {
+  ProfileCaptureExtras,
   TriageRequestMember,
   TriageResponse,
   TrustResponse,
@@ -41,6 +42,7 @@ export interface TriageClient {
     accountId: string,
     memberId: string,
     observed: Partial<ProfileFacts>,
+    extras?: ProfileCaptureExtras,
   ): Promise<void>;
   openOptions(): Promise<void>;
 }
@@ -63,11 +65,12 @@ export function messageTriageClient(sender: MessageSender): TriageClient {
     async undoTrust(accountId, memberId) {
       await request(sender, "trust.undo", { accountId, memberId });
     },
-    async captureSnapshot(accountId, memberId, observed) {
+    async captureSnapshot(accountId, memberId, observed, extras = {}) {
       await request(sender, "snapshot.capture", {
         accountId,
         memberId,
         observed,
+        ...extras,
       });
     },
     async openOptions() {

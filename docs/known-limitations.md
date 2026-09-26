@@ -195,4 +195,13 @@
   time zone. The calendar on the options page has no links to JoyClub: a link
   would put a remote address in the extension's code, which the network
   isolation check forbids. The list filter works only on the events JoyClub has
-  already loaded; it never loads more. The attendee list is not read (V1-13).
+  already loaded; it never loads more. The attendee list is not stored (V1-13).
+- The Compatibility Overlay (V1-2) needs the viewer's own profile opened once in
+  the active account; it is recognized by the "Account" headline only it shows,
+  so if JoyClub removes that headline, JoyFox asks to open the own profile and
+  shows no counts. A card shows a count only for a member whose profile was
+  opened before, and the count is the one from the last visit. A profile without
+  a "Vorlieben" list, or one whose tag labels have not drawn yet, shows no
+  count. Tags are matched by their German label only (`13-preferences.md`). The
+  sort orders only the results JoyClub has loaded, and works only if JoyClub
+  lays the list out as a flex or grid container.

@@ -177,6 +177,20 @@ They are optional fields on the existing store, so no database version change
 was needed. `joinedAt` stays for an exact date, which JoyClub does not show
 today.
 
+## Preferences (V1-2)
+
+A ProfileSnapshot may carry `positivePreferences`: the German labels of the tags
+the profile's "Vorlieben" checklist lists at a positive level (Unbedingt, Steh
+ich drauf, Situationsabhängig or Möchte ich gerne ausprobieren; ADR 0016, D5),
+sorted and unique. On a couple profile a tag counts when either partner lists it
+at a positive level. The field is absent when the checklist was not read; a
+capture that could not read it keeps the newest known list, as the other fields
+do. `ownProfile: true` marks a snapshot captured from the viewer's own profile.
+The shared count for a member uses the newest snapshot of that member and of the
+newest member marked as the viewer's own. Both are optional fields on the
+existing store, so no database version change was needed. Import refuses more
+than 500 labels or a label longer than 100 characters.
+
 ## Live-only profile facts
 
 `personallyKnown` ("persönlich bekannt") is a profile fact for qualification but

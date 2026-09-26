@@ -14,6 +14,10 @@ import { ExtensionError } from "../errors";
 import { isLocale, LOCALE_KEY } from "../i18n/locale";
 import { message, type Message } from "../i18n/message";
 import { MAX_EVENT_TAGS, MAX_LISTING_TEXT_LENGTH } from "../events/listing";
+import {
+  MAX_PREFERENCE_LABEL_LENGTH,
+  MAX_PREFERENCE_TAGS,
+} from "../extraction/preferences";
 import { MAX_NOTE_LENGTH, MAX_TAG_LENGTH } from "../notes/limits";
 import {
   MAX_NORMALIZED_PHRASE_LENGTH,
@@ -142,6 +146,8 @@ const ENTITY_FIELDS: Readonly<Record<EntityName, readonly string[]>> = {
     "joinedAt",
     "joinedEarliest",
     "joinedLatest",
+    "positivePreferences",
+    "ownProfile",
   ],
   userNotes: ["memberId", "body"],
   userTags: ["memberId", "label"],
@@ -284,6 +290,25 @@ function domainProblem(
         ? {
             text: `a rule condition holds an unknown field (${extra})`,
             field: extra,
+          }
+        : undefined;
+    }
+    case "profileSnapshots": {
+      // The limits a capture keeps to, so an import cannot store more.
+      const labels = Array.isArray(record.positivePreferences)
+        ? record.positivePreferences
+        : [];
+      if (labels.length > MAX_PREFERENCE_TAGS)
+        return { text: `more than ${MAX_PREFERENCE_TAGS} preferences` };
+      return labels.some(
+        (label) =>
+          typeof label === "string" &&
+          label.length > MAX_PREFERENCE_LABEL_LENGTH,
+      )
+        ? {
+            text: `a preference is longer than ${MAX_PREFERENCE_LABEL_LENGTH} characters`,
+            field: "positivePreferences",
+            maximum: MAX_PREFERENCE_LABEL_LENGTH,
           }
         : undefined;
     }

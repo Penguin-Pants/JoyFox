@@ -27,7 +27,7 @@ Rules:
 | Inbox                    | Verified   | `01-inbox.md`        | Detected and extracted  |
 | Conversation             | Verified   | `02-conversation.md` | Detected and extracted  |
 | Profile                  | Verified   | `03-profile.md`      | Detected and extracted  |
-| Search                   | Verified   | `11-search.md`       | Saved searches (V1-3)   |
+| Search                   | Verified   | `11-search.md`       | Saved searches, counts  |
 | Event                    | Verified   | `14-events.md`       | Event notes (V1-5)      |
 | Event calendar           | Verified   | `14-events.md`       | Event filter (V1-5)     |
 | Venue                    | Verified   | `15-venues.md`       | Venue notes (V1-5)      |
@@ -80,11 +80,19 @@ app (`09-navigation.md`) and the inbox list can stay in the DOM.
 | Profile      | Account age       | `.profile-sidebar-container__badge-list j-list-item` with text "Angemeldet seit …" | Join window from a rounded duration                  |
 | Search       | Result list       | `div.member_search_list`                                                           | Saved-search bar goes before it                      |
 | Search       | Filter button     | `[data-e2e="search-filter-button"]`                                                | Recorded only                                        |
-| Search       | Result link       | `a[data-e2e="result-item"]`                                                        | Recorded only; no member is read                     |
+| Profile      | Preference list   | `div.profile-erotic-prefs`                                                         | "Vorlieben"; a visible and a hidden copy per person  |
+| Profile      | Preference level  | `div.profile-erotic-prefs__category`                                               | One group per level that has tags                    |
+| Profile      | Level name        | `h4.profile-erotic-prefs__category-title`                                          | One of six names (`13-preferences.md`)               |
+| Profile      | Preference tag    | `div.profile-erotic-prefs__category-item-list > j-tag`                             | Label: `a.j-tag` in its shadow root; the only key    |
+| Profile      | Own profile       | `h2.profile-headline` with text "Account"                                          | Only the viewer's own profile has it                 |
+| Search       | Result link       | `a[data-e2e="result-item"]`                                                        | Member ID for the shared count (V1-2)                |
+| Search       | Result card       | `j-member-card` in the link                                                        | Badge in its `badge-top-right` slot                  |
 | Event        | Event ID          | URL path                                                                           | Digits before the first `.`                          |
 | Event        | Title             | `h1.event_name`                                                                    | Kept with the user's notes                           |
 | Event        | Start             | `.event_info_box .event-time`                                                      | "Samstag, 27. September 2026 - ab 21:00", local time |
 | Event        | Venue link        | `.event_location_detail a.event_club`                                              | `/club/<n>.<slug>.html` and the venue's name         |
+| Event        | Guest entry       | `.tab-pane[id^="guest_"] a.card.normal`                                            | Profile link; shared-count badge (V1-2)              |
+| Event        | Guest name        | `div.date_moreinfo`                                                                | The badge goes here                                  |
 | Event list   | Item              | `div.card-list-ui-list-item`                                                       | Event and date cards alike                           |
 | Event list   | Event item        | `div.card-list-ui-list-item.event-card-ui[data-element-id]`                        | `data-element-id` is the event ID                    |
 | Event list   | Headline          | `.card-ui-detail-right-headline`                                                   | The badge goes here                                  |
@@ -104,6 +112,15 @@ hold nothing else, found by structure (`rowSlot`), not by class. JoyClub wraps
 each row in two plain `div`s that keep their height when only the row is hidden
 (`01-inbox.md`, "List structure"). The climb stops at the list root and at the
 first wrapper with more than one child, so it can never hide the list.
+
+## Compatibility sort (V1-2)
+
+The sort gives each loaded result's item a CSS `order` and never moves JoyClub's
+elements. The items are the children of the lowest element that holds every
+result link. `order` works only when that element is a flex or grid container,
+found with `getComputedStyle`; otherwise JoyFox says the list cannot be sorted.
+`11-search.md` does not record the list's layout, so this is a live check
+(`manual-acceptance.md`, item 119).
 
 ## M9 controls (ADR 0011)
 

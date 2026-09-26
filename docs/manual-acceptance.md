@@ -622,3 +622,28 @@ sending-page check does not refuse the normal hand-off.
      the message says JoyFox no longer tracks it, and the event leaves "Events".
      After an event you tracked has passed, confirm it stays in "Events" marked
      "(past)". Switch the language to German and confirm every box is German.
+
+## Compatibility Overlay (V1-2)
+
+116. Open your own JoyClub profile. Confirm a "Shared preferences" section in
+     the JoyFox strip says "This is your profile" and gives the number of your
+     positive preferences. Count the tags under Unbedingt, Steh ich drauf,
+     Situationsabhängig and Möchte ich gerne ausprobieren by hand and confirm
+     the number matches.
+117. Open another member's profile. Confirm the section lists the shared
+     preferences and that JoyClub's checklist frames exactly those tags. Check
+     both checklists by hand: every framed tag is at a positive level on both,
+     and no other tag is at a positive level on both (PRD 6.2). On a couple
+     profile, a tag counts when either partner has it at a positive level.
+118. Open the member search. For the member from item 117, confirm the card
+     shows "N shared" with the same N as the profile page. Confirm a member
+     whose profile you never opened shows no count. Open the inbox and an
+     event's guest list ("Gäste") with that member and confirm the same N.
+119. On the member search, open two members with different numbers of shared
+     preferences first, then click "Sort by shared preferences". Confirm the
+     loaded results are ordered by that number, most first, and members with no
+     count come last. Scroll to load more and confirm they follow. Click again
+     and confirm JoyClub's order is back. If JoyFox says the list cannot be
+     sorted, note it: the list's layout needs a new capture.
+120. Switch the language to German and confirm "N gemeinsam" and a German
+     section. Switch the active account and confirm every count disappears.
