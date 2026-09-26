@@ -87,6 +87,22 @@ after 15 seconds and says Ignore was not done (item 98). If another JoyClub page
 loads in the tab first, that page drops the hand-off at once (item 100). Both
 are covered by synthetic tests; item 99, a normal run, checks the hand-off live.
 
+## Disclaimer
+
+Read this before you install JoyFox.
+
+- JoyFox is an independent project. JoyClub does not make, check or support it.
+- Nobody has checked whether JoyClub's terms of use allow browser extensions
+  like JoyFox. Many platforms forbid automated access. If JoyClub finds that you
+  use JoyFox, it can restrict or close your account. Quick Ignore and Delete,
+  which clicks JoyClub's own buttons for you, carries the highest risk; it is
+  off by default.
+- JoyFox stores information about other members (profile facts, your notes and
+  tags) only in your browser. You are responsible for how you use and keep that
+  information. For private use by one person, EU data protection law very likely
+  does not apply (GDPR Article 2(2)(c)), but no lawyer has confirmed this.
+- You use JoyFox at your own risk. It comes with no warranty (see `LICENSE`).
+
 ## License
 
 JoyFox is free software under the GNU General Public License, version 3 or (at
