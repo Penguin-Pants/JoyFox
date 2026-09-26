@@ -312,7 +312,8 @@
 /* A record's fields: the stored name, then its readable value. */
 .joyfox-data__fields {
   display: grid;
-  grid-template-columns: minmax(8rem, max-content) minmax(0, 1fr);
+  /* Names fit their width up to 40% of the list, then wrap. */
+  grid-template-columns: fit-content(40%) minmax(0, 1fr);
   gap: var(--joyfox-space-1) var(--joyfox-space-2);
   margin: var(--joyfox-space-2) 0;
 }
