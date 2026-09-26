@@ -391,6 +391,40 @@ describe("V1-10 signals on every card", () => {
 });
 
 describe("V1-10 card note editor", () => {
+  it("reports a note saved in another tab while typing, instead of overwriting it", async () => {
+    searchPage([FULL]);
+    signals.update("search");
+    await flush();
+    group(FULL)!
+      .querySelector<HTMLButtonElement>(".joyfox-signals__note")!
+      .click();
+    await flush();
+    const note = () =>
+      editor().querySelector<HTMLTextAreaElement>(".joyfox-card-editor__note")!;
+    type(note(), "Mine");
+    // Another tab saves a note; its revision reaches this tab.
+    await new NotesService().saveNote(
+      "account-a",
+      { status: "resolved", memberId: FULL, source: "test" },
+      "Theirs",
+    );
+    signals.invalidate();
+    await flush();
+    expect(note().value).toBe("Mine");
+    editorButton("Save note").click();
+    await flush();
+    expect(editor().textContent).toContain("This note changed in another tab");
+    expect((await repositories.userNotes.list("account-a"))[0]?.body).toBe(
+      "Theirs",
+    );
+    // Told, the user saves again: now it replaces the stored note.
+    editorButton("Save note").click();
+    await flush();
+    expect((await repositories.userNotes.list("account-a"))[0]?.body).toBe(
+      "Mine",
+    );
+  });
+
   it("keeps the newest read when an older one finishes last", async () => {
     const reads: Array<(answer: unknown) => void> = [];
     const editorClient = {

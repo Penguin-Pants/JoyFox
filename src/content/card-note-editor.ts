@@ -28,8 +28,12 @@ export class CardNoteEditor {
   #session = 0;
   #loadSequence = 0;
   #busy = false;
-  /** Typed text not saved yet; kept across redraws and a conflict. */
-  #noteDraft?: string;
+  /**
+   * Typed text not saved yet, and the stored note it was typed over. A save
+   * names that note, not one read later, so a newer note from another tab is
+   * reported as a conflict instead of being overwritten unseen.
+   */
+  #noteDraft?: { text: string; base: string | null };
   #tagDraft = "";
 
   constructor(
@@ -162,9 +166,12 @@ export class CardNoteEditor {
       note.maxLength = MAX_NOTE_LENGTH;
       note.rows = 3;
       // Typed text survives a redraw (a save elsewhere, a new language).
-      note.value = this.#noteDraft ?? data.note ?? "";
+      note.value = this.#noteDraft?.text ?? data.note ?? "";
       note.addEventListener("input", () => {
-        this.#noteDraft = note.value;
+        this.#noteDraft = {
+          text: note.value,
+          base: this.#noteDraft ? this.#noteDraft.base : data.note,
+        };
       });
       const save = button(
         document,
@@ -173,13 +180,16 @@ export class CardNoteEditor {
         () =>
           void this.#write(async (current) => {
             const body = note.value.trim();
-            if (!body && current.note === null)
+            const expected = this.#noteDraft
+              ? this.#noteDraft.base
+              : current.note;
+            if (!body && expected === null)
               return { text: message(NOTES_TEXT.emptyNote), error: true };
             const answer = await this.client.saveNote(
               current.accountId,
               memberId,
               body,
-              current.note,
+              expected,
             );
             if (answer.status === "saved") {
               // Saved: the redraw shows the stored note.
@@ -189,7 +199,14 @@ export class CardNoteEditor {
                 error: false,
               };
             }
-            // A newer note, or another account: the typed text stays.
+            // A newer note, or another account: the typed text stays. After
+            // a conflict, as on the profile page, the next save replaces the
+            // note that is stored now: the user has been told.
+            if (answer.status === "conflict")
+              this.#noteDraft = {
+                text: this.#noteDraft?.text ?? body,
+                base: answer.current,
+              };
             return {
               text: message(
                 answer.status === "conflict"
