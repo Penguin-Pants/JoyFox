@@ -622,6 +622,16 @@ describe("M8 import: restoring and merging", () => {
     expect(() => parseImportFile(listing({ tags: ["x".repeat(65)] }))).toThrow(
       "longer than 64",
     );
+    // Padding counts: the limits apply to the text as it would be stored.
+    expect(() =>
+      parseImportFile(listing({ tags: [`x${" ".repeat(64)}`] })),
+    ).toThrow("longer than 64");
+    expect(() =>
+      parseImportFile(listing({ note: `x${" ".repeat(4000)}` })),
+    ).toThrow("longer than 4000");
+    expect(() =>
+      parseImportFile(listing({ tags: Array.from({ length: 21 }, () => "") })),
+    ).toThrow("more than 20 tags");
     expect(() => parseImportFile(listing({ note: "x".repeat(4001) }))).toThrow(
       "longer than 4000",
     );
@@ -664,6 +674,8 @@ describe("M8 import: restoring and merging", () => {
           "joyfox.quickIgnoreDelete": true,
           "joyfox.diagnostics": true,
           "joyfox.triageRevision": "x",
+          "joyfox.savedSearchRevision": "x",
+          "joyfox.eventRevision": "x",
         },
       ),
     );
