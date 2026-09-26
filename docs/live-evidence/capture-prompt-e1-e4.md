@@ -129,10 +129,12 @@ Capture:
   filter you set: its control (primary and fallback selector), the control type
   (select, checkbox, range slider, text field, custom element), how its current
   value is stored (the `value` property, an attribute, a class or a hidden
-  input) with the value's shape, and whether setting the value and sending an
-  `input` or `change` event updates the panel. Also record where the page keeps
-  the filter state, if you can see it (the URL hash, a hidden form, local
-  storage key names only). Do not click "search" while you test this.
+  input) with the value's shape, and which events the control listens to, if
+  visible (for example an `onchange` attribute). Also record where the page
+  keeps the filter state, if you can see it (the URL hash, a hidden form, local
+  storage key names only). **Only read the state the filters already have.**
+  Never set a value or dispatch an event from JavaScript: JoyClub may run a
+  search or send a request at once.
 - Pagination or infinite scroll: how more results load.
 - Navigation type: inbox → search, and search → one result's profile (ask the
   owner first, see rule 4), then browser Back to the results.
@@ -171,6 +173,14 @@ Capture:
 - **Key question:** does each message have a stable identifier? Check the `id`
   attribute and every `data-*` attribute on the message root and its children.
   Report present (where, and its shape) or absent.
+- **If an identifier is present, test that it is stable.** Note the identifier
+  of the newest message in the conversation (keep the real value only in your
+  working memory; write it with digits as `0`). Then:
+  1. Scroll up once to load older messages, and check that the newest message
+     still has the same identifier.
+  2. Reload the conversation page, and check the newest message again. Report
+     "stable" if both checks match, "changes" (and after which step) if not, or
+     "present, stability not verified" if you could not run the checks.
 - Timestamp per message or per group: element and shape.
 - Date separators, if any.
 - How emoji, links and line breaks appear inside the text element (for example
