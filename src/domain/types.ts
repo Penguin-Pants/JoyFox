@@ -96,7 +96,13 @@ export interface EventMetadata extends AccountScopedEntity {
   eventId: string;
   note?: string;
   tags: string[];
-  attendance: "interested" | "attending" | "not-attending" | "unknown";
+  /** The user's own plan or record, never sent to JoyClub (D6, ADR 0016). */
+  attendance:
+    | "interested"
+    | "attending"
+    | "not-attending"
+    | "attended"
+    | "unknown";
 }
 export interface SpendLogEntry extends AccountScopedEntity {
   occurredAt: string;

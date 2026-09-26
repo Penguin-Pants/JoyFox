@@ -243,6 +243,7 @@ export function validateEntity(
         "interested",
         "attending",
         "not-attending",
+        "attended",
         "unknown",
       ]);
       break;

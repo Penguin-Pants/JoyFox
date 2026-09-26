@@ -162,6 +162,25 @@ describe("F6 repositories", () => {
       repositories.profileSnapshots.put("account-a", malformed),
     ).rejects.toThrow("photoCount");
   });
+  it("accepts the D6 attendance values and no other (ADR 0016)", async () => {
+    for (const attendance of [
+      "interested",
+      "attending",
+      "not-attending",
+      "attended",
+      "unknown",
+    ] as const)
+      await repositories.eventMetadata.put("account-a", {
+        ...entity("eventMetadata", "account-a", `event-${attendance}`),
+        attendance,
+      });
+    await expect(
+      repositories.eventMetadata.put("account-a", {
+        ...entity("eventMetadata", "account-a", "event-maybe"),
+        attendance: "maybe" as "unknown",
+      }),
+    ).rejects.toThrow("attendance");
+  });
   it("refuses a phrase match longer than a rule phrase can normalize to", async () => {
     const long = {
       ...entity("messagePhraseMatches", "account-a", "match"),
