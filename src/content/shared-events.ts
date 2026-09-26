@@ -44,6 +44,9 @@ export function runtimeSharedEventsClient(): SharedEventsClient {
   );
 }
 
+/** A failed request is tried again on later redraws, this many times. */
+const MAX_TRIES = 3;
+
 /** The section on a profile page that lists the shared tracked events. */
 export const SHARED_EVENTS_SECTION = "shared-events";
 
@@ -69,6 +72,8 @@ export class SharedEvents {
   #sent = new Map<string, string>();
   /** Set after a refusal or an untracked event, until a change. */
   #stopped = new Set<string>();
+  /** Failed requests per event or member, so a transient error retries. */
+  #failures = new Map<string, number>();
   #profileSession = 0;
   #profileMember?: string;
   #profileData?: { memberId: string; listings: ListingSummary[] };
@@ -92,6 +97,7 @@ export class SharedEvents {
   invalidate(): void {
     this.#sent.clear();
     this.#stopped.clear();
+    this.#failures.clear();
     this.#profileSession += 1;
     this.#profileData = undefined;
     this.#profileMember = undefined;
@@ -128,9 +134,17 @@ export class SharedEvents {
           this.#stopped.add(key);
       })
       .catch(() => {
+        // A failed send is tried again on a later redraw, a few times.
         this.#sent.delete(key);
-        this.#stopped.add(key);
+        if (this.#failed(key)) this.#stopped.add(key);
       });
+  }
+
+  /** Counts a failure; true once the key has failed `MAX_TRIES` times. */
+  #failed(key: string): boolean {
+    const count = (this.#failures.get(key) ?? 0) + 1;
+    this.#failures.set(key, count);
+    return count >= MAX_TRIES;
   }
 
   #section(): HTMLElement | null {
@@ -163,7 +177,12 @@ export class SharedEvents {
           };
           this.#drawProfile();
         })
-        .catch(() => undefined);
+        .catch(() => {
+          if (session !== this.#profileSession) return;
+          // Read again on a later redraw, a few times.
+          if (!this.#failed(`profile|${memberId}`))
+            this.#profileMember = undefined;
+        });
     }
     const data = this.#profileData;
     if (

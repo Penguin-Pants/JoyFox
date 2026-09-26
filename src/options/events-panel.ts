@@ -9,6 +9,7 @@ import {
   runtimeSettingsArea,
   type SettingsArea,
 } from "../storage/local-settings";
+import { bumpTriageRevision } from "../storage/triage-revision";
 import { SHARED_EVENT_EXCEPTION_KEY } from "../triage/shared-event";
 
 const ATTENDANCE_TEXT: Record<Attendance, PlainKey> = {
@@ -329,6 +330,8 @@ export class EventsPanel {
     toggle.addEventListener("change", () => {
       void this.settings
         .set({ [SHARED_EVENT_EXCEPTION_KEY]: toggle.checked })
+        // Open JoyClub pages place their senders again at once.
+        .then(() => bumpTriageRevision(this.settings))
         .then(() => {
           this.#exceptionSaved = true;
           return this.render();

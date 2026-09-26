@@ -15,6 +15,7 @@ import { EventsPanel } from "../../src/options/events-panel";
 import type { ContactRuleDefinition } from "../../src/rules/contact-rule";
 import { RuleService } from "../../src/rules/rule-service";
 import { repositories } from "../../src/storage/repositories";
+import { TRIAGE_REVISION_KEY } from "../../src/storage/triage-revision";
 import { SHARED_EVENT_EXCEPTION_KEY } from "../../src/triage/shared-event";
 import {
   TriageService,
@@ -170,6 +171,19 @@ describe("V1-13 guest lists of tracked events", () => {
     expect(await listings.forMember(A, GUEST)).toEqual([]);
   });
 
+  it("accepts every member ID the handlers accept, up to 20 digits", async () => {
+    await track("attending");
+    const long = "12345678901234567890";
+    expect(
+      await send("listing.attendees", {
+        accountId: A,
+        eventId: EVENT,
+        memberIds: [long, GUEST],
+      }),
+    ).toEqual({ status: "stored" });
+    expect((await record())?.attendees).toEqual([long, GUEST]);
+  });
+
   it("refuses a guest list for an account no longer active, and malformed input", async () => {
     await track("attending");
     active = "account-b";
@@ -259,6 +273,25 @@ describe("V1-13 shared-event exception", () => {
     expect((await placementOf()).sharedEvent?.attendance).toBe("attended");
     await track("interested", (await record())!.updatedAt);
     expect((await placementOf()).source).toBe("rule");
+  });
+
+  it("names the latest dated event, never an undated one", async () => {
+    await settings.set({ [SHARED_EVENT_EXCEPTION_KEY]: true });
+    for (const [eventId, metadata] of [
+      ["8888888", { title: "Undated party" }],
+      ["9999999", { title: "Earlier party", startLocal: "2026-09-01T21:00" }],
+    ] as const) {
+      await listings.save(
+        A,
+        "event",
+        eventId,
+        { note: "", tags: [], attendance: "attended" },
+        metadata,
+        null,
+      );
+      await listings.recordAttendees(A, eventId, [GUEST]);
+    }
+    expect((await placementOf()).sharedEvent?.eventId).toBe(EVENT);
   });
 
   it("keeps the user's own move, and can be turned off for one sender", async () => {
@@ -359,6 +392,96 @@ describe("V1-13 on JoyClub pages and the options page", () => {
     ).toBeNull();
   });
 
+  it("sends the guest list again after a failed send, up to three times", async () => {
+    let failures = 0;
+    const recordAttendees = vi.fn(() =>
+      failures++ < 1
+        ? Promise.reject(new Error("offline"))
+        : Promise.resolve({ status: "stored" as const }),
+    );
+    const client: SharedEventsClient = {
+      recordAttendees,
+      forMember: () =>
+        Promise.resolve({ status: "ok", accountId: A, listings: [] }),
+    };
+    const shared = new SharedEvents(document, client, () => active);
+    guestPage([GUEST]);
+    shared.update("event");
+    await flush();
+    shared.update("event");
+    await flush();
+    shared.update("event");
+    await flush();
+    // One failure, one success, then nothing new to send.
+    expect(recordAttendees).toHaveBeenCalledTimes(2);
+    // A send that keeps failing stops after three tries.
+    const failing = vi.fn(() => Promise.reject(new Error("offline")));
+    const stuck = new SharedEvents(
+      document,
+      { ...client, recordAttendees: failing },
+      () => active,
+    );
+    for (let round = 0; round < 5; round += 1) {
+      stuck.update("event");
+      await flush();
+    }
+    expect(failing).toHaveBeenCalledTimes(3);
+  });
+
+  it("reads a profile's shared events again after a failed read", async () => {
+    await track("attending");
+    await listings.recordAttendees(A, EVENT, [GUEST]);
+    const real = messageSharedEventsClient((message) => router.route(message));
+    let failures = 0;
+    const forMember = vi.fn((memberId: string) =>
+      failures++ < 1
+        ? Promise.reject(new Error("offline"))
+        : real.forMember(memberId),
+    );
+    const shared = new SharedEvents(
+      document,
+      { ...real, forMember },
+      () => active,
+    );
+    window.history.replaceState(null, "", `/profile/${GUEST}.synthetic.html`);
+    document.body.innerHTML = `<div data-e2e="profile-header-base-info">NAME</div>`;
+    shared.update("profile");
+    await flush();
+    expect(
+      document.querySelector('[data-joyfox-ui="shared-events"]'),
+    ).toBeNull();
+    shared.update("profile");
+    await flush();
+    expect(forMember).toHaveBeenCalledTimes(2);
+    expect(
+      document.querySelector('[data-joyfox-ui="shared-events"]')?.textContent,
+    ).toContain("Synthetic party");
+  });
+
+  it("drops another account's shared events when invalidated", async () => {
+    await track("attending");
+    await listings.recordAttendees(A, EVENT, [GUEST]);
+    const shared = new SharedEvents(
+      document,
+      messageSharedEventsClient((message) => router.route(message)),
+      () => active,
+    );
+    window.history.replaceState(null, "", `/profile/${GUEST}.synthetic.html`);
+    document.body.innerHTML = `<div data-e2e="profile-header-base-info">NAME</div>`;
+    shared.update("profile");
+    await flush();
+    expect(
+      document.querySelector('[data-joyfox-ui="shared-events"]'),
+    ).not.toBeNull();
+    active = "account-b";
+    shared.invalidate();
+    shared.update("profile");
+    await flush();
+    expect(
+      document.querySelector('[data-joyfox-ui="shared-events"]'),
+    ).toBeNull();
+  });
+
   it("switches the exception on the Events tab, off by default, and counts stored guests", async () => {
     const accounts = new AccountService(
       repositories.extensionAccounts,
@@ -386,6 +509,8 @@ describe("V1-13 on JoyClub pages and the options page", () => {
     toggle.dispatchEvent(new Event("change"));
     await flush();
     expect(settings.items.get(SHARED_EVENT_EXCEPTION_KEY)).toBe(true);
+    // Open JoyClub pages place their senders again.
+    expect(settings.items.get(TRIAGE_REVISION_KEY)).toEqual(expect.any(String));
     expect(
       root.querySelector<HTMLInputElement>("#joyfox-shared-event-exception")!
         .checked,

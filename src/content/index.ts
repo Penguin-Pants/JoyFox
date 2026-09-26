@@ -240,8 +240,6 @@ if (hasVerifiedSelectors() && VERIFIED_HOSTS.includes(location.hostname)) {
     if (MESSAGE_CACHING_KEY in changes) {
       messageCache.reset();
       updateMessageCache();
-      sharedEvents.invalidate();
-      sharedEvents.update(lastType);
     }
     // A Quick Ignore and Delete run moved, in this tab or another one.
     if (ACTION_REVISION_KEY in changes) quick.invalidate();
@@ -262,6 +260,9 @@ if (hasVerifiedSelectors() && VERIFIED_HOSTS.includes(location.hostname)) {
       );
       messageCache.reset();
       updateMessageCache();
+      // Another account's shared events must never stay on a profile.
+      sharedEvents.invalidate();
+      sharedEvents.update(lastType);
     } else if (TRIAGE_REVISION_KEY in changes) {
       // Also set by every delete in the data inspector, so a deleted note,
       // tag or saved search leaves an open page at once.
@@ -275,6 +276,9 @@ if (hasVerifiedSelectors() && VERIFIED_HOSTS.includes(location.hostname)) {
       // A snapshot capture: a profile's preferences, or the viewer's own.
       compatibility.invalidate();
       cardSignals.invalidate();
+      // A deletion in the data inspector can remove a tracked event.
+      sharedEvents.invalidate();
+      sharedEvents.update(lastType);
     } else if (NOTES_REVISION_KEY in changes) {
       // A note or tag saved in another tab, or from a card.
       notes.invalidate();
@@ -282,12 +286,17 @@ if (hasVerifiedSelectors() && VERIFIED_HOSTS.includes(location.hostname)) {
     }
     // A search saved or deleted in another tab.
     if (SAVED_SEARCH_REVISION_KEY in changes) searches.invalidate();
-    // Event or venue notes saved in another tab.
+    // Event or venue notes saved in another tab, or a guest list stored.
     if (EVENT_REVISION_KEY in changes) {
       listing.invalidate();
       eventFilter.invalidate();
       sharedEvents.invalidate();
       sharedEvents.update(lastType);
+      // Attendance and guest lists decide the shared-event exception (V1-13).
+      if (!(TRIAGE_REVISION_KEY in changes)) {
+        inbox.invalidate();
+        panel.invalidate();
+      }
     }
   });
   // Start after the initial flag and language are known, so the first event

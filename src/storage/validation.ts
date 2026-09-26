@@ -313,7 +313,8 @@ export function validateEntity(
           ids.some(
             (id, index) =>
               typeof id !== "string" ||
-              !/^\d{1,12}$/u.test(id) ||
+              // The member-ID shape every handler accepts (triage-service).
+              !/^\d{1,20}$/u.test(id) ||
               (index > 0 && !((ids[index - 1] as string) < id)),
           )
         )

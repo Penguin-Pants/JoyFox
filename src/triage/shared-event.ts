@@ -27,6 +27,15 @@ export interface SharedEvent {
   attendance: "attending" | "attended";
 }
 
+/** Dated events first, the latest start first; events with no date last. */
+function latestFirst(a: EventMetadata, b: EventMetadata): number {
+  if (a.startLocal && b.startLocal)
+    return b.startLocal.localeCompare(a.startLocal) || compareListings(a, b);
+  if (a.startLocal) return -1;
+  if (b.startLocal) return 1;
+  return compareListings(a, b);
+}
+
 /**
  * For each member on a counted event's guest list, the event the "Why"
  * panel names: the latest one by start, so an upcoming party comes before
@@ -40,8 +49,7 @@ export function sharedEventsByMember(
     .filter(
       (record) => kindOf(record) === "event" && COUNTED.has(record.attendance),
     )
-    .sort(compareListings)
-    .reverse();
+    .sort(latestFirst);
   for (const record of counted)
     for (const memberId of record.attendees ?? [])
       if (!byMember.has(memberId))
