@@ -822,3 +822,36 @@
   padding: 1px 3px;
   border-radius: 0.25rem;
 }
+
+/*
+ * A select's open list is drawn by Firefox, not by the page. The select takes
+ * the page's light text colour, and its options inherited it on Firefox's
+ * default white list, so they were unreadable on JoyClub's dark theme (owner's
+ * live check, 2026-09-27). The options use the system colours instead, which
+ * follow Firefox's light or dark mode and always contrast.
+ */
+select[class*="joyfox-"] {
+  color-scheme: light dark;
+}
+
+select[class*="joyfox-"] option {
+  background-color: Canvas;
+  color: CanvasText;
+}
+
+/*
+ * JoyClub's card can turn off pointer events on its photo overlays, which the
+ * card line inherits in the `media-overlay` slot: a click on "✎" then went to
+ * the result link and opened the profile (owner's live check, item 126). The
+ * line takes pointer events back for its own controls, and sits above any
+ * layer drawn over the photo.
+ */
+.joyfox-card-line {
+  pointer-events: auto;
+}
+
+/* Above any layer the card or its link draws over the photo. */
+.joyfox-card-line[slot="media-overlay"] {
+  position: relative;
+  z-index: 2;
+}

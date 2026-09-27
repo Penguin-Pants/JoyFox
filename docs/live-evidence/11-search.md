@@ -141,3 +141,10 @@ card's `media-overlay` slot and one in its `badge-corner` slot both showed at
 the top of the photo, below and next to JoyClub's "Neu" badge, and covered
 nothing important. JoyFox's card line now uses `media-overlay`, with a dark
 backing so it reads on any photo.
+
+Live check 126 (2026-09-27): the card line showed over the photo, but a click on
+its note button "✎" opened the member's profile. The overlay slot's container
+can turn off pointer events, which slotted content inherits, and a layer of the
+link can lie over the photo. The card line now sets `pointer-events: auto` and
+sits above such layers (`position: relative`, `z-index: 2`). Not yet re-tested
+live.
