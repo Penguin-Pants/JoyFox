@@ -10,12 +10,13 @@ import { resolveMemberIdentity } from "../identity/member-identity";
 import type { ProfileFacts } from "../qualification/facts";
 import { PLACEMENT_TEXT } from "../rules/contact-rule";
 import { MAX_PREVIEW_LENGTH } from "../rules/message-phrase";
-import { selectorRegistry, verifiedSelector } from "../selectors/registry";
+import { selectorRegistry } from "../selectors/registry";
 import {
   MAX_MEMBERS_PER_REQUEST,
   type MemberTriage,
   type TriageRequestMember,
 } from "../triage/triage-service";
+import { placeInInboxLine, removeEmptyInboxLines } from "./inbox-line";
 import { factsKey, observedFromInboxRow } from "./observed-facts";
 import type { TriageClient } from "./triage-client";
 import {
@@ -272,6 +273,7 @@ export class InboxTriage {
     ))
       if (INBOX_UI.includes(node.getAttribute(UI_ATTRIBUTE) ?? ""))
         node.remove();
+    removeEmptyInboxLines(this.document);
     for (const node of Array.from(
       this.document.querySelectorAll(`[${ROW_ATTRIBUTE}]`),
     )) {
@@ -502,10 +504,7 @@ export class InboxTriage {
       );
       badge = created;
       badge.setAttribute(UI_ATTRIBUTE, "badge");
-      const nameSelector = verifiedSelector("inbox", "senderName");
-      const name = nameSelector ? state.row.querySelector(nameSelector) : null;
-      if (name) name.after(badge);
-      else state.row.append(badge);
+      placeInInboxLine(state.row, badge);
     }
     setText(badge, text);
     setAttribute(badge, "data-placement", placement ?? "pending");

@@ -464,6 +464,7 @@ export const de: Catalog = {
   "signals.state.complete": "Vollständig",
   "signals.state.incomplete": "Unvollständig",
   "signals.state.unknown": "Vollständigkeit unbekannt",
+  "signals.state.unknownShort": "Unbekannt",
   "signals.photos": (p, f) =>
     f.plural(p.count, {
       one: "1 Foto",
@@ -483,9 +484,15 @@ export const de: Catalog = {
   "signals.trust": (p, f) =>
     `Vertrauen ${p.score > 0 ? "+" : ""}${f.number(p.score)}`,
   "signals.trustNone": "Kein Vertrauensverlauf",
+  "signals.trustNoneShort": "Vertrauen –",
   "signals.noteAdd": "Notiz hinzufügen",
   "signals.noteEdit": "Notiz",
   "signals.tagsLabel": "Meine Tags",
+  "signals.tagCount": (p, f) =>
+    f.plural(p.count, {
+      one: "1 Tag",
+      other: `${f.number(p.count)} Tags`,
+    }),
   "signals.editor.label": (p) =>
     `JoyFox: Notiz und Tags für Mitglied ${p.member}`,
   "signals.editor.loading": "Wird geladen …",

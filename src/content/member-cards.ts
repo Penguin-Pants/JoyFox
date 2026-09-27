@@ -5,9 +5,9 @@ import {
 } from "../extraction/joyclub";
 import type { ProfileFacts } from "../qualification/facts";
 import { verifiedSelector, type PageType } from "../selectors/registry";
+import { placeInInboxLine } from "./inbox-line";
 import { inboxListShown } from "./inbox-triage";
 import { observedFromInboxRow, observedFromShield } from "./observed-facts";
-import { UI_ATTRIBUTE } from "./triage-ui";
 
 /**
  * The surfaces where JoyClub shows a member as a card (PRD 8.3): search
@@ -86,33 +86,20 @@ function searchCards(document: Document): MemberCard[] {
 }
 
 function inboxCards(document: Document): MemberCard[] {
-  const nameSelector = verifiedSelector("inbox", "senderName");
   const cards: MemberCard[] = [];
   for (const row of extractInboxRows(document, document.URL)) {
     if (row.memberId.status !== "found") continue;
     const host = row.row;
-    // After the name, the triage badge and the shared count, in that order.
-    const after = (...marks: string[]) =>
-      marks
-        .map((mark) => host.querySelector(`[${UI_ATTRIBUTE}="${mark}"]`))
-        .find((node) => node !== null) ??
-      (nameSelector ? host.querySelector(nameSelector) : null);
+    // In the row's JoyFox line: the triage badge, the shared count and the
+    // signals, in that order.
     cards.push({
       surface: "inbox",
       memberId: row.memberId.value,
       observed: observedFromInboxRow(row),
       badgeHost: host,
-      placeBadge: (badge) => {
-        const anchor = after("badge");
-        if (anchor) anchor.after(badge);
-        else host.append(badge);
-      },
+      placeBadge: (badge) => placeInInboxLine(host, badge),
       signalsHost: host,
-      placeSignals: (group) => {
-        const anchor = after(COMPAT_BADGE, "badge");
-        if (anchor) anchor.after(group);
-        else host.append(group);
-      },
+      placeSignals: (group) => placeInInboxLine(host, group),
     });
   }
   return cards;

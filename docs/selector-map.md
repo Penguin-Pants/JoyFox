@@ -42,15 +42,15 @@ Rules:
 Detection matches the URL path first and then waits for the root element, so a
 half-rendered page is reported as missing rather than read.
 
-| Page         | Path pattern                                                    | Root                                                                                                       |
-| ------------ | --------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
-| Conversation | `/clubmail/conversation/conversation-wrapper-personal-<n>-<n>/` | `.cm-conversation-header`                                                                                  |
-| Inbox        | `/clubmail/`                                                    | `.cm-conversation-list`                                                                                    |
-| Profile      | `/profile/<n>.<nickname>.html`                                  | `[data-e2e="profile-header-base-info"]` (two copies since 2026-09-27; the strip follows the displayed one) |
-| Search       | `/member/` and `/member/<segment>/…/`                           | `div.member_search_list`                                                                                   |
-| Event        | `/event/<n>.<slug>.html`                                        | `h1.event_name`                                                                                            |
-| Event list   | `/dates_partys/…`                                               | `div.card-list-ui`                                                                                         |
-| Venue        | `/club/<n>.<slug>.html`                                         | `h1.profile_name`                                                                                          |
+| Page         | Path pattern                                                    | Root                                                                                                                                         |
+| ------------ | --------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| Conversation | `/clubmail/conversation/conversation-wrapper-personal-<n>-<n>/` | `.cm-conversation-header`                                                                                                                    |
+| Inbox        | `/clubmail/`                                                    | `.cm-conversation-list`                                                                                                                      |
+| Profile      | `/profile/<n>.<nickname>.html`                                  | `[data-e2e="profile-header-base-info"]` (mobile header) or `.profile-header__base-information--desktop`; the strip follows the displayed one |
+| Search       | `/member/` and `/member/<segment>/…/`                           | `div.member_search_list`                                                                                                                     |
+| Event        | `/event/<n>.<slug>.html`                                        | `h1.event_name`                                                                                                                              |
+| Event list   | `/dates_partys/…`                                               | `div.card-list-ui`                                                                                                                           |
+| Venue        | `/club/<n>.<slug>.html`                                         | `h1.profile_name`                                                                                                                            |
 
 Conversation is checked before inbox, because both are client-side routes of one
 app (`09-navigation.md`) and the inbox list can stay in the DOM.
@@ -66,6 +66,7 @@ app (`09-navigation.md`) and the inbox list can stay in the DOM.
 | Inbox        | Gender code       | `j-gender-icon[universal-gender]`                                                  | `1` man, `2` woman, `3` couple                       |
 | Inbox        | Read state        | `.cm-conversation-list-item__read-status`                                          | BEM modifier; on some rows only; meaning unconfirmed |
 | Inbox        | Message preview   | `.cm-conversation-list-item__text`                                                 | Latest message; phrase check only (ADR 0013)         |
+| Inbox        | Description line  | `.cm-conversation-list-item__line--description`                                    | Holds the preview; JoyFox's line goes before it      |
 | Conversation | Conversation ID   | URL path                                                                           | `personal-<n>-<n>`, kept opaque                      |
 | Conversation | Member ID         | `a.cm-conversation-header[href]`                                                   | Digits in the profile link                           |
 | Conversation | Verification code | `.cm-conversation-header j-veri-icon[verification-status]`                         | Numeric code                                         |

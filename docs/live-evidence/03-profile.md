@@ -66,12 +66,26 @@ The earlier "Join date / member-since: Absent" row is superseded: the class-name
 search could not find it because the badge is identified by its text, not a
 class. The duration appears on member and couple profiles.
 
-## Two header copies (owner's live check, 2026-09-27)
+## Mobile and desktop headers (owner's live checks, 2026-09-27)
 
-The page now holds `[data-e2e="profile-header-base-info"]` twice. The first copy
-sits inside a container with `display: none`; the second is the one shown.
-JoyFox took the first match and placed its strip after the hidden copy, so the
-strip was in the page with a height of 0. Measured in the Web Console: all strip
-sections present (`member-panel`, `completeness`, `compatibility`,
-`member-notes`), strip height 0, header parent `display: none`, header not in a
-shadow root. The fix anchors the strip on the copy that has layout boxes.
+The profile page holds two headers and hides one by screen width. Measured in
+the Web Console on a desktop window:
+
+- `[data-e2e="profile-header-base-info"]` matches once. It sits in
+  `div.profile-header__base-information--mobile`, which has `display: none`, so
+  it has no layout boxes.
+- The displayed header carries no `data-e2e` marker. Its chain, from the gender
+  and verification icons up: `div.profile-base-info__line-1` (flex row),
+  `div.profile-base-info` (flex column),
+  `div.profile-header__base-information--desktop` (flex column, 110 px),
+  `div.profile-header__main-infos` (flex row, 220 px, with
+  `div.profile-header__pic`), `div.profile-header` (block, 310 px).
+
+JoyFox anchored its strip on the only marked header, the hidden mobile one, so
+the strip was in the page with a height of 0. A first fix (PR #72) assumed two
+marked copies and did not help. The root selector now also matches
+`.profile-header__base-information--desktop`, and JoyFox takes the matching
+header that has layout boxes. The strip follows the desktop header's row
+(`div.profile-header__main-infos`), full width under the photo and the header.
+The gender and verification codes are still read from the mobile header, which
+holds them while hidden.
