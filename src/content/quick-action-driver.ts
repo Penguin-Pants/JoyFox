@@ -8,6 +8,7 @@ import {
 } from "../selectors/quick-action";
 import { inboxListState } from "./inbox-triage";
 import { pageMember } from "./member-panel";
+import { shownElement } from "./member-strip";
 
 export interface DriverTiming {
   /** How long to wait for JoyClub to react. Below the step timeout. */
@@ -222,8 +223,13 @@ export class JoyClubQuickActionDriver implements QuickActionDriver {
     }).length;
   }
 
+  /**
+   * The profile menu the page shows. JoyClub's profile holds it three times,
+   * two copies hidden by screen width (owner's live check, 2026-09-27); a
+   * click on a hidden copy opens nothing.
+   */
   #menu(): Element | null {
-    return this.document.querySelector(S.profileMenu);
+    return shownElement(this.document, S.profileMenu);
   }
 
   /**

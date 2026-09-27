@@ -277,6 +277,35 @@ describe("M9 live driver on synthetic JoyClub pages (ADR 0011)", () => {
     expect(pressed).not.toContain("Abbrechen");
   });
 
+  it("uses the profile menu the page shows, never a hidden copy", async () => {
+    // Owner's live check, 2026-09-27: the profile holds the menu three
+    // times; only the desktop copy shows. jsdom lays out nothing, so the
+    // shown copy is marked by its layout boxes.
+    openProfile();
+    const shown = document.querySelector("j-context-menu")!;
+    shown.getClientRects = () =>
+      [new DOMRect(0, 0, 40, 40)] as unknown as DOMRectList;
+    for (const parent of ["profile-header-small__context-menu", ""]) {
+      const copy = document.createElement("div");
+      copy.className = parent;
+      copy.style.display = "none";
+      copy.innerHTML =
+        `<j-context-menu data-e2e="profile-context-menu" role="button" aria-haspopup="true">` +
+        `<j-control-button slot="activator" aria-label="Hidden copy"></j-control-button>` +
+        `<j-context-menu-item title="Profil ignorieren"></j-context-menu-item>` +
+        `</j-context-menu>`;
+      document.body.prepend(copy);
+    }
+    const driver = new JoyClubQuickActionDriver(document, TIMING);
+    expect(driver.hasControl("ignore")).toBe(true);
+    await driver.request("ignore");
+    expect(pressed).toEqual(["Profil ignorieren"]);
+    expect(await driver.awaitConfirmation("ignore")).toBe("shown");
+    await driver.confirm("ignore");
+    expect(pressed.at(-1)).toBe("Ignorieren");
+    expect(await driver.verify("ignore")).toBe(true);
+  });
+
   it("refuses an unclear conversation menu, or one without a Delete item", async () => {
     openConversation();
     const driver = new JoyClubQuickActionDriver(document, TIMING);

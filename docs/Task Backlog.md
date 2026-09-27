@@ -316,7 +316,6 @@ A task with **proposed** criteria starts only after the owner approves them (see
 2. Deferred to the future roadmap: V1-6 (and D2).
 3. Evidence captured (E1 to E4, 2026-09-26). Live checks on 2026-09-27:
    V1-5 (items 111 to 115), V1-2 (116 to 120) and V1-4 (121 to 124) passed.
-   V1-10 (125 to 128, item 126 after PR #77) passed. V1-13: items 129 and 132 passed; items 130 and 131
-   could not be tested and stay open.
+   V1-10 (125 to 128, item 126 after PR #77) passed. V1-13 (129 to 132) passed.
 4. Last: V1-9, after V1-2 to V1-5, V1-7, V1-8 and V1-10 to V1-13, the MVP
    release gate and F8's verification checklist.

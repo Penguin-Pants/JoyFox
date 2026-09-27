@@ -535,9 +535,16 @@ another page loads in the tab first". This matches items 44, 45, 47 and 50. Item
 99, a normal run, is still pending: it is the only live check that the
 sending-page check does not refuse the normal hand-off.
 
-**Item 99 (2026-09-27):** not yet run. The "Ignore and Delete" button did not
-show, because it was off: a fresh Firefox profile has it off. Turn it on as the
-M9 matrix above describes (the options switch), and run item 99.
+**Item 99 (2026-09-27): failed; fixed, to be re-tested.** With the switch on,
+Delete worked, but the ActionLog ended `DeleteConfirmed`,
+`Failed:handoff-failed`, and the member was not ignored. The background resumed
+only on a page whose path matched the stored profile path character for
+character, and JoyClub's profile can carry another spelling of the nickname slug
+than the conversation header's link. It now compares the member ID in the path.
+A second fault would have followed: the profile holds its menu three times, two
+copies hidden (`profile-header-small__context-menu`, one without a class, and
+`profile-container__context-menu-desktop` shown), and the driver took the first.
+It now takes the shown one.
 
 ## Readable records in "Your data" (V1-7)
 
@@ -648,8 +655,8 @@ results followed the filters stored on the account. With PR #70 (JoyFox clicks
 
 **Result (2026-09-27): passed.** The project owner confirmed items 111 to 115.
 Finding: the attendance list's open options were unreadable on JoyClub's dark
-theme (light text on Firefox's white list); fixed in PR #77, to be re-checked
-live.
+theme (light text on Firefox's white list); fixed in PR #77 and re-checked live
+the same day (passed).
 
 ## Compatibility Overlay (V1-2)
 
@@ -745,9 +752,8 @@ second run the same day.
      is gone from the guest's profile. Switch the language to German and confirm
      the texts are German.
 
-**Result (2026-09-27): items 129 and 132 passed.** Items 130 and 131 (the
-exception off and on, with a contact on a tracked event's guest list) could not
-be tested and stay open.
+**Result (2026-09-27): passed.** The project owner confirmed items 129 to 132
+(130 and 131 in the last run the same day).
 
 ## Ignore and Delete switch (2026-09-27)
 
@@ -758,3 +764,17 @@ be tested and stay open.
      strip without a reload. Untick it: confirm the button goes. Switch the
      language to German and confirm the texts are German. Do not click the
      button unless you mean to trash the conversation and ignore the member.
+
+**Result (2026-09-27): passed.** The project owner confirmed item 133.
+
+## Member nicknames (2026-09-27)
+
+134. Open ClubMail, a member search and an event's guest list. Then open the
+     JoyFox options, tab "Messages", and search: confirm each result names the
+     other member by nickname. Open the note editor ("✎") on a card: confirm its
+     title names the member. Open "Your data" and show "Members": confirm each
+     record line starts with the nickname. Switch the language to German and
+     confirm the texts are German.
+
+**Result (2026-09-27): passed.** The project owner confirmed item 134 and the
+German texts.

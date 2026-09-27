@@ -988,6 +988,21 @@ describe("M9 hand-off messages (ADR 0011)", () => {
     });
   });
 
+  it("resumes on the run's member's profile under another slug spelling", async () => {
+    // Owner's live check, item 99 (2026-09-27): the header's link and the
+    // loaded profile can spell the nickname slug differently. The member ID
+    // decides; the run must not end as handoff-failed on its own profile.
+    const id = await afterDelete();
+    await fromConversation().handOff("account-a", id, "ignore", PROFILE_PATH);
+    const respelled = "/profile/1234567.Synthetic_One.html";
+    expect(await pageAt(respelled).dropStale()).toEqual({ status: "none" });
+    expect(session.items.size).toBe(1);
+    expect(await pageAt(respelled).pending()).toMatchObject({
+      status: "ok",
+      operationId: id,
+    });
+  });
+
   it("drops the marker when another page loads in the tab, and closes the run", async () => {
     const id = await afterDelete();
     await fromConversation().handOff("account-a", id, "ignore", PROFILE_PATH);

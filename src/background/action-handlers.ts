@@ -58,6 +58,18 @@ function profilePath(value: unknown): string {
   return value;
 }
 
+/**
+ * Whether a page is the profile a hand-off went to: the same member's
+ * profile. The member ID decides, not the whole path: the slug after it is
+ * the nickname, and JoyClub can serve the profile under another spelling
+ * than the conversation header's link (owner's live check, item 99,
+ * 2026-09-27: the run ended as `handoff-failed` on its own profile).
+ */
+function isProfileOf(path: string | undefined, profile: string): boolean {
+  const member = PROFILE_PATH.exec(profile)?.[1];
+  return member !== undefined && PROFILE_PATH.exec(path ?? "")?.[1] === member;
+}
+
 /** The conversation page's path (`02-conversation.md`). */
 const CONVERSATION_PATH =
   /^\/clubmail\/conversation\/conversation-wrapper-(personal-\d{1,20}-\d{1,20})\/?$/;
@@ -288,7 +300,8 @@ export function registerActionHandlers(
         await session.remove([key]);
         return { status: "none" };
       }
-      if (senderPath(context) === stored.profilePath) return { status: "none" };
+      if (isProfileOf(senderPath(context), stored.profilePath))
+        return { status: "none" };
       const closed = await withAccountLock(stored.accountId, async () => {
         // Read again under the lock: only this marker goes, never a newer
         // one stored for another run meanwhile.
@@ -338,7 +351,8 @@ export function registerActionHandlers(
     if (!isMarker(stored) || now() - stored.at > STALE_AFTER_MS)
       return { status: "none" };
     // Only the profile the run went to, as the browser reports the sender.
-    if (senderPath(context) !== stored.profilePath) return { status: "none" };
+    if (!isProfileOf(senderPath(context), stored.profilePath))
+      return { status: "none" };
     if ((await deps.activeAccountId()) !== stored.accountId) {
       // The account changed after Delete: close the run where it stopped,
       // under its own account, so it never reads as still going, and say so.
