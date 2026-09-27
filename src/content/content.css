@@ -757,11 +757,12 @@
 }
 
 /*
- * The inbox row's own JoyFox line (inbox-line.ts), between the name and the
- * preview. It has 18 px (owner's live check, 2026-09-27), so it stays one
- * line and clips the last chips rather than grow the row.
+ * The compact JoyFox line on each member card (card-line.ts): an inbox row,
+ * a search result and a guest-list entry. It has 18 px (owner's live check,
+ * 2026-09-27), so it stays one line and clips the last chips rather than
+ * grow JoyClub's fixed card boxes.
  */
-.joyfox-inbox-line {
+.joyfox-card-line {
   display: flex;
   flex-wrap: nowrap;
   align-items: center;
@@ -769,25 +770,28 @@
   min-width: 0;
   max-width: 100%;
   height: 18px;
+  margin: 0;
   overflow: hidden;
   font-size: 11px;
   line-height: 14px;
   white-space: nowrap;
 }
 
-.joyfox-inbox-line:empty {
+.joyfox-card-line:empty {
   display: none;
 }
 
-.joyfox-inbox-line .joyfox-signals {
+.joyfox-card-line .joyfox-signals {
   flex-wrap: nowrap;
   gap: 0.25rem;
+  min-width: 0;
   margin: 0;
   font-size: inherit;
 }
 
-.joyfox-inbox-line .joyfox-badge,
-.joyfox-inbox-line .joyfox-button {
+.joyfox-card-line .joyfox-badge,
+.joyfox-card-line .joyfox-button {
+  display: inline-block;
   flex: none;
   margin: 0;
   padding: 0 0.4em;
@@ -796,7 +800,7 @@
   line-height: 14px;
 }
 
-.joyfox-inbox-line .joyfox-signals__note[data-has-note="true"] {
+.joyfox-card-line .joyfox-signals__note[data-has-note="true"] {
   border-color: currentColor;
   font-weight: 700;
 }

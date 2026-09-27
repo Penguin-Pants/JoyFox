@@ -5,7 +5,7 @@ import {
 } from "../extraction/joyclub";
 import type { ProfileFacts } from "../qualification/facts";
 import { verifiedSelector, type PageType } from "../selectors/registry";
-import { placeInInboxLine } from "./inbox-line";
+import { placeInCardLine, placeInInboxLine } from "./card-line";
 import { inboxListShown } from "./inbox-triage";
 import { observedFromInboxRow, observedFromShield } from "./observed-facts";
 
@@ -76,10 +76,10 @@ function searchCards(document: Document): MemberCard[] {
         badge.setAttribute("slot", "badge-top-right");
         badgeHost.append(badge);
       },
-      // After the card, inside the link: a light-DOM child of the card
-      // itself has no place to draw without a slot.
+      // A JoyFox line after the card, inside the link: a light-DOM child of
+      // the card itself has no place to draw without a slot.
       signalsHost: link,
-      placeSignals: (group) => link.append(group),
+      placeSignals: (group) => placeInCardLine(link, group),
     });
   }
   return cards;
@@ -107,23 +107,25 @@ function inboxCards(document: Document): MemberCard[] {
 
 function attendeeCards(document: Document): MemberCard[] {
   const entrySelector = verifiedSelector("event", "attendeeEntry");
-  const nameSelector = verifiedSelector("event", "attendeeName");
+  const infoSelector = verifiedSelector("event", "attendeeInfo");
   if (!entrySelector) return [];
   const cards: MemberCard[] = [];
   for (const entry of Array.from(document.querySelectorAll(entrySelector))) {
     const memberId = linkMember(document, entry, "event.attendeeEntry");
     if (!memberId) continue;
-    const name = nameSelector ? entry.querySelector(nameSelector) : null;
-    const host = name ?? entry;
+    // The JoyFox line goes at the end of the entry's text block, never into
+    // the name box, which clips everything to one line.
+    const host =
+      (infoSelector ? entry.querySelector(infoSelector) : null) ?? entry;
     cards.push({
       surface: "attendees",
       memberId,
       // A guest entry shows a check icon, but no shield code (14-events.md).
       observed: {},
       badgeHost: host,
-      placeBadge: (badge) => host.append(badge),
+      placeBadge: (badge) => placeInCardLine(host, badge),
       signalsHost: host,
-      placeSignals: (group) => host.append(group),
+      placeSignals: (group) => placeInCardLine(host, group),
     });
   }
   return cards;

@@ -127,7 +127,7 @@ function guestPage(members: string[]) {
   document.body.innerHTML = `<h1 class="event_name">Synthetic party</h1><div class="tab-pane" id="guest_alle">${members
     .map(
       (member) =>
-        `<div class="ha_2"><a class="card normal" href="/profile/${member}.synthetic.html"><div class="date_moreinfo"><strong>NAME</strong></div></a></div>`,
+        `<div class="ha_2"><a class="card normal" href="/profile/${member}.synthetic.html"><div class="date_info"><div class="date_moreinfo"><strong>NAME</strong></div><div>AGE</div></div></a></div>`,
     )
     .join("")}</div>`;
 }
@@ -136,7 +136,7 @@ const group = (member: string) =>
   document.querySelector<HTMLElement>(
     `[data-joyfox-ui="card-signals"][data-member="${member}"]`,
   );
-/** A chip's full text: an inbox chip shows a short one and holds it here. */
+/** A chip's full text: a chip shows a short one and holds this one too. */
 const full = (node: Element | null | undefined) =>
   node
     ? (node.querySelector(".joyfox-visually-hidden")?.textContent ??
@@ -147,10 +147,11 @@ const shown = (member: string) => ({
     group(member)?.querySelector(".joyfox-signals__completeness"),
   ),
   trust: full(group(member)?.querySelector(".joyfox-signals__trust")),
-  tags: Array.from(
-    group(member)?.querySelectorAll(".joyfox-signals__tag") ?? [],
-    (tag) => tag.textContent,
-  ),
+  // The tags chip shows a count; its full text names them.
+  tags:
+    full(group(member)?.querySelector(".joyfox-signals__tags"))
+      ?.replace(/^My tags: /u, "")
+      .split(", ") ?? [],
 });
 const editor = () =>
   document.querySelector<HTMLElement>('[data-joyfox-ui="card-editor"]')!;
@@ -207,16 +208,12 @@ describe("V1-10 signals on every card", () => {
       page();
       signals.update(type);
       await flush();
-      if (type !== "inbox") {
-        expect(shown(FULL), type).toEqual(expected);
-        continue;
-      }
-      // The inbox row's short line: the same signals, the tags as a count
-      // whose full text names them.
-      expect(shown(FULL), type).toEqual({ ...expected, tags: [] });
-      expect(full(group(FULL)?.querySelector(".joyfox-signals__tags"))).toBe(
-        "My tags: Met at party",
-      );
+      expect(shown(FULL), type).toEqual(expected);
+      // On the card's own JoyFox line, never inside JoyClub's name box.
+      expect(
+        group(FULL)?.parentElement?.getAttribute("data-joyfox-ui"),
+        type,
+      ).toBe("card-line");
     }
   });
 
@@ -230,7 +227,7 @@ describe("V1-10 signals on every card", () => {
     signals.update("inbox");
     await flush();
     const row = document.querySelector(".cm-conversation-list-item")!;
-    const line = row.querySelector('[data-joyfox-ui="inbox-line"]')!;
+    const line = row.querySelector('[data-joyfox-ui="card-line"]')!;
     // Between JoyClub's name line and its description line, in the same slot
     // as the description, so the name line keeps only JoyClub's own content.
     expect(line.getAttribute("slot")).toBe("description");
@@ -396,8 +393,16 @@ describe("V1-10 signals on every card", () => {
         .querySelector<HTMLButtonElement>(".joyfox-signals__note")!
         .click();
     expect(
-      group(THIN)?.querySelector(".joyfox-signals__note")?.textContent,
+      group(THIN)
+        ?.querySelector(".joyfox-signals__note")
+        ?.getAttribute("aria-label"),
     ).toBe("Add note");
+    // The line sits at the end of the entry's text block, after the name
+    // box, which clips to one line.
+    const line = group(THIN)!.parentElement!;
+    expect(line.parentElement?.className).toBe("date_info");
+    expect(line.parentElement?.lastElementChild).toBe(line);
+    expect(line.closest(".date_moreinfo")).toBeNull();
     open();
     await flush();
     const note = () =>
@@ -426,7 +431,9 @@ describe("V1-10 signals on every card", () => {
     signals.invalidate();
     await flush();
     expect(
-      group(THIN)?.querySelector(".joyfox-signals__note")?.textContent,
+      group(THIN)
+        ?.querySelector(".joyfox-signals__note")
+        ?.getAttribute("aria-label"),
     ).toBe("Note");
   });
 

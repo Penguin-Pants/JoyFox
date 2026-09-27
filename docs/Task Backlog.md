@@ -82,7 +82,8 @@ accepted by hand on 2026-09-25 (ADR 0011, `manual-acceptance.md`).
 
 - Confirm what an unverified member shows (no shield, code `2`, or another
   code), so verification can fail as well as pass. Code `1` is mapped as
-  verified; code `3` is the separate "personally known" signal.
+  verified. Code `3` is the separate "personally known" signal, and since
+  2026-09-27 it counts as verified too (ADR 0016 amendment).
 - "Personally known" (code `3`) is available as the `requirePersonallyKnown`
   criterion. Offer it in the M4 rule builder, and use it in M6 trust and the
   PRD 7.4 triage exception for previously met senders. Done: it is the

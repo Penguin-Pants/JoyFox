@@ -20,7 +20,7 @@ import {
   type MemberCard,
   type Surface,
 } from "./member-cards";
-import { removeEmptyInboxLines } from "./inbox-line";
+import { removeEmptyCardLines } from "./card-line";
 import type { NotesClient } from "./member-notes";
 import { pageMember } from "./member-panel";
 import { isPlaced, placeInStrip, removeEmptyStrip } from "./member-strip";
@@ -272,12 +272,11 @@ export class CardSignals {
     group.setAttribute("data-surface", surface);
     group.setAttribute("data-member", card.memberId);
     group.setAttribute("data-joyfox-version", version);
-    // An inbox row has one short line (inbox-line.ts): each chip shows a
-    // short text, and its tooltip and screen-reader text say it in full.
-    const compact = surface === "inbox";
+    // Every card has one short line (card-line.ts): each chip shows a short
+    // text, and its tooltip and screen-reader text say it in full.
     const chip = (className: string, full: string, short: string) => {
       const node = element(document, "span", `joyfox-badge ${className}`);
-      if (!compact || short === full) {
+      if (short === full) {
         node.textContent = full;
         return node;
       }
@@ -311,39 +310,29 @@ export class CardSignals {
           : trustText(signals),
       ),
     );
+    // Icon-only, so a card with a note needs no more room; its label says
+    // which, and the style repeats it.
     const noteText = t(
       signals.hasNote ? "signals.noteEdit" : "signals.noteAdd",
     );
     const note = button(
       document,
       "joyfox-button joyfox-signals__note",
-      compact ? "✎" : noteText,
+      "✎",
       () => this.#editor.open(card.memberId, note),
     );
-    // Icon-only on the inbox line, so a row with a note needs no more room;
-    // its label says which, and the style repeats it.
-    if (compact) {
-      note.title = noteText;
-      note.setAttribute("aria-label", noteText);
-      note.setAttribute("data-has-note", String(signals.hasNote));
-    }
+    note.title = noteText;
+    note.setAttribute("aria-label", noteText);
+    note.setAttribute("data-has-note", String(signals.hasNote));
     group.append(note);
-    if (signals.tags.length > 0 && compact) {
-      const names = signals.tags.join(", ");
+    if (signals.tags.length > 0)
       group.append(
         chip(
           "joyfox-signals__tags",
-          `${t("signals.tagsLabel")}: ${names}`,
+          `${t("signals.tagsLabel")}: ${signals.tags.join(", ")}`,
           t(message("signals.tagCount", { count: signals.tags.length })),
         ),
       );
-    } else if (signals.tags.length > 0) {
-      const tags = element(document, "span", "joyfox-signals__tags");
-      tags.setAttribute("aria-label", t("signals.tagsLabel"));
-      for (const label of signals.tags)
-        tags.append(element(document, "span", "joyfox-signals__tag", label));
-      group.append(tags);
-    }
     if (existing) existing.replaceWith(group);
     else card.placeSignals(group);
   }
@@ -356,7 +345,7 @@ export class CardSignals {
     ))
       node.remove();
     if (surface === "search") this.#removeFilter();
-    if (surface === "inbox") removeEmptyInboxLines(this.document);
+    removeEmptyCardLines(this.document);
   }
 
   #clearAll(): void {

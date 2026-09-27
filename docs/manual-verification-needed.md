@@ -28,8 +28,9 @@ preferences, events, venues and navigation. Still open:
 - **Verification codes:** `1` (grey, "geprüft", verified by JoyClub) and `3`
   (green, "persönlich bekannt", you met them) are confirmed. Green replaces grey
   for a member who is both, and a member can be personally known without being
-  verified. Still open: whether code `2` exists and what it means, and what an
-  unverified member shows (no shield, or a code).
+  verified. Both count as verified (owner, 2026-09-27). Still open: whether code
+  `2` exists and what it means, and what an unverified member shows (no shield,
+  or a code).
 - **Read-status icon (from the F2 check):** a read state was extracted from 9 of
   25 rows. Check how many rows show the icon at all, which modifier classes
   appear (for example `--received`, `--read`), and whether the rows with the

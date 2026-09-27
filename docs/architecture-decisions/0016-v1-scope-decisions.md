@@ -207,3 +207,19 @@ task backlog, with these decisions:
    amendment left to V1-13). A tracked event's stored attendee list is kept
    while the event is tracked and deleted when it is no longer tracked, or with
    the user's data.
+
+## Amendment: the green shield counts as verified (project owner, 2026-09-27)
+
+JoyClub's shield shows one state. The green "persönlich bekannt" shield (code
+`3`) replaces the grey "geprüft" shield (code `1`), so a page never shows
+JoyClub's verification for a member the user marked. Until now JoyFox read code
+`3` as "verification unknown" (Milestone B audit). After the live checks of
+2026-09-27, where a verified member with a green shield showed "verification
+unknown", the owner decided that a green shield counts as verified ("Count green
+as verified"). The owner accepted that a member can be personally known without
+being verified by JoyClub, so a rule that requires verification now passes for
+such a member.
+
+"Personally known" stays its own signal: code `3` still passes the "Personally
+known" condition and adds the trust point, and code `1` still means "not
+personally known".
