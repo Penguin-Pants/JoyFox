@@ -212,6 +212,11 @@ text; never record the member's real data in this repository.
     data", delete the "Notes" data type and confirm the open profile's editor
     shows no note.
 
+**Result (2026-09-27): items 36 to 39, 41 and 42 passed.** The project owner ran
+them on JoyClub with the member strip fixes of PRs #72 and #73 (the strip had
+been placed after the hidden mobile header, so it did not show). Item 40
+(another account) could not be tested and stays open.
+
 ## Onboarding (build plan Section 28, PRD Section 21.1)
 
 55. Use a fresh Firefox profile with no JoyFox data. Start a timer, build and
@@ -222,6 +227,8 @@ text; never record the member's real data in this repository.
     says "JoyFox is set up", and the inbox shows JoyFox's tabs. Stop the timer:
     PRD Section 21.1 asks for under 10 minutes. Reload the extension and confirm
     the options page does not open again.
+
+**Result (2026-09-27): passed.** The project owner confirmed item 55.
 
 ## M9 destructive-action matrix (build plan Section 24)
 
@@ -314,6 +321,8 @@ matrix by hand:
 58. Type a number outside the allowed range and press Tab. Confirm an error
     appears and the saved rule is unchanged. Reload the options page and confirm
     the form shows the last valid rule.
+
+**Result (2026-09-27): passed.** The project owner confirmed items 56 to 58.
 
 ## Import (2026-09-24)
 
@@ -461,7 +470,8 @@ automatically.
 90. Type an emoji as the text (for example 🦊) and repeat item 87 with a message
     that holds the emoji.
 
-**Result:** not yet run.
+**Result (2026-09-27): items 86 to 89 passed.** Item 90 (an emoji as the text)
+could not be tested and stays open.
 
 ## German and English UI (ADR 0014)
 
@@ -534,6 +544,8 @@ another page loads in the tab first". This matches items 44, 45, 47 and 50. Item
 99, a normal run, is still pending: it is the only live check that the
 sending-page check does not refuse the normal hand-off.
 
+**Item 99 (2026-09-27):** could not be tested and stays open.
+
 ## Readable records in "Your data" (V1-7)
 
 101. On "Your data", click "Show" for "Message templates" and open the template
@@ -547,6 +559,8 @@ sending-page check does not refuse the normal hand-off.
      value reads "(empty)". Switch the language to German and confirm yes or no
      values read "ja" or "nein" and numbers use German separators.
 
+**Result (2026-09-27): passed.** The project owner confirmed items 101 and 102.
+
 ## Profile snapshot history setting (V1-12)
 
 103. On "Your data", confirm "Profile snapshots kept per member" shows 20 and
@@ -558,6 +572,8 @@ sending-page check does not refuse the normal hand-off.
      per member, and the member's triage still shows their latest facts. Set it
      back to 20 and confirm the message says no snapshot needed deleting. Enter
      0 and confirm the error says nothing was changed.
+
+**Result (2026-09-27): passed.** The project owner confirmed items 103 and 104.
 
 ## Rule presets (V1-11)
 
@@ -579,6 +595,8 @@ sending-page check does not refuse the normal hand-off.
      qualifies and the editor shows no ticked box. Apply "Custom" and confirm
      the editor stays empty and the focus is on the first box to tick. Switch
      the language to German and confirm the preset names and texts are German.
+
+**Result (2026-09-27): passed.** The project owner confirmed items 105 to 107.
 
 ## Saved searches (V1-3)
 
@@ -606,6 +624,11 @@ sending-page check does not refuse the normal hand-off.
      the inbox and a profile, and confirm the box appears only on the search
      page. Switch the language to German and confirm the box is German.
 
+**Result (2026-09-27): passed.** The project owner confirmed items 108 to 110.
+Item 109 first failed: the address filled JoyClub's filter panel, but the
+results followed the filters stored on the account. With PR #70 (JoyFox clicks
+"Anwenden" once after the user clicks a saved search) it passed.
+
 ## Event tracker (V1-5)
 
 111. Open an event page on JoyClub. Confirm a "JoyFox: my notes on this event"
@@ -629,6 +652,10 @@ sending-page check does not refuse the normal hand-off.
      the message says JoyFox no longer tracks it, and the event leaves "Events".
      After an event you tracked has passed, confirm it stays in "Events" marked
      "(past)". Switch the language to German and confirm every box is German.
+
+**Result (2026-09-27): passed.** The project owner confirmed items 111 to 115.
+Finding: the attendance list's open options were unreadable on JoyClub's dark
+theme (light text on Firefox's white list); fixed in PR #77, to be re-checked.
 
 ## Compatibility Overlay (V1-2)
 
@@ -655,6 +682,9 @@ sending-page check does not refuse the normal hand-off.
 120. Switch the language to German and confirm "N gemeinsam" and a German
      section. Switch the active account and confirm every count disappears.
 
+**Result (2026-09-27): passed.** The project owner confirmed items 116 to 120,
+after the member strip fix (PRs #72 and #73).
+
 ## Conversation History Search (V1-4)
 
 121. Open the JoyFox options, tab "Messages". Confirm "Store the messages I open
@@ -673,6 +703,8 @@ sending-page check does not refuse the normal hand-off.
      how many older messages were deleted. Under "Your data", show "Stored
      messages (for search)" and delete one; confirm search no longer finds it.
      Switch the language to German and confirm the tab is German.
+
+**Result (2026-09-27): passed.** The project owner confirmed items 121 to 124.
 
 ## Profile signals on cards (V1-10)
 
@@ -695,6 +727,15 @@ sending-page check does not refuse the normal hand-off.
      unknown". Untick and confirm all are back. Switch the language to German
      and confirm the texts are German.
 
+**Result (2026-09-27): items 125, 127 and 128 passed; item 126 failed.** Before
+they passed, the live checks found and PRs #73 to #76 fixed: the inbox chips
+pushing out the sender's name, the guest-list chips clipped to a line, the
+search chips covered by the next row, and the verification reading (codes `0`
+and `1`, the green shield, and the profile's sidebar badge). Item 126: the chips
+show over the search result's photo, but a click on "✎" opened the profile, so
+no note could be added from the search. PR #77 fixes it; item 126 is to be
+re-tested.
+
 ## Shared-event exception (V1-13)
 
 129. Track an event (set "Attending"), then open its "Gäste" tab. In the JoyFox
@@ -709,3 +750,7 @@ sending-page check does not refuse the normal hand-off.
 132. Clear the event's notes so it is no longer tracked. Confirm "Shared events"
      is gone from the guest's profile. Switch the language to German and confirm
      the texts are German.
+
+**Result (2026-09-27): items 129 and 132 passed.** Items 130 and 131 (the
+exception off and on, with a contact on a tracked event's guest list) could not
+be tested and stay open.
