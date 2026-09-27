@@ -52,10 +52,12 @@ flows: conversation first, profile first, or two separate buttons.
    background answers only while the account is still active, the run is still
    the member's newest, its last stored step is still `DeleteConfirmed`, it
    moved within `STALE_AFTER_MS`, and the sending page, as the browser reports
-   it, is the profile path stored in the marker. The profile page resumes only
-   for the run's member, and keeps what it read while the page settles. It
-   starts when the profile menu is there, or after 10 seconds, when a missing
-   control stops the run with a clear reason.
+   it, is the profile of the member in the stored profile path. (Until
+   2026-09-27 the whole path had to match; live check 99 showed JoyClub can
+   serve the profile under another nickname slug, so the member ID decides.) The
+   profile page resumes only for the run's member, and keeps what it read while
+   the page settles. It starts when the profile menu is there, or after 10
+   seconds, when a missing control stops the run with a clear reason.
 5. **Verification.** Delete is verified by the clicked member's row leaving the
    conversation list, on two reads in a row, while the list is on screen and
    shows rows; a header that re-renders or a list that empties for a moment

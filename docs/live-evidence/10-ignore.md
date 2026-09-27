@@ -319,3 +319,17 @@ needed by it:
 
 - The HTML of the trash notice with "Rückgängig".
 - Whether "Profil nicht mehr ignorieren" asks for confirmation.
+
+## Three menu copies (owner's live check, 2026-09-27)
+
+The profile page now holds `j-context-menu[data-e2e="profile-context-menu"]`
+three times, each with the same items ("Kontakt bearbeiten", …, "Profil
+ignorieren"). Measured in the Web Console on a desktop window:
+
+- in `div.profile-header-small__context-menu`: hidden (no layout boxes);
+- in a `div` without a class: hidden;
+- in `div.profile-container__context-menu-desktop`: shown.
+
+JoyFox's driver uses the copy that has layout boxes. While the page is still
+drawing and none has them, it clicks nothing and waits (a single copy is used as
+it is).
