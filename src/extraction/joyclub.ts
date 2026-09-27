@@ -495,11 +495,34 @@ export function extractProfile(
   };
 }
 
+/**
+ * A sidebar badge's own label: its text outside any slotted child. A badge
+ * can carry a second text in its `description` slot, such as "Persönlich
+ * bekannt" above "Verifiziertes Mitglied" (owner's live check, 2026-09-27),
+ * and its icon sits in the `image` slot.
+ */
+export function badgeLabel(item: Element): string {
+  return Array.from(item.childNodes)
+    .filter(
+      (node) =>
+        node.nodeType === node.TEXT_NODE ||
+        (node.nodeType === node.ELEMENT_NODE &&
+          !(node as Element).hasAttribute("slot")),
+    )
+    .map((node) => node.textContent ?? "")
+    .join(" ")
+    .replace(/\s+/gu, " ")
+    .trim();
+}
+
 function verificationBadge(root: ParentNode): ExtractionResult<boolean> {
   const selector = verifiedSelector("profile", "verificationBadge");
   if (!selector) return missing("profile.verificationBadge");
   for (const element of Array.from(root.querySelectorAll(selector))) {
-    const value = verificationFromBadge(element.textContent ?? "");
+    // The label first; the whole badge only if the label says nothing.
+    const value =
+      verificationFromBadge(badgeLabel(element)) ??
+      verificationFromBadge(element.textContent ?? "");
     if (value !== undefined) return found(value, "profile.verificationBadge");
   }
   return missing("profile.verificationBadge");
@@ -512,7 +535,7 @@ function memberSinceWindow(
   const selector = verifiedSelector("profile", "memberSinceBadge");
   if (!selector) return missing("profile.memberSince");
   const badge = Array.from(root.querySelectorAll(selector))
-    .map((element) => (element.textContent ?? "").replace(/\s+/gu, " ").trim())
+    .map(badgeLabel)
     .find((text) => text.startsWith("Angemeldet seit"));
   if (badge === undefined) return missing("profile.memberSince");
   const duration = parseMemberSince(badge);
