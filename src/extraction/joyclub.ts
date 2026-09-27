@@ -519,10 +519,10 @@ function verificationBadge(root: ParentNode): ExtractionResult<boolean> {
   const selector = verifiedSelector("profile", "verificationBadge");
   if (!selector) return missing("profile.verificationBadge");
   for (const element of Array.from(root.querySelectorAll(selector))) {
-    // The label first; the whole badge only if the label says nothing.
-    const value =
-      verificationFromBadge(badgeLabel(element)) ??
-      verificationFromBadge(element.textContent ?? "");
+    // The label; the whole badge only when it has no label of its own, so
+    // another badge's slotted description is never read as its value.
+    const label = badgeLabel(element);
+    const value = verificationFromBadge(label || (element.textContent ?? ""));
     if (value !== undefined) return found(value, "profile.verificationBadge");
   }
   return missing("profile.verificationBadge");

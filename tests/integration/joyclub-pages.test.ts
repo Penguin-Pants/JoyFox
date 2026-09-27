@@ -506,6 +506,12 @@ describe("the profile's verification badge", () => {
       status: "found",
       value: true,
     });
+    // Another badge's description never counts: its own label wins.
+    badge.innerHTML =
+      '<div slot="description">noch nicht verifiziert</div> Neu im JOYclub';
+    expect(extractProfile(page, PROFILE_URL).verificationBadge.status).toBe(
+      "missing",
+    );
     badge.innerHTML = "Mitglied noch nicht verifiziert Mitglied";
     const extracted = extractProfile(page, PROFILE_URL);
     expect(extracted.verificationBadge).toMatchObject({
