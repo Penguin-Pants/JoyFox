@@ -434,6 +434,14 @@ export const en = {
   "events.exception.hint":
     'Off by default. JoyFox stores a tracked event\'s guest list when you open the event page, as far as JoyClub has loaded it, and deletes it when you stop tracking the event. A sender you moved yourself keeps your choice, and the "Why" panel can turn the exception off for one sender.',
   "events.exception.saved": "Saved.",
+  // Options page: the switch for the experimental Ignore and Delete (M9)
+  "quickSetting.heading": "Ignore and Delete",
+  "quickSetting.label":
+    'Show the "Ignore and Delete" button on ClubMail conversations',
+  "quickSetting.hint":
+    "Experimental and off by default. One click moves the conversation to JoyClub's trash, opens the member's profile in the same tab and ignores the member there. JoyFox acts only when you click, and the ActionLog in \"Your data\" records every step.",
+  "quickSetting.saved": "Saved. Open ClubMail tabs follow at once.",
+  "quickSetting.saveFailed": "JoyFox could not save this setting. Try again.",
   "sharedEvents.heading": "Shared events",
   "sharedEvents.intro":
     "This member is on the stored guest list of these events you track:",

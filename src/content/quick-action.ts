@@ -1,3 +1,4 @@
+import { QUICK_ACTION_KEY } from "../actions/quick-action-setting";
 import {
   runQuickIgnoreDelete,
   type ActionRecorder,
@@ -25,13 +26,8 @@ import { JoyClubQuickActionDriver } from "./quick-action-driver";
 import { isPlaced, placeInStrip, removeEmptyStrip } from "./member-strip";
 import { button, element, UI_ATTRIBUTE } from "./triage-ui";
 
-/**
- * The `storage.local` key for the experimental M9 button. Off unless set to
- * `true` (build plan Section 27: keep M9 behind an experimental flag). When
- * on, the button appears on conversation pages, and a click runs the live
- * driver, which clicks JoyClub's Delete and Ignore (ADR 0011).
- */
-export const QUICK_ACTION_KEY = "joyfox.quickIgnoreDelete";
+/** Re-exported for the content script's other parts. */
+export { QUICK_ACTION_KEY };
 
 /** Marks the M9 section. */
 export const QUICK_ACTION = "quick-action";

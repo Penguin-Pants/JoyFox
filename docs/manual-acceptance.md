@@ -238,24 +238,15 @@ to ignore and then un-ignore ("Profil nicht mehr ignorieren" in the profile
 menu). Never run them automatically. Use the split view (conversation list on
 the left), because Delete is checked by the row leaving the list.
 
-Turn the button on first, from the console of the JoyFox options page:
+Turn the button on first, on the JoyFox options page (since 2026-09-27; before,
+it took a console command):
 
 - Open the JoyFox options page: in `about:addons`, click the "..." next to
-  JoyFox, then **Options** (older Firefox: **Preferences**). It opens in its own
-  tab, and the address starts with `moz-extension://`.
-- In that tab, press `Ctrl+Shift+K` (macOS: `Cmd+Option+K`) to open the Web
-  Console.
-- Run `browser.storage.local.set({"joyfox.quickIgnoreDelete": true})`. If
-  Firefox asks, type `allow pasting` first.
-- To check it, run `browser.storage.local.get("joyfox.quickIgnoreDelete")`. The
-  result must show `true`. To turn it off again, run the same `set` with
-  `false`.
-- Reload the JoyClub tab.
-
-Other consoles give "ReferenceError: browser is not defined": a JoyClub page,
-the `about:debugging` page itself, and the Inspect toolbox when its console is
-not in the extension's own context. Only extension pages, such as the options
-page, can use `browser`.
+  JoyFox, then **Options** (older Firefox: **Preferences**).
+- On the "Contact rule" tab, under "Ignore and Delete", tick "Show the "Ignore
+  and Delete" button on ClubMail conversations". JoyFox says "Saved." Untick it
+  to turn the button off again.
+- Open JoyClub tabs follow at once; reload one if the button does not appear.
 
 The run: on the conversation page, JoyFox moves the conversation to the trash,
 opens the member's profile in the same tab, and ignores them there. The result
@@ -545,9 +536,8 @@ another page loads in the tab first". This matches items 44, 45, 47 and 50. Item
 sending-page check does not refuse the normal hand-off.
 
 **Item 99 (2026-09-27):** not yet run. The "Ignore and Delete" button did not
-show, because the `joyfox.quickIgnoreDelete` flag was off: a fresh Firefox
-profile does not have it. Turn the flag on as the M9 matrix above describes,
-reload the JoyClub tab, and run item 99.
+show, because it was off: a fresh Firefox profile has it off. Turn it on as the
+M9 matrix above describes (the options switch), and run item 99.
 
 ## Readable records in "Your data" (V1-7)
 
@@ -758,3 +748,13 @@ second run the same day.
 **Result (2026-09-27): items 129 and 132 passed.** Items 130 and 131 (the
 exception off and on, with a contact on a tracked event's guest list) could not
 be tested and stay open.
+
+## Ignore and Delete switch (2026-09-27)
+
+133. Open the JoyFox options page, tab "Contact rule". Confirm "Ignore and
+     Delete" shows a switch, unticked on a fresh profile. Keep a ClubMail
+     conversation open in another tab. Tick the switch: confirm "Saved." and
+     that the "Ignore and Delete" button appears in the conversation's JoyFox
+     strip without a reload. Untick it: confirm the button goes. Switch the
+     language to German and confirm the texts are German. Do not click the
+     button unless you mean to trash the conversation and ignore the member.

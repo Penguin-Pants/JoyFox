@@ -406,6 +406,14 @@ export const de: Catalog = {
   "events.exception.hint":
     "Standardmäßig aus. JoyFox speichert die Gästeliste eines verfolgten Events, wenn du die Event-Seite öffnest, so weit JoyClub sie geladen hat, und löscht sie, wenn du das Event nicht mehr verfolgst. Eine Person, die du selbst verschoben hast, behält deine Wahl, und im Bereich „Warum“ kannst du die Ausnahme für eine Person abschalten.",
   "events.exception.saved": "Gespeichert.",
+  "quickSetting.heading": "Ignorieren und löschen",
+  "quickSetting.label":
+    "Die Schaltfläche „Ignorieren und löschen“ in ClubMail-Unterhaltungen zeigen",
+  "quickSetting.hint":
+    "Experimentell und standardmäßig aus. Ein Klick schiebt die Unterhaltung in JoyClubs Papierkorb, öffnet das Profil des Mitglieds im selben Tab und ignoriert das Mitglied dort. JoyFox handelt nur, wenn du klickst, und das ActionLog unter „Deine Daten“ hält jeden Schritt fest.",
+  "quickSetting.saved": "Gespeichert. Offene ClubMail-Tabs folgen sofort.",
+  "quickSetting.saveFailed":
+    "JoyFox konnte diese Einstellung nicht speichern. Versuche es noch einmal.",
   "sharedEvents.heading": "Gemeinsame Events",
   "sharedEvents.intro":
     "Dieses Mitglied steht auf der gespeicherten Gästeliste dieser Events, die du verfolgst:",

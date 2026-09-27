@@ -348,6 +348,16 @@ stay as they are.
 | `events.exception.hint` | Off by default. JoyFox stores a tracked event's guest list when you open the event page, as far as JoyClub has loaded it, and deletes it when you stop tracking the event. A sender you moved yourself keeps your choice, and the "Why" panel can turn the exception off for one sender. | Standardmäßig aus. JoyFox speichert die Gästeliste eines verfolgten Events, wenn du die Event-Seite öffnest, so weit JoyClub sie geladen hat, und löscht sie, wenn du das Event nicht mehr verfolgst. Eine Person, die du selbst verschoben hast, behält deine Wahl, und im Bereich „Warum“ kannst du die Ausnahme für eine Person abschalten. |
 | `events.exception.saved` | Saved. | Gespeichert. |
 
+## quickSetting
+
+| Key | English | Deutsch |
+| --- | --- | --- |
+| `quickSetting.heading` | Ignore and Delete | Ignorieren und löschen |
+| `quickSetting.label` | Show the "Ignore and Delete" button on ClubMail conversations | Die Schaltfläche „Ignorieren und löschen“ in ClubMail-Unterhaltungen zeigen |
+| `quickSetting.hint` | Experimental and off by default. One click moves the conversation to JoyClub's trash, opens the member's profile in the same tab and ignores the member there. JoyFox acts only when you click, and the ActionLog in "Your data" records every step. | Experimentell und standardmäßig aus. Ein Klick schiebt die Unterhaltung in JoyClubs Papierkorb, öffnet das Profil des Mitglieds im selben Tab und ignoriert das Mitglied dort. JoyFox handelt nur, wenn du klickst, und das ActionLog unter „Deine Daten“ hält jeden Schritt fest. |
+| `quickSetting.saved` | Saved. Open ClubMail tabs follow at once. | Gespeichert. Offene ClubMail-Tabs folgen sofort. |
+| `quickSetting.saveFailed` | JoyFox could not save this setting. Try again. | JoyFox konnte diese Einstellung nicht speichern. Versuche es noch einmal. |
+
 ## sharedEvents
 
 | Key | English | Deutsch |
