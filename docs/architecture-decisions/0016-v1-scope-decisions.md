@@ -258,3 +258,15 @@ model, which said the sender name is never stored.
    logged.
 3. Where JoyFox never saw a member's nickname, its texts show "Member" and the
    number.
+
+## Amendment: event ClubMail composer as a known limitation (project owner, 2026-09-27)
+
+The ClubMail composer on event pages has no evidence, so the M10 template picker
+does not run there. It was the last open part of the MVP release gate's "Live
+manual selector acceptance". The owner accepted it as a known limitation for the
+release and logged it for later.
+
+1. The gate item counts as met, with this limitation named.
+2. F1 and M10 stay "Partial" until the composer is captured and checked live.
+3. The steps to close it are in `Task Backlog.md`, "Deferred: event ClubMail
+   composer".

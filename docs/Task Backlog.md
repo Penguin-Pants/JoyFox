@@ -40,7 +40,7 @@ Matches the PRD's Section 19.1 scope exactly. Nothing here is not in that list, 
 | --- | --- | --- |
 | F0, F2, F4 to F6 | Done | See `foundation-audit.md`. F2's live acceptance passed on 2026-09-23 (10 of 10 inbox loads). |
 | F3 | Done | Automated wake-counter test passes, and the forced event-page restart in devtools passed on 2026-09-23 (`wakeCount` rose by one). |
-| F1 | Partial | Inbox, conversation and profile verified from `docs/live-evidence/`. Search, events and the ClubMail composer remain. |
+| F1 | Partial | Inbox, conversation, profile, search and events verified from `docs/live-evidence/`. The event ClubMail composer remains; the owner accepted it as a known limitation on 2026-09-27 and logged it for later (ADR 0016). |
 | F9 | Partial | Matrix in `08-attribute-matrix.md`. Verification appears on all three pages, photo count only on the profile, profile text on the conversation and the profile. Account age comes from the profile's "Angemeldet seit" badge. Profile type comes from the gender codes (`1` man, `2` woman, `3` couple). Still Unclear: photo count on the inbox row, and account age on the inbox and conversation. |
 | F7 | Done | Answer: Path B. Ignore is only on the profile page ("Profil ignorieren" in `profile-context-menu`, then a `j-modal` confirmation); afterwards the item reads "Profil nicht mehr ignorieren". Delete asks for no confirmation; from the inbox row, the row goes and a 5-second Undo notice appears (`live-evidence/10-ignore.md`, 2026-09-24). The conversation page's Delete also asks for no confirmation; the row leaves the list and the conversation stays open at first (2026-09-24). |
 | F8 | Partial | Research draft in `docs/distribution.md` (2026-09-25), from search summaries only: the environment could not reach the Mozilla pages. Channel chosen (owner, 2026-09-26, ADR 0016): unlisted, with automatic updates through a GitHub-hosted `update_url`. Still needed: the draft's verification checklist, by someone with access to the Mozilla pages. The extension ID is decided: `joyfox@drclaw` (ADR 0016). 2026-09-26: checklist items 2 to 4 verified with Mozilla's own tools (`web-ext` 10.7.0, `addons-linter` 10.13.0); the manifest now declares `data_collection_permissions` as `"none"`, `web-ext` is pinned, and CI runs `npm run lint:amo`. Items 1, 5 and 6 still need the Mozilla web pages. |
@@ -52,7 +52,7 @@ Matches the PRD's Section 19.1 scope exactly. Nothing here is not in that list, 
 | M5 | Partial | Notes and tags persist, keyed to account plus a verified member ID. The note and tag editor is complete and tested on the profile and conversation pages, including the acceptance "survives a restart and a markup change that keeps the same profile ID" (`milestone-b-audit.md`, M5 editor). Live acceptance (`manual-acceptance.md`, items 36 to 42) passed on 2026-09-27. Inbox, search and event surfaces are "later" in build plan Section 12. |
 | M7 | Partial | Explicit active account, account-scoped repositories, options switcher, and the Section 14 isolation test. Automatic account detection waits on F1 and F9. |
 | M8 | Done | Account selector, counts, per-entity inspection, delete record, data type, account data and everything, account and full JSON export with the schema version. Export completeness is tested item by item against every entity (`milestone-d-audit.md`). Live acceptance passed on 2026-09-23 (`manual-acceptance.md`, items 27 to 30 and 35). |
-| M10 | Partial | Create, edit, delete, folders and exact insertion at the cursor are complete, tested and accepted live on the standard composer (items 31 to 34, 2026-09-23). The picker is on by default (ADR 0007). The event ClubMail composer is unverified, so "every compose context" stays open. |
+| M10 | Partial | Create, edit, delete, folders and exact insertion at the cursor are complete, tested and accepted live on the standard composer (items 31 to 34, 2026-09-23). The picker is on by default (ADR 0007). The event ClubMail composer is unverified, so "every compose context" stays open. The owner accepted this as a known limitation for the release on 2026-09-27 (ADR 0016). |
 | M9 | Partial | Live driver built (ADR 0011, owner choice "conversation first", 2026-09-24): Delete through the conversation's three-dot menu, a tab-bound hand-off in `storage.session`, then Ignore on the profile page. Off by default. Item 43 (both steps succeed) passed live on 2026-09-24. Items 44 to 54 were accepted on 2026-09-25: 48, 49 and 51 to 54 passed live; 44, 45, 47 and 50 cannot be caused by hand and are covered by synthetic tests; 46 ends in the correct state but does not say the member was already ignored; the owner keeps it as is. The guided mode is dropped (ADR 0015). Review follow-ups built on 2026-09-25 (ADR 0011): the hand-off is refused from any page but the run's conversation, and a cancelled move to the profile withdraws the marker. Items 98 and 100 were accepted on 2026-09-25 as not reproducible by hand (synthetic tests cover them); item 99, a normal run, passed on 2026-09-27 after three fixes found live (the hand-off matched the whole profile path, then the check of the sending page read the address the page started on; the driver took a hidden copy of the profile menu). The button is turned on and off with a switch on the options page's "Contact rule" tab. |
 
 ### MVP release gate (build plan Section 28)
@@ -71,7 +71,7 @@ Matches the PRD's Section 19.1 scope exactly. Nothing here is not in that list, 
 | Complete data deletion works | Met (M8, item 35) |
 | No automated Send action exists | Met: tests prove the picker never sends; M9 never sends |
 | Synthetic-fixture tests pass | Met |
-| Live manual selector acceptance passes | Partial: inbox, conversation and profile pass; search (`11-search.md`) and events (`14-events.md`) are verified and passed their live checks on 2026-09-27 (items 108 to 132); the ClubMail composer on event pages is still unverified (F1, M10) |
+| Live manual selector acceptance passes | Met with one known limitation: inbox, conversation and profile pass; search (`11-search.md`) and events (`14-events.md`) are verified and passed their live checks on 2026-09-27 (items 108 to 132). The ClubMail composer on event pages is unverified; the owner accepted it as a known limitation for the release on 2026-09-27 (ADR 0016), logged for later under "Deferred: event ClubMail composer" |
 | Unsupported markup causes graceful degradation | Met: features stay off without a verified selector |
 | Permissions match documentation | Met: permission check in lint |
 
@@ -214,6 +214,18 @@ accepted by hand on 2026-09-25 (ADR 0011, `manual-acceptance.md`).
   (2 minutes; 30 seconds at `Started`) against the live site.
 
 M9 is the largest and riskiest MVP task, both in size and in its need to resume across a page navigation, since F7 answered the in-page-versus-navigation question with navigation (Path B). If F1 through F7 push MVP's timeline out meaningfully, M9 is the one task worth reconsidering for a fast-follow release rather than the rest of MVP slipping with it. That is a scope call, not a technical one, and stays with the person running this project.
+
+### Deferred: event ClubMail composer (owner, 2026-09-27)
+
+The owner accepted the unverified event ClubMail composer as a known
+limitation for the release and logged it for later (ADR 0016). The template
+picker stays off there. To close F1 and M10's "every compose context":
+
+1. Capture sanitized evidence of the composer on an event page: its root, its
+   text field, its `maxlength` and how it opens (`live-evidence/`).
+2. Add its selectors to the registry and `selector-map.md`, then run the picker
+   there behind the same verified-selector check.
+3. Add a live check to `manual-acceptance.md` and run it.
 
 ## V1 Phase
 

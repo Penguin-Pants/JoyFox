@@ -166,7 +166,9 @@
 - The M10 composer picker runs only on the standard conversation composer. It is
   on by default and turned off by setting `joyfox.templatePicker` to `false`
   (ADR 0007). The event ClubMail composer has no evidence and is not supported,
-  so M10's "every compose context" acceptance is still open.
+  so M10's "every compose context" acceptance is still open. The owner accepted
+  this for the release on 2026-09-27 and logged it for later (ADR 0016,
+  `Task Backlog.md`, "Deferred: event ClubMail composer").
 - A template that does not fit the composer's `maxlength` is refused, never
   shortened. The template limits (name 80, folder 40, text 4000 characters) are
   storage guards chosen by this implementation.
