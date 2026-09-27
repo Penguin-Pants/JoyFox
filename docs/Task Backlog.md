@@ -60,7 +60,7 @@ Matches the PRD's Section 19.1 scope exactly. Nothing here is not in that list, 
 | Gate item | Status |
 | --- | --- |
 | Cold installation works | Met: build, load, no errors (`manual-acceptance.md`, items 1 to 3) |
-| Onboarding gets the extension into a usable state | Built: the options page opens on install and "Get started" tracks the steps. Timed live check passed (item 55, 2026-09-27) |
+| Onboarding gets the extension into a usable state | Met: the options page opens on install and "Get started" tracks the steps. Timed live check passed (item 55, 2026-09-27) |
 | Triage operates without hidden network access | Met: automated network-isolation test on every build |
 | Missing sender information is shown as Unknown | Met (M1, M2) |
 | Every triage decision can be explained | Met (M2, M4) |
@@ -71,7 +71,7 @@ Matches the PRD's Section 19.1 scope exactly. Nothing here is not in that list, 
 | Complete data deletion works | Met (M8, item 35) |
 | No automated Send action exists | Met: tests prove the picker never sends; M9 never sends |
 | Synthetic-fixture tests pass | Met |
-| Live manual selector acceptance passes | Partial: inbox, conversation and profile pass; search, events and the ClubMail composer are unverified (F1) |
+| Live manual selector acceptance passes | Partial: inbox, conversation and profile pass; search (`11-search.md`) and events (`14-events.md`) are verified and passed their live checks on 2026-09-27 (items 108 to 132); the ClubMail composer on event pages is still unverified (F1, M10) |
 | Unsupported markup causes graceful degradation | Met: features stay off without a verified selector |
 | Permissions match documentation | Met: permission check in lint |
 
