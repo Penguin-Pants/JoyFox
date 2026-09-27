@@ -544,9 +544,10 @@ another page loads in the tab first". This matches items 44, 45, 47 and 50. Item
 99, a normal run, is still pending: it is the only live check that the
 sending-page check does not refuse the normal hand-off.
 
-**Item 99 (2026-09-27):** could not be tested and stays open: the "Ignore and
-Delete" button did not show. It shows only with the `joyfox.quickIgnoreDelete`
-flag on (see the M9 matrix above), which a fresh Firefox profile does not have.
+**Item 99 (2026-09-27):** not yet run. The "Ignore and Delete" button did not
+show, because the `joyfox.quickIgnoreDelete` flag was off: a fresh Firefox
+profile does not have it. Turn the flag on as the M9 matrix above describes,
+reload the JoyClub tab, and run item 99.
 
 ## Readable records in "Your data" (V1-7)
 
@@ -657,7 +658,8 @@ results followed the filters stored on the account. With PR #70 (JoyFox clicks
 
 **Result (2026-09-27): passed.** The project owner confirmed items 111 to 115.
 Finding: the attendance list's open options were unreadable on JoyClub's dark
-theme (light text on Firefox's white list); fixed in PR #77.
+theme (light text on Firefox's white list); fixed in PR #77, to be re-checked
+live.
 
 ## Compatibility Overlay (V1-2)
 
