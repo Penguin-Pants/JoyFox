@@ -402,14 +402,15 @@ describe("F1/F9 extraction from the verified profile", () => {
 });
 
 describe("M1 on verified profile data", () => {
-  it("maps only JoyClub's own verification code as verified", () => {
+  it("maps the grey and the green shield as verified", () => {
     const code = (value: number) =>
       verificationFromCode({ status: "found", value, source: "t" });
     // 1 = grey "geprüft": verified by JoyClub.
     expect(code(1)).toBe(true);
-    // 3 = green "persönlich bekannt" is the viewer's own mark; it hides
-    // JoyClub's verification, which is then unknown.
-    for (const value of [0, 2, 3, 4])
+    // 3 = green "persönlich bekannt" replaces the grey shield; the owner
+    // counts it as verified too (2026-09-27).
+    expect(code(3)).toBe(true);
+    for (const value of [0, 2, 4])
       expect(code(value), String(value)).toBe("unknown");
     expect(verificationFromCode({ status: "missing", source: "t" })).toBe(
       "unknown",
@@ -441,7 +442,7 @@ describe("M1 on verified profile data", () => {
     );
   });
 
-  it("scores extracted facts and leaves hidden or missing facts unknown", () => {
+  it("scores extracted facts from the profile page", () => {
     const extracted = extractProfile(load("profile"), PROFILE_URL);
     const value = <T>(result: { status: string; value?: T }) =>
       result.status === "found" ? (result.value as T) : ("unknown" as const);
@@ -467,17 +468,16 @@ describe("M1 on verified profile data", () => {
       },
     });
     expect(result.criteria.map(({ name, state }) => [name, state])).toEqual([
-      // The fixture shows code 3 ("persönlich bekannt"), which hides
-      // JoyClub's verification but passes the personally-known criterion.
-      ["verification", "unknown"],
+      // The fixture shows code 3 ("persönlich bekannt"), which counts as
+      // verified and passes the personally-known criterion.
+      ["verification", "pass"],
       ["personallyKnown", "pass"],
       ["photoCount", "pass"],
       ["profileWordCount", "pass"],
       // "Angemeldet seit 11 Monaten" is at least ten months: above 30 days.
       ["accountAge", "pass"],
     ]);
-    // Verification is still unknown (hidden by the green shield).
-    expect(result.outcome).toBe("partial-information");
+    expect(result.outcome).toBe("qualified");
   });
 });
 

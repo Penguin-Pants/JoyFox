@@ -100,7 +100,8 @@ app (`09-navigation.md`) and the inbox list can stay in the DOM.
 | Event        | Start             | `.event_info_box .event-time`                                                      | "Samstag, 27. September 2026 - ab 21:00", local time |
 | Event        | Venue link        | `.event_location_detail a.event_club`                                              | `/club/<n>.<slug>.html` and the venue's name         |
 | Event        | Guest entry       | `.tab-pane[id^="guest_"] a.card.normal`                                            | Profile link; badges; stored guest list (V1-13)      |
-| Event        | Guest name        | `div.date_moreinfo`                                                                | The badge goes here                                  |
+| Event        | Guest name        | `div.date_moreinfo`                                                                | One clipped line; JoyFox places nothing in it        |
+| Event        | Guest text block  | `div.date_info`                                                                    | JoyFox's card line goes at its end                   |
 | Event list   | Item              | `div.card-list-ui-list-item`                                                       | Event and date cards alike                           |
 | Event list   | Event item        | `div.card-list-ui-list-item.event-card-ui[data-element-id]`                        | `data-element-id` is the event ID                    |
 | Event list   | Headline          | `.card-ui-detail-right-headline`                                                   | The badge goes here                                  |
@@ -157,9 +158,11 @@ buttons sit in open shadow roots; the driver clicks them there.
 - **Verification codes.** Confirmed by the project owner on 2026-09-23: `1` is
   the grey shield "geprüft", verified by JoyClub. `3` is the green shield
   "persönlich bekannt": the logged-in user marked the member as met in person.
-  Only `1` counts as verified. `3` is a separate "personally known" signal and
-  hides JoyClub's verification, which then reads as unknown. Code `2`, any other
-  code and a missing shield read as unknown, never as "not verified".
+  `3` is also a separate "personally known" signal. The green shield replaces
+  the grey one, so JoyClub's own verification is not visible then; the owner
+  decided on 2026-09-27 that `3` counts as verified too (ADR 0016 amendment).
+  Code `2`, any other code and a missing shield read as unknown, never as "not
+  verified".
 - **Gender codes.** Confirmed by the project owner on 2026-09-23: `1` man, `2`
   woman, `3` couple (a male and a female icon side by side). Other codes read as
   unknown. No feature filters by profile type. Per-audience rules were dropped

@@ -160,3 +160,24 @@ Tab panes (`.tab-pane` ids): `information`, `guest_list`, `guest_alle`,
 - Whether the attendee list is visible to all members or only to certain account
   types: Unclear.
 - "Wer ist wo?" and "Meine Events" pages: not opened.
+
+## Guest entry layout (owner's live check, 2026-09-27)
+
+Measured in the Web Console on an event's "Gäste" tab, desktop window, after
+JoyFox placed its signals inside the name box:
+
+- `div.date_moreinfo.brkwrd.ellipsis` (the name box): block, 238 px wide, 25 px
+  high, `overflow: hidden`. The JoyFox signals group inside it was 57 px high,
+  so only the top border of the first chip showed: a coloured line under the
+  name (red dashed, grey or green, by completeness).
+- `div.date_info`: block, 262 px wide, 90 px high, `overflow: visible`.
+- `a.card.normal`: inline, 263 px high, `overflow: hidden`.
+- `div.ha_2`: block, 306 px high, `overflow: hidden`, which leaves about 43 px
+  under the card.
+- `li.date_card`, `ul.date_list.ov_h` and `div.tab-pane.cards.user_cards`
+  complete the chain.
+- JoyClub's styles make a `span` inside the entry `display: block`: the chip was
+  a block 476 px wide.
+
+JoyFox now puts one compact line, 18 px high, at the end of `div.date_info`,
+never inside the name box.

@@ -680,13 +680,14 @@ sending-page check does not refuse the normal hand-off.
      JoyFox strip (state, photos, words, verification) and the trust score in
      the member panel. Open the member search, the inbox and an event's guest
      list ("Gäste") where the member appears. Confirm each shows the same
-     completeness text, the same trust score and the same tags.
-126. On a search result, click "Add note", add a tag and close the panel.
-     Confirm the tag shows on the card. Open an event's guest list with that
-     member and confirm the tag shows there too.
-127. On a guest-list entry, open the note, type a note and save, then change it
-     and save again, and add a tag. Open the member's profile and confirm the
-     editor there shows the changed note and the tag.
+     completeness text, the same trust score and the same tags. On a card, each
+     chip shows a short text; hover over it to read the full text.
+126. On a search result, click the note button "✎", add a tag and close the
+     panel. Confirm the tag shows on the card. Open an event's guest list with
+     that member and confirm the tag shows there too.
+127. On a guest-list entry, open the note with "✎", type a note and save, then
+     change it and save again, and add a tag. Open the member's profile and
+     confirm the editor there shows the changed note and the tag.
 128. On the member search, with one loaded result below 3 photos or 50 words
      (profile opened before), one at or above both, and one never opened, tick
      "JoyFox: hide incomplete profiles". Confirm only the first is hidden, the

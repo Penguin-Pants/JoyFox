@@ -187,10 +187,12 @@
   desktop header and hides one by screen width; the strip follows the one the
   page displays. If the window is resized so that the other header shows, the
   strip moves on the next change to the page, not at once.
-- On a ClubMail row, JoyFox's line between the name and the preview has room for
-  one line of 18 px. It shows short texts (the full text is in each chip's
-  tooltip) and clips the last chips when the row is too narrow. The tags show as
-  a count; the tooltip names them.
+- On a ClubMail row, a search result and a guest-list entry, JoyFox's card line
+  has room for one line of 18 px. It shows short texts (the full text is in each
+  chip's tooltip) and clips the last chips when the card is too narrow. The tags
+  show as a count; the tooltip names them. On a guest-list entry the line uses
+  the space JoyClub leaves under the card's text; a JoyClub change to the
+  entry's fixed height could clip it.
 - Saved searches (V1-3) appear only while JoyClub's result list
   (`div.member_search_list`) is on the page. Whether it is there for a search
   with no results is not known. JoyClub fills its filter panel from a saved

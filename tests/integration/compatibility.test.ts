@@ -388,7 +388,7 @@ describe("V1-2 compatibility on cards", () => {
     // On the row's own JoyFox line, before the preview; the name line keeps
     // only JoyClub's content.
     const line = rowBadges[0]?.parentElement;
-    expect(line?.getAttribute("data-joyfox-ui")).toBe("inbox-line");
+    expect(line?.getAttribute("data-joyfox-ui")).toBe("card-line");
     expect(line?.nextElementSibling?.textContent).toBe("TEXT");
     expect(
       document.querySelector(".cm-conversation-list-item__line")?.children,
@@ -405,10 +405,15 @@ describe("V1-2 compatibility on cards", () => {
       </div></div>`;
     overlay.update("event");
     await flush();
+    // On the entry's JoyFox line, after the name box, which clips to one line.
     expect(
-      document.querySelector(".date_moreinfo [data-joyfox-ui='compat-badge']")
-        ?.textContent,
+      document.querySelector(
+        ".date_info > [data-joyfox-ui='card-line'] > [data-joyfox-ui='compat-badge']",
+      )?.textContent,
     ).toBe("3 shared");
+    expect(
+      document.querySelector(".date_moreinfo [data-joyfox-ui='compat-badge']"),
+    ).toBeNull();
   });
 
   it("draws in the language shown, and clears at once on an account switch", async () => {

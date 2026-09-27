@@ -2,8 +2,8 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import {
   placeInInboxLine,
-  removeEmptyInboxLines,
-} from "../../src/content/inbox-line";
+  removeEmptyCardLines,
+} from "../../src/content/card-line";
 
 const part = (name: string) => {
   const node = document.createElement("span");
@@ -11,7 +11,7 @@ const part = (name: string) => {
   return node;
 };
 const row = () => document.querySelector(".cm-conversation-list-item")!;
-const line = () => row().querySelector('[data-joyfox-ui="inbox-line"]');
+const line = () => row().querySelector('[data-joyfox-ui="card-line"]');
 
 beforeEach(() => {
   document.body.innerHTML =
@@ -33,16 +33,16 @@ describe("the inbox row's JoyFox line", () => {
     expect(Array.from(line()!.children)).toEqual([badge, shared, signals]);
     expect(line()!.previousElementSibling?.id).toBe("name-line");
     expect(line()!.nextElementSibling?.id).toBe("description");
-    expect(
-      row().querySelectorAll('[data-joyfox-ui="inbox-line"]'),
-    ).toHaveLength(1);
+    expect(row().querySelectorAll('[data-joyfox-ui="card-line"]')).toHaveLength(
+      1,
+    );
   });
 
   it("goes when its last part goes", () => {
     const badge = part("badge");
     placeInInboxLine(row(), badge);
     badge.remove();
-    removeEmptyInboxLines(document);
+    removeEmptyCardLines(document);
     expect(line()).toBeNull();
   });
 

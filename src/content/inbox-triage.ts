@@ -16,7 +16,7 @@ import {
   type MemberTriage,
   type TriageRequestMember,
 } from "../triage/triage-service";
-import { placeInInboxLine, removeEmptyInboxLines } from "./inbox-line";
+import { placeInInboxLine, removeEmptyCardLines } from "./card-line";
 import { factsKey, observedFromInboxRow } from "./observed-facts";
 import type { TriageClient } from "./triage-client";
 import {
@@ -273,7 +273,7 @@ export class InboxTriage {
     ))
       if (INBOX_UI.includes(node.getAttribute(UI_ATTRIBUTE) ?? ""))
         node.remove();
-    removeEmptyInboxLines(this.document);
+    removeEmptyCardLines(this.document);
     for (const node of Array.from(
       this.document.querySelectorAll(`[${ROW_ATTRIBUTE}]`),
     )) {

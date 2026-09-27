@@ -90,14 +90,15 @@ function codeAttribute(
  *
  * The icon shows one state: green replaces grey for a member who is both, and
  * a member can be personally known without being verified (owner, same day).
- * So code `3` says nothing about JoyClub's verification, which reads as
- * unknown, and code `1` means "not personally known". By the owner's
- * decision, "personally known" is a separate signal, not a substitute for
- * verification. Code `2`, any other code and a missing shield are unconfirmed
- * and read as unknown for both signals.
+ * The owner first ruled that code `3` says nothing about JoyClub's
+ * verification. After the live checks of 2026-09-27, the owner reversed that:
+ * a green shield counts as verified too ("Count green as verified"). Code `1`
+ * still means "not personally known", and "personally known" stays its own
+ * signal (`personallyKnownFromCode`). Code `2`, any other code and a missing
+ * shield are unconfirmed and read as unknown for both signals.
  */
 export const VERIFICATION_CODE_MEANING: Readonly<Record<number, boolean>> =
-  Object.freeze({ 1: true });
+  Object.freeze({ 1: true, 3: true });
 
 /** The `verification-status` code for "persönlich bekannt". */
 export const PERSONALLY_KNOWN_CODE = 3;

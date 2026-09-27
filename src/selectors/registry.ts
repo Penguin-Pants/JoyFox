@@ -149,6 +149,10 @@ export const selectorRegistry: Readonly<
       // V1-2: the guest list tabs; each entry is a link to a profile.
       attendeeEntry: '.tab-pane[id^="guest_"] a.card.normal',
       attendeeName: "div.date_moreinfo",
+      // The entry's text block (name, age, place). The name box inside it is
+      // one clipped line, so JoyFox's line goes after it, at the end of this
+      // block (owner's live check, 2026-09-27).
+      attendeeInfo: "div.date_info",
     },
   },
   // "Dates & Events" and its sub-tabs; one list holds event and date cards.
