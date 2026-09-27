@@ -19,6 +19,24 @@ type Handler<K extends keyof MessageContract> = (
   context: RouteContext,
 ) => Promise<MessageContract[K]["response"]> | MessageContract[K]["response"];
 
+/**
+ * Only an error's name, message and stack: JoyFox's own messages name
+ * fields and codes, never stored values, and a thrown value that is not an
+ * `Error` is reduced to its type, so the log holds no page or member data.
+ */
+export function failureOf(error: unknown): {
+  name: string;
+  message?: string;
+  stack?: string;
+} {
+  if (!(error instanceof Error)) return { name: typeof error };
+  return {
+    name: error.name,
+    message: error.message,
+    ...(error.stack ? { stack: error.stack } : {}),
+  };
+}
+
 export class MessageRouter {
   readonly #handlers = new Map<
     string,
@@ -61,7 +79,11 @@ export class MessageRouter {
         ok: true,
         payload: await handler(message.payload as never, context),
       };
-    } catch {
+    } catch (error) {
+      // A real failure (lint allows console.error for these): the answer
+      // stays generic, and the background console keeps the cause, so a
+      // failure on a live page can be traced.
+      console.error("JoyFox: request failed", message.type, failureOf(error));
       return {
         requestId: message.requestId,
         ok: false,

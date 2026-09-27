@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { request } from "../../src/messaging/request";
 import { MessageRouter } from "../../src/messaging/router";
 
@@ -23,5 +23,50 @@ describe("F5 messaging", () => {
       ok: false,
       error: { code: "UNKNOWN_MESSAGE", message: "Unsupported message type" },
     });
+  });
+
+  it("keeps a failed handler's cause in the console, and answers generically", async () => {
+    const logged = vi.spyOn(console, "error").mockImplementation(() => {});
+    const router = new MessageRouter();
+    const cause = new Error("memberId must be a non-empty string");
+    router.register("note.get", () => {
+      throw cause;
+    });
+    const response = await router.route({
+      type: "note.get",
+      requestId: "request-2",
+      payload: {},
+    } as never);
+    expect(response).toEqual({
+      requestId: "request-2",
+      ok: false,
+      error: {
+        code: "HANDLER_FAILED",
+        message: "The request could not be completed",
+      },
+    });
+    expect(logged).toHaveBeenCalledWith(
+      "JoyFox: request failed",
+      "note.get",
+      expect.objectContaining({
+        name: "Error",
+        message: "memberId must be a non-empty string",
+      }),
+    );
+    // A thrown value that is not an Error is reduced to its type.
+    router.register("note.save", () => {
+      throw { body: "a note typed by the user" };
+    });
+    await router.route({
+      type: "note.save",
+      requestId: "request-3",
+      payload: {},
+    } as never);
+    expect(logged).toHaveBeenLastCalledWith(
+      "JoyFox: request failed",
+      "note.save",
+      { name: "object" },
+    );
+    logged.mockRestore();
   });
 });
