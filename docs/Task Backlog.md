@@ -65,7 +65,7 @@ Matches the PRD's Section 19.1 scope exactly. Nothing here is not in that list, 
 | Missing sender information is shown as Unknown | Met (M1, M2) |
 | Every triage decision can be explained | Met (M2, M4) |
 | Classification overrides persist | Met (M2) |
-| Profile notes survive restart | Met in automated tests (M5); live check passed for items 36 to 39, 41 and 42 (2026-09-27); item 40 (another account) open |
+| Profile notes survive restart | Met in automated tests (M5); live check passed (items 36 to 42, 2026-09-27) |
 | Accounts remain isolated | Met: automated isolation tests (M7, M5 editor) |
 | Data export covers all stored entities | Met (M8) |
 | Complete data deletion works | Met (M8, item 35) |
@@ -316,8 +316,7 @@ A task with **proposed** criteria starts only after the owner approves them (see
 2. Deferred to the future roadmap: V1-6 (and D2).
 3. Evidence captured (E1 to E4, 2026-09-26). Live checks on 2026-09-27:
    V1-5 (items 111 to 115), V1-2 (116 to 120) and V1-4 (121 to 124) passed.
-   V1-10: items 125, 127 and 128 passed; item 126 failed and is fixed in PR
-   #77, to be re-tested. V1-13: items 129 and 132 passed; items 130 and 131
+   V1-10 (125 to 128, item 126 after PR #77) passed. V1-13: items 129 and 132 passed; items 130 and 131
    could not be tested and stay open.
 4. Last: V1-9, after V1-2 to V1-5, V1-7, V1-8 and V1-10 to V1-13, the MVP
    release gate and F8's verification checklist.

@@ -212,10 +212,10 @@ text; never record the member's real data in this repository.
     data", delete the "Notes" data type and confirm the open profile's editor
     shows no note.
 
-**Result (2026-09-27): items 36 to 39, 41 and 42 passed.** The project owner ran
-them on JoyClub with the member strip fixes of PRs #72 and #73 (the strip had
-been placed after the hidden mobile header, so it did not show). Item 40
-(another account) could not be tested and stays open.
+**Result (2026-09-27): passed.** The project owner ran items 36 to 42 on JoyClub
+with the member strip fixes of PRs #72 and #73 (the strip had been placed after
+the hidden mobile header, so it did not show); item 40 in the second run the
+same day.
 
 ## Onboarding (build plan Section 28, PRD Section 21.1)
 
@@ -470,8 +470,8 @@ automatically.
 90. Type an emoji as the text (for example 🦊) and repeat item 87 with a message
     that holds the emoji.
 
-**Result (2026-09-27): items 86 to 89 passed.** Item 90 (an emoji as the text)
-could not be tested and stays open.
+**Result (2026-09-27): passed.** The project owner confirmed items 86 to 90
+(item 90 in the second run the same day).
 
 ## German and English UI (ADR 0014)
 
@@ -544,7 +544,9 @@ another page loads in the tab first". This matches items 44, 45, 47 and 50. Item
 99, a normal run, is still pending: it is the only live check that the
 sending-page check does not refuse the normal hand-off.
 
-**Item 99 (2026-09-27):** could not be tested and stays open.
+**Item 99 (2026-09-27):** could not be tested and stays open: the "Ignore and
+Delete" button did not show. It shows only with the `joyfox.quickIgnoreDelete`
+flag on (see the M9 matrix above), which a fresh Firefox profile does not have.
 
 ## Readable records in "Your data" (V1-7)
 
@@ -655,7 +657,7 @@ results followed the filters stored on the account. With PR #70 (JoyFox clicks
 
 **Result (2026-09-27): passed.** The project owner confirmed items 111 to 115.
 Finding: the attendance list's open options were unreadable on JoyClub's dark
-theme (light text on Firefox's white list); fixed in PR #77, to be re-checked.
+theme (light text on Firefox's white list); fixed in PR #77.
 
 ## Compatibility Overlay (V1-2)
 
@@ -727,14 +729,14 @@ after the member strip fix (PRs #72 and #73).
      unknown". Untick and confirm all are back. Switch the language to German
      and confirm the texts are German.
 
-**Result (2026-09-27): items 125, 127 and 128 passed; item 126 failed.** Before
-they passed, the live checks found and PRs #73 to #76 fixed: the inbox chips
-pushing out the sender's name, the guest-list chips clipped to a line, the
+**Result (2026-09-27): passed.** The project owner confirmed items 125 to 128.
+Before they passed, the live checks found and PRs #73 to #76 fixed: the inbox
+chips pushing out the sender's name, the guest-list chips clipped to a line, the
 search chips covered by the next row, and the verification reading (codes `0`
 and `1`, the green shield, and the profile's sidebar badge). Item 126: the chips
 show over the search result's photo, but a click on "✎" opened the profile, so
-no note could be added from the search. PR #77 fixes it; item 126 is to be
-re-tested.
+no note could be added from the search. With PR #77 item 126 passed in the
+second run the same day.
 
 ## Shared-event exception (V1-13)
 
