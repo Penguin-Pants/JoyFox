@@ -214,6 +214,13 @@ describe("V1-10 signals on every card", () => {
         group(FULL)?.parentElement?.getAttribute("data-joyfox-ui"),
         type,
       ).toBe("card-line");
+      if (type === "search") {
+        // Over the photo, in the card's own slot: after the card, the line
+        // overflowed the grid row and the next row covered it.
+        const line = group(FULL)!.parentElement!;
+        expect(line.parentElement?.tagName).toBe("J-MEMBER-CARD");
+        expect(line.getAttribute("slot")).toBe("media-overlay");
+      }
     }
   });
 

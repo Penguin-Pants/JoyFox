@@ -102,6 +102,9 @@ export const selectorRegistry: Readonly<
       // One badge in this list reads "Angemeldet seit <n> <unit>"; the
       // extractor picks it by that text, as the badges share one structure.
       memberSinceBadge: ".profile-sidebar-container__badge-list j-list-item",
+      // Another badge of the same list says whether JoyClub verified the
+      // member, even under a green shield (owner's live check, 2026-09-27).
+      verificationBadge: ".profile-sidebar-container__badge-list j-list-item",
       // Only the main text is counted; the motto above it is not.
       profileMainText: ".profile-description-maintext__text",
       // V1-2, from 13-preferences.md. The "Vorlieben" checklist: one level

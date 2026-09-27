@@ -132,3 +132,12 @@ matching `slot` attribute renders there:
 - Full list of select filters below "Angemeldet als": not recorded.
 - Side effect: the owner's saved search filters changed (Umkreis and the Alter
   upper bound). The owner was told the old values.
+
+## Slot test and card line (owner's live check, 2026-09-27)
+
+JoyFox's card line placed after `j-member-card`, inside the result link,
+overflowed the grid row: the next row's photos covered it. A test `div` in the
+card's `media-overlay` slot and one in its `badge-corner` slot both showed at
+the top of the photo, below and next to JoyClub's "Neu" badge, and covered
+nothing important. JoyFox's card line now uses `media-overlay`, with a dark
+backing so it reads on any photo.
