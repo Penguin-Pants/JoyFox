@@ -147,7 +147,8 @@ Validation: `npm test` (650 tests), `npm run lint`, `npm run typecheck`,
 `npm run format:check` and `npm run build:firefox` pass. No permission, schema
 version or UI string was added; the notice reuses the approved `handoff-failed`
 text. Live check: `manual-acceptance.md`, item 98 accepted on 2026-09-25 as not
-reproducible by hand (synthetic tests cover it); item 99 pending.
+reproducible by hand (synthetic tests cover it); item 99 passed on 2026-09-27,
+after the fixes of PRs #82 and #83.
 
 ## Stale hand-off on page load (2026-09-25)
 
