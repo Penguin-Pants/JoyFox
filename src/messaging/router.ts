@@ -61,7 +61,11 @@ export class MessageRouter {
         ok: true,
         payload: await handler(message.payload as never, context),
       };
-    } catch {
+    } catch (error) {
+      // The answer stays generic; the background console keeps the cause, so
+      // a failure on a live page can be traced. Error messages here name
+      // fields and codes, never stored values.
+      console.error("JoyFox: request failed", message.type, error);
       return {
         requestId: message.requestId,
         ok: false,
