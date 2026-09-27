@@ -117,7 +117,7 @@ function inboxPage(members: string[]) {
   document.body.innerHTML = `<div class="cm-conversation-list">${members
     .map(
       (member) =>
-        `<j-list-item class="cm-conversation-list-item"><j-avatar-image class="cm-conversation-list-item__avatar" href="/profile/${member}.synthetic.html"></j-avatar-image><div class="cm-conversation-list-item__name" data-e2e="conversation-list-item-name">NAME</div></j-list-item>`,
+        `<j-list-item class="cm-conversation-list-item"><j-avatar-image slot="image" class="cm-conversation-list-item__avatar" href="/profile/${member}.synthetic.html"></j-avatar-image><div class="cm-conversation-list-item__line"><div class="cm-conversation-list-item__name" data-e2e="conversation-list-item-name">NAME</div></div><div slot="description" class="cm-conversation-list-item__line cm-conversation-list-item__line--description"><div class="cm-conversation-list-item__text">TEXT</div></div></j-list-item>`,
     )
     .join("")}</div>`;
 }
@@ -136,12 +136,17 @@ const group = (member: string) =>
   document.querySelector<HTMLElement>(
     `[data-joyfox-ui="card-signals"][data-member="${member}"]`,
   );
+/** A chip's full text: an inbox chip shows a short one and holds it here. */
+const full = (node: Element | null | undefined) =>
+  node
+    ? (node.querySelector(".joyfox-visually-hidden")?.textContent ??
+      node.textContent)
+    : null;
 const shown = (member: string) => ({
-  completeness:
-    group(member)?.querySelector(".joyfox-signals__completeness")
-      ?.textContent ?? null,
-  trust:
-    group(member)?.querySelector(".joyfox-signals__trust")?.textContent ?? null,
+  completeness: full(
+    group(member)?.querySelector(".joyfox-signals__completeness"),
+  ),
+  trust: full(group(member)?.querySelector(".joyfox-signals__trust")),
   tags: Array.from(
     group(member)?.querySelectorAll(".joyfox-signals__tag") ?? [],
     (tag) => tag.textContent,
@@ -202,8 +207,78 @@ describe("V1-10 signals on every card", () => {
       page();
       signals.update(type);
       await flush();
-      expect(shown(FULL), type).toEqual(expected);
+      if (type !== "inbox") {
+        expect(shown(FULL), type).toEqual(expected);
+        continue;
+      }
+      // The inbox row's short line: the same signals, the tags as a count
+      // whose full text names them.
+      expect(shown(FULL), type).toEqual({ ...expected, tags: [] });
+      expect(full(group(FULL)?.querySelector(".joyfox-signals__tags"))).toBe(
+        "My tags: Met at party",
+      );
     }
+  });
+
+  it("puts an inbox row's signals on the row's own JoyFox line, in short", async () => {
+    await new NotesService().addTag(
+      "account-a",
+      { status: "resolved", memberId: FULL, source: "test" },
+      "Met at party",
+    );
+    inboxPage([FULL]);
+    signals.update("inbox");
+    await flush();
+    const row = document.querySelector(".cm-conversation-list-item")!;
+    const line = row.querySelector('[data-joyfox-ui="inbox-line"]')!;
+    // Between JoyClub's name line and its description line, in the same slot
+    // as the description, so the name line keeps only JoyClub's own content.
+    expect(line.getAttribute("slot")).toBe("description");
+    expect(line.previousElementSibling?.className).toBe(
+      "cm-conversation-list-item__line",
+    );
+    expect(line.nextElementSibling?.className).toContain(
+      "cm-conversation-list-item__line--description",
+    );
+    expect(
+      row.querySelector(".cm-conversation-list-item__line")?.children,
+    ).toHaveLength(1);
+    expect(line.firstElementChild).toBe(group(FULL));
+    const chips = Array.from(
+      group(FULL)!.querySelectorAll(".joyfox-badge, .joyfox-button"),
+    );
+    expect(
+      chips.map(
+        (chip) =>
+          chip.querySelector('[aria-hidden="true"]')?.textContent ??
+          chip.textContent,
+      ),
+    ).toEqual(["Complete", "Trust +2", "✎", "1 tag"]);
+    const completenessChip = chips[0] as HTMLElement;
+    expect(completenessChip.title).toBe(
+      "Complete: 5 photos, 120 words, verified",
+    );
+    expect((chips[2] as HTMLElement).getAttribute("aria-label")).toBe(
+      "Add note",
+    );
+  });
+
+  it("keeps an inbox row's note button icon-only when a note exists", async () => {
+    await new NotesService().saveNote(
+      "account-a",
+      { status: "resolved", memberId: FULL, source: "test" },
+      "Synthetic note",
+    );
+    inboxPage([FULL]);
+    signals.update("inbox");
+    await flush();
+    const note = group(FULL)!.querySelector<HTMLElement>(
+      ".joyfox-signals__note",
+    )!;
+    expect(note.textContent).toBe("✎");
+    expect(note.getAttribute("aria-label")).toBe("Note");
+    expect(note.title).toBe("Note");
+    expect(note.getAttribute("data-has-note")).toBe("true");
   });
 
   it('gives a guest entry the "met in person" mark the profile page last showed', async () => {

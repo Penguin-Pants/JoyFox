@@ -503,6 +503,8 @@ export const en = {
   "signals.state.complete": "Complete",
   "signals.state.incomplete": "Incomplete",
   "signals.state.unknown": "Completeness unknown",
+  // The inbox row's compact line: the full text is in the tooltip.
+  "signals.state.unknownShort": "Unknown",
   "signals.photos": (p: { count: number }, f: Format) =>
     f.plural(p.count, {
       one: "1 photo",
@@ -522,9 +524,15 @@ export const en = {
   "signals.trust": (p: { score: number }, f: Format) =>
     `Trust ${p.score > 0 ? "+" : ""}${f.number(p.score)}`,
   "signals.trustNone": "No trust history",
+  "signals.trustNoneShort": "Trust –",
   "signals.noteAdd": "Add note",
   "signals.noteEdit": "Note",
   "signals.tagsLabel": "My tags",
+  "signals.tagCount": (p: { count: number }, f: Format) =>
+    f.plural(p.count, {
+      one: "1 tag",
+      other: `${f.number(p.count)} tags`,
+    }),
   "signals.editor.label": (p: { member: string }) =>
     `JoyFox: note and tags for member ${p.member}`,
   "signals.editor.loading": "Loading…",

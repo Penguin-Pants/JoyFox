@@ -164,6 +164,7 @@ export const MESSAGE_PARAMS: {
   "events.guests": { count: "number" },
   "signals.photos": { count: "number" },
   "signals.words": { count: "number" },
+  "signals.tagCount": { count: "number" },
   "signals.trust": { score: "number" },
   "signals.editor.label": { member: "string" },
   "signals.filter.count": { hidden: "number", loaded: "number" },

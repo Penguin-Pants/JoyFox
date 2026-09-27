@@ -755,3 +755,48 @@
 .joyfox-explain__shared-event {
   font-weight: 600;
 }
+
+/*
+ * The inbox row's own JoyFox line (inbox-line.ts), between the name and the
+ * preview. It has 18 px (owner's live check, 2026-09-27), so it stays one
+ * line and clips the last chips rather than grow the row.
+ */
+.joyfox-inbox-line {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 0.25rem;
+  min-width: 0;
+  max-width: 100%;
+  height: 18px;
+  overflow: hidden;
+  font-size: 11px;
+  line-height: 14px;
+  white-space: nowrap;
+}
+
+.joyfox-inbox-line:empty {
+  display: none;
+}
+
+.joyfox-inbox-line .joyfox-signals {
+  flex-wrap: nowrap;
+  gap: 0.25rem;
+  margin: 0;
+  font-size: inherit;
+}
+
+.joyfox-inbox-line .joyfox-badge,
+.joyfox-inbox-line .joyfox-button {
+  flex: none;
+  margin: 0;
+  padding: 0 0.4em;
+  border-width: 1px;
+  font-size: 11px;
+  line-height: 14px;
+}
+
+.joyfox-inbox-line .joyfox-signals__note[data-has-note="true"] {
+  border-color: currentColor;
+  font-weight: 700;
+}

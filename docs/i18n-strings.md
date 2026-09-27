@@ -403,6 +403,7 @@ stay as they are.
 | `signals.state.complete` | Complete | Vollständig |
 | `signals.state.incomplete` | Incomplete | Unvollständig |
 | `signals.state.unknown` | Completeness unknown | Vollständigkeit unbekannt |
+| `signals.state.unknownShort` | Unknown | Unbekannt |
 | `signals.photos` | 1 photo / {count} photos | 1 Foto / {count} Fotos |
 | `signals.photosUnknown` | photos unknown | Fotos unbekannt |
 | `signals.words` | 1 word / {count} words | 1 Wort / {count} Wörter |
@@ -413,9 +414,11 @@ stay as they are.
 | `signals.heading` | Profile completeness | Vollständigkeit des Profils |
 | `signals.trust` | Trust {score} | Vertrauen {score} |
 | `signals.trustNone` | No trust history | Kein Vertrauensverlauf |
+| `signals.trustNoneShort` | Trust – | Vertrauen – |
 | `signals.noteAdd` | Add note | Notiz hinzufügen |
 | `signals.noteEdit` | Note | Notiz |
 | `signals.tagsLabel` | My tags | Meine Tags |
+| `signals.tagCount` | 1 tag / {count} tags | 1 Tag / {count} Tags |
 | `signals.editor.label` | JoyFox: note and tags for member {member} | JoyFox: Notiz und Tags für Mitglied {member} |
 | `signals.editor.loading` | Loading… | Wird geladen … |
 | `signals.editor.close` | Close | Schließen |

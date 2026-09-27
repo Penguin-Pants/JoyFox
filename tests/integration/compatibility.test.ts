@@ -374,7 +374,8 @@ describe("V1-2 compatibility on cards", () => {
       <div class="cm-conversation-list">
         <j-list-item class="cm-conversation-list-item">
           <j-avatar-image class="cm-conversation-list-item__avatar" href="/profile/2222222.synthetic.html"></j-avatar-image>
-          <div class="cm-conversation-list-item__name" data-e2e="conversation-list-item-name">NAME</div>
+          <div class="cm-conversation-list-item__line"><div class="cm-conversation-list-item__name" data-e2e="conversation-list-item-name">NAME</div></div>
+          <div slot="description" class="cm-conversation-list-item__line cm-conversation-list-item__line--description">TEXT</div>
         </j-list-item>
         <j-list-item class="cm-conversation-list-item">
           <j-avatar-image class="cm-conversation-list-item__avatar" href="/profile/5555555.synthetic.html"></j-avatar-image>
@@ -384,7 +385,14 @@ describe("V1-2 compatibility on cards", () => {
     await flush();
     const rowBadges = badges();
     expect(rowBadges.map((node) => node.textContent)).toEqual(["2 shared"]);
-    expect(rowBadges[0]?.previousElementSibling?.textContent).toBe("NAME");
+    // On the row's own JoyFox line, before the preview; the name line keeps
+    // only JoyClub's content.
+    const line = rowBadges[0]?.parentElement;
+    expect(line?.getAttribute("data-joyfox-ui")).toBe("inbox-line");
+    expect(line?.nextElementSibling?.textContent).toBe("TEXT");
+    expect(
+      document.querySelector(".cm-conversation-list-item__line")?.children,
+    ).toHaveLength(1);
 
     window.history.replaceState(null, "", "/event/7777777.synthetic.html");
     document.body.innerHTML = `

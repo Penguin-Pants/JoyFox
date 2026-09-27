@@ -55,6 +55,9 @@ export const selectorRegistry: Readonly<
       readStatus: ".cm-conversation-list-item__read-status",
       // Compared with the rule's phrases (ADR 0013). Never stored or logged.
       messagePreview: ".cm-conversation-list-item__text",
+      // The row's second line, which holds the preview. JoyFox puts its own
+      // line before it, in the same slot (owner's live check, 2026-09-27).
+      descriptionLine: ".cm-conversation-list-item__line--description",
     },
   },
   conversation: {
@@ -85,7 +88,10 @@ export const selectorRegistry: Readonly<
     status: "verified",
     evidence: "03-profile.md",
     path: "^/profile/(\\d+)\\.[^/]+\\.html$",
-    root: '[data-e2e="profile-header-base-info"]',
+    // The mobile header carries the data-e2e marker; the desktop header has
+    // none, only its BEM class. JoyClub hides one of the two by screen width
+    // (owner's live check, 2026-09-27), and pageMember anchors on the shown one.
+    root: '[data-e2e="profile-header-base-info"], .profile-header__base-information--desktop',
     fields: {
       memberId: FROM_URL,
       verificationCode:

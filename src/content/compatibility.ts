@@ -21,6 +21,7 @@ import {
   type MemberCard,
   type Surface,
 } from "./member-cards";
+import { removeEmptyInboxLines } from "./inbox-line";
 import { pageMember } from "./member-panel";
 import { isPlaced, placeInStrip, removeEmptyStrip } from "./member-strip";
 import { button, element, UI_ATTRIBUTE } from "./triage-ui";
@@ -266,6 +267,7 @@ export class CompatibilityOverlay {
       ))
         node.remove();
       if (surface === "search") this.#unsort();
+      if (surface === "inbox") removeEmptyInboxLines(this.document);
     }
   }
 

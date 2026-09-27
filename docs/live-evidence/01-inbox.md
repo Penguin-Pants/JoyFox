@@ -160,3 +160,22 @@ div.cm-layout-scroll.cm-conversation-list
   virtualized.
 - Scrolling to the bottom loaded more rows into the same `j-list` (50, then 89),
   which answers the open point on inbox loading.
+
+## Row layout (owner's live check, 2026-09-27)
+
+Measured in the Web Console on ClubMail, desktop window:
+
+- The row (`j-list-item.cm-conversation-list-item`) is a flex row, 427 px wide
+  and 78 px high. Its light-DOM children: `j-avatar-image` (slot `image`), the
+  name line `div` (default slot) and the description line `div` (slot
+  `description`). Its shadow root has the slots `primary`, `image`, `default`,
+  `description`, `secondary` and `secondary-content`.
+- The name line is a flex row with `flex-wrap: nowrap` and `overflow: hidden`,
+  349 px wide and 20 px high. It holds the name, the gender and verification
+  icons and the meta block. JoyFox's badges placed in it pushed the name out and
+  were clipped.
+- A test `div` with `slot="description"`, put before the description line,
+  showed between the name and the preview: 349 px wide, 18 px high, 30 px from
+  the row's top. The preview moved to 48 px and stayed readable; the row stayed
+  78 px high. JoyFox's line uses that place (owner decision: "own compact
+  line").
