@@ -297,6 +297,12 @@ describe("M9 live driver on synthetic JoyClub pages (ADR 0011)", () => {
       document.body.prepend(copy);
     }
     const driver = new JoyClubQuickActionDriver(document, TIMING);
+    // While no copy shows yet, there is no control: the run waits for it
+    // instead of clicking a hidden copy (Codex review on #82).
+    const rects = shown.getClientRects;
+    shown.getClientRects = () => [] as unknown as DOMRectList;
+    expect(driver.hasControl("ignore")).toBe(false);
+    shown.getClientRects = rects;
     expect(driver.hasControl("ignore")).toBe(true);
     await driver.request("ignore");
     expect(pressed).toEqual(["Profil ignorieren"]);

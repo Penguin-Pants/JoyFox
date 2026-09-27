@@ -8,7 +8,6 @@ import {
 } from "../selectors/quick-action";
 import { inboxListState } from "./inbox-triage";
 import { pageMember } from "./member-panel";
-import { shownElement } from "./member-strip";
 
 export interface DriverTiming {
   /** How long to wait for JoyClub to react. Below the step timeout. */
@@ -226,10 +225,16 @@ export class JoyClubQuickActionDriver implements QuickActionDriver {
   /**
    * The profile menu the page shows. JoyClub's profile holds it three times,
    * two copies hidden by screen width (owner's live check, 2026-09-27); a
-   * click on a hidden copy opens nothing.
+   * click on a hidden copy opens nothing. While several copies exist and
+   * none shows yet (the page is still drawing), there is none: the run
+   * waits for it rather than click a hidden one. A single copy is used as
+   * it is, as before.
    */
   #menu(): Element | null {
-    return shownElement(this.document, S.profileMenu);
+    const menus = Array.from(this.document.querySelectorAll(S.profileMenu));
+    const shown = menus.find((menu) => menu.getClientRects().length > 0);
+    if (shown) return shown;
+    return menus.length === 1 ? menus[0]! : null;
   }
 
   /**

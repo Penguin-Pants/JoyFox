@@ -330,4 +330,6 @@ ignorieren"). Measured in the Web Console on a desktop window:
 - in a `div` without a class: hidden;
 - in `div.profile-container__context-menu-desktop`: shown.
 
-JoyFox's driver uses the copy that has layout boxes.
+JoyFox's driver uses the copy that has layout boxes. While the page is still
+drawing and none has them, it clicks nothing and waits (a single copy is used as
+it is).
