@@ -122,7 +122,13 @@ then lists the results of the saved filters and stores them on the account, as
 it does when the user clicks "Anwenden" (`11-search.md`). JoyFox sets no filter
 value itself: the values come from the saved address. The page load carries a
 `#joyfox-run-search` fragment, which never reaches JoyClub's server; JoyFox
-removes it before the click, so a reload never runs the search again.
+removes it before the click, so a reload never runs the search again. The click
+on the saved search also leaves a record in the tab's own session storage: the
+saved address and an expiry one minute later. The next page reads and removes
+it, and runs the search only when it names that page. So a link from another
+site or a bookmark that carries the fragment never makes JoyFox click. If the
+user leaves the page while JoyFox waits for JoyClub's controls, JoyFox clicks
+nothing.
 
 Import reads a file the user chooses, in the options page only. Nothing is
 fetched or uploaded. The file is checked in full before anything is stored. A

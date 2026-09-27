@@ -593,10 +593,14 @@ sending-page check does not refuse the normal hand-off.
      JoyClub's filter panel and clicks "Anwenden" once, and the results then
      match the saved filters (open the filter panel to check them). The address
      bar must not end in `#joyfox-run-search`. Reload the page and confirm
-     JoyFox clicks nothing this time. Click the saved search again on its own
-     results page and confirm it runs without a page load. If JoyFox says it
-     could not run the search, click "Anwenden" yourself and record it. Open the
-     search in a second tab and confirm the saved search is listed there too.
+     JoyFox clicks nothing this time. On the saved search's own results page,
+     change a filter in the panel without clicking "Anwenden", then click the
+     saved search again: confirm the page reloads and the results match the
+     saved filters, not the change. Paste the results address with
+     `#joyfox-run-search` added into a new tab and confirm JoyFox clicks
+     nothing. If JoyFox says it could not run the search, click "Anwenden"
+     yourself and record it. Open the search in a second tab and confirm the
+     saved search is listed there too.
 110. Click ✕ beside the saved search. Confirm nothing is deleted and the message
      asks you to click again. Click ✕ again and confirm the search is gone. Open
      the inbox and a profile, and confirm the box appears only on the search
