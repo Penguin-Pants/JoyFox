@@ -910,6 +910,38 @@ describe("M9 hand-off messages (ADR 0011)", () => {
     expect(session.items.size).toBe(1);
   });
 
+  it("reads the tab's current address, as a conversation opened from the inbox keeps the inbox as its sender address", async () => {
+    // Owner's live check, item 99 (2026-09-27): JoyClub opens a conversation
+    // from the inbox in place, so `sender.url` still named the inbox and
+    // every normal hand-off was refused. The tab's current address decides.
+    const id = await afterDelete();
+    const origin = window.location.origin;
+    let tabAt = `${origin}/clubmail/conversation/conversation-wrapper-personal-1234567-5550001/`;
+    const withTabs = new MessageRouter();
+    registerActionHandlers(withTabs, {
+      actions: new ActionLogService(undefined, undefined, () =>
+        new Date(clock).toISOString(),
+      ),
+      activeAccountId: () => Promise.resolve(active),
+      now: () => clock,
+      session,
+      tabUrl: (tabId) =>
+        tabId === TAB ? Promise.resolve(tabAt) : Promise.reject(new Error()),
+    });
+    const fromInbox = () =>
+      messageQuickActionClient((message) =>
+        withTabs.route(message, { tabId: TAB, url: `${origin}/clubmail/` }),
+      ).handOff("account-a", id, "ignore", PROFILE_PATH);
+    // The tab shows another conversation: refused, whatever the sender says.
+    await expect(fromInbox()).rejects.toThrow();
+    expect(session.items.size).toBe(0);
+    // The tab shows the run's conversation: stored, though the sender's
+    // address is still the inbox.
+    tabAt = CONVERSATION_URL;
+    await fromInbox();
+    expect(session.items.size).toBe(1);
+  });
+
   it("withdraws only this run's marker in this tab, and closes the run", async () => {
     const id = await afterDelete();
     await fromConversation().handOff("account-a", id, "ignore", PROFILE_PATH);
