@@ -65,3 +65,13 @@ recorded above as "not decoded"). Sanitized fragment; it holds no personal data:
 The earlier "Join date / member-since: Absent" row is superseded: the class-name
 search could not find it because the badge is identified by its text, not a
 class. The duration appears on member and couple profiles.
+
+## Two header copies (owner's live check, 2026-09-27)
+
+The page now holds `[data-e2e="profile-header-base-info"]` twice. The first copy
+sits inside a container with `display: none`; the second is the one shown.
+JoyFox took the first match and placed its strip after the hidden copy, so the
+strip was in the page with a height of 0. Measured in the Web Console: all strip
+sections present (`member-panel`, `completeness`, `compatibility`,
+`member-notes`), strip height 0, header parent `display: none`, header not in a
+shadow root. The fix anchors the strip on the copy that has layout boxes.

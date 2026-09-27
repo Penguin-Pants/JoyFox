@@ -24,6 +24,26 @@ const SECTION_ORDER: readonly string[] = [
   "quick-action",
 ];
 
+/**
+ * The first element matching `selector` that the page displays. JoyClub's
+ * profile page holds its member header twice, one copy inside a container
+ * set to `display: none` (owner's live check, 2026-09-27); a strip placed
+ * after that copy is never seen. An element in a hidden subtree has no
+ * layout boxes. When no match has one yet (the page is still drawing), the
+ * first match is used, and the strip moves on a later update.
+ */
+export function shownElement(
+  document: Document,
+  selector: string,
+): Element | null {
+  const matches = Array.from(document.querySelectorAll(selector));
+  return (
+    matches.find((element) => element.getClientRects().length > 0) ??
+    matches[0] ??
+    null
+  );
+}
+
 function isHorizontalFlex(element: Element): boolean {
   const view = element.ownerDocument.defaultView;
   if (!view) return false;

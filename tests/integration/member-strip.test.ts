@@ -1,9 +1,11 @@
 // @vitest-environment jsdom
 import { beforeEach, describe, expect, it } from "vitest";
+import { pageMember } from "../../src/content/member-panel";
 import {
   isPlaced,
   placeInStrip,
   removeEmptyStrip,
+  shownElement,
   stripAnchor,
 } from "../../src/content/member-strip";
 
@@ -72,5 +74,47 @@ describe("member strip", () => {
     placeInStrip(document, header2, section("member-panel"));
     expect(isPlaced(notes, header2)).toBe(true);
     expect(document.activeElement).toBe(field);
+  });
+
+  describe("a page that holds the member header twice", () => {
+    // Live check, 2026-09-27: JoyClub's profile page has a second copy of
+    // the header inside a container set to `display: none`. jsdom lays out
+    // nothing, so the displayed copy is marked by its layout boxes.
+    const shown = (element: Element) => {
+      element.getClientRects = () =>
+        [new DOMRect(0, 0, 100, 20)] as unknown as DOMRectList;
+    };
+
+    beforeEach(() => {
+      window.history.replaceState(null, "", "/profile/2222222.synthetic.html");
+      document.body.innerHTML =
+        '<div id="hidden" style="display: none"><div data-e2e="profile-header-base-info" id="copy">NAME</div></div>' +
+        '<div id="page"><div data-e2e="profile-header-base-info" id="header">NAME</div><p id="next"></p></div>';
+    });
+
+    it("anchors the strip on the copy the page displays", () => {
+      shown(document.querySelector("#header")!);
+      const member = pageMember(document, "profile")!;
+      expect(member.anchor.id).toBe("header");
+      expect(member.memberId).toBe("2222222");
+      const panel = section("member-panel");
+      placeInStrip(document, member.anchor, panel);
+      const strip = panel.parentElement!;
+      expect(strip.previousElementSibling?.id).toBe("header");
+      expect(document.querySelector("#hidden")!.contains(strip)).toBe(false);
+    });
+
+    it("takes the first copy while none is displayed, and moves once one is", () => {
+      expect(
+        shownElement(document, '[data-e2e="profile-header-base-info"]')?.id,
+      ).toBe("copy");
+      const panel = section("member-panel");
+      placeInStrip(document, pageMember(document, "profile")!.anchor, panel);
+      shown(document.querySelector("#header")!);
+      const anchor = pageMember(document, "profile")!.anchor;
+      expect(isPlaced(panel, anchor)).toBe(false);
+      placeInStrip(document, anchor, panel);
+      expect(panel.parentElement!.previousElementSibling?.id).toBe("header");
+    });
   });
 });
