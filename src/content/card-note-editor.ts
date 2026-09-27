@@ -21,6 +21,7 @@ type Loaded = Extract<MemberNotesResponse, { status: "ok" }>;
 export class CardNoteEditor {
   #root?: HTMLElement;
   #memberId?: string;
+  #name?: string;
   #data?: Loaded;
   #status?: { text: Message; error: boolean };
   #returnFocus?: HTMLElement;
@@ -43,13 +44,20 @@ export class CardNoteEditor {
     private readonly client: NotesClient,
   ) {}
 
+  /** The member as the title names them: the nickname, else the number. */
+  #member(memberId: string): string {
+    return this.#name ?? t(message("member.number", { id: memberId }));
+  }
+
   get memberId(): string | undefined {
     return this.#memberId;
   }
 
-  open(memberId: string, returnFocus?: HTMLElement): void {
+  /** `name`: the nickname the card shows, for the editor's title. */
+  open(memberId: string, returnFocus?: HTMLElement, name?: string): void {
     this.close();
     this.#memberId = memberId;
+    this.#name = name;
     this.#returnFocus = returnFocus;
     const root = element(
       this.document,
@@ -60,7 +68,7 @@ export class CardNoteEditor {
     root.setAttribute("role", "dialog");
     root.setAttribute(
       "aria-label",
-      t(message("signals.editor.label", { member: memberId })),
+      t(message("signals.editor.label", { member: this.#member(memberId) })),
     );
     root.addEventListener("keydown", (event) => {
       if (event.key === "Escape") this.close();
@@ -76,6 +84,7 @@ export class CardNoteEditor {
     this.#root?.remove();
     this.#root = undefined;
     this.#memberId = undefined;
+    this.#name = undefined;
     this.#data = undefined;
     this.#status = undefined;
     this.#busy = false;
@@ -171,7 +180,7 @@ export class CardNoteEditor {
         document,
         "strong",
         "joyfox-card-editor__heading",
-        t(message("signals.editor.label", { member: memberId })),
+        t(message("signals.editor.label", { member: this.#member(memberId) })),
       ),
     );
     const data = this.#data;

@@ -33,10 +33,12 @@ clears the active-account pointer first, so an interrupted removal cannot leave
 the extension active on a half-removed scope.
 
 On verified JoyClub pages the content script reads member IDs, badge codes,
-photo counts and word counts. The inbox sender name is read for display alone:
-it is never used as an identity, never stored and never logged. The optional
-development diagnostics log counts, the page type, its detection state and the
-inbox list state, never a URL, name, ID or message.
+photo counts and word counts. The nickname a card shows (the inbox sender name,
+a search result's name, a guest-list entry's name) is never used as an identity
+and never logged. Since 2026-09-27 it is stored, by the owner's decision, so
+JoyFox's own texts can name a member instead of a number (see "Member nicknames"
+below). The optional development diagnostics log counts, the page type, its
+detection state and the inbox list state, never a URL, name, ID or message.
 
 Milestone C adds local triage. When an account is active, opening a profile page
 stores a snapshot of its counts, codes and join dates, never its text. Since
@@ -46,7 +48,7 @@ placements are stored per account and per member ID. The trust score uses only
 this browser's own records; nothing is shared with other members or sent
 anywhere. Triage changes only what the user's own inbox shows: it never deletes,
 archives, sends or changes anything on JoyClub. The sender name appears in the
-"Why" panel as JoyClub shows it and is never stored or logged.
+"Why" panel as JoyClub shows it and is never logged.
 
 The Compatibility Overlay (V1-2) reads a profile's "Vorlieben" checklist and
 stores, with the profile's snapshot, the labels of the tags it lists at a
@@ -76,9 +78,9 @@ that result is stored: the member ID, the rule's normalized phrase and the time.
 The shared-event exception (V1-13, ADR 0016) stores the member IDs a tracked
 event's guest list shows, as far as JoyClub has loaded it; JoyFox never clicks
 "Mehr Ergebnisse". Which members go to which event is sensitive information
-about other people: only member IDs are kept, never names, only for events the
-user tracks, and they are deleted when the event is no longer tracked. The
-exception is off by default.
+about other people: only member IDs are kept with the event, never names, only
+for events the user tracks, and they are deleted when the event is no longer
+tracked. The exception is off by default.
 
 Conversation History Search (V1-4, ADR 0016) reads the message bubbles of a
 conversation the user opens, sent and received, and stores each message's text
@@ -135,3 +137,17 @@ fetched or uploaded. The file is checked in full before anything is stored. A
 file that fails the check writes nothing. A file that passes is imported as soon
 as the user chooses it, with no second confirmation, and the options page then
 shows what changed.
+
+## Member nicknames (owner decision, 2026-09-27)
+
+JoyFox's own texts named other members by their member number, which means
+nothing to the user. By the owner's decision, JoyFox now keeps each member's
+JoyClub nickname, as an inbox row, a search result or a guest-list entry shows
+it, with the member record of the active account (`JoyClubMember.nickname`). It
+is sent to the background only with the account the page's cards came from, and
+refused after an account switch. It is used only to name the member in JoyFox's
+own texts: saved-message results, the note editor's title and the record lines
+of "Your data". It is never an identity (the member ID is), never logged, and
+never leaves the browser except in an export file the user saves. It is
+exported, imported and deleted with the other records. When JoyFox has never
+seen a member's nickname, its texts show "Member" and the number.

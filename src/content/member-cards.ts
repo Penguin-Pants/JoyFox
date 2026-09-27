@@ -28,6 +28,17 @@ export interface MemberCard {
   /** The signals group's host, to find one already placed (V1-10). */
   signalsHost: Element;
   placeSignals(group: HTMLElement): void;
+  /**
+   * The nickname the card shows, for JoyFox's own texts. Display only: the
+   * member ID is the identity.
+   */
+  name?: string;
+}
+
+/** A nickname as the page shows it, or `undefined` for an empty one. */
+function shownName(value: string | null | undefined): string | undefined {
+  const name = value?.replace(/\s+/gu, " ").trim();
+  return name ? name : undefined;
 }
 
 /** The `data-joyfox-ui` value of the shared-count badge (V1-2). */
@@ -65,9 +76,13 @@ function searchCards(document: Document): MemberCard[] {
     if (!memberId) continue;
     const card = cardSelector ? link.querySelector(cardSelector) : null;
     const badgeHost = card ?? link;
+    const nameSelector = verifiedSelector("search", "resultName");
+    const named = nameSelector ? link.querySelector(nameSelector) : null;
+    const name = shownName(named?.getAttribute("user-name"));
     cards.push({
       surface: "search",
       memberId,
+      ...(name ? { name } : {}),
       observed: card ? observedFromShield(shieldCode(card)) : {},
       badgeHost,
       // A light-DOM child with this slot draws over the card's photo
@@ -96,11 +111,16 @@ function inboxCards(document: Document): MemberCard[] {
   for (const row of extractInboxRows(document, document.URL)) {
     if (row.memberId.status !== "found") continue;
     const host = row.row;
+    const name =
+      row.senderName.status === "found"
+        ? shownName(row.senderName.value)
+        : undefined;
     // In the row's JoyFox line: the triage badge, the shared count and the
     // signals, in that order.
     cards.push({
       surface: "inbox",
       memberId: row.memberId.value,
+      ...(name ? { name } : {}),
       observed: observedFromInboxRow(row),
       badgeHost: host,
       placeBadge: (badge) => placeInInboxLine(host, badge),
@@ -114,6 +134,7 @@ function inboxCards(document: Document): MemberCard[] {
 function attendeeCards(document: Document): MemberCard[] {
   const entrySelector = verifiedSelector("event", "attendeeEntry");
   const infoSelector = verifiedSelector("event", "attendeeInfo");
+  const nameSelector = verifiedSelector("event", "attendeeNickname");
   if (!entrySelector) return [];
   const cards: MemberCard[] = [];
   for (const entry of Array.from(document.querySelectorAll(entrySelector))) {
@@ -123,9 +144,13 @@ function attendeeCards(document: Document): MemberCard[] {
     // the name box, which clips everything to one line.
     const host =
       (infoSelector ? entry.querySelector(infoSelector) : null) ?? entry;
+    const name = nameSelector
+      ? shownName(entry.querySelector(nameSelector)?.textContent)
+      : undefined;
     cards.push({
       surface: "attendees",
       memberId,
+      ...(name ? { name } : {}),
       // A guest entry shows a check icon, but no shield code (14-events.md).
       observed: {},
       badgeHost: host,

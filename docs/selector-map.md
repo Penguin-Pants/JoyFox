@@ -11,13 +11,15 @@ Rules:
   with each JoyClub release. A test enforces this.
 - Only `www.joyclub.de` is verified. JOYCE (`joyce.app`) has no evidence, so no
   page is detected there.
-- Identity comes only from the numeric member ID. The inbox sender name is read
-  for display alone (the F2 proof of concept); it is never an identity, never
-  stored and never logged. The only message text read is the inbox row's
-  preview, for the "First message contains" rule condition (ADR 0013): it is
-  compared with the rule's phrases and dropped, never stored and never logged.
-  Conversation message bubbles are read only for Conversation History Search
-  (V1-4), while message caching is on; their text is never logged.
+- Identity comes only from the numeric member ID. The nickname a card shows
+  (inbox sender name, search result name, guest name) is never an identity and
+  never logged; since 2026-09-27 it is kept for JoyFox's own texts
+  (`privacy-model.md`, "Member nicknames"). The only message text read is the
+  inbox row's preview, for the "First message contains" rule condition (ADR
+  0013): it is compared with the rule's phrases and dropped, never stored and
+  never logged. Conversation message bubbles are read only for Conversation
+  History Search (V1-4), while message caching is on; their text is never
+  logged.
 - The content script starts only on a verified host.
 - The member panel (M2, M6) and the note and tag editor (M5) are placed after
   the conversation and profile roots below, and read only the member ID. If the
@@ -60,7 +62,7 @@ app (`09-navigation.md`) and the inbox list can stay in the DOM.
 | Page         | Field             | Selector                                                                           | Value                                                |
 | ------------ | ----------------- | ---------------------------------------------------------------------------------- | ---------------------------------------------------- |
 | Inbox        | Row               | `.cm-conversation-list-item`                                                       | One conversation                                     |
-| Inbox        | Sender name       | `[data-e2e="conversation-list-item-name"]`                                         | Display only                                         |
+| Inbox        | Sender name       | `[data-e2e="conversation-list-item-name"]`                                         | Nickname; display only                               |
 | Inbox        | Member ID         | `.cm-conversation-list-item__avatar[href]`                                         | Digits in `/profile/<n>.<nickname>.html`             |
 | Inbox        | Verification code | `j-veri-icon[verification-status]`                                                 | `1` verified; `0` not; `3` personally known          |
 | Inbox        | Gender code       | `j-gender-icon[universal-gender]`                                                  | `1` man, `2` woman, `3` couple                       |
@@ -96,12 +98,14 @@ app (`09-navigation.md`) and the inbox list can stay in the DOM.
 | Search       | Result link       | `a[data-e2e="result-item"]`                                                        | Member ID for the shared count (V1-2)                |
 | Search       | Result card       | `j-member-card` in the link                                                        | Badge in its `badge-top-right` slot                  |
 | Search       | Card shield       | `j-member-card[verification-status]`                                               | Same codes as the inbox shield (V1-10)               |
+| Search       | Card name         | `j-member-card[user-name]` (attribute)                                             | Nickname; display only                               |
 | Event        | Event ID          | URL path                                                                           | Digits before the first `.`                          |
 | Event        | Title             | `h1.event_name`                                                                    | Kept with the user's notes                           |
 | Event        | Start             | `.event_info_box .event-time`                                                      | "Samstag, 27. September 2026 - ab 21:00", local time |
 | Event        | Venue link        | `.event_location_detail a.event_club`                                              | `/club/<n>.<slug>.html` and the venue's name         |
 | Event        | Guest entry       | `.tab-pane[id^="guest_"] a.card.normal`                                            | Profile link; badges; stored guest list (V1-13)      |
 | Event        | Guest name        | `div.date_moreinfo`                                                                | One clipped line; JoyFox places nothing in it        |
+| Event        | Guest nickname    | `div.date_moreinfo strong`                                                         | Nickname; display only                               |
 | Event        | Guest text block  | `div.date_info`                                                                    | JoyFox's card line goes at its end                   |
 | Event list   | Item              | `div.card-list-ui-list-item`                                                       | Event and date cards alike                           |
 | Event list   | Event item        | `div.card-list-ui-list-item.event-card-ui[data-element-id]`                        | `data-element-id` is the event ID                    |

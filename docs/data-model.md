@@ -83,6 +83,11 @@ spelling the user typed.
 Saving a note or tag also registers the JoyClubMember record it refers to, so an
 export carries the member directory rather than dangling member IDs.
 
+A JoyClubMember record also keeps the member's nickname (`nickname`), as a card
+last showed it (owner decision, 2026-09-27). It is display only: JoyFox's own
+texts name the member with it, and the member ID stays the identity. A card
+showing a changed nickname updates it; an unchanged one writes nothing.
+
 A save from the page editor names the note text it was typed over (`null` for
 none). Under the account lock, the save is refused as a conflict if the stored
 note differs, so a newer note from another tab or a delete in the data inspector

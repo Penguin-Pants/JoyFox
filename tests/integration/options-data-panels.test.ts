@@ -8,6 +8,7 @@ import { confirmTiming } from "../../src/options/confirm";
 import { DataPanel, RECORD_PAGE_SIZE } from "../../src/options/data-panel";
 import { TemplatePanel } from "../../src/options/template-panel";
 import { ENTITY_NAMES } from "../../src/storage/database";
+import { rememberNicknames } from "../../src/storage/member-directory";
 import { repositories } from "../../src/storage/repositories";
 import { TemplateService } from "../../src/templates/template-service";
 import { MemorySettingsArea } from "../memory-settings";
@@ -130,6 +131,22 @@ describe("M8 data panel", () => {
     expect(
       root.querySelector("label[for='joyfox-data-account']"),
     ).not.toBeNull();
+  });
+
+  it("names a record's member by the nickname a card showed", async () => {
+    // Owner decision, 2026-09-27: the nickname, not only the number.
+    await rememberNicknames(
+      repositories.joyClubMembers,
+      a,
+      [{ memberId: "2222222", nickname: "Synthetic_Owl" }],
+      "2026-09-27T10:00:00.000Z",
+    );
+    await panel.render();
+    byLabel("Show Members").click();
+    await settle(() => root.querySelector(".joyfox-data__record") !== null);
+    expect(
+      root.querySelector(".joyfox-data__record summary")?.textContent,
+    ).toMatch(/^Synthetic_Owl: 2222222 \(updated /u);
   });
 
   it("shows a record as readable fields, with the stored JSON one click away", async () => {

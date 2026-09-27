@@ -493,10 +493,12 @@ export const en = {
         })} found.`,
   "messages.countLimited": (p: { count: number; shown: number }, f: Format) =>
     `${f.number(p.count)} messages found. The newest ${f.number(p.shown)} are shown.`,
+  // `member` is the member's nickname, or `member.number` when JoyFox has
+  // never seen it.
   "messages.sentTo": (p: { member: string; when: string }) =>
-    `You to member ${p.member} · ${p.when}`,
+    `You to ${p.member} · ${p.when}`,
   "messages.receivedFrom": (p: { member: string; when: string }) =>
-    `Member ${p.member} to you · ${p.when}`,
+    `${p.member} to you · ${p.when}`,
   "messages.storedAt": (p: { when: string }) => `stored ${p.when}`,
 
   // Content script: profile signals on cards (V1-10)
@@ -534,7 +536,9 @@ export const en = {
       other: `${f.number(p.count)} tags`,
     }),
   "signals.editor.label": (p: { member: string }) =>
-    `JoyFox: note and tags for member ${p.member}`,
+    `JoyFox: note and tags for ${p.member}`,
+  // A member whose nickname JoyFox has never seen.
+  "member.number": (p: { id: string }) => `Member ${p.id}`,
   "signals.editor.loading": "Loading…",
   "signals.editor.close": "Close",
   "signals.editor.noAccount":
@@ -907,6 +911,12 @@ export const en = {
     "The account record is removed only with the whole account, in Accounts above.",
   "data.recordSummary": (p: { id: string; updated: string }) =>
     `${p.id} (updated ${p.updated})`,
+  // A record about a member whose nickname JoyFox knows.
+  "data.recordSummaryNamed": (p: {
+    name: string;
+    id: string;
+    updated: string;
+  }) => `${p.name}: ${p.id} (updated ${p.updated})`,
   "data.valueYes": "yes",
   "data.valueNo": "no",
   "data.valueEmpty": "(empty)",

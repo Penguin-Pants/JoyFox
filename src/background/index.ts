@@ -16,6 +16,7 @@ import { registerActionHandlers } from "./action-handlers";
 import { incrementPersistentWakeCounter } from "./lifecycle";
 import { registerCompatibilityHandlers } from "./compatibility-handlers";
 import { registerListingHandlers } from "./listing-handlers";
+import { registerMemberHandlers } from "./member-handlers";
 import { registerMessageHandlers } from "./message-handlers";
 import { registerSignalsHandlers } from "./signals-handlers";
 import { registerNotesHandlers } from "./notes-handlers";
@@ -51,6 +52,7 @@ registerSignalsHandlers(router, {
   signals: new SignalsService(),
   activeAccountId,
 });
+registerMemberHandlers(router, { activeAccountId });
 registerCompatibilityHandlers(router, {
   compatibility: new CompatibilityService(),
   activeAccountId,

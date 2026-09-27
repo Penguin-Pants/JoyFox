@@ -18,6 +18,7 @@ import { completeness } from "../../src/signals/completeness";
 import { SignalsService } from "../../src/signals/signals-service";
 import { TriageService } from "../../src/triage/triage-service";
 import { NOTES_REVISION_KEY } from "../../src/storage/notes-revision";
+import { registerMemberHandlers } from "../../src/background/member-handlers";
 import { repositories } from "../../src/storage/repositories";
 import { MemorySettingsArea } from "../memory-settings";
 import { freshDatabase } from "../setup-indexeddb";
@@ -54,6 +55,10 @@ beforeEach(async () => {
   registerSignalsHandlers(router, {
     signals: new SignalsService(),
     activeAccountId: () => Promise.resolve(active),
+  });
+  registerMemberHandlers(router, {
+    activeAccountId: () => Promise.resolve(active),
+    now: () => now,
   });
   signals = new CardSignals(
     document,
@@ -283,6 +288,43 @@ describe("V1-10 signals on every card", () => {
     expect(note.getAttribute("aria-label")).toBe("Note");
     expect(note.title).toBe("Note");
     expect(note.getAttribute("data-has-note")).toBe("true");
+  });
+
+  it("keeps the nickname each card shows, and names the member in the editor", async () => {
+    // Owner decision, 2026-09-27: JoyFox's own texts name a member by the
+    // nickname a card showed, never by the number.
+    searchPage([FULL]);
+    document
+      .querySelector("j-member-card")!
+      .setAttribute("user-name", "Synthetic_Owl");
+    signals.update("search");
+    await flush();
+    inboxPage([THIN]);
+    document.querySelector(
+      '[data-e2e="conversation-list-item-name"]',
+    )!.textContent = " Synthetic  Heron ";
+    signals.update("inbox");
+    await flush();
+    guestPage([NEW]);
+    document.querySelector(".date_moreinfo strong")!.textContent =
+      "Synthetic_Kite";
+    signals.update("event");
+    await flush();
+    const stored = async (memberId: string) =>
+      (await repositories.joyClubMembers.get("account-a", memberId))?.nickname;
+    expect(await stored(FULL)).toBe("Synthetic_Owl");
+    expect(await stored(THIN)).toBe("Synthetic Heron");
+    expect(await stored(NEW)).toBe("Synthetic_Kite");
+    expect(await repositories.joyClubMembers.list("account-b")).toEqual([]);
+
+    group(NEW)!
+      .querySelector<HTMLButtonElement>(".joyfox-signals__note")!
+      .click();
+    await flush();
+    expect(editor().getAttribute("aria-label")).toBe(
+      "JoyFox: note and tags for Synthetic_Kite",
+    );
+    expect(editor().textContent).not.toContain(NEW);
   });
 
   it('gives a guest entry the "met in person" mark the profile page last showed', async () => {

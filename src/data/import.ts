@@ -148,7 +148,7 @@ const IMPORTED_SETTINGS: Readonly<Record<string, (value: unknown) => boolean>> =
 const BASE_FIELDS = ["id", "accountId", "createdAt", "updatedAt"] as const;
 const ENTITY_FIELDS: Readonly<Record<EntityName, readonly string[]>> = {
   extensionAccounts: ["joyClubAccountId", "label"],
-  joyClubMembers: ["joyClubMemberId"],
+  joyClubMembers: ["joyClubMemberId", "nickname"],
   profileSnapshots: [
     "memberId",
     "capturedAt",

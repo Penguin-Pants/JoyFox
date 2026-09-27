@@ -223,6 +223,7 @@ export function validateEntity(
       break;
     case "joyClubMembers":
       requireString(record, "joyClubMemberId");
+      optionalString(record, "nickname");
       break;
     case "profileSnapshots":
       validateProfileSnapshot(record);
