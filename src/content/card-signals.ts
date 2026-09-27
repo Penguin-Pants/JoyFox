@@ -87,8 +87,15 @@ function trustText(signals: MemberSignals): string {
     : t(message("signals.trust", { score: signals.trust.score }));
 }
 
-const requestKey = (card: { memberId: string; observed: object }) =>
-  `${card.memberId}|${factsKey(card.observed)}`;
+const requestKey = (card: SignalRequest) =>
+  `${card.memberId}|${factsKey(card.observed)}|${card.noShield === true}`;
+
+/** What one card asks for. A guest-list entry shows no shield (14-events.md). */
+const cardRequest = (surface: Surface, card: MemberCard): SignalRequest => ({
+  memberId: card.memberId,
+  observed: card.observed,
+  ...(surface === "attendees" ? { noShield: true } : {}),
+});
 
 /**
  * V1-10: the signals JoyFox knows about a member, on every card where
@@ -179,14 +186,12 @@ export class CardSignals {
   /** The members the page shows, with what each card shows of them. */
   #requests(): SignalRequest[] {
     const seen = new Map<string, SignalRequest>();
-    const add = (memberId: string, observed: SignalRequest["observed"]) => {
-      const item = { memberId, observed };
-      seen.set(requestKey(item), item);
-    };
-    for (const [, cards] of memberCards(this.document, this.#type))
-      for (const card of cards) add(card.memberId, card.observed);
+    const add = (item: SignalRequest) => seen.set(requestKey(item), item);
+    for (const [surface, cards] of memberCards(this.document, this.#type))
+      for (const card of cards) add(cardRequest(surface, card));
     const profile = this.#profile();
-    if (profile) add(profile.memberId, profile.observed);
+    if (profile)
+      add({ memberId: profile.memberId, observed: profile.observed });
     return [...seen.values()];
   }
 
@@ -256,7 +261,7 @@ export class CardSignals {
     const existing = card.signalsHost.querySelector(
       `[${UI_ATTRIBUTE}="${CARD_SIGNALS}"]`,
     );
-    const signals = this.#data.get(requestKey(card));
+    const signals = this.#data.get(requestKey(cardRequest(surface, card)));
     if (!signals || !this.#accountId) return existing?.remove();
     const version = JSON.stringify([card.memberId, signals, this.#version]);
     if (existing?.getAttribute("data-joyfox-version") === version) return;

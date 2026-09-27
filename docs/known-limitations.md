@@ -212,11 +212,12 @@
   the card itself shows neither (`11-search.md`). Such a member shows
   "Completeness unknown" and is never hidden by "hide incomplete profiles". A
   guest-list entry shows no shield code (`14-events.md`), so on it the
-  verification comes from the snapshot and "personally known", which is never
-  cached, is not counted: for a member you marked as met in person, the trust
-  score on a guest entry is 1 lower than on the profile page. The note and tag
-  editor opens as a panel at the bottom right of the window, because a card is a
-  link. The filter hides only results JoyClub has loaded.
+  verification comes from the snapshot and the "met in person" mark from the
+  profile page's last reading (owner, 2026-09-26). If you change the mark on
+  JoyClub, a guest entry shows the old trust score until you open that profile
+  again. The note and tag editor opens as a panel at the bottom right of the
+  window, because a card is a link. The filter hides only results JoyClub has
+  loaded.
 - The shared-event exception (V1-13) knows only the guests JoyClub had loaded
   when the event page was open; the event page shows a first batch (37 of
   several hundred in `14-events.md`), and JoyFox never loads more, so a real

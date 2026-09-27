@@ -1,3 +1,4 @@
+import { MET_IN_PERSON_KEY, metInPersonId } from "../signals/met-in-person";
 import type {
   ConversationClassification,
   MessagePhraseMatch,
@@ -198,6 +199,34 @@ export class TriageService {
    * decides again. The user undoes it by deleting the record under "Your
    * data".
    */
+  /**
+   * V1-10: keep the profile page's "met in person" mark for guest-list card
+   * signals (`src/signals/met-in-person.ts`). Written only when it changes.
+   * Called only after the page showed some fact, so a header whose shield has
+   * not drawn yet with nothing else does not clear it.
+   */
+  async #recordMetInPerson(
+    accountId: string,
+    memberId: string,
+    marked: boolean,
+  ): Promise<void> {
+    const id = metInPersonId(memberId);
+    const stored = await this.preferences.get(accountId, id);
+    if (marked === (stored !== undefined)) return;
+    if (marked) {
+      const timestamp = this.now().toISOString();
+      await this.preferences.put(accountId, {
+        id,
+        accountId,
+        key: MET_IN_PERSON_KEY,
+        value: memberId,
+        createdAt: timestamp,
+        updatedAt: timestamp,
+      });
+    } else await this.preferences.delete(accountId, id);
+    await bumpTriageRevision(this.settings);
+  }
+
   async optOutSharedEvent(accountId: string, memberId: string): Promise<void> {
     requireAccountId(accountId);
     requireMemberId(memberId);
@@ -483,6 +512,11 @@ export class TriageService {
       values.joinedAt !== "unknown" ||
       window !== undefined;
     if (!seen) return false;
+    await this.#recordMetInPerson(
+      accountId,
+      memberId,
+      facts.personallyKnown === true,
+    );
     const all = await this.snapshots.list(accountId);
     const newest = newestSnapshot(
       all.filter((snapshot) => snapshot.memberId === memberId),

@@ -32,9 +32,12 @@ export function registerSignalsHandlers(
       throw invalid("member list");
     const members: SignalRequest[] = list.map((item: unknown) => {
       const entry = (item ?? {}) as Record<string, unknown>;
+      if (entry.noShield !== undefined && typeof entry.noShield !== "boolean")
+        throw invalid("shield flag");
       return {
         memberId: memberId(entry.memberId),
         observed: observed(entry.observed),
+        ...(entry.noShield === true ? { noShield: true } : {}),
       };
     });
     const accountId = await deps.activeAccountId();

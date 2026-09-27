@@ -227,7 +227,15 @@ than 500 labels or a label longer than 100 characters.
 
 `personallyKnown` ("persönlich bekannt") is a profile fact for qualification but
 has no ProfileSnapshot field. It is the logged-in user's own mark and can
-change, so it is read from the current page each time and never cached.
+change, so qualification reads it from the current page each time and never from
+storage.
+
+V1-10 (owner, 2026-09-26): a guest-list entry shows no shield, so its card
+signals need the mark from elsewhere. An `ExtensionPreference` with key
+`metInPerson` and ID `met-in-person:<member ID>` exists while the member's
+profile page shows the mark. It is updated in place, not kept as history: a
+profile read that shows other facts but no mark deletes it. Only card signals
+for a card with no shield read it.
 
 ## ContactRule (Milestone C)
 

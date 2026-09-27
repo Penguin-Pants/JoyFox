@@ -271,6 +271,43 @@ describe("snapshot capture", () => {
     expect(await repositories.joyClubMembers.get(A, MEMBER)).toBeDefined();
   });
 
+  it('keeps the "met in person" mark for cards only, and never in triage', async () => {
+    await triage.captureSnapshot(A, MEMBER, {
+      photoCount: 4,
+      personallyKnown: true,
+    });
+    const [snapshot] = await repositories.profileSnapshots.list(A);
+    expect(snapshot).not.toHaveProperty("personallyKnown");
+    expect(
+      (await repositories.extensionPreferences.list(A)).map((item) => item.id),
+    ).toEqual([`met-in-person:${MEMBER}`]);
+    await rules.saveGlobalRule(A, {
+      ...photoRule(),
+      root: {
+        type: "group",
+        match: "all",
+        children: [
+          {
+            type: "condition",
+            kind: "personallyKnown",
+            whenUnknown: "needs-review",
+          },
+        ],
+      },
+    });
+    // A page with no shield: the live mark is unknown, whatever is stored.
+    const [unseen] = ok(
+      await triage.evaluate(A, [{ memberId: MEMBER, observed: {} }]),
+    );
+    expect(unseen?.placement).toBe("needs-review");
+    // A profile read that shows facts but no mark removes the record; one
+    // that shows nothing at all (the page is still drawing) keeps it.
+    await triage.captureSnapshot(A, MEMBER, {});
+    expect(await repositories.extensionPreferences.list(A)).toHaveLength(1);
+    await triage.captureSnapshot(A, MEMBER, { photoCount: 4 });
+    expect(await repositories.extensionPreferences.list(A)).toHaveLength(0);
+  });
+
   it("keeps capture order for two snapshots in the same millisecond", async () => {
     // Random IDs that sort against capture order, at one fixed instant.
     const randomIds = ["zzzz", "aaaa"];

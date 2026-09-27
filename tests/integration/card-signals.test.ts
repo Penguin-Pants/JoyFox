@@ -16,6 +16,7 @@ import { MessageRouter } from "../../src/messaging/router";
 import { NotesService } from "../../src/notes/notes-service";
 import { completeness } from "../../src/signals/completeness";
 import { SignalsService } from "../../src/signals/signals-service";
+import { TriageService } from "../../src/triage/triage-service";
 import { NOTES_REVISION_KEY } from "../../src/storage/notes-revision";
 import { repositories } from "../../src/storage/repositories";
 import { MemorySettingsArea } from "../memory-settings";
@@ -203,6 +204,53 @@ describe("V1-10 signals on every card", () => {
       await flush();
       expect(shown(FULL), type).toEqual(expected);
     }
+  });
+
+  it('gives a guest entry the "met in person" mark the profile page last showed', async () => {
+    const triage = new TriageService(
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      settings,
+    );
+    const card = (code: number) => {
+      window.history.replaceState(null, "", "/member/");
+      document.body.innerHTML = `<div class="member_search_list"><div class="grid"><div class="item"><a data-e2e="result-item" href="/profile/${FULL}.synthetic.html"><j-member-card verification-status="${code}"></j-member-card></a></div></div></div>`;
+      signals.update("search");
+    };
+    // The guest page is open when the change reaches the tab (a triage
+    // revision invalidates the page shown).
+    const guest = async () => {
+      guestPage([FULL]);
+      signals.update("event");
+      signals.invalidate();
+      await flush();
+      return shown(FULL).trust;
+    };
+    // The profile page shows the green shield (code 3): met in person.
+    await triage.captureSnapshot("account-a", FULL, {
+      photoCount: 5,
+      personallyKnown: true,
+    });
+    card(3);
+    await flush();
+    const marked = shown(FULL).trust;
+    // The mark counts: the two positive outcomes alone give +2.
+    expect(marked).not.toBe("Trust +2");
+    expect(await guest()).toBe(marked);
+    // A card whose shield code JoyFox does not know stays unknown: only a
+    // card with no shield at all takes the stored mark.
+    signals.invalidate();
+    card(2);
+    await flush();
+    expect(shown(FULL).trust).toBe("Trust +2");
+    // The mark is removed on JoyClub: the next profile read shows no shield,
+    // and the guest entry follows.
+    await triage.captureSnapshot("account-a", FULL, { photoCount: 5 });
+    expect(await guest()).toBe("Trust +2");
   });
 
   it("marks an unknown member unknown, never incomplete", async () => {
