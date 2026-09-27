@@ -795,3 +795,8 @@
   font-size: 11px;
   line-height: 14px;
 }
+
+.joyfox-inbox-line .joyfox-signals__note[data-has-note="true"] {
+  border-color: currentColor;
+  font-weight: 700;
+}

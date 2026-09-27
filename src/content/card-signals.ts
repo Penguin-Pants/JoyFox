@@ -317,12 +317,15 @@ export class CardSignals {
     const note = button(
       document,
       "joyfox-button joyfox-signals__note",
-      compact ? (signals.hasNote ? `✎ ${noteText}` : "✎") : noteText,
+      compact ? "✎" : noteText,
       () => this.#editor.open(card.memberId, note),
     );
+    // Icon-only on the inbox line, so a row with a note needs no more room;
+    // its label says which, and the style repeats it.
     if (compact) {
       note.title = noteText;
       note.setAttribute("aria-label", noteText);
+      note.setAttribute("data-has-note", String(signals.hasNote));
     }
     group.append(note);
     if (signals.tags.length > 0 && compact) {

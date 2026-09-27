@@ -263,6 +263,24 @@ describe("V1-10 signals on every card", () => {
     );
   });
 
+  it("keeps an inbox row's note button icon-only when a note exists", async () => {
+    await new NotesService().saveNote(
+      "account-a",
+      { status: "resolved", memberId: FULL, source: "test" },
+      "Synthetic note",
+    );
+    inboxPage([FULL]);
+    signals.update("inbox");
+    await flush();
+    const note = group(FULL)!.querySelector<HTMLElement>(
+      ".joyfox-signals__note",
+    )!;
+    expect(note.textContent).toBe("✎");
+    expect(note.getAttribute("aria-label")).toBe("Note");
+    expect(note.title).toBe("Note");
+    expect(note.getAttribute("data-has-note")).toBe("true");
+  });
+
   it('gives a guest entry the "met in person" mark the profile page last showed', async () => {
     const triage = new TriageService(
       undefined,
