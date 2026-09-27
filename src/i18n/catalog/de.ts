@@ -555,6 +555,8 @@ export const de: Catalog = {
   "searches.saved": (p) => `„${p.name}“ gespeichert.`,
   "searches.noMatch": (p) =>
     `„${p.name}“ passt nicht mehr zur Suchadresse von JoyClub, deshalb hat JoyFox die Suche nicht geöffnet. Führe die Suche noch einmal aus und speichere sie neu.`,
+  "searches.runFailed":
+    "JoyFox konnte die gespeicherte Suche nicht ausführen. Öffne den Filter von JoyClub und klicke auf „Anwenden“.",
   "searches.deleteLabel": (p) => `Gespeicherte Suche ${p.name} löschen`,
   "searches.confirmDelete": (p) =>
     `Klicke noch einmal auf ✕, um „${p.name}“ zu löschen.`,

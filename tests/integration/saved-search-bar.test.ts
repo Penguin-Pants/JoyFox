@@ -1,7 +1,8 @@
 // @vitest-environment jsdom
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { detectPage } from "../../src/content/page-detector";
 import {
+  RUN_SEARCH_MARKER,
   SavedSearchBar,
   type SavedSearchClient,
   type SearchList,
@@ -91,7 +92,18 @@ describe("V1-3 saved-search bar", () => {
     bar.update();
     await flush();
     buttonNamed("Nearby").click();
-    expect(navigate).toHaveBeenCalledWith(OTHER);
+    expect(navigate).toHaveBeenCalledWith(OTHER + RUN_SEARCH_MARKER);
+  });
+
+  it("replaces the saved address's own fragment with the marker", async () => {
+    listAnswer = {
+      accountId: "account-a",
+      searches: [summary("search:3", "Here", `${OTHER}#infiniteScroll`)],
+    };
+    bar.update();
+    await flush();
+    buttonNamed("Here").click();
+    expect(navigate).toHaveBeenCalledWith(`${OTHER}#joyfox-run-search`);
   });
 
   it("opens nothing and says so when the address no longer matches", async () => {
@@ -268,6 +280,117 @@ describe("V1-3 saved-search bar", () => {
     answer({ accountId: "account-b", searches: [] });
     await flush();
     expect(root()?.textContent).toContain("No saved searches yet.");
+  });
+
+  describe("running a saved search", () => {
+    const TIMING = { waitMs: 40, pollMs: 5 };
+    let replaceState: ReturnType<typeof vi.spyOn>;
+    let clicks: string[];
+    let inner: HTMLButtonElement;
+
+    /** JoyClub's filter button; its click opens the panel with "Anwenden". */
+    function joyClubFilter(openPanel = true) {
+      document
+        .querySelector('[data-e2e="search-filter-button"]')!
+        .addEventListener("click", () => {
+          clicks.push("filter");
+          if (!openPanel) return;
+          const apply = document.createElement("j-button");
+          apply.setAttribute("data-e2e", "apply-filter-button");
+          inner = document.createElement("button");
+          inner.textContent = "Anwenden";
+          inner.addEventListener("click", () => clicks.push("apply"));
+          apply.attachShadow({ mode: "open" }).append(inner);
+          // The panel appears a moment later, as JoyClub draws it.
+          setTimeout(() => document.body.append(apply), 10);
+        });
+    }
+
+    beforeEach(() => {
+      clicks = [];
+      replaceState = vi
+        .spyOn(window.history, "replaceState")
+        .mockImplementation(() => undefined);
+    });
+
+    afterEach(() => replaceState.mockRestore());
+
+    it("removes the marker, then opens the filter and clicks Anwenden once", async () => {
+      joyClubFilter();
+      bar = new SavedSearchBar(
+        document,
+        client,
+        navigate,
+        () => OTHER + RUN_SEARCH_MARKER,
+        TIMING,
+      );
+      bar.update();
+      expect(replaceState).toHaveBeenCalledWith(
+        null,
+        "",
+        "/member/other-as-r/?user_age=20_30",
+      );
+      expect(clicks).toEqual([]);
+      await vi.waitFor(() => expect(clicks).toEqual(["filter", "apply"]));
+      const innerClicks = vi.fn();
+      inner.addEventListener("click", innerClicks);
+      // JoyClub redraws; the bar is placed again but clicks nothing more.
+      root()!.remove();
+      bar.update();
+      bar.update();
+      await new Promise((resolve) => setTimeout(resolve, 60));
+      expect(clicks).toEqual(["filter", "apply"]);
+      expect(innerClicks).not.toHaveBeenCalled();
+      expect(replaceState).toHaveBeenCalledTimes(1);
+      expect(status()).toBe("");
+    });
+
+    it("clicks nothing on a page loaded without the marker", async () => {
+      joyClubFilter();
+      bar = new SavedSearchBar(document, client, navigate, () => PAGE, TIMING);
+      bar.update();
+      await new Promise((resolve) => setTimeout(resolve, 60));
+      expect(clicks).toEqual([]);
+      expect(replaceState).not.toHaveBeenCalled();
+    });
+
+    it("runs the search here when the saved address is this page", async () => {
+      joyClubFilter();
+      listAnswer = {
+        accountId: "account-a",
+        searches: [summary("search:3", "Here", PAGE)],
+      };
+      bar = new SavedSearchBar(
+        document,
+        client,
+        navigate,
+        () => PAGE.replace("#infiniteScroll", ""),
+        TIMING,
+      );
+      bar.update();
+      await flush();
+      buttonNamed("Here").click();
+      await vi.waitFor(() => expect(clicks).toEqual(["filter", "apply"]));
+      expect(navigate).not.toHaveBeenCalled();
+    });
+
+    it("asks the user to click Anwenden when the panel does not open", async () => {
+      joyClubFilter(false);
+      bar = new SavedSearchBar(
+        document,
+        client,
+        navigate,
+        () => PAGE.replace("#infiniteScroll", RUN_SEARCH_MARKER),
+        TIMING,
+      );
+      bar.update();
+      await vi.waitFor(() =>
+        expect(status()).toBe(
+          'JoyFox could not run the saved search. Open JoyClub\'s filter and click "Anwenden".',
+        ),
+      );
+      expect(clicks).toEqual(["filter"]);
+    });
   });
 
   it("leaves no trace off the search page", async () => {

@@ -58,6 +58,37 @@ export function runtimeSavedSearchClient(): SavedSearchClient {
 const NAME_INPUT = "joyfox-saved-searches__name";
 
 /**
+ * The fragment a saved search is opened with. It tells the next page load
+ * to run the search; a fragment never reaches JoyClub's server.
+ */
+export const RUN_SEARCH_MARKER = "#joyfox-run-search";
+
+export interface RunSearchTiming {
+  /** How long to wait for each of JoyClub's filter controls. */
+  waitMs: number;
+  pollMs: number;
+}
+
+const DEFAULT_RUN_TIMING: RunSearchTiming = { waitMs: 8_000, pollMs: 250 };
+
+/** The address without its fragment, to compare two addresses. */
+function withoutFragment(url: string): string {
+  const parsed = new URL(url);
+  parsed.hash = "";
+  return parsed.href;
+}
+
+/**
+ * Click a JoyClub control. Its native `<button>` sits in an open shadow
+ * root, as in quick-action-driver.ts; where it cannot be read, the host
+ * itself is clicked.
+ */
+function press(control: Element): void {
+  const inner = control.shadowRoot?.querySelector<HTMLElement>("button");
+  (inner ?? (control as HTMLElement)).click();
+}
+
+/**
  * V1-3: saved searches on JoyClub's member search page (PRD 6.2, 8.2). The
  * bar sits above the result list. "Save this search" stores the page's
  * current address, which holds every filter (11-search.md), under a name;
@@ -65,8 +96,17 @@ const NAME_INPUT = "joyfox-saved-searches__name";
  * address that no longer matches JoyClub's verified search address is
  * never opened: the bar says so instead.
  *
- * The bar only reads the page's address. It never reads a result, a
- * member or a filter control, and it never changes JoyClub's filters.
+ * JoyClub fills its filter panel from the address but lists the results of
+ * the filters stored on the account (live check 109). So, only after the
+ * user clicks a saved search, JoyFox opens JoyClub's filter panel and
+ * clicks its "Anwenden" button once. It clicks no other JoyClub control.
+ * The address carries `RUN_SEARCH_MARKER` across the page load, and the
+ * marker is removed before the click, so a reload never runs it again.
+ * When a control does not appear in time, the bar asks the user to click
+ * "Anwenden" instead.
+ *
+ * Otherwise the bar only reads the page's address. It never reads a
+ * result, a member or a filter value.
  */
 export class SavedSearchBar {
   #root?: HTMLElement;
@@ -89,6 +129,10 @@ export class SavedSearchBar {
    * meanwhile is ignored, so one action never stores or deletes twice.
    */
   #busy = false;
+  /** The address was checked for `RUN_SEARCH_MARKER` on this page. */
+  #markerChecked = false;
+  /** JoyFox is opening the filter panel and clicking "Anwenden". */
+  #running = false;
 
   constructor(
     private readonly document: Document,
@@ -96,6 +140,7 @@ export class SavedSearchBar {
     private readonly navigate: (url: string) => void = (url) =>
       document.location.assign(url),
     private readonly currentUrl: () => string = () => document.location.href,
+    private readonly timing: RunSearchTiming = DEFAULT_RUN_TIMING,
   ) {}
 
   /** Place the bar above the result list, again after JoyClub redraws it. */
@@ -103,6 +148,7 @@ export class SavedSearchBar {
     const selector = verifiedSelector("search", "resultList");
     const list = selector ? this.document.querySelector(selector) : null;
     if (!list) return this.leave();
+    this.#checkMarker();
     if (this.#root?.isConnected) return;
     if (!this.#root) {
       this.#root = element(this.document, "section", "joyfox-saved-searches");
@@ -144,6 +190,50 @@ export class SavedSearchBar {
 
   localeChanged(): void {
     if (this.#root) this.#draw();
+  }
+
+  /** Run the saved search this page was opened for, once per page. */
+  #checkMarker(): void {
+    if (this.#markerChecked) return;
+    this.#markerChecked = true;
+    const url = new URL(this.currentUrl());
+    if (url.hash !== RUN_SEARCH_MARKER) return;
+    // Gone before the click: a reload must never run the search again.
+    const history = this.document.defaultView?.history;
+    history?.replaceState(history.state, "", url.pathname + url.search);
+    void this.#runSearch();
+  }
+
+  /**
+   * Open JoyClub's filter panel and click "Anwenden" once, so the results
+   * follow the filters in the address.
+   */
+  async #runSearch(): Promise<void> {
+    if (this.#running) return;
+    this.#running = true;
+    try {
+      for (const field of ["filterButton", "applyButton"]) {
+        const control = await this.#waitFor(field);
+        if (!control)
+          return this.#setStatus(message("searches.runFailed"), true);
+        press(control);
+      }
+    } finally {
+      this.#running = false;
+    }
+  }
+
+  /** The verified search control, polled until it appears or time is up. */
+  async #waitFor(field: string): Promise<Element | undefined> {
+    const selector = verifiedSelector("search", field);
+    if (!selector) return undefined;
+    const { waitMs, pollMs } = this.timing;
+    for (let waited = 0; ; waited += pollMs) {
+      const control = this.document.querySelector(selector);
+      if (control) return control;
+      if (waited >= waitMs) return undefined;
+      await new Promise((resolve) => setTimeout(resolve, pollMs));
+    }
   }
 
   async #load(): Promise<void> {
@@ -317,7 +407,14 @@ export class SavedSearchBar {
         message("searches.noMatch", { name: search.name }),
         true,
       );
-    this.navigate(url);
+    // The same address again would not reload the page: run it here.
+    if (withoutFragment(url) === withoutFragment(this.currentUrl())) {
+      this.#status = undefined;
+      this.#draw();
+      void this.#runSearch();
+      return;
+    }
+    this.navigate(withoutFragment(url) + RUN_SEARCH_MARKER);
   }
 
   async #save(): Promise<void> {

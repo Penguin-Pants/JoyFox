@@ -84,7 +84,8 @@ app (`09-navigation.md`) and the inbox list can stay in the DOM.
 | Profile      | Profile text      | `.profile-description-maintext__text`                                              | Word count of the main text only (motto not counted) |
 | Profile      | Account age       | `.profile-sidebar-container__badge-list j-list-item` with text "Angemeldet seit …" | Join window from a rounded duration                  |
 | Search       | Result list       | `div.member_search_list`                                                           | Saved-search bar goes before it                      |
-| Search       | Filter button     | `[data-e2e="search-filter-button"]`                                                | Recorded only                                        |
+| Search       | Filter button     | `[data-e2e="search-filter-button"]`                                                | Clicked once to run a saved search (V1-3)            |
+| Search       | Apply button      | `j-button[data-e2e="apply-filter-button"]`                                         | "Anwenden"; clicked once after the filter (V1-3)     |
 | Profile      | Preference list   | `div.profile-erotic-prefs`                                                         | "Vorlieben"; a visible and a hidden copy per person  |
 | Profile      | Preference level  | `div.profile-erotic-prefs__category`                                               | One group per level that has tags                    |
 | Profile      | Level name        | `h4.profile-erotic-prefs__category-title`                                          | One of six names (`13-preferences.md`)               |

@@ -463,6 +463,7 @@ stay as they are.
 | `searches.refused` | The active JoyFox account changed, so nothing was changed. | Das aktive JoyFox-Konto hat sich geändert, deshalb wurde nichts geändert. |
 | `searches.saved` | Saved "{name}". | „{name}“ gespeichert. |
 | `searches.noMatch` | "{name}" no longer matches JoyClub's search address, so JoyFox did not open it. Run the search again and save it again. | „{name}“ passt nicht mehr zur Suchadresse von JoyClub, deshalb hat JoyFox die Suche nicht geöffnet. Führe die Suche noch einmal aus und speichere sie neu. |
+| `searches.runFailed` | JoyFox could not run the saved search. Open JoyClub's filter and click "Anwenden". | JoyFox konnte die gespeicherte Suche nicht ausführen. Öffne den Filter von JoyClub und klicke auf „Anwenden“. |
 | `searches.deleteLabel` | Delete saved search {name} | Gespeicherte Suche {name} löschen |
 | `searches.confirmDelete` | Click ✕ again to delete "{name}". | Klicke noch einmal auf ✕, um „{name}“ zu löschen. |
 | `searches.deleted` | Deleted "{name}". | „{name}“ gelöscht. |
