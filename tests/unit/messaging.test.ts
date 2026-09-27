@@ -48,7 +48,24 @@ describe("F5 messaging", () => {
     expect(logged).toHaveBeenCalledWith(
       "JoyFox: request failed",
       "note.get",
-      cause,
+      expect.objectContaining({
+        name: "Error",
+        message: "memberId must be a non-empty string",
+      }),
+    );
+    // A thrown value that is not an Error is reduced to its type.
+    router.register("note.save", () => {
+      throw { body: "a note typed by the user" };
+    });
+    await router.route({
+      type: "note.save",
+      requestId: "request-3",
+      payload: {},
+    } as never);
+    expect(logged).toHaveBeenLastCalledWith(
+      "JoyFox: request failed",
+      "note.save",
+      { name: "object" },
     );
     logged.mockRestore();
   });
