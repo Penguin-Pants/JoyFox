@@ -4,6 +4,7 @@ import {
   placeInInboxLine,
   removeEmptyCardLines,
 } from "../../src/content/card-line";
+import contentCss from "../../src/content/content.css?raw";
 
 const part = (name: string) => {
   const node = document.createElement("span");
@@ -50,5 +51,33 @@ describe("the inbox row's JoyFox line", () => {
     document.querySelector("#description")!.remove();
     placeInInboxLine(row(), part("badge"));
     expect(row().lastElementChild).toBe(line());
+  });
+});
+
+describe("JoyFox's page styles", () => {
+  beforeEach(() => {
+    const style = document.createElement("style");
+    style.textContent = contentCss;
+    document.head.replaceChildren(style);
+  });
+
+  it("keeps the card line clickable inside an overlay without pointer events", () => {
+    // Owner's live check, item 126: a click on the note button over a search
+    // result's photo opened the profile instead.
+    document.body.innerHTML =
+      '<div style="pointer-events: none"><div class="joyfox-card-line" slot="media-overlay"></div></div>';
+    const line = document.querySelector(".joyfox-card-line")!;
+    expect(getComputedStyle(line).pointerEvents).toBe("auto");
+    expect(getComputedStyle(line).zIndex).toBe("2");
+  });
+
+  it("draws a JoyFox select's options in the system colours", () => {
+    // Owner's live check: the page's light text on Firefox's white option
+    // list. jsdom resolves the system colours to black on white.
+    document.body.innerHTML =
+      '<div style="color: rgb(255, 255, 255)"><select class="joyfox-listing__attendance"><option>No status</option></select></div>';
+    const option = document.querySelector("option")!;
+    expect(getComputedStyle(option).color).toBe("rgb(0, 0, 0)");
+    expect(getComputedStyle(option).backgroundColor).toBe("rgb(255, 255, 255)");
   });
 });
