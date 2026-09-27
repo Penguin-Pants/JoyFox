@@ -554,6 +554,13 @@ started on. JoyClub opens a conversation from the inbox in place
 (`09-navigation.md`), so that address was still the inbox. The check now reads
 the tab's current address from the browser.
 
+**Item 99, third run (2026-09-27): passed.** With PRs #82 and #83, the owner
+opened a test conversation from the inbox list and clicked "Ignore and Delete":
+the conversation went to the trash, the tab moved to the member's profile, the
+member was ignored, and the run ended "Ignore and Delete finished." with the
+ActionLog ending `Completed`. This is the live check that the sending-page check
+does not refuse the normal hand-off.
+
 ## Readable records in "Your data" (V1-7)
 
 101. On "Your data", click "Show" for "Message templates" and open the template
