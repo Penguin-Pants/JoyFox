@@ -1,7 +1,8 @@
 // @vitest-environment jsdom
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { detectPage } from "../../src/content/page-detector";
 import {
+  RUN_SEARCH_MARKER,
   SavedSearchBar,
   type SavedSearchClient,
   type SearchList,
@@ -91,7 +92,18 @@ describe("V1-3 saved-search bar", () => {
     bar.update();
     await flush();
     buttonNamed("Nearby").click();
-    expect(navigate).toHaveBeenCalledWith(OTHER);
+    expect(navigate).toHaveBeenCalledWith(OTHER + RUN_SEARCH_MARKER);
+  });
+
+  it("replaces the saved address's own fragment with the marker", async () => {
+    listAnswer = {
+      accountId: "account-a",
+      searches: [summary("search:3", "Here", `${OTHER}#infiniteScroll`)],
+    };
+    bar.update();
+    await flush();
+    buttonNamed("Here").click();
+    expect(navigate).toHaveBeenCalledWith(`${OTHER}#joyfox-run-search`);
   });
 
   it("opens nothing and says so when the address no longer matches", async () => {
@@ -268,6 +280,248 @@ describe("V1-3 saved-search bar", () => {
     answer({ accountId: "account-b", searches: [] });
     await flush();
     expect(root()?.textContent).toContain("No saved searches yet.");
+  });
+
+  describe("running a saved search", () => {
+    const TIMING = { waitMs: 40, pollMs: 5 };
+    let replaceState: ReturnType<typeof vi.spyOn>;
+    let clicks: string[];
+    let inner: HTMLButtonElement;
+    let stored: Map<string, string>;
+    const store = () => ({
+      getItem: (key: string) => stored.get(key) ?? null,
+      setItem: (key: string, value: string) => void stored.set(key, value),
+      removeItem: (key: string) => void stored.delete(key),
+    });
+    const options = (extra = {}) => ({ timing: TIMING, store, ...extra });
+    /** The record a click on a saved search leaves in the tab. */
+    const requested = (address: string, expires = Date.now() + 60_000) =>
+      stored.set("joyfox.runSavedSearch", JSON.stringify({ address, expires }));
+    const noFragment = (url: string) => url.replace(/#.*$/u, "");
+
+    /** JoyClub's filter button; its click opens the panel with "Anwenden". */
+    function joyClubFilter(openPanel = true, drawMs = 10) {
+      document
+        .querySelector('[data-e2e="search-filter-button"]')!
+        .addEventListener("click", () => {
+          clicks.push("filter");
+          if (!openPanel) return;
+          const apply = document.createElement("j-button");
+          apply.setAttribute("data-e2e", "apply-filter-button");
+          inner = document.createElement("button");
+          inner.textContent = "Anwenden";
+          inner.addEventListener("click", () => clicks.push("apply"));
+          apply.attachShadow({ mode: "open" }).append(inner);
+          // The panel appears a moment later, as JoyClub draws it.
+          setTimeout(() => document.body.append(apply), drawMs);
+        });
+    }
+
+    beforeEach(() => {
+      clicks = [];
+      stored = new Map();
+      replaceState = vi
+        .spyOn(window.history, "replaceState")
+        .mockImplementation(() => undefined);
+    });
+
+    afterEach(() => replaceState.mockRestore());
+
+    it("records the click in the tab before opening the saved address", async () => {
+      bar = new SavedSearchBar(
+        document,
+        client,
+        navigate,
+        () => PAGE,
+        options(),
+      );
+      bar.update();
+      await flush();
+      buttonNamed("Nearby").click();
+      expect(navigate).toHaveBeenCalledWith(OTHER + RUN_SEARCH_MARKER);
+      expect(JSON.parse(stored.get("joyfox.runSavedSearch")!).address).toBe(
+        OTHER,
+      );
+    });
+
+    it("removes the marker, then opens the filter and clicks Anwenden once", async () => {
+      joyClubFilter();
+      requested(OTHER);
+      bar = new SavedSearchBar(
+        document,
+        client,
+        navigate,
+        () => OTHER + RUN_SEARCH_MARKER,
+        options(),
+      );
+      bar.update();
+      expect(replaceState).toHaveBeenCalledWith(
+        null,
+        "",
+        "/member/other-as-r/?user_age=20_30",
+      );
+      // The request is used once.
+      expect(stored.size).toBe(0);
+      expect(clicks).toEqual([]);
+      await vi.waitFor(() => expect(clicks).toEqual(["filter", "apply"]));
+      const innerClicks = vi.fn();
+      inner.addEventListener("click", innerClicks);
+      // JoyClub redraws; the bar is placed again but clicks nothing more.
+      root()!.remove();
+      bar.update();
+      bar.update();
+      await new Promise((resolve) => setTimeout(resolve, 60));
+      expect(clicks).toEqual(["filter", "apply"]);
+      expect(innerClicks).not.toHaveBeenCalled();
+      expect(replaceState).toHaveBeenCalledTimes(1);
+      expect(status()).toBe("");
+    });
+
+    it("clicks nothing for a marker that no click in this tab asked for", async () => {
+      joyClubFilter();
+      // A link from another site or a bookmark; a stale request; a request
+      // for another search.
+      for (const setUp of [
+        () => undefined,
+        () => requested(OTHER, Date.now() - 1),
+        () => requested(noFragment(PAGE)),
+      ]) {
+        stored.clear();
+        setUp();
+        bar?.leave();
+        bar = new SavedSearchBar(
+          document,
+          client,
+          navigate,
+          () => OTHER + RUN_SEARCH_MARKER,
+          options(),
+        );
+        bar.update();
+        await new Promise((resolve) => setTimeout(resolve, 30));
+        expect(clicks).toEqual([]);
+        // The marker is still removed.
+        expect(replaceState).toHaveBeenLastCalledWith(
+          null,
+          "",
+          "/member/other-as-r/?user_age=20_30",
+        );
+      }
+    });
+
+    it("clicks nothing on a page loaded without the marker", async () => {
+      joyClubFilter();
+      requested(noFragment(PAGE));
+      bar = new SavedSearchBar(
+        document,
+        client,
+        navigate,
+        () => PAGE,
+        options(),
+      );
+      bar.update();
+      await new Promise((resolve) => setTimeout(resolve, 60));
+      expect(clicks).toEqual([]);
+      expect(replaceState).not.toHaveBeenCalled();
+    });
+
+    it("reloads the page when the saved address is this page, then runs it", async () => {
+      joyClubFilter();
+      listAnswer = {
+        accountId: "account-a",
+        searches: [summary("search:3", "Here", PAGE)],
+      };
+      const here = noFragment(PAGE);
+      const reload = vi.fn();
+      bar = new SavedSearchBar(
+        document,
+        client,
+        navigate,
+        () => here,
+        options({ reload }),
+      );
+      bar.update();
+      await flush();
+      buttonNamed("Here").click();
+      // The panel may hold edits not applied: the saved filters come back
+      // with a reload, never from the panel as it is.
+      expect(clicks).toEqual([]);
+      expect(navigate).not.toHaveBeenCalled();
+      const path = new URL(here);
+      expect(replaceState).toHaveBeenCalledWith(
+        null,
+        "",
+        path.pathname + path.search + RUN_SEARCH_MARKER,
+      );
+      expect(reload).toHaveBeenCalledTimes(1);
+      // The reloaded page carries the marker and the tab's request.
+      bar.leave();
+      bar = new SavedSearchBar(
+        document,
+        client,
+        navigate,
+        () => here + RUN_SEARCH_MARKER,
+        options(),
+      );
+      bar.update();
+      await vi.waitFor(() => expect(clicks).toEqual(["filter", "apply"]));
+    });
+
+    it("never clicks on a page left while it waits", async () => {
+      // The panel appears late, so the page is left before it does.
+      joyClubFilter(true, 150);
+      for (const leave of [
+        // Another search in place: the address changes.
+        (setUrl: (url: string) => void) => setUrl(noFragment(PAGE)),
+        // No search page at all.
+        () => bar.leave(),
+      ]) {
+        clicks = [];
+        document.querySelector("j-button")?.remove();
+        requested(OTHER);
+        let url = OTHER + RUN_SEARCH_MARKER;
+        bar = new SavedSearchBar(
+          document,
+          client,
+          navigate,
+          () => url,
+          options(),
+        );
+        bar.update();
+        url = OTHER;
+        // The filter opens; the panel appears 10 ms later.
+        await vi.waitFor(() => expect(clicks).toEqual(["filter"]), {
+          interval: 1,
+        });
+        leave((next) => {
+          url = next;
+        });
+        await new Promise((resolve) => setTimeout(resolve, 250));
+        expect(clicks).toEqual(["filter"]);
+        expect(status()).not.toContain("could not run");
+      }
+    });
+
+    it("asks the user to click Anwenden when the panel does not open", async () => {
+      joyClubFilter(false);
+      const address = noFragment(PAGE);
+      requested(address);
+      let url = address + RUN_SEARCH_MARKER;
+      bar = new SavedSearchBar(
+        document,
+        client,
+        navigate,
+        () => url,
+        options(),
+      );
+      bar.update();
+      url = address;
+      await vi.waitFor(() =>
+        expect(status()).toBe(
+          'JoyFox could not run the saved search. Open JoyClub\'s filter and click "Anwenden".',
+        ),
+      );
+      expect(clicks).toEqual(["filter"]);
+    });
   });
 
   it("leaves no trace off the search page", async () => {

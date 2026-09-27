@@ -598,6 +598,8 @@ export const en = {
   "searches.saved": (p: { name: string }) => `Saved "${p.name}".`,
   "searches.noMatch": (p: { name: string }) =>
     `"${p.name}" no longer matches JoyClub's search address, so JoyFox did not open it. Run the search again and save it again.`,
+  "searches.runFailed":
+    'JoyFox could not run the saved search. Open JoyClub\'s filter and click "Anwenden".',
   "searches.deleteLabel": (p: { name: string }) =>
     `Delete saved search ${p.name}`,
   "searches.confirmDelete": (p: { name: string }) =>

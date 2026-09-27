@@ -120,6 +120,9 @@ export const selectorRegistry: Readonly<
     fields: {
       resultList: "div.member_search_list",
       filterButton: '[data-e2e="search-filter-button"]',
+      // "Anwenden" in the filter panel (11-search.md). V1-3 clicks it once
+      // after a saved search opens, so the results follow its filters.
+      applyButton: 'j-button[data-e2e="apply-filter-button"]',
       // The member ID is in the link (V1-2 reads it for the shared count).
       resultLink: 'a[data-e2e="result-item"]',
       resultCard: "j-member-card",

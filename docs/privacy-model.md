@@ -104,17 +104,31 @@ An automated test checks that no source file uses a network API or names a
 remote address, and that running every page feature against the synthetic
 fixtures makes no request (build plan Section 23).
 
-Quick Ignore and Delete (M9) is the only feature that performs JoyClub writes.
-It is off by default: only with `joyfox.quickIgnoreDelete` set to `true`, and
-only after the user clicks its button on a conversation, does its live driver
-(ADR 0011) click JoyClub's own controls. It moves that conversation to JoyClub's
-trash, opens the member's profile in the same tab, and ignores the member there
-through JoyClub's menu and dialog. Each click is recorded in the ActionLog
-first. The ActionLog holds member and conversation IDs, step names, times and
-failure codes, never message text. A one-time hand-off marker for the tab (the
-run's ID, account, next step and profile path) is kept in `storage.session`, in
-memory only, and is removed when the profile page reads it. M9 never sends a
-message.
+Apart from running a saved search (below), Quick Ignore and Delete (M9) is the
+only feature that performs JoyClub writes. It is off by default: only with
+`joyfox.quickIgnoreDelete` set to `true`, and only after the user clicks its
+button on a conversation, does its live driver (ADR 0011) click JoyClub's own
+controls. It moves that conversation to JoyClub's trash, opens the member's
+profile in the same tab, and ignores the member there through JoyClub's menu and
+dialog. Each click is recorded in the ActionLog first. The ActionLog holds
+member and conversation IDs, step names, times and failure codes, never message
+text. A one-time hand-off marker for the tab (the run's ID, account, next step
+and profile path) is kept in `storage.session`, in memory only, and is removed
+when the profile page reads it. M9 never sends a message.
+
+Saved searches (V1-3) click two of JoyClub's controls, and only after the user
+clicks a saved search: the filter button, then "Anwenden", once each. JoyClub
+then lists the results of the saved filters and stores them on the account, as
+it does when the user clicks "Anwenden" (`11-search.md`). JoyFox sets no filter
+value itself: the values come from the saved address. The page load carries a
+`#joyfox-run-search` fragment, which never reaches JoyClub's server; JoyFox
+removes it before the click, so a reload never runs the search again. The click
+on the saved search also leaves a record in the tab's own session storage: the
+saved address and an expiry one minute later. The next page reads and removes
+it, and runs the search only when it names that page. So a link from another
+site or a bookmark that carries the fragment never makes JoyFox click. If the
+user leaves the page while JoyFox waits for JoyClub's controls, JoyFox clicks
+nothing.
 
 Import reads a file the user chooses, in the options page only. Nothing is
 fetched or uploaded. The file is checked in full before anything is stored. A

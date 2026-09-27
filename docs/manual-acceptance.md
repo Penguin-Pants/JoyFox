@@ -587,12 +587,19 @@ sending-page check does not refuse the normal hand-off.
      Apply one or two filters with "Anwenden", click "Save this search", type a
      name and press Enter. Confirm the message says it was saved and a button
      with that name appears.
-109. URL-only replay (the acceptance check for V1-3). Change the filters with
-     "Anwenden", so JoyClub's stored filters differ from the saved ones. Then
-     click the saved search's button. Confirm the page loads with the saved
-     filters (open the filter panel to check them) and the results match them.
-     If JoyClub shows the changed filters instead, V1-3 fails: record it
-     (`11-search.md`, caveat). Open the search in a second tab and confirm the
+109. Running a saved search (the acceptance check for V1-3). Change the filters
+     with "Anwenden", so JoyClub's stored filters differ from the saved ones.
+     Then click the saved search's button. Confirm the page loads, JoyFox opens
+     JoyClub's filter panel and clicks "Anwenden" once, and the results then
+     match the saved filters (open the filter panel to check them). The address
+     bar must not end in `#joyfox-run-search`. Reload the page and confirm
+     JoyFox clicks nothing this time. On the saved search's own results page,
+     change a filter in the panel without clicking "Anwenden", then click the
+     saved search again: confirm the page reloads and the results match the
+     saved filters, not the change. Paste the results address with
+     `#joyfox-run-search` added into a new tab and confirm JoyFox clicks
+     nothing. If JoyFox says it could not run the search, click "Anwenden"
+     yourself and record it. Open the search in a second tab and confirm the
      saved search is listed there too.
 110. Click ✕ beside the saved search. Confirm nothing is deleted and the message
      asks you to click again. Click ✕ again and confirm the search is gone. Open

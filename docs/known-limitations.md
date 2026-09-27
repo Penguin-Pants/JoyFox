@@ -186,9 +186,14 @@
   the bar wraps onto a second line.
 - Saved searches (V1-3) appear only while JoyClub's result list
   (`div.member_search_list`) is on the page. Whether it is there for a search
-  with no results is not known. A replay opens the saved address; whether
-  JoyClub also applies filters stored on the account is not known
-  (`live-evidence/11-search.md`, caveat).
+  with no results is not known. JoyClub fills its filter panel from a saved
+  address but lists the results of the filters stored on the account (live check
+  109). So, after the user clicks a saved search, JoyFox opens JoyClub's filter
+  panel and clicks JoyClub's "Anwenden" once. This also stores the saved filters
+  on the account, as a click by the user would.
+- If JoyClub's filter button or "Anwenden" does not appear within about 8
+  seconds, JoyFox clicks nothing more. It shows a notice that asks the user to
+  open the filter and click "Anwenden".
 - Event notes (V1-5) keep an event's title, start, venue and path from the page
   when the user saves. An event saved before its details loaded keeps what the
   page showed. The start is JoyClub's local time as shown ("Ortszeit"), with no
