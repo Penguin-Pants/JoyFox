@@ -27,6 +27,8 @@ import { SHARED_EVENT_EXCEPTION_KEY } from "../triage/shared-event";
 import { EventsPanel } from "./events-panel";
 import { MessagesPanel } from "./messages-panel";
 import { GetStartedPanel } from "./get-started";
+import { QuickActionPanel } from "./quick-action-panel";
+import { QUICK_ACTION_KEY } from "../actions/quick-action-setting";
 import { RulePanel } from "./rule-panel";
 import { OptionsTabs } from "./tabs";
 import { TemplatePanel } from "./template-panel";
@@ -77,6 +79,10 @@ const ruleRoot = find("joyfox-rule");
 const rules = ruleRoot ? new RulePanel(ruleRoot) : undefined;
 const renderRules = quietly(async () => rules?.render());
 
+const quickRoot = find("joyfox-quick-action");
+const quick = quickRoot ? new QuickActionPanel(quickRoot) : undefined;
+const renderQuick = quietly(async () => quick?.render());
+
 let accounts: AccountPanel | undefined;
 const accountRoot = find("joyfox-accounts");
 let accountsFailed = false;
@@ -126,6 +132,7 @@ onLocaleChange((locale) => {
     accountRoot.textContent = t("accounts.readFailed");
   renderStart();
   if (rules) void rules.localeChanged().catch(() => undefined);
+  renderQuick();
   renderTemplates();
   renderEvents();
   renderMessages();
@@ -170,6 +177,8 @@ browser.storage.onChanged.addListener((changes, area) => {
     renderMessages();
     if (MESSAGE_REVISION_KEY in changes) renderData();
   }
+  // The Ignore and Delete switch, changed in another tab or by "delete all".
+  if (QUICK_ACTION_KEY in changes) renderQuick();
   // A nickname a card stored or changed: results and records name the member.
   if (MEMBER_REVISION_KEY in changes) {
     renderMessages();
@@ -193,6 +202,7 @@ void readLocale(runtimeSettingsArea).then((locale) => {
   mountAccounts();
   renderStart();
   renderRules();
+  renderQuick();
   renderTemplates();
   renderEvents();
   renderMessages();

@@ -128,7 +128,8 @@
   `about:debugging` counts as a fresh install each time it is loaded.
 - Quick Ignore and Delete (M9) has a live driver (ADR 0011) and was accepted
   live on 2026-09-25 (`manual-acceptance.md`, items 43 to 54). It is still off
-  by default (`joyfox.quickIgnoreDelete`). Items 44, 45, 47 and 50 could not be
+  by default (`joyfox.quickIgnoreDelete`, a switch on the options page's
+  "Contact rule" tab since 2026-09-27). Items 44, 45, 47 and 50 could not be
   caused by hand and rest on synthetic tests. A member who is already ignored is
   not reported as such (item 46); the owner decided on 2026-09-25 to keep this
   as is. It deletes first, on the conversation page, then opens the member's
