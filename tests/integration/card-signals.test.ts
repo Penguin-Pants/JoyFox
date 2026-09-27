@@ -8,6 +8,7 @@ import {
   HIDE_ATTRIBUTE,
   INCOMPLETE_ATTRIBUTE,
   messageSignalsClient,
+  type MemberName,
 } from "../../src/content/card-signals";
 import { CardNoteEditor } from "../../src/content/card-note-editor";
 import { messageNotesClient } from "../../src/content/member-notes";
@@ -535,6 +536,56 @@ describe("V1-10 signals on every card", () => {
       } as never);
       expect(response.ok, JSON.stringify(members).slice(0, 30)).toBe(false);
     }
+  });
+
+  it("sends a refused nickname batch again, and follows a nickname changed in place", async () => {
+    // Codex review on #80: a batch refused after an account switch is sent
+    // again, and a card whose nickname changes redraws its note button.
+    const real = messageSignalsClient((message) => router.route(message));
+    const sent: string[] = [];
+    let refuse = true;
+    const client = {
+      lookup: real.lookup,
+      names: (accountId: string, names: MemberName[]) => {
+        sent.push(...names.map((name) => name.nickname));
+        if (refuse) return Promise.resolve({ status: "refused" as const });
+        return real.names!(accountId, names);
+      },
+    };
+    const cards = new CardSignals(
+      document,
+      client,
+      messageNotesClient((message) => router.route(message)),
+    );
+    inboxPage([THIN]);
+    const name = () =>
+      document.querySelector('[data-e2e="conversation-list-item-name"]')!;
+    name().textContent = "Synthetic_Heron";
+    cards.update("inbox");
+    await flush();
+    refuse = false;
+    cards.update("inbox");
+    await flush();
+    expect(sent).toEqual(["Synthetic_Heron", "Synthetic_Heron"]);
+    expect(
+      (await repositories.joyClubMembers.get("account-a", THIN))?.nickname,
+    ).toBe("Synthetic_Heron");
+
+    name().textContent = "Synthetic_Crane";
+    cards.update("inbox");
+    await flush();
+    document
+      .querySelector<HTMLButtonElement>(
+        `[data-joyfox-ui="card-signals"][data-member="${THIN}"] .joyfox-signals__note`,
+      )!
+      .click();
+    await flush();
+    expect(editor().getAttribute("aria-label")).toBe(
+      "JoyFox: note and tags for Synthetic_Crane",
+    );
+    expect(
+      (await repositories.joyClubMembers.get("account-a", THIN))?.nickname,
+    ).toBe("Synthetic_Crane");
   });
 
   it("asks again after a failed lookup once the shown cards change, not on a redraw", async () => {

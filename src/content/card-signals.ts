@@ -34,7 +34,10 @@ export type MemberName = { memberId: string; nickname: string };
 export interface SignalsClient {
   lookup(members: SignalRequest[]): Promise<SignalsLookup>;
   /** Keep the nicknames the cards show, for JoyFox's own texts. */
-  names?(accountId: string, names: MemberName[]): Promise<unknown>;
+  names?(
+    accountId: string,
+    names: MemberName[],
+  ): Promise<MessageContract["member.names"]["response"]>;
 }
 
 export function messageSignalsClient(sender: MessageSender): SignalsClient {
@@ -291,14 +294,21 @@ export class CardSignals {
         }
       }
     const list = [...names.values()];
-    for (let start = 0; start < list.length; start += MAX_NAMES_PER_SEND)
+    for (let start = 0; start < list.length; start += MAX_NAMES_PER_SEND) {
+      const batch = list.slice(start, start + MAX_NAMES_PER_SEND);
+      // A failed or refused batch (the account switched meanwhile) is sent
+      // again the next time a card shows it.
+      const forget = () => {
+        for (const { memberId, nickname } of batch)
+          this.#namesSent.delete(`${accountId}|${memberId}|${nickname}`);
+      };
       void this.client
-        .names(accountId, list.slice(start, start + MAX_NAMES_PER_SEND))
-        .catch(() => {
-          // Only the display of names is lost; the next page tries again.
-          for (const { memberId, nickname } of list)
-            this.#namesSent.delete(`${accountId}|${memberId}|${nickname}`);
-        });
+        .names(accountId, batch)
+        .then((answer) => {
+          if (answer.status !== "ok") forget();
+        })
+        .catch(forget);
+    }
   }
 
   #group(surface: Surface, card: MemberCard): void {
@@ -307,7 +317,13 @@ export class CardSignals {
     );
     const signals = this.#data.get(requestKey(cardRequest(surface, card)));
     if (!signals || !this.#accountId) return existing?.remove();
-    const version = JSON.stringify([card.memberId, signals, this.#version]);
+    // The nickname too: the note button's editor title uses it.
+    const version = JSON.stringify([
+      card.memberId,
+      card.name,
+      signals,
+      this.#version,
+    ]);
     if (existing?.getAttribute("data-joyfox-version") === version) return;
     const document = this.document;
     const group = element(document, "span", "joyfox-signals");

@@ -1,5 +1,7 @@
 import type { MessageRouter } from "../messaging/router";
 import { cleanNickname, rememberNicknames } from "../storage/member-directory";
+import type { SettingsArea } from "../storage/local-settings";
+import { bumpMemberRevision } from "../storage/member-revision";
 import { JoyClubMemberRepository } from "../storage/repositories";
 import {
   invalid,
@@ -14,6 +16,8 @@ export const MAX_NAMES_PER_REQUEST = 200;
 export interface MemberHandlerDeps extends ActiveAccountSource {
   members?: JoyClubMemberRepository;
   now?: () => string;
+  /** Where the member revision is set; `storage.local` by default. */
+  settings?: SettingsArea;
 }
 
 /**
@@ -38,9 +42,11 @@ export function registerMemberHandlers(
     });
     return lockedWrite<
       { status: "ok"; changed: number } | { status: "refused" }
-    >(deps, payload?.accountId, { status: "refused" }, async (accountId) => ({
-      status: "ok",
-      changed: await rememberNicknames(members, accountId, names, now()),
-    }));
+    >(deps, payload?.accountId, { status: "refused" }, async (accountId) => {
+      const changed = await rememberNicknames(members, accountId, names, now());
+      // An open options page names the member at once.
+      if (changed > 0) await bumpMemberRevision(deps.settings);
+      return { status: "ok", changed };
+    });
   });
 }

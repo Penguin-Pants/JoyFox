@@ -10,6 +10,9 @@ import {
   rememberNicknames,
 } from "../../src/storage/member-directory";
 import { repositories } from "../../src/storage/repositories";
+import { WATCHED_ATTRIBUTES } from "../../src/content/navigation-coordinator";
+import { MEMBER_REVISION_KEY } from "../../src/storage/member-revision";
+import { MemorySettingsArea } from "../memory-settings";
 import { freshDatabase } from "../setup-indexeddb";
 
 // Owner decision, 2026-09-27: JoyFox keeps the nickname a card shows, so its
@@ -18,6 +21,7 @@ const now = "2026-09-27T10:00:00.000Z";
 const later = "2026-09-27T11:00:00.000Z";
 let router: MessageRouter;
 let active: string | undefined;
+let settings: MemorySettingsArea;
 
 const send = (payload: unknown) =>
   router.route({ type: "member.names", requestId: "r1", payload } as never);
@@ -26,9 +30,11 @@ beforeEach(async () => {
   await freshDatabase();
   active = "account-a";
   router = new MessageRouter();
+  settings = new MemorySettingsArea();
   registerMemberHandlers(router, {
     activeAccountId: () => Promise.resolve(active),
     now: () => now,
+    settings,
   });
 });
 
@@ -119,6 +125,21 @@ describe("member nicknames", () => {
         settings: {},
       });
     expect(() => parseImportFile(file("Synthetic_Owl"))).not.toThrow();
-    expect(() => parseImportFile(file(7))).toThrow();
+    // As clean as a card's write (Codex review on #80).
+    for (const bad of [7, "   ", " Owl", "x".repeat(65), "Owl\u0000"])
+      expect(() => parseImportFile(file(bad)), String(bad)).toThrow();
+  });
+
+  it("marks a change for open options pages, and only a change", async () => {
+    const names = [{ memberId: "2222222", nickname: "Synthetic_Owl" }];
+    await send({ accountId: "account-a", names });
+    expect(settings.items.get(MEMBER_REVISION_KEY)).toBeDefined();
+    settings.items.delete(MEMBER_REVISION_KEY);
+    await send({ accountId: "account-a", names });
+    expect(settings.items.get(MEMBER_REVISION_KEY)).toBeUndefined();
+  });
+
+  it("wakes the page reader when a search card's nickname changes in place", () => {
+    expect(WATCHED_ATTRIBUTES).toContain("user-name");
   });
 });

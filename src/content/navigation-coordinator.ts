@@ -14,6 +14,8 @@ export const WATCHED_ATTRIBUTES: readonly string[] = [
   "verification-status",
   "universal-gender",
   "aria-label",
+  // A search card's nickname (JoyFox's own texts name the member with it).
+  "user-name",
   // Visibility: JoyClub can hide and show the conversation list in place.
   "class",
   "style",
