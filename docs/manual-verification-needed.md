@@ -25,12 +25,10 @@ preferences, events, venues and navigation. Still open:
   account age comes from the profile's "Angemeldet seit" badge. Still Unclear:
   photo count on the inbox row, and account age on the inbox and conversation.
   Whether other couple compositions use other codes is not known.
-- **Verification codes:** `1` (grey, "geprüft", verified by JoyClub) and `3`
-  (green, "persönlich bekannt", you met them) are confirmed. Green replaces grey
-  for a member who is both, and a member can be personally known without being
-  verified. Both count as verified (owner, 2026-09-27). Still open: whether code
-  `2` exists and what it means, and what an unverified member shows (no shield,
-  or a code).
+- **Verification codes:** `1` (grey, verified), `0` (grey, not verified) and `3`
+  (green, "persönlich bekannt", you met them) are confirmed (owner, 2026-09-27,
+  with live profiles). Green replaces grey, and a member can be personally known
+  without being verified. Still open: whether code `2` exists and what it means.
 - **Read-status icon (from the F2 check):** a read state was extracted from 9 of
   25 rows. Check how many rows show the icon at all, which modifier classes
   appear (for example `--received`, `--read`), and whether the rows with the

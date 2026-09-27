@@ -25,16 +25,19 @@
   criterion is unknown. Only the German text is parsed, and only "11 Monaten"
   has been observed; the other unit forms follow German grammar. The inbox and
   conversation show no account age.
-- Only code `1` ("geprüft") counts as JoyClub verification. Code `3`
-  ("persönlich bekannt") is the user's own mark of having met the member; the
-  shield then hides JoyClub's verification, so it reads as unknown. A missing
-  shield and any other code also read as unknown, so an unverified member shows
-  Partial information rather than Does not meet rule.
+- Shield codes: `1` (grey) is verified and `0` (grey) is not verified. Code `3`
+  ("persönlich bekannt", green) is the user's own mark of having met the member;
+  the shield then hides JoyClub's verification. On a profile page the sidebar
+  badge ("Verifiziertes Mitglied" or "Mitglied noch nicht verifiziert") says it
+  in words and wins over the shield. On an inbox row, a conversation or a card
+  with a green shield, verification comes from the last profile reading, or
+  stays unknown if the profile was never opened. A missing shield and any other
+  code read as unknown.
 - "Personally known" is its own criterion (`requirePersonallyKnown`), higher
-  trust than verification. Code `3` is "yes" and code `1` is "no" (the owner
-  confirmed that green replaces grey). A missing shield and other codes read as
-  unknown. It is read live on each page and never cached, as the user can change
-  the mark.
+  trust than verification. Code `3` is "yes"; codes `0` and `1` are "no" (the
+  owner confirmed that green replaces grey). A missing shield and other codes
+  read as unknown. It is read live on each page and never cached, as the user
+  can change the mark.
 - Conversation header data is used only when its member ID matches a number in
   the conversation URL. If those URL numbers turn out not to be member IDs,
   header data will always read as missing.

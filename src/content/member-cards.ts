@@ -76,10 +76,16 @@ function searchCards(document: Document): MemberCard[] {
         badge.setAttribute("slot", "badge-top-right");
         badgeHost.append(badge);
       },
-      // A JoyFox line after the card, inside the link: a light-DOM child of
-      // the card itself has no place to draw without a slot.
-      signalsHost: link,
-      placeSignals: (group) => placeInCardLine(link, group),
+      // The JoyFox line goes over the photo, in the card's `media-overlay`
+      // slot. Placed after the card, it overflowed JoyClub's grid row and the
+      // next row covered it (owner's live check, 2026-09-27).
+      signalsHost: badgeHost,
+      placeSignals: (group) =>
+        placeInCardLine(
+          badgeHost,
+          group,
+          card ? { slot: "media-overlay" } : {},
+        ),
     });
   }
   return cards;

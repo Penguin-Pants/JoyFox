@@ -40,6 +40,9 @@ export function observedFromProfile(
   page: ProfileExtraction,
 ): Partial<ProfileFacts> {
   const facts = shieldFacts(page.verificationCode);
+  // The sidebar badge says it in words, even under a green shield.
+  if (page.verificationBadge.status === "found")
+    facts.verification = page.verificationBadge.value;
   if (page.photoCount.status === "found")
     facts.photoCount = page.photoCount.value;
   if (page.profileWordCount.status === "found")

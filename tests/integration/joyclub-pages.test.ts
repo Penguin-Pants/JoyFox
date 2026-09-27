@@ -5,6 +5,7 @@ import {
   DiagnosticsFlag,
   summarizeInbox,
 } from "../../src/content/diagnostics";
+import { observedFromProfile } from "../../src/content/observed-facts";
 import { detectPage } from "../../src/content/page-detector";
 import {
   extractConversation,
@@ -15,6 +16,7 @@ import {
   parseMemberSince,
   personallyKnownFromCode,
   profileTypeFromCode,
+  verificationFromBadge,
   verificationFromCode,
 } from "../../src/extraction/joyclub";
 import { resolveMemberIdentity } from "../../src/identity/member-identity";
@@ -402,15 +404,15 @@ describe("F1/F9 extraction from the verified profile", () => {
 });
 
 describe("M1 on verified profile data", () => {
-  it("maps the grey and the green shield as verified", () => {
+  it("maps the grey shield codes, and leaves the green one unknown", () => {
     const code = (value: number) =>
       verificationFromCode({ status: "found", value, source: "t" });
-    // 1 = grey "geprüft": verified by JoyClub.
+    // Grey: 1 verified, 0 not verified (owner's live check, 2026-09-27).
     expect(code(1)).toBe(true);
-    // 3 = green "persönlich bekannt" replaces the grey shield; the owner
-    // counts it as verified too (2026-09-27).
-    expect(code(3)).toBe(true);
-    for (const value of [0, 2, 4])
+    expect(code(0)).toBe(false);
+    // 3 = green "persönlich bekannt" replaces the grey shield and hides
+    // JoyClub's verification.
+    for (const value of [2, 3, 4])
       expect(code(value), String(value)).toBe("unknown");
     expect(verificationFromCode({ status: "missing", source: "t" })).toBe(
       "unknown",
@@ -435,7 +437,8 @@ describe("M1 on verified profile data", () => {
     expect(code(3)).toBe(true);
     // Grey means not personally known: green would replace it otherwise.
     expect(code(1)).toBe(false);
-    for (const value of [0, 2, 4])
+    expect(code(0)).toBe(false);
+    for (const value of [2, 4])
       expect(code(value), String(value)).toBe("unknown");
     expect(personallyKnownFromCode({ status: "missing", source: "t" })).toBe(
       "unknown",
@@ -447,7 +450,8 @@ describe("M1 on verified profile data", () => {
     const value = <T>(result: { status: string; value?: T }) =>
       result.status === "found" ? (result.value as T) : ("unknown" as const);
     const merged = mergeProfileFacts({
-      verification: verificationFromCode(extracted.verificationCode),
+      // The sidebar badge wins over the green shield.
+      verification: observedFromProfile(extracted).verification ?? "unknown",
       personallyKnown: personallyKnownFromCode(extracted.verificationCode),
       photoCount: value<number>(extracted.photoCount),
       profileWordCount: value<number>(extracted.profileWordCount),
@@ -468,8 +472,8 @@ describe("M1 on verified profile data", () => {
       },
     });
     expect(result.criteria.map(({ name, state }) => [name, state])).toEqual([
-      // The fixture shows code 3 ("persönlich bekannt"), which counts as
-      // verified and passes the personally-known criterion.
+      // The fixture shows code 3 ("persönlich bekannt"), which passes the
+      // personally-known criterion, and the badge "Verifiziertes Mitglied".
       ["verification", "pass"],
       ["personallyKnown", "pass"],
       ["photoCount", "pass"],
@@ -478,6 +482,39 @@ describe("M1 on verified profile data", () => {
       ["accountAge", "pass"],
     ]);
     expect(result.outcome).toBe("qualified");
+  });
+});
+
+describe("the profile's verification badge", () => {
+  it("reads the sidebar badge, which wins over the shield", () => {
+    expect(verificationFromBadge("Verifiziertes Mitglied")).toBe(true);
+    expect(
+      verificationFromBadge("  Mitglied noch nicht verifiziert Mitglied "),
+    ).toBe(false);
+    expect(verificationFromBadge("Angemeldet seit 2 Jahren")).toBeUndefined();
+    const page = load("profile");
+    const badge = Array.from(
+      page.querySelectorAll(
+        ".profile-sidebar-container__badge-list j-list-item",
+      ),
+    ).find((item) => item.textContent?.includes("Verifiziertes Mitglied"))!;
+    badge.innerHTML = "Mitglied noch nicht verifiziert Mitglied";
+    const extracted = extractProfile(page, PROFILE_URL);
+    expect(extracted.verificationBadge).toMatchObject({
+      status: "found",
+      value: false,
+    });
+    // Under the green shield: not verified, and still personally known.
+    expect(observedFromProfile(extracted)).toMatchObject({
+      verification: false,
+      personallyKnown: true,
+    });
+    badge.remove();
+    // No badge and a green shield: verification stays unknown, left for a
+    // cached reading to fill in.
+    expect(
+      observedFromProfile(extractProfile(page, PROFILE_URL)).verification,
+    ).toBeUndefined();
   });
 });
 

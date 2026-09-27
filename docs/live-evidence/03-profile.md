@@ -89,3 +89,18 @@ header that has layout boxes. The strip follows the desktop header's row
 (`div.profile-header__main-infos`), full width under the photo and the header.
 The gender and verification codes are still read from the mobile header, which
 holds them while hidden.
+
+## Verification badge and shield codes (owner's live check, 2026-09-27)
+
+Measured in the Web Console on two profiles. Badge texts with digits replaced by
+`N`:
+
+- Verified member: shield code `1` in both headers; badges "Verifiziertes
+  Mitglied", "N Forenbeiträge", "N Forenthema", "Angemeldet seit N Jahren".
+- Member not verified: shield code `0` in both headers; badges "Mitglied noch
+  nicht verifiziert Mitglied" (the text as read, with the word twice), "Neu im
+  JOYclub".
+- A member marked "persönlich bekannt": code `3` in both headers.
+
+Both grey codes show the same grey shield; green replaces it. The shield holds
+no `title` or label text.

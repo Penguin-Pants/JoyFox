@@ -804,3 +804,21 @@
   border-color: currentColor;
   font-weight: 700;
 }
+
+/*
+ * Over a search result's photo (the card's `media-overlay` and
+ * `badge-top-right` slots): a dark backing and light text, so the chips read
+ * on any image and do not take the card's link colour.
+ */
+.joyfox-card-line[slot="media-overlay"],
+.joyfox-compat-badge[slot="badge-top-right"] {
+  color: #fff;
+  background: rgb(0 0 0 / 70%);
+}
+
+.joyfox-card-line[slot="media-overlay"] {
+  box-sizing: border-box;
+  width: max-content;
+  padding: 1px 3px;
+  border-radius: 0.25rem;
+}

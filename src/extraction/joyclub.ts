@@ -80,30 +80,30 @@ function codeAttribute(
 }
 
 /**
- * JoyClub's `verification-status` codes, confirmed by the project owner on
- * 2026-09-23:
+ * JoyClub's `verification-status` codes, confirmed by the project owner
+ * (2026-09-23, corrected 2026-09-27 with live profiles):
  *
- * - `1`, grey shield "geprüft": verified by JoyClub.
+ * - `1`, grey shield: verified by JoyClub ("Verifiziertes Mitglied").
+ * - `0`, grey shield: not verified ("Mitglied noch nicht verifiziert").
  * - `3`, green shield "persönlich bekannt": the logged-in user marked this
- *   member as met in person. It is the viewer's own mark, not JoyClub's
- *   verification.
+ *   member as met in person. It is the viewer's own mark.
  *
- * The icon shows one state: green replaces grey for a member who is both, and
- * a member can be personally known without being verified (owner, same day).
- * The owner first ruled that code `3` says nothing about JoyClub's
- * verification. After the live checks of 2026-09-27, the owner reversed that:
- * a green shield counts as verified too ("Count green as verified"). Code `1`
- * still means "not personally known", and "personally known" stays its own
- * signal (`personallyKnownFromCode`). Code `2`, any other code and a missing
- * shield are unconfirmed and read as unknown for both signals.
+ * The icon shows one state: green replaces grey. So code `3` says nothing
+ * about JoyClub's verification, which reads as unknown there; a cached
+ * profile reading can fill it in. The profile page says it in words in its
+ * sidebar badge list, even under a green shield, and that badge wins
+ * (`verificationFromBadge`; owner decision "Badge, then codes", 2026-09-27,
+ * which replaced "Count green as verified" from the same day). Codes `0` and
+ * `1` mean "not personally known", as green would replace them otherwise.
+ * Code `2`, any other code and a missing shield read as unknown for both.
  */
 export const VERIFICATION_CODE_MEANING: Readonly<Record<number, boolean>> =
-  Object.freeze({ 1: true, 3: true });
+  Object.freeze({ 0: false, 1: true });
 
 /** The `verification-status` code for "persönlich bekannt". */
 export const PERSONALLY_KNOWN_CODE = 3;
 
-/** JoyClub's own verification, as the qualification rule uses it. */
+/** JoyClub's own verification, as a shield shows it. */
 export function verificationFromCode(
   code: ExtractionResult<number>,
 ): boolean | "unknown" {
@@ -111,21 +111,31 @@ export function verificationFromCode(
   return VERIFICATION_CODE_MEANING[code.value] ?? "unknown";
 }
 
-/** The `verification-status` code for "geprüft" without the green mark. */
-export const VERIFIED_ONLY_CODE = 1;
-
 /**
  * Whether the logged-in user marked this member as met in person. Code `3`
- * is "yes". Code `1` is "no", because green would replace grey if the member
- * were also personally known. Other codes and a missing shield are unknown.
+ * is "yes". The grey codes `0` and `1` are "no", because green would replace
+ * grey if the member were personally known. Other codes and a missing shield
+ * are unknown.
  */
 export function personallyKnownFromCode(
   code: ExtractionResult<number>,
 ): boolean | "unknown" {
   if (code.status !== "found") return "unknown";
   if (code.value === PERSONALLY_KNOWN_CODE) return true;
-  if (code.value === VERIFIED_ONLY_CODE) return false;
+  if (code.value in VERIFICATION_CODE_MEANING) return false;
   return "unknown";
+}
+
+/**
+ * The profile sidebar's verification badge (owner's live check, 2026-09-27):
+ * "Verifiziertes Mitglied" on a verified member, and a text holding "noch
+ * nicht verifiziert" on one who is not.
+ */
+export function verificationFromBadge(text: string): boolean | undefined {
+  const normalized = text.replace(/\s+/gu, " ").trim();
+  if (/^Verifiziertes Mitglied$/u.test(normalized)) return true;
+  if (/\bnoch nicht verifiziert\b/u.test(normalized)) return false;
+  return undefined;
 }
 
 /** The member's profile type, as JoyClub shows it with its gender icon. */
@@ -342,6 +352,8 @@ export function extractConversation(
 export interface ProfileExtraction {
   memberId: ExtractionResult<string>;
   verificationCode: ExtractionResult<number>;
+  /** The sidebar badge's verification; it wins over the shield. */
+  verificationBadge: ExtractionResult<boolean>;
   genderCode: ExtractionResult<number>;
   photoCount: ExtractionResult<number>;
   /**
@@ -460,6 +472,7 @@ export function extractProfile(
       "verification-status",
       "profile.verificationCode",
     ),
+    verificationBadge: verificationBadge(root),
     genderCode: codeAttribute(
       root,
       verifiedSelector("profile", "genderCode"),
@@ -480,6 +493,16 @@ export function extractProfile(
     joinedAt: missing("profile.joinedAt:no-exact-date-on-site"),
     joinedWindow: memberSinceWindow(root, now),
   };
+}
+
+function verificationBadge(root: ParentNode): ExtractionResult<boolean> {
+  const selector = verifiedSelector("profile", "verificationBadge");
+  if (!selector) return missing("profile.verificationBadge");
+  for (const element of Array.from(root.querySelectorAll(selector))) {
+    const value = verificationFromBadge(element.textContent ?? "");
+    if (value !== undefined) return found(value, "profile.verificationBadge");
+  }
+  return missing("profile.verificationBadge");
 }
 
 function memberSinceWindow(

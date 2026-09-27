@@ -62,7 +62,7 @@ app (`09-navigation.md`) and the inbox list can stay in the DOM.
 | Inbox        | Row               | `.cm-conversation-list-item`                                                       | One conversation                                     |
 | Inbox        | Sender name       | `[data-e2e="conversation-list-item-name"]`                                         | Display only                                         |
 | Inbox        | Member ID         | `.cm-conversation-list-item__avatar[href]`                                         | Digits in `/profile/<n>.<nickname>.html`             |
-| Inbox        | Verification code | `j-veri-icon[verification-status]`                                                 | `1` verified; `3` personally known (own criterion)   |
+| Inbox        | Verification code | `j-veri-icon[verification-status]`                                                 | `1` verified; `0` not; `3` personally known          |
 | Inbox        | Gender code       | `j-gender-icon[universal-gender]`                                                  | `1` man, `2` woman, `3` couple                       |
 | Inbox        | Read state        | `.cm-conversation-list-item__read-status`                                          | BEM modifier; on some rows only; meaning unconfirmed |
 | Inbox        | Message preview   | `.cm-conversation-list-item__text`                                                 | Latest message; phrase check only (ADR 0013)         |
@@ -81,6 +81,7 @@ app (`09-navigation.md`) and the inbox list can stay in the DOM.
 | Conversation | Send time         | `j-message-bubble` shadow root › `.footer time[datetime]`                          | ISO date and time, when shown                        |
 | Profile      | Member ID         | URL path                                                                           | Digits before the first `.`                          |
 | Profile      | Verification code | `[data-e2e="profile-header-base-info"] j-veri-icon[…]`                             | Numeric code                                         |
+| Profile      | Verification      | `.profile-sidebar-container__badge-list j-list-item` with a verification text      | Wins over the shield, also under a green one         |
 | Profile      | Photo count       | `.amount-badge[aria-label]`                                                        | `"<n> Fotos"` or `"1 Foto"`                          |
 | Profile      | Profile text      | `.profile-description-maintext__text`                                              | Word count of the main text only (motto not counted) |
 | Profile      | Account age       | `.profile-sidebar-container__badge-list j-list-item` with text "Angemeldet seit …" | Join window from a rounded duration                  |
@@ -155,14 +156,13 @@ buttons sit in open shadow roots; the driver clicks them there.
 
 ## Open points
 
-- **Verification codes.** Confirmed by the project owner on 2026-09-23: `1` is
-  the grey shield "geprüft", verified by JoyClub. `3` is the green shield
-  "persönlich bekannt": the logged-in user marked the member as met in person.
-  `3` is also a separate "personally known" signal. The green shield replaces
-  the grey one, so JoyClub's own verification is not visible then; the owner
-  decided on 2026-09-27 that `3` counts as verified too (ADR 0016 amendment).
-  Code `2`, any other code and a missing shield read as unknown, never as "not
-  verified".
+- **Verification codes.** Confirmed by the project owner (2026-09-23, corrected
+  on 2026-09-27 with a verified and an unverified live profile): `1` is a grey
+  shield on a verified member, `0` a grey shield on a member who is not
+  verified. `3` is the green shield "persönlich bekannt": the logged-in user
+  marked the member as met in person, and it hides JoyClub's verification. The
+  profile sidebar badge says it in words and wins (ADR 0016 amendment). Code
+  `2`, any other code and a missing shield read as unknown.
 - **Gender codes.** Confirmed by the project owner on 2026-09-23: `1` man, `2`
   woman, `3` couple (a male and a female icon side by side). Other codes read as
   unknown. No feature filters by profile type. Per-audience rules were dropped

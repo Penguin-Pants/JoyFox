@@ -208,7 +208,7 @@ task backlog, with these decisions:
    while the event is tracked and deleted when it is no longer tracked, or with
    the user's data.
 
-## Amendment: the green shield counts as verified (project owner, 2026-09-27)
+## Amendment: the green shield counts as verified (project owner, 2026-09-27; superseded the same day)
 
 JoyClub's shield shows one state. The green "persönlich bekannt" shield (code
 `3`) replaces the grey "geprüft" shield (code `1`), so a page never shows
@@ -223,3 +223,22 @@ such a member.
 "Personally known" stays its own signal: code `3` still passes the "Personally
 known" condition and adds the trust point, and code `1` still means "not
 personally known".
+
+## Amendment: verification from the profile badge, then the shield code (project owner, 2026-09-27)
+
+This replaces the amendment above. The owner corrected the facts it rested on:
+the shield is green only for "persönlich bekannt", and grey both for a verified
+member and for one who is not. Live profiles showed code `1` on a verified
+member and code `0` on one who is not. The profile's sidebar badge list says it
+in words: "Verifiziertes Mitglied" or "Mitglied noch nicht verifiziert", also
+under a green shield.
+
+The owner chose "Badge, then codes":
+
+1. On a profile page, the sidebar badge gives the verification.
+2. Elsewhere, code `1` is verified and code `0` is not verified.
+3. Code `3` leaves verification unknown on that page. A cached reading from the
+   member's profile fills it in; without one it stays unknown.
+
+A green shield no longer counts as verified. "Personally known" is unchanged:
+code `3` is "yes", and codes `0` and `1` are "no".
