@@ -18,7 +18,12 @@ import {
   observedFromProfile,
 } from "./observed-facts";
 import type { TriageClient } from "./triage-client";
-import { isPlaced, placeInStrip, removeEmptyStrip } from "./member-strip";
+import {
+  isPlaced,
+  placeInStrip,
+  removeEmptyStrip,
+  shownElement,
+} from "./member-strip";
 import {
   element,
   memberBar,
@@ -49,7 +54,7 @@ export function pageMember(
   page: MemberPage,
 ): PageMember | undefined {
   const root = selectorRegistry[page].root;
-  const anchor = root ? document.querySelector(root) : null;
+  const anchor = root ? shownElement(document, root) : null;
   if (!anchor) return undefined;
   const url = document.URL;
   const member =

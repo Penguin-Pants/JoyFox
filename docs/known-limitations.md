@@ -183,7 +183,10 @@
   store makes the preview slower.
 - The member strip's place depends on JoyClub's layout: it follows the header's
   parent when that parent is a horizontal flex row (ADR 0010). At narrow widths
-  the bar wraps onto a second line.
+  the bar wraps onto a second line. JoyClub's profile page holds its header
+  twice, one copy hidden; the strip follows the copy the page displays. If the
+  window is resized so that the other copy shows, the strip moves on the next
+  change to the page, not at once.
 - Saved searches (V1-3) appear only while JoyClub's result list
   (`div.member_search_list`) is on the page. Whether it is there for a search
   with no results is not known. JoyClub fills its filter panel from a saved

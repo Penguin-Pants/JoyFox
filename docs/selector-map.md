@@ -42,15 +42,15 @@ Rules:
 Detection matches the URL path first and then waits for the root element, so a
 half-rendered page is reported as missing rather than read.
 
-| Page         | Path pattern                                                    | Root                                    |
-| ------------ | --------------------------------------------------------------- | --------------------------------------- |
-| Conversation | `/clubmail/conversation/conversation-wrapper-personal-<n>-<n>/` | `.cm-conversation-header`               |
-| Inbox        | `/clubmail/`                                                    | `.cm-conversation-list`                 |
-| Profile      | `/profile/<n>.<nickname>.html`                                  | `[data-e2e="profile-header-base-info"]` |
-| Search       | `/member/` and `/member/<segment>/…/`                           | `div.member_search_list`                |
-| Event        | `/event/<n>.<slug>.html`                                        | `h1.event_name`                         |
-| Event list   | `/dates_partys/…`                                               | `div.card-list-ui`                      |
-| Venue        | `/club/<n>.<slug>.html`                                         | `h1.profile_name`                       |
+| Page         | Path pattern                                                    | Root                                                                                                       |
+| ------------ | --------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
+| Conversation | `/clubmail/conversation/conversation-wrapper-personal-<n>-<n>/` | `.cm-conversation-header`                                                                                  |
+| Inbox        | `/clubmail/`                                                    | `.cm-conversation-list`                                                                                    |
+| Profile      | `/profile/<n>.<nickname>.html`                                  | `[data-e2e="profile-header-base-info"]` (two copies since 2026-09-27; the strip follows the displayed one) |
+| Search       | `/member/` and `/member/<segment>/…/`                           | `div.member_search_list`                                                                                   |
+| Event        | `/event/<n>.<slug>.html`                                        | `h1.event_name`                                                                                            |
+| Event list   | `/dates_partys/…`                                               | `div.card-list-ui`                                                                                         |
+| Venue        | `/club/<n>.<slug>.html`                                         | `h1.profile_name`                                                                                          |
 
 Conversation is checked before inbox, because both are client-side routes of one
 app (`09-navigation.md`) and the inbox list can stay in the DOM.
