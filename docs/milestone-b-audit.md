@@ -315,8 +315,8 @@ permission was added and the schema version is unchanged.
 
 ### Status
 
-The editor is complete and tested. Live acceptance is `manual-acceptance.md`,
-items 36 to 42, and is pending.
+The editor is complete and tested. Live acceptance (`manual-acceptance.md`,
+items 36 to 42) passed on 2026-09-27.
 
 ## Hardening (2026-09-25)
 
