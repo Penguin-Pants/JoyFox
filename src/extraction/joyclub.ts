@@ -13,9 +13,10 @@ import {
  * so qualification shows Unknown rather than a guess.
  *
  * Identity comes from the numeric member ID only (build plan Section 12).
- * The inbox sender name is read for display alone, as the F2 proof of concept
- * requires: it is never an identity, never stored and never logged. Message
- * text is not extracted at all.
+ * The inbox sender name is read for display, as the F2 proof of concept
+ * requires: it is never an identity and never logged. Since 2026-09-27 the
+ * card code keeps it as the member's nickname for JoyFox's own texts (owner
+ * decision). Message text is not extracted here.
  */
 
 const found = <T>(value: T, source: string): ExtractionResult<T> => ({

@@ -25,6 +25,12 @@ export interface ExtensionAccount extends AccountScopedEntity {
 
 export interface JoyClubMember extends AccountScopedEntity {
   joyClubMemberId: string;
+  /**
+   * The member's JoyClub nickname, as a card last showed it, so JoyFox's own
+   * texts can name the member instead of a number (owner decision,
+   * 2026-09-27). Display only: never an identity, never logged.
+   */
+  nickname?: string;
 }
 
 export interface ProfileSnapshot extends AccountScopedEntity {

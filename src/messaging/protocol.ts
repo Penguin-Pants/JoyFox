@@ -166,6 +166,18 @@ export interface MessageContract {
           signals: Record<string, MemberSignals>;
         };
   };
+  /**
+   * The nicknames the cards on a page show, kept so JoyFox's own texts can
+   * name each member (owner decision, 2026-09-27). `refused` means the
+   * account is no longer active.
+   */
+  "member.names": {
+    request: {
+      accountId: string;
+      names: Array<{ memberId: string; nickname: string }>;
+    };
+    response: { status: "ok"; changed: number } | { status: "refused" };
+  };
   /** V1-2: the viewer's own preferences and each member's shared count. */
   "compat.lookup": {
     request: { memberIds: string[] };

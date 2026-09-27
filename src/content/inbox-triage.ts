@@ -529,7 +529,7 @@ export class InboxTriage {
       this.document,
       "h2",
       "joyfox-triage__heading",
-      // The name is shown as JoyClub shows it, never stored or logged.
+      // The name is shown as JoyClub shows it, never logged.
       state?.name ? t("inbox.whyNamed", { name: state.name }) : t("inbox.why"),
     );
     const close = button(

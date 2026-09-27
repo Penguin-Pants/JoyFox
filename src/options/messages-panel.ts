@@ -3,6 +3,8 @@ import type { CachedMessage } from "../domain/types";
 import { message, type Message } from "../i18n/message";
 import { formatDateTime, t } from "../i18n/translator";
 import { MessageCacheService } from "../messages/message-cache-service";
+import { nicknamesOf } from "../storage/member-directory";
+import { JoyClubMemberRepository } from "../storage/repositories";
 import {
   isMessageRetention,
   MAX_MESSAGE_RETENTION_MONTHS,
@@ -82,13 +84,18 @@ export class MessagesPanel {
     private readonly settings: SettingsArea = runtimeSettingsArea,
     private readonly service = new MessageCacheService(settings),
     private readonly accounts = new AccountService(),
+    private readonly members = new JoyClubMemberRepository(),
   ) {}
+
+  /** Nicknames by member ID, for the results of the shown account. */
+  #names = new Map<string, string>();
 
   async render(): Promise<void> {
     const generation = (this.#generation += 1);
     let accountId: string | undefined;
     let current: MessageSettings;
     let found: CachedMessage[];
+    let names: Map<string, string>;
     try {
       accountId = (await this.accounts.getActiveAccount())?.id;
       if (accountId !== this.#accountId) this.#query = "";
@@ -98,6 +105,9 @@ export class MessagesPanel {
       found = accountId
         ? (await this.service.search(accountId, this.#query)).messages
         : [];
+      names = accountId
+        ? await nicknamesOf(this.members, accountId)
+        : new Map<string, string>();
     } catch {
       if (generation === this.#generation)
         this.root.textContent = t("messages.readFailed");
@@ -105,6 +115,7 @@ export class MessagesPanel {
     }
     if (generation !== this.#generation) return;
     this.#accountId = accountId;
+    this.#names = names;
     this.#draw(accountId, current, found);
   }
 
@@ -296,7 +307,12 @@ export class MessagesPanel {
               item.direction === "sent"
                 ? "messages.sentTo"
                 : "messages.receivedFrom",
-              { member: item.memberId, when },
+              {
+                member:
+                  this.#names.get(item.memberId) ??
+                  t(message("member.number", { id: item.memberId })),
+                when,
+              },
             ),
           ),
         ),

@@ -402,8 +402,8 @@ stay as they are.
 | `messages.searchLabel` | Search my messages | Meine Nachrichten durchsuchen |
 | `messages.count` | 1 message / {count} messages found. | 1 Nachricht / {count} Nachrichten gefunden. |
 | `messages.countLimited` | {count} messages found. The newest {shown} are shown. | {count} Nachrichten gefunden. Die neuesten {shown} werden angezeigt. |
-| `messages.sentTo` | You to member {member} · {when} | Du an Mitglied {member} · {when} |
-| `messages.receivedFrom` | Member {member} to you · {when} | Mitglied {member} an dich · {when} |
+| `messages.sentTo` | You to {member} · {when} | Du an {member} · {when} |
+| `messages.receivedFrom` | {member} to you · {when} | {member} an dich · {when} |
 | `messages.storedAt` | stored {when} | gespeichert {when} |
 
 ## signals
@@ -429,7 +429,18 @@ stay as they are.
 | `signals.noteEdit` | Note | Notiz |
 | `signals.tagsLabel` | My tags | Meine Tags |
 | `signals.tagCount` | 1 tag / {count} tags | 1 Tag / {count} Tags |
-| `signals.editor.label` | JoyFox: note and tags for member {member} | JoyFox: Notiz und Tags für Mitglied {member} |
+| `signals.editor.label` | JoyFox: note and tags for {member} | JoyFox: Notiz und Tags für {member} |
+
+## member
+
+| Key | English | Deutsch |
+| --- | --- | --- |
+| `member.number` | Member {id} | Mitglied {id} |
+
+## signals
+
+| Key | English | Deutsch |
+| --- | --- | --- |
 | `signals.editor.loading` | Loading… | Wird geladen … |
 | `signals.editor.close` | Close | Schließen |
 | `signals.editor.noAccount` | Select or add an account in the JoyFox options to keep notes. | Wähle in den JoyFox-Einstellungen ein Konto aus oder füge eines hinzu, um Notizen zu führen. |
@@ -727,6 +738,7 @@ stay as they are.
 | `data.recordsTitle` | {label} ({count}) | {label} ({count}) |
 | `data.accountRecordHint` | The account record is removed only with the whole account, in Accounts above. | Der Kontodatensatz wird nur mit dem ganzen Konto entfernt, unter „Konten“. |
 | `data.recordSummary` | {id} (updated {updated}) | {id} (geändert: {updated}) |
+| `data.recordSummaryNamed` | {name}: {id} (updated {updated}) | {name}: {id} (geändert: {updated}) |
 | `data.valueYes` | yes | ja |
 | `data.valueNo` | no | nein |
 | `data.valueEmpty` | (empty) | (leer) |

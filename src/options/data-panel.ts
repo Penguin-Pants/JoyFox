@@ -102,6 +102,20 @@ type Pending =
 const samePending = (a: Pending | undefined, b: Pending) =>
   JSON.stringify(a) === JSON.stringify(b);
 
+/** Nicknames by member ID, from the member directory's records. */
+function memberNames(records: readonly AnyEntity[]): Map<string, string> {
+  const names = new Map<string, string>();
+  for (const record of records) {
+    const { joyClubMemberId, nickname } = record as unknown as Record<
+      string,
+      unknown
+    >;
+    if (typeof joyClubMemberId === "string" && typeof nickname === "string")
+      names.set(joyClubMemberId, nickname);
+  }
+  return names;
+}
+
 /**
  * M8, the data inspector (PRD Section 13.5): shows what is stored for each
  * account, entity by entity, with export and delete controls beside each
@@ -147,6 +161,21 @@ export class DataPanel {
       : this.#status;
   }
 
+  /** Nicknames by member ID, for the shown account's records. */
+  #names = new Map<string, string>();
+
+  /** A record's line: its ID and date, and the member's nickname if known. */
+  #summary(record: AnyEntity): string {
+    const updated = formatDate(record.updatedAt);
+    const fields = record as unknown as Record<string, unknown>;
+    const memberId = fields.joyClubMemberId ?? fields.memberId;
+    const name =
+      typeof memberId === "string" ? this.#names.get(memberId) : undefined;
+    return name
+      ? t("data.recordSummaryNamed", { name, id: record.id, updated })
+      : t("data.recordSummary", { id: record.id, updated });
+  }
+
   async render(): Promise<void> {
     const generation = (this.#generation += 1);
     const document = this.root.ownerDocument;
@@ -154,6 +183,7 @@ export class DataPanel {
     let selected: string | undefined;
     let counts: EntityCounts | undefined;
     let records: AnyEntity[] = [];
+    let names = new Map<string, string>();
     // Never fails: an unreadable setting reads as the default.
     const retention = await this.data.snapshotRetention();
     try {
@@ -164,8 +194,14 @@ export class DataPanel {
         : (activeId ?? accounts[0]?.id);
       if (selected) {
         counts = await this.data.counts(selected);
-        if (this.#shown && selected === this.#selected)
+        if (this.#shown && selected === this.#selected) {
           records = await this.data.records(selected, this.#shown);
+          names = memberNames(
+            this.#shown === "joyClubMembers"
+              ? records
+              : await this.data.records(selected, "joyClubMembers"),
+          );
+        }
       }
     } catch {
       if (generation === this.#generation) {
@@ -181,6 +217,7 @@ export class DataPanel {
       return;
     }
     if (generation !== this.#generation) return;
+    this.#names = names;
     if (selected !== this.#selected) {
       this.#shown = undefined;
       this.#shownLimit = RECORD_PAGE_SIZE;
@@ -373,17 +410,7 @@ export class DataPanel {
       const item = element(document, "li", "joyfox-data__record");
       item.dataset.recordId = record.id;
       const details = element(document, "details", "joyfox-data__details");
-      details.append(
-        element(
-          document,
-          "summary",
-          "",
-          t("data.recordSummary", {
-            id: record.id,
-            updated: formatDate(record.updatedAt),
-          }),
-        ),
-      );
+      details.append(element(document, "summary", "", this.#summary(record)));
       details.open = this.#openRecords.has(record.id);
       // A record's fields and its stored JSON are drawn when it is opened,
       // never for every listed record: an imported record can be very large.

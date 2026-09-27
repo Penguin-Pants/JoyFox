@@ -10,6 +10,7 @@ import {
 } from "../messages/message-settings";
 import { isMessage } from "../i18n/message";
 import { contactRuleProblem } from "../rules/contact-rule";
+import { cleanNickname } from "./member-directory";
 import { MAX_NORMALIZED_PHRASE_LENGTH } from "../rules/message-phrase";
 
 export class ValidationError extends Error {}
@@ -223,6 +224,12 @@ export function validateEntity(
       break;
     case "joyClubMembers":
       requireString(record, "joyClubMemberId");
+      // As clean as a card's write: no blank, overlong or control text.
+      if (
+        record.nickname !== undefined &&
+        cleanNickname(record.nickname) !== record.nickname
+      )
+        throw new ValidationError("nickname must be a clean nickname");
       break;
     case "profileSnapshots":
       validateProfileSnapshot(record);

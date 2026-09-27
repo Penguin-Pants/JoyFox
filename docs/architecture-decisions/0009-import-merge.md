@@ -25,12 +25,13 @@ already stored, which files to accept, and how conflicts resolve.
    account's label is kept.
 4. **Same record ID.**
    - Note, contact rule, manual placement, preference, saved search, event note,
-     spending entry, spam phrase: the newer `updatedAt` wins; on a tie the
-     stored one stays.
-   - Account, member entry, tag, not-spam correction, trust outcome, profile
-     snapshot, cached message, action log, template, sync setting: the stored
-     one stays. (Sync setting was added after review: a file must never redirect
-     an existing sync endpoint.)
+     spending entry, spam phrase, member entry: the newer `updatedAt` wins; on a
+     tie the stored one stays. (Member entry moved here on 2026-09-27: it now
+     carries a nickname that changes, ADR 0016.)
+   - Account, tag, not-spam correction, trust outcome, profile snapshot, cached
+     message, action log, template, sync setting: the stored one stays. (Sync
+     setting was added after review: a file must never redirect an existing sync
+     endpoint.)
    - A template with the same name, folder and text as a stored one in the same
      account is skipped as a duplicate.
 5. **Settings.** Only allowlisted settings are imported, with the right type,

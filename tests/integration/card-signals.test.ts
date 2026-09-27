@@ -8,6 +8,7 @@ import {
   HIDE_ATTRIBUTE,
   INCOMPLETE_ATTRIBUTE,
   messageSignalsClient,
+  type MemberName,
 } from "../../src/content/card-signals";
 import { CardNoteEditor } from "../../src/content/card-note-editor";
 import { messageNotesClient } from "../../src/content/member-notes";
@@ -18,6 +19,7 @@ import { completeness } from "../../src/signals/completeness";
 import { SignalsService } from "../../src/signals/signals-service";
 import { TriageService } from "../../src/triage/triage-service";
 import { NOTES_REVISION_KEY } from "../../src/storage/notes-revision";
+import { registerMemberHandlers } from "../../src/background/member-handlers";
 import { repositories } from "../../src/storage/repositories";
 import { MemorySettingsArea } from "../memory-settings";
 import { freshDatabase } from "../setup-indexeddb";
@@ -54,6 +56,10 @@ beforeEach(async () => {
   registerSignalsHandlers(router, {
     signals: new SignalsService(),
     activeAccountId: () => Promise.resolve(active),
+  });
+  registerMemberHandlers(router, {
+    activeAccountId: () => Promise.resolve(active),
+    now: () => now,
   });
   signals = new CardSignals(
     document,
@@ -285,6 +291,43 @@ describe("V1-10 signals on every card", () => {
     expect(note.getAttribute("data-has-note")).toBe("true");
   });
 
+  it("keeps the nickname each card shows, and names the member in the editor", async () => {
+    // Owner decision, 2026-09-27: JoyFox's own texts name a member by the
+    // nickname a card showed, never by the number.
+    searchPage([FULL]);
+    document
+      .querySelector("j-member-card")!
+      .setAttribute("user-name", "Synthetic_Owl");
+    signals.update("search");
+    await flush();
+    inboxPage([THIN]);
+    document.querySelector(
+      '[data-e2e="conversation-list-item-name"]',
+    )!.textContent = " Synthetic  Heron ";
+    signals.update("inbox");
+    await flush();
+    guestPage([NEW]);
+    document.querySelector(".date_moreinfo strong")!.textContent =
+      "Synthetic_Kite";
+    signals.update("event");
+    await flush();
+    const stored = async (memberId: string) =>
+      (await repositories.joyClubMembers.get("account-a", memberId))?.nickname;
+    expect(await stored(FULL)).toBe("Synthetic_Owl");
+    expect(await stored(THIN)).toBe("Synthetic Heron");
+    expect(await stored(NEW)).toBe("Synthetic_Kite");
+    expect(await repositories.joyClubMembers.list("account-b")).toEqual([]);
+
+    group(NEW)!
+      .querySelector<HTMLButtonElement>(".joyfox-signals__note")!
+      .click();
+    await flush();
+    expect(editor().getAttribute("aria-label")).toBe(
+      "JoyFox: note and tags for Synthetic_Kite",
+    );
+    expect(editor().textContent).not.toContain(NEW);
+  });
+
   it('gives a guest entry the "met in person" mark the profile page last showed', async () => {
     const triage = new TriageService(
       undefined,
@@ -493,6 +536,56 @@ describe("V1-10 signals on every card", () => {
       } as never);
       expect(response.ok, JSON.stringify(members).slice(0, 30)).toBe(false);
     }
+  });
+
+  it("sends a refused nickname batch again, and follows a nickname changed in place", async () => {
+    // Codex review on #80: a batch refused after an account switch is sent
+    // again, and a card whose nickname changes redraws its note button.
+    const real = messageSignalsClient((message) => router.route(message));
+    const sent: string[] = [];
+    let refuse = true;
+    const client = {
+      lookup: real.lookup,
+      names: (accountId: string, names: MemberName[]) => {
+        sent.push(...names.map((name) => name.nickname));
+        if (refuse) return Promise.resolve({ status: "refused" as const });
+        return real.names!(accountId, names);
+      },
+    };
+    const cards = new CardSignals(
+      document,
+      client,
+      messageNotesClient((message) => router.route(message)),
+    );
+    inboxPage([THIN]);
+    const name = () =>
+      document.querySelector('[data-e2e="conversation-list-item-name"]')!;
+    name().textContent = "Synthetic_Heron";
+    cards.update("inbox");
+    await flush();
+    refuse = false;
+    cards.update("inbox");
+    await flush();
+    expect(sent).toEqual(["Synthetic_Heron", "Synthetic_Heron"]);
+    expect(
+      (await repositories.joyClubMembers.get("account-a", THIN))?.nickname,
+    ).toBe("Synthetic_Heron");
+
+    name().textContent = "Synthetic_Crane";
+    cards.update("inbox");
+    await flush();
+    document
+      .querySelector<HTMLButtonElement>(
+        `[data-joyfox-ui="card-signals"][data-member="${THIN}"] .joyfox-signals__note`,
+      )!
+      .click();
+    await flush();
+    expect(editor().getAttribute("aria-label")).toBe(
+      "JoyFox: note and tags for Synthetic_Crane",
+    );
+    expect(
+      (await repositories.joyClubMembers.get("account-a", THIN))?.nickname,
+    ).toBe("Synthetic_Crane");
   });
 
   it("asks again after a failed lookup once the shown cards change, not on a redraw", async () => {

@@ -466,8 +466,8 @@ export const de: Catalog = {
         })} gefunden.`,
   "messages.countLimited": (p, f) =>
     `${f.number(p.count)} Nachrichten gefunden. Die neuesten ${f.number(p.shown)} werden angezeigt.`,
-  "messages.sentTo": (p) => `Du an Mitglied ${p.member} · ${p.when}`,
-  "messages.receivedFrom": (p) => `Mitglied ${p.member} an dich · ${p.when}`,
+  "messages.sentTo": (p) => `Du an ${p.member} · ${p.when}`,
+  "messages.receivedFrom": (p) => `${p.member} an dich · ${p.when}`,
   "messages.storedAt": (p) => `gespeichert ${p.when}`,
   "signals.state.complete": "Vollständig",
   "signals.state.incomplete": "Unvollständig",
@@ -501,8 +501,8 @@ export const de: Catalog = {
       one: "1 Tag",
       other: `${f.number(p.count)} Tags`,
     }),
-  "signals.editor.label": (p) =>
-    `JoyFox: Notiz und Tags für Mitglied ${p.member}`,
+  "signals.editor.label": (p) => `JoyFox: Notiz und Tags für ${p.member}`,
+  "member.number": (p) => `Mitglied ${p.id}`,
   "signals.editor.loading": "Wird geladen …",
   "signals.editor.close": "Schließen",
   "signals.editor.noAccount":
@@ -864,6 +864,8 @@ export const de: Catalog = {
   "data.accountRecordHint":
     "Der Kontodatensatz wird nur mit dem ganzen Konto entfernt, unter „Konten“.",
   "data.recordSummary": (p) => `${p.id} (geändert: ${p.updated})`,
+  "data.recordSummaryNamed": (p) =>
+    `${p.name}: ${p.id} (geändert: ${p.updated})`,
   "data.valueYes": "ja",
   "data.valueNo": "nein",
   "data.valueEmpty": "(leer)",

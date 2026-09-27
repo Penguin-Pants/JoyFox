@@ -191,6 +191,11 @@
   desktop header and hides one by screen width; the strip follows the one the
   page displays. If the window is resized so that the other header shows, the
   strip moves on the next change to the page, not at once.
+- JoyFox learns a member's nickname only from a card: an inbox row, a search
+  result or a guest-list entry. A member met only on their profile page, or in a
+  conversation whose inbox row was never shown, is named by number until a card
+  shows them. A nickname changed on JoyClub updates when a card shows the new
+  one.
 - On a ClubMail row, a search result and a guest-list entry, JoyFox's card line
   has room for one line of 18 px. It shows short texts (the full text is in each
   chip's tooltip) and clips the last chips when the card is too narrow. The tags
@@ -247,7 +252,8 @@
   older messages, so a message never scrolled into view is not searchable. A
   photo without text is not stored. A message edited or deleted on JoyClub keeps
   its stored text until the conversation is opened again (an edit) or the purge
-  window passes (a deletion). Results name the other member by ID only, and have
-  no link to JoyClub (the network isolation check forbids remote addresses in
-  the extension's code). The search matches the query's words in order, ignoring
+  window passes (a deletion). Results name the other member by the nickname a
+  card last showed, or by number when JoyFox never saw it, and have no link to
+  JoyClub (the network isolation check forbids remote addresses in the
+  extension's code). The search matches the query's words in order, ignoring
   case and spacing; it has no fuzzy matching.

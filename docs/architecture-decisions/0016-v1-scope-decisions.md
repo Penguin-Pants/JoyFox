@@ -242,3 +242,19 @@ The owner chose "Badge, then codes":
 
 A green shield no longer counts as verified. "Personally known" is unchanged:
 code `3` is "yes", and codes `0` and `1` are "no".
+
+## Amendment: member nicknames in JoyFox's own texts (project owner, 2026-09-27)
+
+JoyFox named other members by member number in its own texts ("Member 9999999 to
+you", "note and tags for member 9999999"), which means nothing to the user. The
+owner decided that JoyFox stores each member's JoyClub nickname, as a card shows
+it, and uses it in every such text ("Store nicknames"). This changes the privacy
+model, which said the sender name is never stored.
+
+1. Sources: the inbox row's sender name, a search result's `user-name` attribute
+   and a guest-list entry's name. The member ID stays the only identity.
+2. The nickname is kept on the account's `JoyClubMember` record, updated when a
+   card shows a new one, exported and deleted with the other records, and never
+   logged.
+3. Where JoyFox never saw a member's nickname, its texts show "Member" and the
+   number.

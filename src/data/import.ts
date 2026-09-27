@@ -40,6 +40,7 @@ import { migrateReasons } from "../storage/reason-migration";
 import type { RecordWrite } from "../storage/repositories";
 import { EVENT_REVISION_KEY } from "../storage/event-revision";
 import { MESSAGE_REVISION_KEY } from "../storage/message-revision";
+import { MEMBER_REVISION_KEY } from "../storage/member-revision";
 import { SAVED_SEARCH_REVISION_KEY } from "../storage/saved-search-revision";
 import { TRIAGE_REVISION_KEY } from "../storage/triage-revision";
 import { validateEntity, ValidationError } from "../storage/validation";
@@ -93,15 +94,16 @@ export interface ImportPlan {
 }
 
 /**
- * Records whose ID names one fact (a tag, a not-spam correction, a member
- * entry) or that never change once written (trust outcomes, snapshots,
+ * Records whose ID names one fact (a tag, a not-spam correction) or that
+ * never change once written (trust outcomes, snapshots,
  * cached messages, phrase matches, the action log, templates). On an ID
  * clash the stored one is kept. Every other entity keeps the newer version
  * by `updatedAt`.
  */
 const KEEP_EXISTING: ReadonlySet<EntityName> = new Set<EntityName>([
   "extensionAccounts",
-  "joyClubMembers",
+  // A member record's nickname changes (2026-09-27), so members keep the
+  // newer version by `updatedAt`, like notes.
   "userTags",
   "senderSpamOverrides",
   "trustSignals",
@@ -129,6 +131,7 @@ const CHANGE_MARKERS: ReadonlySet<string> = new Set([
   SAVED_SEARCH_REVISION_KEY,
   EVENT_REVISION_KEY,
   MESSAGE_REVISION_KEY,
+  MEMBER_REVISION_KEY,
 ]);
 
 const IMPORTED_SETTINGS: Readonly<Record<string, (value: unknown) => boolean>> =
@@ -148,7 +151,7 @@ const IMPORTED_SETTINGS: Readonly<Record<string, (value: unknown) => boolean>> =
 const BASE_FIELDS = ["id", "accountId", "createdAt", "updatedAt"] as const;
 const ENTITY_FIELDS: Readonly<Record<EntityName, readonly string[]>> = {
   extensionAccounts: ["joyClubAccountId", "label"],
-  joyClubMembers: ["joyClubMemberId"],
+  joyClubMembers: ["joyClubMemberId", "nickname"],
   profileSnapshots: [
     "memberId",
     "capturedAt",
