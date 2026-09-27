@@ -100,7 +100,23 @@ Measured in the Web Console on two profiles. Badge texts with digits replaced by
 - Member not verified: shield code `0` in both headers; badges "Mitglied noch
   nicht verifiziert Mitglied" (the text as read, with the word twice), "Neu im
   JOYclub".
-- A member marked "persönlich bekannt": code `3` in both headers.
+- A member marked "persönlich bekannt": code `3` in both headers. On a verified
+  member, the verification badge then holds a second text in its `description`
+  slot, and the whole item reads "Persönlich bekannt Verifiziertes Mitglied".
+  Sanitized fragment:
+
+  ```html
+  <j-list-item>
+    <div class="profile-badge__icon profile-badge__icon--green" slot="image">
+      …
+    </div>
+    <div slot="description">Persönlich bekannt</div>
+    Verifiziertes Mitglied
+  </j-list-item>
+  ```
+
+  JoyFox reads a badge's own label (its text outside slotted children) and falls
+  back to the whole text only when the label says nothing.
 
 Both grey codes show the same grey shield; green replaces it. The shield holds
 no `title` or label text.

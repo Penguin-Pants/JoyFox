@@ -498,6 +498,20 @@ describe("the profile's verification badge", () => {
         ".profile-sidebar-container__badge-list j-list-item",
       ),
     ).find((item) => item.textContent?.includes("Verifiziertes Mitglied"))!;
+    // Under a green shield the badge carries "Persönlich bekannt" in its
+    // description slot, above its own label (owner's live check).
+    badge.innerHTML =
+      '<div class="profile-badge__icon" slot="image"></div><div slot="description">Persönlich bekannt</div>\n Verifiziertes Mitglied\n';
+    expect(extractProfile(page, PROFILE_URL).verificationBadge).toMatchObject({
+      status: "found",
+      value: true,
+    });
+    // Another badge's description never counts: its own label wins.
+    badge.innerHTML =
+      '<div slot="description">noch nicht verifiziert</div> Neu im JOYclub';
+    expect(extractProfile(page, PROFILE_URL).verificationBadge.status).toBe(
+      "missing",
+    );
     badge.innerHTML = "Mitglied noch nicht verifiziert Mitglied";
     const extracted = extractProfile(page, PROFILE_URL);
     expect(extracted.verificationBadge).toMatchObject({
