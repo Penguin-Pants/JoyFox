@@ -9,6 +9,7 @@ import {
   MESSAGE_RETENTION_KEY,
 } from "../../src/messages/message-settings";
 import { MessagesPanel } from "../../src/options/messages-panel";
+import { rememberNicknames } from "../../src/storage/member-directory";
 import { repositories } from "../../src/storage/repositories";
 import { messageId } from "../fixtures/messages";
 import { MemorySettingsArea } from "../memory-settings";
@@ -89,12 +90,33 @@ describe("V1-4 message search on the options page", () => {
     search().value = "kite";
     search().dispatchEvent(new Event("input"));
     await flush();
-    expect(root.textContent).toContain("You to member 1234567");
+    // A member whose nickname JoyFox never saw is named by number.
+    expect(root.textContent).toContain("You to Member 1234567");
     search().value = "owl";
     search().dispatchEvent(new Event("input"));
     await flush();
     expect(root.textContent).toContain("No stored message contains this.");
     expect(root.querySelector(".joyfox-messages__item")).toBeNull();
+  });
+
+  it("names the other member by the nickname a card showed", async () => {
+    const account = await accounts.createAccount({ joyClubAccountId: "a" });
+    await storeMessages(account.id);
+    await rememberNicknames(
+      repositories.joyClubMembers,
+      account.id,
+      [{ memberId: "1234567", nickname: "Synthetic_Kite" }],
+      now,
+    );
+    await panel.render();
+    search().value = "kite";
+    search().dispatchEvent(new Event("input"));
+    await flush();
+    expect(root.textContent).toContain("You to Synthetic_Kite");
+    expect(root.textContent).not.toContain("1234567");
+    setLocale("de");
+    await panel.render();
+    expect(root.textContent).toContain("Du an Synthetic_Kite");
   });
 
   it("turns storing off and on, and saves how long messages are kept", async () => {

@@ -199,6 +199,37 @@ describe("M8 import: restoring and merging", () => {
     expect(settings.items.get("joyfox.templatePicker")).toBe(false);
   });
 
+  it("takes a member's newer nickname from the file", async () => {
+    // Codex review on #80: member records change once they carry a nickname,
+    // so the newer one wins, like notes.
+    await repositories.extensionAccounts.put("a", account("a", "synthetic-a"));
+    await repositories.joyClubMembers.put("a", {
+      id: "1234567",
+      accountId: "a",
+      joyClubMemberId: "1234567",
+      createdAt: t0,
+      updatedAt: t0,
+    });
+    await importText(
+      fullFile({
+        extensionAccounts: [account("a", "synthetic-a")],
+        joyClubMembers: [
+          {
+            id: "1234567",
+            accountId: "a",
+            joyClubMemberId: "1234567",
+            nickname: "Synthetic_Owl",
+            createdAt: t0,
+            updatedAt: t1,
+          },
+        ],
+      }),
+    );
+    expect(
+      (await repositories.joyClubMembers.get("a", "1234567"))?.nickname,
+    ).toBe("Synthetic_Owl");
+  });
+
   it("merges into the account with the same identifier, by the approved rules", async () => {
     // Stored: account "local" for identifier "me", an older note, a tag,
     // and a template.

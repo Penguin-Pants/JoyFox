@@ -29,13 +29,22 @@ import { button, element, UI_ATTRIBUTE } from "./triage-ui";
 
 export type SignalsLookup = MessageContract["signals.lookup"]["response"];
 
+export type MemberName = { memberId: string; nickname: string };
+
 export interface SignalsClient {
   lookup(members: SignalRequest[]): Promise<SignalsLookup>;
+  /** Keep the nicknames the cards show, for JoyFox's own texts. */
+  names?(
+    accountId: string,
+    names: MemberName[],
+  ): Promise<MessageContract["member.names"]["response"]>;
 }
 
 export function messageSignalsClient(sender: MessageSender): SignalsClient {
   return {
     lookup: (members) => request(sender, "signals.lookup", { members }),
+    names: (accountId, names) =>
+      request(sender, "member.names", { accountId, names }),
   };
 }
 
@@ -45,6 +54,9 @@ export function runtimeSignalsClient(): SignalsClient {
       browser.runtime.sendMessage(message) as Promise<ExtensionResponse>,
   );
 }
+
+/** Bounded like the background's `MAX_NAMES_PER_REQUEST`. */
+const MAX_NAMES_PER_SEND = 200;
 
 /** The signals group on each card. */
 export const CARD_SIGNALS = "card-signals";
@@ -122,6 +134,8 @@ export class CardSignals {
   #accountId?: string | null;
   #rendered = "";
   readonly #editor: CardNoteEditor;
+  /** `account|member|nickname` already sent from this tab. */
+  readonly #namesSent = new Set<string>();
 
   constructor(
     private readonly document: Document,
@@ -254,8 +268,47 @@ export class CardSignals {
     else this.#removeFilter();
     if (this.#type === "profile") this.#drawProfile();
     else this.#removeSection();
+    this.#keepNames(shown);
     // An editor for a member no longer on any card stays open: the user
     // closes it. It still edits that member's own records.
+  }
+
+  /**
+   * Send the nicknames the cards show, each once per account and tab, so
+   * JoyFox's own texts can name the member (owner decision, 2026-09-27).
+   * Only for the account the cards' signals came from.
+   */
+  #keepNames(shown: Array<[Surface, MemberCard[]]>): void {
+    const accountId = this.#accountId;
+    if (!accountId || !this.client.names) return;
+    const names = new Map<string, MemberName>();
+    for (const [, cards] of shown)
+      for (const card of cards) {
+        const key = `${accountId}|${card.memberId}|${card.name}`;
+        if (card.name && !this.#namesSent.has(key)) {
+          this.#namesSent.add(key);
+          names.set(card.memberId, {
+            memberId: card.memberId,
+            nickname: card.name,
+          });
+        }
+      }
+    const list = [...names.values()];
+    for (let start = 0; start < list.length; start += MAX_NAMES_PER_SEND) {
+      const batch = list.slice(start, start + MAX_NAMES_PER_SEND);
+      // A failed or refused batch (the account switched meanwhile) is sent
+      // again the next time a card shows it.
+      const forget = () => {
+        for (const { memberId, nickname } of batch)
+          this.#namesSent.delete(`${accountId}|${memberId}|${nickname}`);
+      };
+      void this.client
+        .names(accountId, batch)
+        .then((answer) => {
+          if (answer.status !== "ok") forget();
+        })
+        .catch(forget);
+    }
   }
 
   #group(surface: Surface, card: MemberCard): void {
@@ -264,7 +317,13 @@ export class CardSignals {
     );
     const signals = this.#data.get(requestKey(cardRequest(surface, card)));
     if (!signals || !this.#accountId) return existing?.remove();
-    const version = JSON.stringify([card.memberId, signals, this.#version]);
+    // The nickname too: the note button's editor title uses it.
+    const version = JSON.stringify([
+      card.memberId,
+      card.name,
+      signals,
+      this.#version,
+    ]);
     if (existing?.getAttribute("data-joyfox-version") === version) return;
     const document = this.document;
     const group = element(document, "span", "joyfox-signals");
@@ -319,7 +378,7 @@ export class CardSignals {
       document,
       "joyfox-button joyfox-signals__note",
       "✎",
-      () => this.#editor.open(card.memberId, note),
+      () => this.#editor.open(card.memberId, note, card.name),
     );
     note.title = noteText;
     note.setAttribute("aria-label", noteText);

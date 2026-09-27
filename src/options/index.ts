@@ -22,6 +22,7 @@ import {
   MESSAGE_RETENTION_KEY,
 } from "../messages/message-settings";
 import { MESSAGE_REVISION_KEY } from "../storage/message-revision";
+import { MEMBER_REVISION_KEY } from "../storage/member-revision";
 import { SHARED_EVENT_EXCEPTION_KEY } from "../triage/shared-event";
 import { EventsPanel } from "./events-panel";
 import { MessagesPanel } from "./messages-panel";
@@ -168,6 +169,11 @@ browser.storage.onChanged.addListener((changes, area) => {
   ) {
     renderMessages();
     if (MESSAGE_REVISION_KEY in changes) renderData();
+  }
+  // A nickname a card stored or changed: results and records name the member.
+  if (MEMBER_REVISION_KEY in changes) {
+    renderMessages();
+    renderData();
   }
   // Event notes saved on a JoyClub page, or the shared-event exception.
   if (EVENT_REVISION_KEY in changes || SHARED_EVENT_EXCEPTION_KEY in changes) {

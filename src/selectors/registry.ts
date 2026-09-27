@@ -47,7 +47,8 @@ export const selectorRegistry: Readonly<
     root: ".cm-conversation-list",
     fields: {
       row: ".cm-conversation-list-item",
-      // Display only (F2). Never an identity: resolveMemberIdentity refuses it.
+      // Display only (F2): kept as the member's nickname for JoyFox's own
+      // texts, never an identity (resolveMemberIdentity refuses it).
       senderName: '[data-e2e="conversation-list-item-name"]',
       memberId: ".cm-conversation-list-item__avatar[href]",
       verificationCode: "j-veri-icon[verification-status]",
@@ -135,6 +136,9 @@ export const selectorRegistry: Readonly<
       // The member ID is in the link (V1-2 reads it for the shared count).
       resultLink: 'a[data-e2e="result-item"]',
       resultCard: "j-member-card",
+      // The card's nickname, in its `user-name` attribute (11-search.md).
+      // Display only, never an identity.
+      resultName: "j-member-card[user-name]",
     },
   },
   event: {
@@ -156,6 +160,8 @@ export const selectorRegistry: Readonly<
       // one clipped line, so JoyFox's line goes after it, at the end of this
       // block (owner's live check, 2026-09-27).
       attendeeInfo: "div.date_info",
+      // The guest's nickname (14-events.md). Display only, never an identity.
+      attendeeNickname: "div.date_moreinfo strong",
     },
   },
   // "Dates & Events" and its sub-tabs; one list holds event and date cards.
