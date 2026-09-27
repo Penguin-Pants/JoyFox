@@ -546,6 +546,14 @@ copies hidden (`profile-header-small__context-menu`, one without a class, and
 `profile-container__context-menu-desktop` shown), and the driver took the first.
 It now takes the shown one.
 
+**Item 99, second run (2026-09-27): failed again; fixed, to be re-tested.** The
+same end, `Failed:handoff-failed`, with the notice still on the conversation
+page: the tab never left for the profile. The background refused the hand-off:
+its check of the sending page read `sender.url`, the address the content script
+started on. JoyClub opens a conversation from the inbox in place
+(`09-navigation.md`), so that address was still the inbox. The check now reads
+the tab's current address from the browser.
+
 ## Readable records in "Your data" (V1-7)
 
 101. On "Your data", click "Show" for "Message templates" and open the template

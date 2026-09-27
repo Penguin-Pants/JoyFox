@@ -34,7 +34,17 @@ export interface ActionHandlerDeps extends ActiveAccountSource {
    * disk and end with the browser session. Without it, no run hands off.
    */
   session?: SettingsArea;
+  /**
+   * The tab's current address, as the browser reports it. `sender.url` is
+   * the address the content script started on; JoyClub opens a conversation
+   * from the inbox in place (09-navigation.md), so it can still name the
+   * inbox. By default `tabs.get`, which the JoyClub host permission allows.
+   */
+  tabUrl?: (tabId: number) => Promise<string | undefined>;
 }
+
+const browserTabUrl = async (tabId: number): Promise<string | undefined> =>
+  (await globalThis.browser?.tabs?.get(tabId))?.url;
 
 /** One marker per tab; a newer hand-off in the same tab replaces it. */
 const HANDOFF_PREFIX = "joyfox.m9.handOff.";
@@ -74,14 +84,16 @@ function isProfileOf(path: string | undefined, profile: string): boolean {
 const CONVERSATION_PATH =
   /^\/clubmail\/conversation\/conversation-wrapper-(personal-\d{1,20}-\d{1,20})\/?$/;
 
-/** The sending page's path, as the browser reports it. */
-function senderPath(context: RouteContext): string | undefined {
+function pathOf(url: string | undefined): string | undefined {
   try {
-    return context.url ? new URL(context.url).pathname : undefined;
+    return url ? new URL(url).pathname : undefined;
   } catch {
     return undefined;
   }
 }
+
+/** The sending page's path, as the browser reports it. */
+const senderPath = (context: RouteContext) => pathOf(context.url);
 
 function tabId(context: RouteContext): number {
   if (typeof context.tabId !== "number") throw invalid("tab");
@@ -161,6 +173,7 @@ export function registerActionHandlers(
   router: MessageRouter,
   deps: ActionHandlerDeps,
 ): void {
+  const tabUrl = deps.tabUrl ?? browserTabUrl;
   const now = deps.now ?? (() => Date.now());
   router.register("action.ignoreDelete.start", async (payload) => {
     const target = {
@@ -227,13 +240,20 @@ export function registerActionHandlers(
       { status: "refused" },
       async (accountId) => {
         const log = await handOffReady(accountId, id, next);
-        // The path must be the run's own member's profile, and the sender,
-        // as the browser reports it, the run's own conversation page.
+        // The path must be the run's own member's profile, and the tab, as
+        // the browser reports it now, on the run's own conversation page.
+        // The tab's current address, not `sender.url`: a conversation opened
+        // from the inbox is a client-side route, and `sender.url` can still
+        // name the inbox (owner's live check, item 99, 2026-09-27: every
+        // normal run was refused). Only when the browser cannot report the
+        // tab is the sender's address used.
+        const current =
+          pathOf(await tabUrl(tab).catch(() => undefined)) ??
+          senderPath(context);
         if (
           !log ||
           PROFILE_PATH.exec(path)?.[1] !== log.memberId ||
-          CONVERSATION_PATH.exec(senderPath(context) ?? "")?.[1] !==
-            log.conversationId
+          CONVERSATION_PATH.exec(current ?? "")?.[1] !== log.conversationId
         )
           return { status: "refused" };
         const marker: HandOffMarker = {

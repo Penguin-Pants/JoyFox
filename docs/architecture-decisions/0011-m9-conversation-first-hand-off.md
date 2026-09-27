@@ -113,7 +113,12 @@ Built on the owner's choice of "M9 review follow-ups" as the next phase:
   `02-conversation.md`). Before, only the profile path in the request was
   checked. This relies on the address staying the same after Delete, as
   `10-ignore.md` records. If JoyClub moves it, the hand-off is refused and the
-  run stops with `handoff-failed`, with Delete reported as done.
+  run stops with `handoff-failed`, with Delete reported as done. (2026-09-27,
+  live check 99: the check read `sender.url`, which is the address the content
+  script started on. JoyClub opens a conversation from the inbox in place, so it
+  still named the inbox and every normal run was refused. The check now reads
+  the tab's current address from the browser, `tabs.get`, which the JoyClub host
+  permission allows; `sender.url` only when the browser cannot report the tab.)
 - **A cancelled navigation withdraws the marker.** After a hand-off, the
   conversation page waits `HANDOFF_WAIT_MS` (the 15-second step timeout; the
   move to the profile counts as one more step) for `pagehide`. If the page is
