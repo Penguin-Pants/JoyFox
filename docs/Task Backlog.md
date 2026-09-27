@@ -46,10 +46,10 @@ Matches the PRD's Section 19.1 scope exactly. Nothing here is not in that list, 
 | F8 | Partial | Research draft in `docs/distribution.md` (2026-09-25), from search summaries only: the environment could not reach the Mozilla pages. Channel chosen (owner, 2026-09-26, ADR 0016): unlisted, with automatic updates through a GitHub-hosted `update_url`. Still needed: the draft's verification checklist, by someone with access to the Mozilla pages. The extension ID is decided: `joyfox@drclaw` (ADR 0016). 2026-09-26: checklist items 2 to 4 verified with Mozilla's own tools (`web-ext` 10.7.0, `addons-linter` 10.13.0); the manifest now declares `data_collection_permissions` as `"none"`, `web-ext` is pinned, and CI runs `npm run lint:amo`. Items 1, 5 and 6 still need the Mozilla web pages. |
 | M1 | Partial | Engine, fact merge and extraction are complete. Milestone C added the page badge, the explanation panel and profile snapshot capture. The 95 percent manual trial over 50 messages remains. |
 | M2 | Partial | Tab bar, per-row badges, in-place filtering, per-sender manual placement and dynamic rows are complete and tested (`milestone-c-audit.md`). A manual Qualified placement is the PRD 7.4 trusted exception (ADR 0015). Live acceptance passed on 2026-09-23, including the split-view re-check. The existing-conversation exception is blocked on reply detection. |
-| M4 | Partial | One global rule in the V1-compatible schema, a pure evaluator with explicit unknown handling, and the two-box options builder are complete and tested. The advanced editor (rule groups with AND/OR and "not", ADR 0012) is built and tested; its live acceptance (items 75 to 80) passed on 2026-09-25. The "First message contains" condition (ADR 0013) is built and tested; its live acceptance (items 86 to 90) is pending. Presets are deferred. Live acceptance of the two-box builder passed on 2026-09-23. |
+| M4 | Partial | One global rule in the V1-compatible schema, a pure evaluator with explicit unknown handling, and the two-box options builder are complete and tested. The advanced editor (rule groups with AND/OR and "not", ADR 0012) is built and tested; its live acceptance (items 75 to 80) passed on 2026-09-25. The "First message contains" condition (ADR 0013) is built and tested; its live acceptance (items 86 to 90) passed on 2026-09-27. Presets are deferred. Live acceptance of the two-box builder passed on 2026-09-23. |
 | M6 | Partial | Point-count trust score with a full explanation, outcome logging and undo on conversation and profile pages are complete and tested. Live acceptance passed on 2026-09-23. The spam point stays unknown until M3 reads messages from a page (blocked on the message-bubble evidence). |
 | M3 | Partial | Normalization, the pluggable similarity engine, duplicate and known-phrase matching, explanations, and the persisted per-sender override are complete. Nothing reads a message from a page yet, which waits on F1. |
-| M5 | Partial | Notes and tags persist, keyed to account plus a verified member ID. The note and tag editor is complete and tested on the profile and conversation pages, including the acceptance "survives a restart and a markup change that keeps the same profile ID" (`milestone-b-audit.md`, M5 editor). Live acceptance (`manual-acceptance.md`, items 36 to 42) is pending. Inbox, search and event surfaces are "later" in build plan Section 12. |
+| M5 | Partial | Notes and tags persist, keyed to account plus a verified member ID. The note and tag editor is complete and tested on the profile and conversation pages, including the acceptance "survives a restart and a markup change that keeps the same profile ID" (`milestone-b-audit.md`, M5 editor). Live acceptance (`manual-acceptance.md`, items 36 to 42) passed on 2026-09-27. Inbox, search and event surfaces are "later" in build plan Section 12. |
 | M7 | Partial | Explicit active account, account-scoped repositories, options switcher, and the Section 14 isolation test. Automatic account detection waits on F1 and F9. |
 | M8 | Done | Account selector, counts, per-entity inspection, delete record, data type, account data and everything, account and full JSON export with the schema version. Export completeness is tested item by item against every entity (`milestone-d-audit.md`). Live acceptance passed on 2026-09-23 (`manual-acceptance.md`, items 27 to 30 and 35). |
 | M10 | Partial | Create, edit, delete, folders and exact insertion at the cursor are complete, tested and accepted live on the standard composer (items 31 to 34, 2026-09-23). The picker is on by default (ADR 0007). The event ClubMail composer is unverified, so "every compose context" stays open. |
@@ -65,7 +65,7 @@ Matches the PRD's Section 19.1 scope exactly. Nothing here is not in that list, 
 | Missing sender information is shown as Unknown | Met (M1, M2) |
 | Every triage decision can be explained | Met (M2, M4) |
 | Classification overrides persist | Met (M2) |
-| Profile notes survive restart | Met in automated tests (M5); live check passed for items 36 to 39, 41 and 42 (2026-09-27); item 40 (another account) open |
+| Profile notes survive restart | Met in automated tests (M5); live check passed (items 36 to 42, 2026-09-27) |
 | Accounts remain isolated | Met: automated isolation tests (M7, M5 editor) |
 | Data export covers all stored entities | Met (M8) |
 | Complete data deletion works | Met (M8, item 35) |
@@ -316,8 +316,7 @@ A task with **proposed** criteria starts only after the owner approves them (see
 2. Deferred to the future roadmap: V1-6 (and D2).
 3. Evidence captured (E1 to E4, 2026-09-26). Live checks on 2026-09-27:
    V1-5 (items 111 to 115), V1-2 (116 to 120) and V1-4 (121 to 124) passed.
-   V1-10: items 125, 127 and 128 passed; item 126 failed and is fixed in PR
-   #77, to be re-tested. V1-13: items 129 and 132 passed; items 130 and 131
+   V1-10 (125 to 128, item 126 after PR #77) passed. V1-13: items 129 and 132 passed; items 130 and 131
    could not be tested and stay open.
 4. Last: V1-9, after V1-2 to V1-5, V1-7, V1-8 and V1-10 to V1-13, the MVP
    release gate and F8's verification checklist.

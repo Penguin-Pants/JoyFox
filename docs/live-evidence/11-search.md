@@ -146,5 +146,5 @@ Live check 126 (2026-09-27): the card line showed over the photo, but a click on
 its note button "✎" opened the member's profile. The overlay slot's container
 can turn off pointer events, which slotted content inherits, and a layer of the
 link can lie over the photo. The card line now sets `pointer-events: auto` and
-sits above such layers (`position: relative`, `z-index: 2`). Not yet re-tested
-live.
+sits above such layers (`position: relative`, `z-index: 2`). The owner re-tested
+item 126 the same day, and it passed.
