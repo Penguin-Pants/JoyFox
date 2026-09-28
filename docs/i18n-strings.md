@@ -56,7 +56,7 @@ stay as they are.
 | --- | --- | --- |
 | `common.close` | Close | Schließen |
 | `common.openOptions` | Open JoyFox options | JoyFox-Einstellungen öffnen |
-| `common.saveFailed` | JoyFox could not save that change. Nothing was changed. | JoyFox konnte diese Änderung nicht speichern. Es wurde nichts geändert. |
+| `common.saveFailed` | JoyFox could not save that change. Nothing was changed. Try again. If it keeps failing, reload the page. | JoyFox konnte diese Änderung nicht speichern. Es wurde nichts geändert. Versuche es noch einmal. Wenn es weiter nicht klappt, lade die Seite neu. |
 
 ## legacy
 
@@ -102,7 +102,7 @@ stay as they are.
 | `triage.headline.noConditions` | Your contact rule has no required conditions, so every sender qualifies. | Deine Kontaktregel hat keine Pflichtbedingungen, deshalb ist jede Person qualifiziert. |
 | `triage.headline.meets` | This sender meets your contact rule. | Diese Person erfüllt deine Kontaktregel. |
 | `triage.headline.undecided` | JoyFox could not decide, because some information is unknown. | JoyFox konnte nicht entscheiden, weil einige Angaben unbekannt sind. |
-| `triage.headline.doesNotMeet` | This sender does not meet your contact rule, so it goes to {placement}. | Diese Person erfüllt deine Kontaktregel nicht und kommt deshalb nach „{placement}“. |
+| `triage.headline.doesNotMeet` | This sender does not meet your contact rule, so JoyFox places them in {placement}. | Diese Person erfüllt deine Kontaktregel nicht und kommt deshalb nach „{placement}“. |
 
 ## trust
 
@@ -156,7 +156,11 @@ stay as they are.
 | `action.stepText.delete.unknown` | Delete: not confirmed. JoyFox started it but did not see JoyClub confirm it. | In den Papierkorb schieben: nicht bestätigt. JoyFox hat den Schritt begonnen, aber keine Bestätigung von JoyClub gesehen. |
 | `action.next.ignore` | Next: open the member's profile and check whether they are ignored. If not, ignore them there yourself. | Nächster Schritt: Öffne das Profil des Mitglieds und prüfe, ob es ignoriert wird. Wenn nicht, ignoriere es dort selbst. |
 | `action.next.delete` | Next: open the conversation and check whether it is in the trash. If not, move it there yourself with JoyClub's trash button. | Nächster Schritt: Öffne die Unterhaltung und prüfe, ob sie im Papierkorb ist. Wenn nicht, verschiebe sie selbst mit „In den Papierkorb schieben“. |
+| `action.next.showList` | Delete works only while the ClubMail list shows beside the conversation. Widen the window and try again. | „In den Papierkorb schieben“ klappt nur, während die ClubMail-Liste neben der Unterhaltung zu sehen ist. Mach das Fenster breiter und versuche es noch einmal. |
+| `action.self.ignore` | You can do it yourself: open the member's profile and ignore them there. | Du kannst es selbst tun: Öffne das Profil des Mitglieds und ignoriere es dort mit „Profil ignorieren“. |
+| `action.self.delete` | You can do it yourself: move the conversation to the trash with JoyClub's trash button. | Du kannst es selbst tun: Verschiebe die Unterhaltung mit „In den Papierkorb schieben“ in den Papierkorb. |
 | `action.report.finished` | Ignore and Delete finished. | „Ignorieren und löschen“ ist fertig. |
+| `action.report.undo` | To undo, restore the conversation from JoyClub's trash. Then open the member's profile and choose "Profil nicht mehr ignorieren" in its menu. | Rückgängig machen: Hol die Unterhaltung aus JoyClubs Papierkorb zurück. Öffne dann das Profil des Mitglieds und wähle im Menü „Profil nicht mehr ignorieren“. |
 | `action.report.running` | Ignore and Delete is running. | „Ignorieren und löschen“ läuft. |
 | `action.report.stopped` | Ignore and Delete stopped. | „Ignorieren und löschen“ wurde angehalten. |
 | `action.report.interrupted` | Ignore and Delete was interrupted, for example because the tab closed. | „Ignorieren und löschen“ wurde unterbrochen, zum Beispiel weil der Tab geschlossen wurde. |
@@ -174,8 +178,10 @@ stay as they are.
 | `quick.button` | Ignore and Delete | Ignorieren und löschen |
 | `quick.region` | JoyFox Ignore and Delete | JoyFox: Ignorieren und löschen |
 | `quick.scope` | Experimental. One click moves this conversation to JoyClub's trash, then opens the member's profile and ignores them there. JoyFox stops at the first problem and tells you what was done. It never sends a message. | Experimentell. Ein Klick verschiebt diese Unterhaltung in JoyClubs Papierkorb, öffnet dann das Profil des Mitglieds und ignoriert es dort. JoyFox hält beim ersten Problem an und sagt dir, was erledigt wurde. JoyFox sendet nie eine Nachricht. |
+| `quick.needsList` | Works only while the ClubMail list shows beside this conversation. Widen the window. | Klappt nur, während die ClubMail-Liste neben dieser Unterhaltung zu sehen ist. Mach das Fenster breiter. |
 | `quick.noProfile` | JoyFox cannot find this member's profile address, where Ignore is, so it did nothing. | JoyFox findet die Profiladresse dieses Mitglieds nicht. Dort ist „Profil ignorieren“. JoyFox hat deshalb nichts getan. |
 | `quick.resumed` | Ignore and Delete, continued from the conversation: | „Ignorieren und löschen“, fortgesetzt aus der Unterhaltung: |
+| `quick.waitingMenu` | Waiting for JoyClub's profile menu… | JoyFox wartet auf JoyClubs Profilmenü … |
 | `quick.previous` | Your last Ignore and Delete for this member: | Dein letztes „Ignorieren und löschen“ für dieses Mitglied: |
 | `quick.previousOther` | Your last Ignore and Delete for this member, in another conversation: | Dein letztes „Ignorieren und löschen“ für dieses Mitglied, in einer anderen Unterhaltung: |
 | `quick.otherResult` | Your last Ignore and Delete, for another conversation: | Dein letztes „Ignorieren und löschen“, für eine andere Unterhaltung: |
@@ -189,8 +195,8 @@ stay as they are.
 | --- | --- | --- |
 | `triage.outcome.met` | Met | Erfüllt |
 | `triage.outcome.not-met` | Not met | Nicht erfüllt |
-| `triage.outcome.needs-review` | Needs review | Zu prüfen |
-| `triage.conditions.summary` | All conditions checked ({count}) | Alle geprüften Bedingungen ({count}) |
+| `triage.outcome.needs-review` | Needs Review | Zu prüfen |
+| `triage.conditions.summary` | All checked conditions ({count}) | Alle geprüften Bedingungen ({count}) |
 | `triage.condition.line` | {outcome}: {condition}. | {outcome}: {condition}. |
 | `triage.condition.lineNegated` | {outcome}: not {condition}. | {outcome}: nicht {condition}. |
 | `triage.placementLine` | Placement: {placement} ({source}). | Einordnung: {placement} ({source}). |
@@ -200,9 +206,10 @@ stay as they are.
 | `triage.sharedEvent.attending` | On the guest list of "{event}" ({when}), which you marked Attending. | Auf der Gästeliste von „{event}“ ({when}), das du mit „Ich gehe hin“ markiert hast. |
 | `triage.sharedEvent.attended` | On the guest list of "{event}" ({when}), which you marked Attended. | Auf der Gästeliste von „{event}“ ({when}), das du mit „Ich war dort“ markiert hast. |
 | `triage.sharedEvent.optOut` | Don't use the shared event for this sender | Das gemeinsame Event für diese Person nicht verwenden |
-| `triage.movedOn` | You moved this sender on {date}. Your rule alone would place it in {placement}. | Du hast diese Person am {date} verschoben. Deine Regel allein würde sie in „{placement}“ einordnen. |
+| `triage.movedOn` | You moved this sender on {date}. Your rule alone would place them in {placement}. | Du hast diese Person am {date} verschoben. Deine Regel allein würde sie in „{placement}“ einordnen. |
 | `triage.move.group` | Move this sender | Diese Person verschieben |
 | `triage.move.to` | Move to {placement} | Nach „{placement}“ verschieben |
+| `triage.move.keep` | Keep in {placement} | In „{placement}“ lassen |
 | `triage.move.useRule` | Use my rule again | Wieder meine Regel verwenden |
 | `triage.profileFact.minimumPhotos` | photo count | Anzahl der Fotos |
 | `triage.profileFact.minimumProfileWords` | profile word count | Wörter im Profil |
@@ -219,7 +226,7 @@ stay as they are.
 | `trust.score.value` | Local trust score: {score}. | Lokaler Vertrauenswert: {score}. |
 | `trust.details.summary` | How the score adds up | So setzt sich der Wert zusammen |
 | `trust.contribution` | {points}: {reason} | {points}: {reason} |
-| `trust.log.group` | Log an outcome with this member | Erfahrung mit diesem Mitglied erfassen |
+| `trust.log.group` | Log how it went with this member | Erfahrung mit diesem Mitglied erfassen |
 | `trust.log.positive` | Log positive | Positive Erfahrung erfassen |
 | `trust.log.neutral` | Log neutral | Neutrale Erfahrung erfassen |
 | `trust.log.negative` | Log negative | Negative Erfahrung erfassen |
@@ -248,6 +255,7 @@ stay as they are.
 | `panel.ruleOff.no-rule` | No contact rule is set, so JoyFox does not place this sender. | Es ist keine Kontaktregel gespeichert, deshalb ordnet JoyFox diese Person nicht ein. |
 | `panel.ruleOff.rule-disabled` | Your contact rule is turned off, so JoyFox does not place this sender. | Deine Kontaktregel ist ausgeschaltet, deshalb ordnet JoyFox diese Person nicht ein. |
 | `panel.ruleOff.other` | JoyFox does not place this sender. | JoyFox ordnet diese Person nicht ein. |
+| `panel.ruleOff.no-account` | No JoyFox account is active, so JoyFox shows nothing for this member. | Es ist kein JoyFox-Konto aktiv, deshalb zeigt JoyFox zu diesem Mitglied nichts an. |
 
 ## inbox
 
@@ -260,13 +268,15 @@ stay as they are.
 | `inbox.viewCount` | {view} ({count}) | {view} ({count}) |
 | `inbox.about` | About these views | Über diese Ansichten |
 | `inbox.aboutText` | Inbox hides Quarantined rows from this view only. Nothing is deleted, and JoyFox changes nothing on JoyClub. | „Posteingang“ blendet Zeilen aus „Quarantäne“ nur in dieser Ansicht aus. Nichts wird gelöscht, und JoyFox ändert nichts auf JoyClub. |
-| `inbox.checking` | Checking | Wird geprüft |
-| `inbox.badge` | JoyFox: {text}. Show why. | JoyFox: {text}. Grund zeigen. |
-| `inbox.why` | Why this placement | Warum diese Einordnung |
-| `inbox.whyNamed` | Why: {name} | Warum: {name} |
+| `inbox.checking` | Checking | Wird eingeordnet … |
+| `inbox.badge` | JoyFox: {text}. Why and move. | JoyFox: {text}. Warum und verschieben. |
+| `inbox.why` | Why and move | Warum und verschieben |
+| `inbox.whyNamed` | Why and move: {name} | Warum und verschieben: {name} |
 | `inbox.rowGone` | This row is no longer shown. | Diese Zeile wird nicht mehr angezeigt. |
 | `inbox.unidentified` | JoyFox could not read this sender's profile number, so it could not check your rule. The row stays visible. | JoyFox konnte die Profilnummer dieser Person nicht lesen und deine Regel deshalb nicht prüfen. Die Zeile bleibt sichtbar. |
 | `inbox.stillChecking` | JoyFox is still checking this sender. | JoyFox prüft diese Person noch. |
+| `inbox.setup.no-account` | JoyFox has no active account, so it does not sort this inbox. | Es ist kein JoyFox-Konto aktiv, deshalb sortiert JoyFox diesen Posteingang nicht. |
+| `inbox.setup.no-rule` | No contact rule is saved, so JoyFox does not sort this inbox. | Es ist keine Kontaktregel gespeichert, deshalb sortiert JoyFox diesen Posteingang nicht. |
 
 ## notes
 

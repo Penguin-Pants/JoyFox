@@ -390,7 +390,7 @@ describe("the Messages status line (U29)", () => {
     caching().dispatchEvent(new Event("change"));
     await flush();
     expect(status()).toBe(
-      "JoyFox could not save that change. Nothing was changed.",
+      "JoyFox could not save that change. Nothing was changed. Try again. If it keeps failing, reload the page.",
     );
     expect(statusNode().dataset.kind).toBe("error");
     expect(statusNode().getAttribute("role")).toBe("alert");
