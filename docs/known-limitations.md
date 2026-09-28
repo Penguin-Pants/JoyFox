@@ -123,9 +123,32 @@
   import move data between browsers.
 - Firefox signing and AMO distribution have not been implemented or claimed.
 - Onboarding is minimal: the options page opens once on a fresh install, and
-  "Get started" tracks the account and the rule. JoyFox cannot see whether the
-  inbox was opened, so the third step has no state. A temporary install from
-  `about:debugging` counts as a fresh install each time it is loaded.
+  "Get started" tracks access to joyclub.de, the account and the rule. JoyFox
+  cannot see whether the inbox was opened, so the last step has no state. A
+  temporary install from `about:debugging` counts as a fresh install each time
+  it is loaded. The JoyFox toolbar button opens the options page at any time.
+- "Get started" checks and requests access only for joyclub.de. JOYCE access is
+  neither checked nor requested, as JOYCE stays inactive.
+- Without an active account or a saved contact rule, the inbox and the member
+  panel show one line with "Open JoyFox options". A rule that is turned off, and
+  a background that does not answer, still show nothing (ADR 0006).
+- If the user allows JoyFox in private windows (the default is off), it stores
+  what it reads there like in a normal window: messages while message storing is
+  on, profile facts, nicknames and guest lists. These records stay after the
+  private window closes (owner decision, UX audit 2026-09-28; privacy model).
+- An account's JoyClub identifier cannot be changed after the account is added,
+  because an import matches accounts by it. "Rename" changes only the display
+  label. After the active account is removed, no account is active: JoyFox does
+  not choose another one, and says so.
+- "Not flagged as template spam" is always unknown until template checks run on
+  a page. The contact rule editor says so on the condition.
+- The inbox view (Inbox, Qualified, Needs Review, Quarantined, Show all) and the
+  event list filter are kept for the tab's session in the page's
+  `sessionStorage`, so a new tab starts with the default. A tag filter is not
+  kept, because JoyClub's own scripts can read that storage.
+- On the user's own profile, the member panel and the note editor show nothing;
+  the shared-preferences section stays. The note editor recognizes the own
+  profile by the "Account" headline only.
 - Quick Ignore and Delete (M9) has a live driver (ADR 0011) and was accepted
   live on 2026-09-25 (`manual-acceptance.md`, items 43 to 54). It is still off
   by default (`joyfox.quickIgnoreDelete`, a switch on the options page's
@@ -136,7 +159,9 @@
   profile in the same tab to ignore them there.
 - M9 Delete is checked by the conversation's row leaving the list, so it runs
   only in the split view with the member's row loaded. Otherwise it stops before
-  clicking ("cannot see JoyClub's result").
+  clicking ("cannot see JoyClub's result"). A line under the button says so
+  while the list is not visible. It is checked again when the page changes, so a
+  resize alone that shows the list leaves the line until the next change.
 - JoyClub's own Undo notice for Delete disappears when JoyFox moves to the
   profile. The conversation can still be restored from JoyClub's trash.
 - The M9 step timeout (15 seconds), the interrupted threshold (2 minutes; 30
@@ -213,7 +238,10 @@
   on the account, as a click by the user would.
 - If JoyClub's filter button or "Anwenden" does not appear within about 8
   seconds, JoyFox clicks nothing more. It shows a notice that asks the user to
-  open the filter and click "Anwenden".
+  open the filter and click "Anwenden". While it waits and clicks, the bar says
+  "Running …", then "Showing …"; it does not check that the results changed. The
+  saved search whose address the page shows is marked as current; the same
+  filters in another order in the address are not recognized.
 - Event notes (V1-5) keep an event's title, start, venue and path from the page
   when the user saves. An event saved before its details loaded keeps what the
   page showed. The start is JoyClub's local time as shown ("Ortszeit"), with no
@@ -221,6 +249,7 @@
   would put a remote address in the extension's code, which the network
   isolation check forbids. The list filter works only on the events JoyClub has
   already loaded; it never loads more. The attendee list is not stored (V1-13).
+  The event and venue box stays closed until something is stored for the page.
 - The Compatibility Overlay (V1-2) needs the viewer's own profile opened once in
   the active account; it is recognized by the "Account" headline only it shows,
   so if JoyClub removes that headline, JoyFox asks to open the own profile and
