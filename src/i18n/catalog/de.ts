@@ -94,7 +94,7 @@ export const de: Catalog = {
   "triage.reason.unknownNotMet": (p) =>
     `${p.reason} Deine Regel zählt einen unbekannten Wert als nicht erfüllt.`,
   "triage.reason.numbered": (p, f) =>
-    `Regel ${f.number(p.number)}: ${p.reason}`,
+    `Gruppe ${f.number(p.number)}: ${p.reason}`,
   "triage.reason.userMoved": (p) =>
     `Du hast diese Person nach „${p.placement}“ verschoben.`,
   "triage.headline.noConditions":
@@ -412,7 +412,7 @@ export const de: Catalog = {
     "Diese Notizen wurden in einem anderen Tab geändert, deshalb hat JoyFox nicht gespeichert. Jetzt werden die gespeicherten Notizen angezeigt; deine eingegebene Notiz steht noch im Feld.",
   "listing.refused":
     "Das aktive JoyFox-Konto hat sich geändert, deshalb wurde nichts gespeichert.",
-  "events.heading": "Meine Events",
+  "events.heading": "Deine Events",
   "events.hint":
     "Alle Events und Clubs, zu denen du auf JoyClub eine Notiz, einen Tag oder deine Teilnahme eingetragen hast, nach Datum. JoyFox behält sie, auch wenn JoyClub ein Event entfernt. Um einen Eintrag zu ändern, öffne ihn auf JoyClub.",
   "events.readFailed":
@@ -430,7 +430,7 @@ export const de: Catalog = {
   "events.untitled": (p) => `Event ${p.id}`,
   "events.past": (p) => `${p.when} (vorbei)`,
   "events.venue": (p) => `Club: ${p.venue}`,
-  "events.venuesHeading": "Meine Clubs",
+  "events.venuesHeading": "Deine Clubs",
   "events.guests": (p, f) =>
     f.plural(p.count, {
       one: "1 Gast gespeichert",

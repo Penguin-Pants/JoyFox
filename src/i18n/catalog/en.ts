@@ -124,7 +124,7 @@ export const en = {
   "triage.reason.unknownNotMet": (p: { reason: T }) =>
     `${p.reason} Your rule counts an unknown value as not met.`,
   "triage.reason.numbered": (p: { number: number; reason: T }, f: Format) =>
-    `Rule ${f.number(p.number)}: ${p.reason}`,
+    `Group ${f.number(p.number)}: ${p.reason}`,
   "triage.reason.userMoved": (p: { placement: T }) =>
     `You moved this sender to ${p.placement}.`,
   "triage.headline.noConditions":
@@ -443,7 +443,7 @@ export const en = {
   "listing.refused": "The active JoyFox account changed, so nothing was saved.",
 
   // Options page: personal event calendar (V1-5)
-  "events.heading": "My events",
+  "events.heading": "Your events",
   "events.hint":
     "Every event and venue you added a note, tag or attendance to on JoyClub, in date order. JoyFox keeps them after JoyClub removes an event. To change one, open it on JoyClub.",
   "events.readFailed":
@@ -461,7 +461,7 @@ export const en = {
   "events.untitled": (p: { id: string }) => `Event ${p.id}`,
   "events.past": (p: { when: string }) => `${p.when} (past)`,
   "events.venue": (p: { venue: string }) => `Venue: ${p.venue}`,
-  "events.venuesHeading": "My venues",
+  "events.venuesHeading": "Your venues",
   "events.guests": (p: { count: number }, f: Format) =>
     f.plural(p.count, {
       one: "1 guest stored",

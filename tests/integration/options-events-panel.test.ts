@@ -102,7 +102,7 @@ describe("V1-5 personal event calendar", () => {
     expect(items[0]!.textContent).toContain("Great");
     expect(items[1]!.textContent).not.toContain("(past)");
     expect(items[2]!.textContent).toContain("No date");
-    expect(root.textContent).toContain("My venues");
+    expect(root.textContent).toContain("Your venues");
     expect(root.textContent).toContain("3 of 3 tracked events shown.");
   });
 

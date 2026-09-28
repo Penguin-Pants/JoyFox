@@ -97,7 +97,7 @@ stay as they are.
 | `triage.reason.unknownNeedsReview` | {reason} Your rule sends unknown values to Needs Review. | {reason} Deine Regel ordnet unbekannte Werte in „Zu prüfen“ ein. |
 | `triage.reason.unknownMet` | {reason} Your rule counts an unknown value as met. | {reason} Deine Regel zählt einen unbekannten Wert als erfüllt. |
 | `triage.reason.unknownNotMet` | {reason} Your rule counts an unknown value as not met. | {reason} Deine Regel zählt einen unbekannten Wert als nicht erfüllt. |
-| `triage.reason.numbered` | Rule {number}: {reason} | Regel {number}: {reason} |
+| `triage.reason.numbered` | Group {number}: {reason} | Gruppe {number}: {reason} |
 | `triage.reason.userMoved` | You moved this sender to {placement}. | Du hast diese Person nach „{placement}“ verschoben. |
 | `triage.headline.noConditions` | Your contact rule has no required conditions, so every sender qualifies. | Deine Kontaktregel hat keine Pflichtbedingungen, deshalb ist jede Person qualifiziert. |
 | `triage.headline.meets` | This sender meets your contact rule. | Diese Person erfüllt deine Kontaktregel. |
@@ -350,7 +350,7 @@ stay as they are.
 
 | Key | English | Deutsch |
 | --- | --- | --- |
-| `events.heading` | My events | Meine Events |
+| `events.heading` | Your events | Deine Events |
 | `events.hint` | Every event and venue you added a note, tag or attendance to on JoyClub, in date order. JoyFox keeps them after JoyClub removes an event. To change one, open it on JoyClub. | Alle Events und Clubs, zu denen du auf JoyClub eine Notiz, einen Tag oder deine Teilnahme eingetragen hast, nach Datum. JoyFox behält sie, auch wenn JoyClub ein Event entfernt. Um einen Eintrag zu ändern, öffne ihn auf JoyClub. |
 | `events.readFailed` | JoyFox could not read your events. Reload the page to try again. | JoyFox konnte deine Events nicht lesen. Lade die Seite neu, um es noch einmal zu versuchen. |
 | `events.noAccount` | Select or add an account first. Each account has its own events. | Wähle zuerst ein Konto aus oder füge eines hinzu. Jedes Konto hat eigene Events. |
@@ -363,7 +363,7 @@ stay as they are.
 | `events.untitled` | Event {id} | Event {id} |
 | `events.past` | {when} (past) | {when} (vorbei) |
 | `events.venue` | Venue: {venue} | Club: {venue} |
-| `events.venuesHeading` | My venues | Meine Clubs |
+| `events.venuesHeading` | Your venues | Deine Clubs |
 | `events.guests` | 1 guest stored / {count} guests stored | 1 Gast gespeichert / {count} Gäste gespeichert |
 | `events.exception.label` | Shared-event exception: place a sender in Qualified when they are on the guest list of an event I marked Attending or Attended | Ausnahme für gemeinsame Events: eine Person als „Qualifiziert“ einordnen, wenn sie auf der Gästeliste eines Events steht, das ich mit „Ich gehe hin“ oder „Ich war dort“ markiert habe |
 | `events.exception.hint` | Off by default. JoyFox stores a tracked event's guest list when you open the event page, as far as JoyClub has loaded it, and deletes it when you stop tracking the event. A sender you moved yourself keeps your choice, and the "Why" panel can turn the exception off for one sender. | Standardmäßig aus. JoyFox speichert die Gästeliste eines verfolgten Events, wenn du die Event-Seite öffnest, so weit JoyClub sie geladen hat, und löscht sie, wenn du das Event nicht mehr verfolgst. Eine Person, die du selbst verschoben hast, behält deine Wahl, und im Bereich „Warum“ kannst du die Ausnahme für eine Person abschalten. |

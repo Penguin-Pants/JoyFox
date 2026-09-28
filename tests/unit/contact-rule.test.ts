@@ -400,27 +400,27 @@ describe("rule groups and not (ADR 0012)", () => {
       input({ facts: { ...UNKNOWN_FACTS, personallyKnown: true } }),
     );
     expect(result.placement).toBe("qualified");
-    expect(texts(result.reasons)[1]).toMatch(/^Rule 1: /);
+    expect(texts(result.reasons)[1]).toMatch(/^Group 1: /);
   });
 
-  it("qualifies a verified sender with enough photos and days by rule 2", () => {
+  it("qualifies a verified sender with enough photos and days by group 2", () => {
     const result = evaluateContactRule(advanced(), known(false, 3));
     expect(result.placement).toBe("qualified");
     expect(
       texts(result.reasons)
         .slice(1)
-        .every((r) => r.startsWith("Rule 2: ")),
+        .every((r) => r.startsWith("Group 2: ")),
     ).toBe(true);
   });
 
-  it("names every rule that failed", () => {
+  it("names every group that failed", () => {
     const result = evaluateContactRule(advanced(), known(false, 2));
     expect(result.placement).toBe("quarantined");
     expect(
       texts(result.reasons)
         .slice(1)
-        .map((r) => r.slice(0, 7)),
-    ).toEqual(["Rule 1:", "Rule 2:"]);
+        .map((r) => r.slice(0, 8)),
+    ).toEqual(["Group 1:", "Group 2:"]);
   });
 
   it("combines rules with ALL", () => {
