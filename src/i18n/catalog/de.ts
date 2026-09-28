@@ -195,7 +195,7 @@ export const de: Catalog = {
   "action.next.delete":
     "Nächster Schritt: Öffne die Unterhaltung und prüfe, ob sie im Papierkorb ist. Wenn nicht, verschiebe sie selbst mit „In den Papierkorb schieben“.",
   "action.next.showList":
-    "„In den Papierkorb schieben“ klappt nur, während die ClubMail-Liste neben der Unterhaltung zu sehen ist. Mach das Fenster breiter und versuche es noch einmal.",
+    "„In den Papierkorb schieben“ klappt nur, während diese Unterhaltung in der ClubMail-Liste daneben zu sehen ist. Mach das Fenster breiter oder scrolle die Liste, bis die Unterhaltung erscheint, und versuche es dann noch einmal.",
   "action.self.ignore":
     "Du kannst es selbst tun: Öffne das Profil des Mitglieds und ignoriere es dort mit „Profil ignorieren“.",
   "action.self.delete":
@@ -223,7 +223,7 @@ export const de: Catalog = {
   "quick.scope":
     "Experimentell. Ein Klick verschiebt diese Unterhaltung in JoyClubs Papierkorb, öffnet dann das Profil des Mitglieds und ignoriert es dort. JoyFox hält beim ersten Problem an und sagt dir, was erledigt wurde. JoyFox sendet nie eine Nachricht.",
   "quick.needsList":
-    "Klappt nur, während die ClubMail-Liste neben dieser Unterhaltung zu sehen ist. Mach das Fenster breiter.",
+    "Klappt nur, während diese Unterhaltung in der ClubMail-Liste daneben zu sehen ist. Mach das Fenster breiter oder scrolle die Liste, bis die Unterhaltung erscheint.",
   "quick.noProfile":
     "JoyFox findet die Profiladresse dieses Mitglieds nicht. Dort ist „Profil ignorieren“. JoyFox hat deshalb nichts getan.",
   "quick.resumed":
@@ -439,7 +439,7 @@ export const de: Catalog = {
   "events.exception.label":
     "Ausnahme für gemeinsame Events: eine Person als „Qualifiziert“ einordnen, wenn sie auf der Gästeliste eines Events steht, das ich mit „Ich gehe hin“ oder „Ich war dort“ markiert habe",
   "events.exception.hint":
-    "Standardmäßig aus. JoyFox speichert die Gästeliste eines verfolgten Events, wenn du die Event-Seite öffnest, so weit JoyClub sie geladen hat, und löscht sie, wenn du das Event nicht mehr verfolgst. Eine Person, die du selbst verschoben hast, behält deine Wahl, und im Bereich „Warum“ kannst du die Ausnahme für eine Person abschalten.",
+    "Standardmäßig aus. JoyFox speichert die Gästeliste eines verfolgten Events, wenn du die Event-Seite öffnest, so weit JoyClub sie geladen hat, und löscht sie, wenn du das Event nicht mehr verfolgst. Eine Person, die du selbst verschoben hast, behält deine Wahl, und im Bereich „Warum und verschieben“ kannst du die Ausnahme für eine Person abschalten.",
   "events.exception.saved": "Gespeichert.",
   "events.exception.saveFailed":
     "JoyFox konnte diese Einstellung nicht speichern. Versuche es noch einmal.",
@@ -641,10 +641,10 @@ export const de: Catalog = {
   "picker.result.not-editable":
     "Das Nachrichtenfeld kann gerade nicht bearbeitet werden. Es wurde nichts eingefügt.",
   "picker.result.too-long": (p, f) =>
-    `Die Vorlage ist ${f.plural(p.over, {
+    `Mit der Vorlage wäre die Nachricht ${f.plural(p.over, {
       one: "1 Zeichen",
       other: `${f.number(p.over)} Zeichen`,
-    })} zu lang für das Nachrichtenfeld, das höchstens ${f.number(p.limit)} Zeichen fasst. Es wurde nichts eingefügt. Kürze deinen Text oder die Vorlage.`,
+    })} zu lang. Das Nachrichtenfeld fasst höchstens ${f.number(p.limit)} Zeichen. Es wurde nichts eingefügt. Kürze deinen Text oder die Vorlage.`,
   "picker.result.altered":
     "JoyClub hat den Text nach dem Einfügen geändert. Prüfe das Nachrichtenfeld, bevor du sendest.",
   "templates.folder.general": "Allgemein",
@@ -694,7 +694,7 @@ export const de: Catalog = {
   // Options page: site access (Get started)
   "access.allow": "Zugriff auf joyclub.de erlauben",
   "access.granted":
-    "Der Zugriff auf joyclub.de ist an. JoyFox kann jetzt auf JoyClub arbeiten.",
+    "Der Zugriff auf joyclub.de ist an. Lade offene JoyClub-Tabs neu, damit JoyFox dort arbeiten kann.",
   "access.refused":
     "Der Zugriff auf joyclub.de ist weiterhin aus. JoyFox kann auf JoyClub erst arbeiten, wenn du den Zugriff hier oder unter about:addons erlaubst.",
 
@@ -833,7 +833,7 @@ export const de: Catalog = {
   "rule.removeRule": "Gruppe entfernen",
   "rule.confirmRemoveGroup": "Entfernen bestätigen",
   "rule.confirmRemoveGroupLabel": (p, f) =>
-    `Entfernen von Gruppe ${f.number(p.number)} bestätigen`,
+    `Entfernen bestätigen: Gruppe ${f.number(p.number)}`,
   "rule.removeGroupPrompt": (p, f) =>
     `Klicke noch einmal, um Gruppe ${f.number(p.number)} und ihre Bedingungen zu entfernen.`,
   "rule.ruleSuffix": " dieser Bedingungen",
@@ -848,7 +848,8 @@ export const de: Catalog = {
   "rule.ruleTitle": (p, f) => `Gruppe ${f.number(p.number)}: erfüllt bei `,
   "rule.ruleMatchLabel": (p, f) =>
     `Wie Gruppe ${f.number(p.number)} ihre Bedingungen verknüpft`,
-  "rule.removeRuleLabel": (p, f) => `Gruppe ${f.number(p.number)} entfernen`,
+  "rule.removeRuleLabel": (p, f) =>
+    `Gruppe entfernen: Nr. ${f.number(p.number)}`,
   "rule.addConditionLabel": (p, f) =>
     `Bedingung zu Gruppe ${f.number(p.number)} hinzufügen`,
   "rule.addCondition": "+ Bedingung hinzufügen …",
@@ -951,7 +952,7 @@ export const de: Catalog = {
     "Alles, was JoyFox speichert, bleibt in diesem Browserprofil. Hier kannst du es ansehen, als JSON-Datei speichern und löschen. Löschen hier ändert nie etwas auf JoyClub.",
   "data.importPointer": "Eine Datei importierst du unter [Konten](#accounts).",
   "data.noAccounts": "Noch keine Konten.",
-  "data.accountPicker": "Konto ansehen (ändert nicht das aktive Konto)",
+  "data.accountPicker": "Konto zum Ansehen (ändert das aktive Konto nicht)",
   "data.caption": "Gespeicherte Datensätze dieses Kontos",
   "data.col.type": "Datentyp",
   "data.col.records": "Datensätze",
@@ -1001,6 +1002,15 @@ export const de: Catalog = {
   "data.retentionHint": (p, f) =>
     `JoyFox behält die neuesten Momentaufnahmen der Profilangaben jedes Mitglieds, immer mindestens die letzte. Eine kleinere Zahl löscht ältere Momentaufnahmen sofort, in allen Konten. Von ${f.number(p.minimum)} bis ${f.number(p.maximum)}; Standard ist ${f.number(p.default)}. Klicke auf „Speichern“, um die Zahl zu übernehmen.`,
   "data.retentionSave": "Speichern",
+  "data.retentionConfirm": "Speichern und löschen",
+  "data.retentionConfirmPrompt": (p, f) =>
+    `Eine kleinere Zahl löscht ältere Momentaufnahmen sofort, in allen Konten: Für jedes Mitglied bleibt nur ${f.plural(
+      p.keep,
+      {
+        one: "die neueste Momentaufnahme",
+        other: `die neuesten ${f.number(p.keep)} Momentaufnahmen`,
+      },
+    )}. Klicke zum Bestätigen auf „Speichern und löschen“.`,
   "data.retentionSaved": (p, f) =>
     p.deleted === 0
       ? "Gespeichert. Keine Momentaufnahme musste gelöscht werden."

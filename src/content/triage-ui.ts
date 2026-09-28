@@ -406,6 +406,8 @@ export interface MemberBarInput {
    * (`aria-disabled`, so focus stays on them) until it is stored.
    */
   trustBusy?: boolean;
+  /** An Undo is being stored: Undo waits for it. */
+  undoBusy?: boolean;
   drawerOpen: boolean;
   onToggle(open: boolean): void;
 }
@@ -510,15 +512,21 @@ export function memberBar(
       log(t("bar.neutral"), t("trust.log.neutral"), "neutral"),
       log(t("bar.negative"), t("trust.log.negative"), "negative"),
     );
-    if (actions.onUndoTrust && trust && trust !== "unknown" && trust.logged > 0)
-      row.append(
-        labelled(
-          t("bar.undo"),
-          t("trust.log.undo"),
-          "undo",
-          actions.onUndoTrust,
-        ),
+    if (
+      actions.onUndoTrust &&
+      trust &&
+      trust !== "unknown" &&
+      trust.logged > 0
+    ) {
+      const undo = labelled(
+        t("bar.undo"),
+        t("trust.log.undo"),
+        "undo",
+        actions.onUndoTrust,
       );
+      if (input.undoBusy) undo.setAttribute("aria-disabled", "true");
+      row.append(undo);
+    }
     bar.append(row);
   }
 

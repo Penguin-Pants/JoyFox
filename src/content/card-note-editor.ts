@@ -236,7 +236,9 @@ export class CardNoteEditor {
   #showStatus(): void {
     const node = this.#statusNode;
     if (!node) return;
-    node.textContent = this.#status ? t(this.#status.text) : "";
+    // Written only when it changes: a live region may read a rewrite again.
+    const text = this.#status ? t(this.#status.text) : "";
+    if (node.textContent !== text) node.textContent = text;
     node.classList.toggle("joyfox-error", this.#status?.error === true);
   }
 
@@ -253,9 +255,11 @@ export class CardNoteEditor {
       message("signals.editor.label", { member: this.#member(memberId) }),
     );
     root.setAttribute("aria-label", label);
-    if (this.#heading) this.#heading.textContent = label;
-    if (this.#closeButton)
-      this.#closeButton.textContent = t("signals.editor.close");
+    if (this.#heading && this.#heading.textContent !== label)
+      this.#heading.textContent = label;
+    const close = t("signals.editor.close");
+    if (this.#closeButton && this.#closeButton.textContent !== close)
+      this.#closeButton.textContent = close;
     body.replaceChildren();
     const data = this.#data;
     if (data) body.append(...this.#fields(data, memberId));

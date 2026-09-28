@@ -159,12 +159,15 @@ describe("M4 rule builder panel", () => {
         root.querySelector(".joyfox-rule__delete-all") !== null &&
         (status()?.textContent?.startsWith("Rule saved") ?? false),
     );
-    await new Promise((resolve) => setTimeout(resolve, 20));
+    // The second save runs after the first, and can take longer under load.
+    // A change that was lost never arrives, so the check still fails then.
+    let kinds = kindsOf((await rules.getGlobalRule(account.id))?.root);
+    for (let attempt = 0; attempt < 200 && kinds.length < 2; attempt += 1) {
+      await new Promise((resolve) => setTimeout(resolve, 5));
+      kinds = kindsOf((await rules.getGlobalRule(account.id))?.root);
+    }
     expect(second.checked).toBe(true);
-    expect(kindsOf((await rules.getGlobalRule(account.id))?.root)).toEqual([
-      "verified",
-      "personallyKnown",
-    ]);
+    expect(kinds).toEqual(["verified", "personallyKnown"]);
   });
 
   it("refuses an invalid number and keeps the stored rule", async () => {
@@ -211,6 +214,36 @@ describe("M4 rule builder panel", () => {
     // The button is gone; focus goes to the form's first control.
     expect(root.querySelector(".joyfox-rule__delete-all")).toBeNull();
     expect(document.activeElement).toBe(input("joyfox-rule-enabled"));
+  });
+
+  it("brings the delete result into view at the top of the form", async () => {
+    const account = await accounts.createAccount({ joyClubAccountId: "a" });
+    await rules.saveGlobalRule(account.id, {
+      schemaVersion: 1,
+      audience: "all",
+      enabled: true,
+      defaultPlacement: "quarantined",
+      root: { type: "group", match: "all", children: [] },
+    });
+    await panel.render();
+    const scrolled: Element[] = [];
+    const proto = Element.prototype as { scrollIntoView?: unknown };
+    const before = proto.scrollIntoView;
+    proto.scrollIntoView = function (this: Element) {
+      scrolled.push(this);
+    };
+    try {
+      const button = deleteAll();
+      button.click();
+      button.click();
+      await settle(
+        () =>
+          status()?.textContent?.startsWith("Contact rule deleted") ?? false,
+      );
+      expect(scrolled).toContain(status());
+    } finally {
+      proto.scrollIntoView = before;
+    }
   });
 
   it("never deletes the rule on a double-click", async () => {
@@ -979,13 +1012,16 @@ describe("rule presets (V1-11, ADR 0016)", () => {
     choose("open");
     apply().click();
     expect(apply().textContent).toBe("Replace conditions");
-    expect(status()?.textContent).toContain(
+    const prompt = () =>
+      root.querySelector(".joyfox-rule__presets .joyfox-rule__prompt");
+    expect(prompt()?.textContent).toContain(
       "The preset replaces every condition below",
     );
     expect(await rules.getGlobalRule(account.id)).toEqual(before);
-    // Another choice asks again.
+    // Another choice asks again, and the prompt goes with the armed state.
     choose("verified");
     expect(apply().textContent).toBe("Apply preset");
+    expect(prompt()?.textContent).toBe("");
     apply().click();
     expect(apply().textContent).toBe("Replace conditions");
     apply().click();

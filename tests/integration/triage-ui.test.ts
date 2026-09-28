@@ -1310,6 +1310,41 @@ describe("conversation and profile panel", () => {
     ).toBeNull();
   });
 
+  it("removes one outcome for a double click on Undo", async () => {
+    await rules.saveGlobalRule(ACCOUNT, knownRule());
+    await trust.logOutcome(ACCOUNT, KNOWN, "positive");
+    await trust.logOutcome(ACCOUNT, KNOWN, "positive");
+    setPage(
+      "/clubmail/conversation/conversation-wrapper-personal-1234567-7654321",
+      conversationHtml,
+    );
+    const client = serviceClient();
+    let releaseUndo: () => void = () => undefined;
+    let undos = 0;
+    const member = new MemberPanel(document, {
+      ...client,
+      undoTrust: async (accountId, memberId) => {
+        undos += 1;
+        await new Promise<void>((resolve) => (releaseUndo = resolve));
+        await client.undoTrust(accountId, memberId);
+      },
+    });
+    member.update("conversation");
+    await vi.waitFor(() => expect(panel()).not.toBeNull());
+    const undo = () => buttonNamed(panel()!, "Undo last outcome");
+    undo().click();
+    expect(undo().getAttribute("aria-disabled")).toBe("true");
+    undo().click();
+    await new Promise((resolve) => setTimeout(resolve, 10));
+    releaseUndo();
+    await vi.waitFor(() =>
+      expect(undo().getAttribute("aria-disabled")).toBeNull(),
+    );
+    await new Promise((resolve) => setTimeout(resolve, 30));
+    expect(undos).toBe(1);
+    expect(await repositories.trustSignals.list(ACCOUNT)).toHaveLength(1);
+  });
+
   it("logs one outcome for a double click, and keeps focus on the button", async () => {
     await rules.saveGlobalRule(ACCOUNT, knownRule());
     setPage(CONVERSATION, conversationHtml);

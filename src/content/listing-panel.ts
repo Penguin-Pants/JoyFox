@@ -515,7 +515,9 @@ export class ListingPanel {
   #showStatus(): void {
     const node = this.#statusNode;
     if (!node) return;
-    node.textContent = this.#status ? t(this.#status.text) : "";
+    // Written only when it changes: a live region may read a rewrite again.
+    const text = this.#status ? t(this.#status.text) : "";
+    if (node.textContent !== text) node.textContent = text;
     node.classList.toggle("joyfox-error", this.#status?.error === true);
   }
 

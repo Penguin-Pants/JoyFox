@@ -267,7 +267,7 @@ describe("M9 report", () => {
     expect(lines).toEqual([
       "Ignore and Delete stopped.",
       "JoyFox cannot see JoyClub's result for Delete on this page, so it stopped before Delete.",
-      "Delete works only while the ClubMail list shows beside the conversation. Widen the window and try again.",
+      "Delete works only while this conversation shows in the ClubMail list beside it. Widen the window, or scroll the list until the conversation shows, then try again.",
       "Delete: not done.",
       "Ignore: not done.",
       "Nothing was changed on JoyClub.",

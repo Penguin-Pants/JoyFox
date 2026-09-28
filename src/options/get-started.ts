@@ -93,6 +93,8 @@ export class GetStartedPanel {
   readonly #status: StatusLine;
   /** What the status says about access, until Firefox's state disagrees. */
   #accessNote: "granted" | "refused" | undefined;
+  /** An access request is open in Firefox. */
+  #requesting = false;
 
   constructor(
     private readonly root: HTMLElement,
@@ -228,7 +230,9 @@ export class GetStartedPanel {
    */
   #requestAccess(): void {
     const access = this.access;
-    if (!access) return;
+    // A second click while Firefox's prompt is open asks nothing more.
+    if (!access || this.#requesting) return;
+    this.#requesting = true;
     let asked: Promise<boolean>;
     try {
       asked = access.request({ origins: JOYCLUB_ORIGINS });
@@ -238,6 +242,7 @@ export class GetStartedPanel {
     void asked
       .catch(() => false)
       .then((granted) => {
+        this.#requesting = false;
         this.#accessNote = granted ? "granted" : "refused";
         this.#status.set(
           message(granted ? "access.granted" : "access.refused"),

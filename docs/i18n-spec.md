@@ -7,8 +7,9 @@ The migration is database version 4, as the note in Section 4.1 asks. The owner
 approved every string in `docs/i18n-strings.md` on 2026-09-25. Manual acceptance
 items 91 to 97 passed on 2026-09-25. On 2026-09-26 the owner reviewed the 169
 strings added after that approval (V1-2, V1-3, V1-4, V1-5, V1-7, V1-10, V1-11,
-V1-12 and V1-13). 16 of them changed in that review. The owner has now approved
-every string in the table.
+V1-12 and V1-13). 16 of them changed in that review. The UX audit fixes of
+2026-09-28 (`docs/ux-audit.md`) added and changed about 180 strings; the owner
+has not reviewed those yet, so the table is not fully approved until then.
 
 Most JoyClub members are native German speakers. JoyFox must show all of its own
 text in German or English, and the user must be able to switch between them.
@@ -339,6 +340,11 @@ keys.
 | Tags                | Tags           |
 | General (folder)    | Allgemein      |
 | Unknown (criterion) | Unbekannt      |
+
+- Exception (owner decision, 2026-09-28): the trust chip on a card line uses the
+  short form "Vertrauen" ("Vertrauen +2"), because the 18 px line has no room
+  for "Vertrauenswert". Its tooltip and screen-reader text use "Lokaler
+  Vertrauenswert", as everywhere else.
 
 ## 6. Tests
 

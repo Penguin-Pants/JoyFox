@@ -71,4 +71,32 @@ describe("focus across redraws", () => {
     expect(restoreFocus(root, memo, ["other", "summary"])).toBe(true);
     expect(document.activeElement?.textContent).toBe("More");
   });
+
+  it("keeps the page still for the same control and scrolls for a moved one", () => {
+    const calls: (FocusOptions | undefined)[] = [];
+    const focus = HTMLElement.prototype.focus;
+    HTMLElement.prototype.focus = function (options?: FocusOptions) {
+      calls.push(options);
+      focus.call(this, options);
+    };
+    try {
+      draw(root, `<button ${FOCUS_KEY}="save">Save</button>`);
+      root.querySelector("button")!.focus();
+      const memo = rememberFocus(root);
+      calls.length = 0;
+      draw(root, `<button ${FOCUS_KEY}="save">Save</button>`);
+      restoreFocus(root, memo);
+      draw(root, `<p ${FOCUS_KEY}="heading" tabindex="-1">Records</p>`);
+      restoreFocus(root, memo, ["heading"]);
+      draw(root, `<button ${FOCUS_KEY}="save">Save</button>`);
+      restoreFocus(root, { key: "save", scroll: true });
+      expect(calls).toEqual([
+        { preventScroll: true },
+        { preventScroll: false },
+        { preventScroll: false },
+      ]);
+    } finally {
+      HTMLElement.prototype.focus = focus;
+    }
+  });
 });

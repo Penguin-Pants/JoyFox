@@ -130,8 +130,9 @@
 - "Get started" checks and requests access only for joyclub.de. JOYCE access is
   neither checked nor requested, as JOYCE stays inactive.
 - Without an active account or a saved contact rule, the inbox and the member
-  panel show one line with "Open JoyFox options". A rule that is turned off, and
-  a background that does not answer, still show nothing (ADR 0006).
+  panel show one line with "Open JoyFox options". A rule that is turned off
+  still shows nothing in the inbox (ADR 0006); the member panel says it is
+  turned off. A background that does not answer shows nothing in either place.
 - If the user allows JoyFox in private windows (the default is off), it stores
   what it reads there like in a normal window: messages while message storing is
   on, profile facts, nicknames and guest lists. These records stay after the
@@ -140,12 +141,17 @@
   because an import matches accounts by it. "Rename" changes only the display
   label. After the active account is removed, no account is active: JoyFox does
   not choose another one, and says so.
-- "Not flagged as template spam" is always unknown until template checks run on
-  a page. The contact rule editor says so on the condition.
+- "Not flagged as template spam" is always unknown, because JoyFox does not
+  check messages for templates yet. The contact rule editor says so on the
+  condition.
 - The inbox view (Inbox, Qualified, Needs Review, Quarantined, Show all) and the
   event list filter are kept for the tab's session in the page's
   `sessionStorage`, so a new tab starts with the default. A tag filter is not
   kept, because JoyClub's own scripts can read that storage.
+- Lowering either retention number ("Keep messages for" on "Messages", "Profile
+  snapshots kept per member" on "Your data") deletes older records at once, so
+  it takes a second click ("Save and delete"). A higher or equal number saves on
+  the first click.
 - On the user's own profile, the member panel and the note editor show nothing;
   the shared-preferences section stays. The note editor recognizes the own
   profile by the "Account" headline only.
@@ -160,7 +166,8 @@
 - M9 Delete is checked by the conversation's row leaving the list, so it runs
   only in the split view with the member's row loaded. Otherwise it stops before
   clicking ("cannot see JoyClub's result"). A line under the button says so
-  while the list is not visible. It is checked again when the page changes, so a
+  while the conversation's row is not in the list: the list is hidden, or it has
+  not loaded that row yet. It is checked again when the page changes, so a
   resize alone that shows the list leaves the line until the next change.
 - JoyClub's own Undo notice for Delete disappears when JoyFox moves to the
   profile. The conversation can still be restored from JoyClub's trash.

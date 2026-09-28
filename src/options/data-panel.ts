@@ -205,7 +205,9 @@ type Pending =
   | { kind: "record"; entity: EntityName; id: string }
   | { kind: "entity"; entity: EntityName }
   | { kind: "account" }
-  | { kind: "all" };
+  | { kind: "all" }
+  /** A lower snapshot number, which deletes older snapshots once saved. */
+  | { kind: "retention"; keep: number };
 
 const samePending = (a: Pending | undefined, b: Pending) =>
   JSON.stringify(a) === JSON.stringify(b);
@@ -542,7 +544,8 @@ export class DataPanel {
             this.#shown = showing ? undefined : name;
             this.#shownLimit = RECORD_PAGE_SIZE;
             // Shown: straight to the records. Hidden: focus stays here.
-            if (!showing) this.#focusNext = { key: "records-heading" };
+            if (!showing)
+              this.#focusNext = { key: "records-heading", scroll: true };
             void this.render();
           },
         );
@@ -669,7 +672,8 @@ export class DataPanel {
             this.#pending = undefined;
             // Focus goes to the first record the click adds.
             const first = records[this.#shownLimit];
-            if (first) this.#focusNext = { key: `record:${first.id}` };
+            if (first)
+              this.#focusNext = { key: `record:${first.id}`, scroll: true };
             this.#shownLimit += RECORD_PAGE_SIZE;
             void this.render();
           },
@@ -746,7 +750,10 @@ export class DataPanel {
     input.step = "1";
     input.min = String(MIN_SNAPSHOT_RETENTION);
     input.max = String(MAX_SNAPSHOT_RETENTION);
-    input.value = String(current);
+    // Drawn armed, the field keeps the number the second click saves.
+    const pending = this.#pending;
+    const armed = pending?.kind === "retention" ? pending : undefined;
+    input.value = String(armed?.keep ?? current);
     input.setAttribute(FOCUS_KEY, "retention");
     const hint = element(
       document,
@@ -763,13 +770,29 @@ export class DataPanel {
     const save = this.#button(
       document,
       "joyfox-data__retention-save",
-      t("data.retentionSave"),
+      t(armed ? "data.retentionConfirm" : "data.retentionSave"),
       undefined,
-      () =>
+      (event) => {
+        const keep = Number(input.value);
+        // A lower number deletes older snapshots at once, in every account:
+        // it saves only on a second click, as a delete does.
+        if (isSnapshotRetention(keep) && keep < current) {
+          if (!armed || armed.keep !== keep) {
+            if (event.detail > 1) return;
+            this.#pending = { kind: "retention", keep };
+            this.#armedAt = confirmTiming.now();
+            this.#setStatus(
+              message("data.retentionConfirmPrompt", { keep }),
+              "info",
+            );
+            void this.render();
+            return;
+          }
+          if (!confirmAllowed(event, this.#armedAt)) return;
+        }
         void this.#guard(async () => {
           // Any other action disarms a pending delete, at once.
           this.#pending = undefined;
-          const keep = Number(input.value);
           if (!isSnapshotRetention(keep)) {
             this.#setStatus(
               message("data.retentionInvalid", {
@@ -783,9 +806,17 @@ export class DataPanel {
           const deleted = await this.data.setSnapshotRetention(keep);
           this.#setStatus(message("data.retentionSaved", { deleted }), "info");
           this.onChange();
-        }, RETENTION_FAILED),
+        }, RETENTION_FAILED);
+      },
       "retention-save",
     );
+    input.addEventListener("input", () => {
+      // Another number: the armed one no longer applies.
+      if (this.#pending?.kind !== "retention") return;
+      this.#pending = undefined;
+      save.textContent = t("data.retentionSave");
+      this.#status.clear();
+    });
     field.append(label, " ", input, " ", save);
     section.append(field, hint);
     return section;

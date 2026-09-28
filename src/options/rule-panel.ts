@@ -673,6 +673,9 @@ export class RulePanel {
     );
     description.id = "joyfox-rule-preset-description";
     choice.setAttribute("aria-describedby", description.id);
+    // The confirm prompt sits under its button and goes when it disarms.
+    const prompt = new StatusLine(document);
+    prompt.node.classList.add("joyfox-rule__prompt");
     // Another choice disarms the button: the panel's `change` listener.
     const show = () => {
       const id = choice.value;
@@ -687,9 +690,10 @@ export class RulePanel {
         this.#shownConditionCount() > 0 &&
         !this.#secondClick(apply, event, () => {
           apply.textContent = t("rule.preset.confirm");
-          this.#setStatus(message("rule.preset.confirmPrompt"), "info");
+          prompt.set(message("rule.preset.confirmPrompt"), "info");
           return () => {
             apply.textContent = t("rule.preset.apply");
+            prompt.clear();
           };
         })
       )
@@ -705,6 +709,7 @@ export class RulePanel {
     wrapper.append(
       label,
       row,
+      prompt.node,
       description,
       element(document, "p", "joyfox-panel__hint", t("rule.preset.hint")),
     );
@@ -1539,8 +1544,11 @@ export class RulePanel {
           await this.render();
           this.#setStatus(message("rule.removed"), "info");
           // The button is gone: focus goes to the form's first control,
-          // under the result.
+          // under the result. The result sits at the top of the form, far
+          // above the button, so it is scrolled into view as well (a mouse
+          // click on macOS leaves no focus to follow).
           restoreFocus(this.root, focus, ["rule:enabled"]);
+          this.#status.node.scrollIntoView?.({ block: "nearest" });
         } catch {
           this.#deleteLine.set(message("rule.removeFailed"), "error");
         }

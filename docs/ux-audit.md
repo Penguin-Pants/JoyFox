@@ -991,6 +991,55 @@ U13, U15, U16, U25, U26, U31, U34 to U37, U43, U48, U56, U59, U60, U64, U67 to
 U69, U71, U73, account label rename, and the M9 report wording). The new checks
 are `docs/manual-acceptance.md`, items 139 to 166.
 
-Not built (possible risks that need a live check or a decision first): U10 is
-covered in part by the focus return on Close; U17, U30, U38, U45 to U47, U49,
-U57, U58, U61 to U63, U70 and U72 remain open.
+Built in part, as a side effect of approved fixes: U10 (Close returns focus to
+the row's badge and scrolls it into view), U30 (one persistent live region in
+the saved-search bar, the event box and the card editor, written only when its
+text changes; still needs a screen-reader test) and U47 (the "Messages" tab
+keeps a typed number; "Your data" does not yet).
+
+Not built (possible risks that need a live check or a decision first): U17, U38,
+U45, U46, U49, U57, U58, U61 to U63, U70 and U72.
+
+Two fixes go beyond the audit's recommendation. The owner accepted both on
+2026-09-28:
+
+- U6: ticking a number condition fills the Advanced editor's default (for
+  example 3 photos) and saves at once. The recommendation was to wait for a
+  value.
+- U20: lowering message retention takes a second click ("Save and delete"). The
+  recommendation was a warning text only. "Profile snapshots kept per member"
+  now works the same way.
+
+U12: the German trust chip on a card keeps the short form "Vertrauen". This is a
+documented exception to the glossary (`docs/i18n-spec.md`, Section 5).
+
+## Review of the implementation (2026-09-28)
+
+A second two-pass review checked the implemented diff in three parts: the
+options page, the JoyClub page UI, and copy, docs, the manifest and scope. It
+found nothing that blocks release. The owner approved fixing every confirmed
+item and the cheap possible risks:
+
+- The event list filter wrote its count on every pass. With U48 keeping the
+  filter, that started the next pass at once, about 19 times a second. It now
+  writes only when the text changes, as do the other live regions and headings.
+- Focus that moves to another control now scrolls it into view, and the rule's
+  delete result is scrolled into view, since it sits at the top of the form.
+- A double click on "Undo" removes one outcome. An Undo right after a Log still
+  runs, after it.
+- The saved search's "Showing" notice goes when JoyClub changes the address.
+- Stale prompts go: the removal prompt when "Rename" disarms it, and the preset
+  prompt, which now has its own line under its button.
+- Copy: German accessible names of the group buttons start with the visible
+  text; "Why and move" in the shared-event hint; the "template too long" notice
+  counts the whole message; clearer account picker label; the Ignore and Delete
+  hint also says to scroll the list; after access is allowed, a hint to reload
+  open JoyClub tabs.
+- "Allow access" asks Firefox once while its prompt is open.
+- Docs: the page session storage keys (privacy model), the review note for the
+  changed strings (`docs/i18n-spec.md`), and the corrected known limitations and
+  acceptance items.
+
+Open for a live check: contrast on JoyClub's real light theme (item 164), the
+toolbar button's generic icon (JoyFox ships no icon), and screen-reader behavior
+of the live regions.

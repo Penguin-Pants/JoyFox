@@ -11,6 +11,12 @@ export const FOCUS_KEY = "data-joyfox-focus";
 
 export interface FocusMemo {
   key: string;
+  /**
+   * Scroll the control into view. Set for a deliberate move (for example to
+   * the records a click shows); a control that simply keeps focus across a
+   * redraw stays where the user sees it, so the page does not jump.
+   */
+  scroll?: boolean;
   /** The caret, for a text field. */
   start?: number | null;
   end?: number | null;
@@ -67,7 +73,10 @@ export function restoreFocus(
     .map((key) => usable(findKey(root, key)))
     .find((node) => node !== undefined);
   if (!target) return false;
-  target.focus({ preventScroll: true });
+  // Focus that moves to another control (the old one is gone) may land out of
+  // view, so the page scrolls to it; the same control keeps the page still.
+  const same = target.getAttribute(FOCUS_KEY) === memo.key;
+  target.focus({ preventScroll: same && !memo.scroll });
   if (
     target.getAttribute(FOCUS_KEY) === memo.key &&
     memo.start !== undefined &&

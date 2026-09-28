@@ -1991,7 +1991,7 @@ describe("M9 button and notice", () => {
         (node) => node.textContent === t(QUICK_ACTION_TEXT.needsList),
       )!;
     expect(t(QUICK_ACTION_TEXT.needsList)).toBe(
-      "Works only while the ClubMail list shows beside this conversation. Widen the window.",
+      "Works only while this conversation shows in the ClubMail list beside it. Widen the window, or scroll the list until the conversation shows.",
     );
     expect(hint().hidden).toBe(false);
     // Right under the button, and part of its description.
@@ -2015,7 +2015,7 @@ describe("M9 button and notice", () => {
     runButton()!.click();
     await vi.waitFor(() =>
       expect(notice()).toContain(
-        "Delete works only while the ClubMail list shows beside the conversation. Widen the window and try again.",
+        "Delete works only while this conversation shows in the ClubMail list beside it. Widen the window, or scroll the list until the conversation shows, then try again.",
       ),
     );
     expect(driver.clicks).toEqual([]);

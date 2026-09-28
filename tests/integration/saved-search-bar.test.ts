@@ -452,6 +452,27 @@ describe("V1-3 saved-search bar", () => {
       expect(status()).toBe('Showing "Nearby".');
     });
 
+    it("drops the run's notice once JoyClub changes the address in place", async () => {
+      joyClubFilter();
+      requested(OTHER);
+      let url = OTHER + RUN_SEARCH_MARKER;
+      bar = new SavedSearchBar(
+        document,
+        client,
+        navigate,
+        () => url,
+        options(),
+      );
+      bar.update();
+      await flush();
+      await vi.waitFor(() => expect(clicks).toEqual(["filter", "apply"]));
+      expect(status()).toBe('Showing "Nearby".');
+      // The user changes a filter with JoyClub's own panel.
+      url = PAGE;
+      bar.update();
+      expect(status()).toBe("");
+    });
+
     it("clicks nothing for a marker that no click in this tab asked for", async () => {
       joyClubFilter();
       // A link from another site or a bookmark; a stale request; a request

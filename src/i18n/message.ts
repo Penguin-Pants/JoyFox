@@ -185,6 +185,7 @@ export const MESSAGE_PARAMS: {
   "signals.filter.count": { hidden: "number", loaded: "number" },
   "messages.retentionHint": { default: "number" },
   "messages.retentionConfirmPrompt": { months: "number" },
+  "data.retentionConfirmPrompt": { keep: "number" },
   "messages.retentionSaved": { deleted: "number" },
   "messages.retentionInvalid": { minimum: "number", maximum: "number" },
   "messages.count": { count: "number" },

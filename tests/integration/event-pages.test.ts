@@ -541,6 +541,33 @@ describe("V1-5 event list filter", () => {
     expect(list().getAttribute(FILTER_ATTRIBUTE)).toBeNull();
   });
 
+  it("changes nothing in the page when an update finds nothing new", async () => {
+    // The page observer reacts to added and removed nodes. A filter that
+    // wrote its count again on each update would start the next pass at
+    // once, again and again, while a filter is on.
+    const filter = new EventListFilter(document, client);
+    filter.update();
+    await flush();
+    choose("attendance:attending");
+    filter.update();
+    await flush();
+    const records: MutationRecord[] = [];
+    const observer = new MutationObserver((batch) => records.push(...batch));
+    observer.observe(document.body, {
+      childList: true,
+      subtree: true,
+      characterData: true,
+    });
+    filter.update();
+    filter.update();
+    await flush();
+    observer.disconnect();
+    expect(records).toEqual([]);
+    expect(
+      document.querySelector(".joyfox-event-filter__count")?.textContent,
+    ).toContain("1 of 2 loaded events shown");
+  });
+
   it("starts with all events when the tab's storage fails or holds nonsense", async () => {
     const broken = new EventListFilter(document, client, () => {
       throw new Error("blocked");

@@ -872,13 +872,15 @@ result stays as recorded.
 152. In the Advanced editor, confirm "Group 1", "+ Add group" and "Remove
      group", and that "Remove group" on a group with conditions asks first. On
      the inbox, confirm the "Why and move" reasons start with "Group 1:". This
-     changes items 75, 77 and 80.
+     changes the wording in items 75 to 80, and "Why" becomes "Why and move" in
+     items 87 and 131.
 153. Press Tab to reach "Simple" and "Advanced". Confirm a visible focus ring in
      the light and the dark theme.
 154. On "Messages", change "Keep messages for (months)" from 12 to 1 and click
      Save. Confirm nothing is deleted yet, the button says "Save and delete" and
      the message names 1 month. Click again and confirm the older messages are
-     deleted. Confirm a higher number saves with one click. This changes
+     deleted. Confirm a higher number saves with one click. On "Your data", do
+     the same with "Profile snapshots kept per member" (20 to 5). This changes
      item 124.
 155. Confirm the "Ignore and Delete" switch's hint names the account risk, the
      undo steps (JoyClub's trash and "Profil nicht mehr ignorieren") and the
@@ -891,14 +893,19 @@ result stays as recorded.
 157. On the inbox, choose "Quarantined" and reload: confirm the view stays. With
      the keyboard only, open "Why and move" on a row's badge, move the sender
      and press "Close": confirm focus is back on that row's badge.
-158. Double-click "Positive" and confirm the trust score rises by 1. Open your
-     own profile and confirm the strip shows no placement, no "Log" buttons and
-     no note editor, while the shared-preferences section stays.
+158. Double-click "Positive" and confirm the trust score rises by 1. With at
+     least two outcomes logged, double-click "Undo" and confirm only one goes.
+     Open your own profile and confirm the strip shows no placement, no "Log"
+     buttons and no note editor, while the shared-preferences section stays. On
+     another profile, confirm the shared-preferences list opens only with "Show
+     the shared preferences". This changes item 117.
 159. With "Ignore and Delete" on, make the window so narrow that the ClubMail
-     list is hidden. Confirm the line "Works only while the ClubMail list shows
-     beside this conversation. Widen the window." under the button. In a run,
-     confirm the profile page shows "Waiting for JoyClub's profile menu…" until
-     Ignore starts, and that the finished report says how to undo.
+     list is hidden. Confirm the line "Works only while this conversation shows
+     in the ClubMail list beside it. Widen the window, or scroll the list until
+     the conversation shows." under the button. In a run, confirm the profile
+     page shows "Waiting for JoyClub's profile menu…" until Ignore starts, and
+     that the finished report says how to undo. This changes the report texts in
+     items 44 and 45.
 160. With the keyboard only, press Enter on a card's "✎". Confirm focus is in
      the note box. Type a tag and press Enter: it is added. Press Escape: focus
      is back on "✎". Type a change and click "Discard my changes": the stored
@@ -906,11 +913,13 @@ result stays as recorded.
 161. Open an event you do not track. Confirm the JoyFox box is closed and says
      "(none yet)", and that the first save says "Saved. JoyFox now tracks this
      event." On "Dates & Events", choose "Only events you attend", use a JoyClub
-     quick filter and confirm the choice stays. This changes the texts in items
-     111, 113 and 115.
+     quick filter and confirm the choice stays. Confirm the Events tab says
+     "Your venues" and that a venue box also stays closed until the venue is
+     tracked. This changes items 111 to 115.
 162. Click a saved search. Confirm the bar says "Running "<name>"…", then
      "Showing "<name>".", and that the button is marked as the current search.
-     This adds to item 109.
+     Change a filter with JoyClub's own panel and confirm the "Showing" notice
+     goes. This adds to item 109.
 163. Insert a template longer than the message field allows. Confirm the notice
      says how many characters are too many.
 164. On JoyClub's light and dark theme, confirm the placement pill, the "JoyFox"

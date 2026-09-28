@@ -182,13 +182,14 @@ describe("Your data", () => {
     await mount();
     expect(
       root.querySelector('label[for="joyfox-data-account"]')?.textContent,
-    ).toBe("Konto ansehen (ändert nicht das aktive Konto)");
-    // Each account shows its identifier too.
+    ).toBe("Konto zum Ansehen (ändert das aktive Konto nicht)");
+    // Each account shows its identifier too. Both accounts can share a
+    // creation time, so their order is not part of this check.
     expect(
       Array.from(
         root.querySelectorAll<HTMLOptionElement>("#joyfox-data-account option"),
         (option) => option.textContent,
-      ),
+      ).sort(),
     ).toEqual(["Alpha (synthetic-a)", "Beta (synthetic-b)"]);
   });
 
@@ -371,7 +372,8 @@ describe("Your data", () => {
     const input = root.querySelector<HTMLInputElement>(
       "#joyfox-data-retention",
     )!;
-    input.value = "3";
+    // A higher number saves at once (a lower one asks first).
+    input.value = "30";
     press(
       root.querySelector<HTMLButtonElement>(".joyfox-data__retention-save"),
     );

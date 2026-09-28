@@ -212,14 +212,14 @@ describe("M10 composer template picker", () => {
     items()[0]!.click();
     expect(field.value).toBe("Hallo");
     expect(status()).toBe(
-      "The template is 15 characters too long for the message field, which takes at most 20 characters. Nothing was inserted. Shorten your text or the template.",
+      "With the template, the message would be 15 characters too long. The message field takes at most 20 characters. Nothing was inserted. Shorten your text or the template.",
     );
     // The list closed; focus is in the composer, not on the page.
     expect(document.activeElement).toBe(field);
     setLocale("de");
     view.localeChanged();
     expect(status()).toBe(
-      "Die Vorlage ist 15 Zeichen zu lang für das Nachrichtenfeld, das höchstens 20 Zeichen fasst. Es wurde nichts eingefügt. Kürze deinen Text oder die Vorlage.",
+      "Mit der Vorlage wäre die Nachricht 15 Zeichen zu lang. Das Nachrichtenfeld fasst höchstens 20 Zeichen. Es wurde nichts eingefügt. Kürze deinen Text oder die Vorlage.",
     );
     setLocale("en");
   });

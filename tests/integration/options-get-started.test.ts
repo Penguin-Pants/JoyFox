@@ -272,6 +272,23 @@ describe("site access (JoyFox on joyclub.de)", () => {
     expect(document.activeElement).toBe(allow());
   });
 
+  it("asks Firefox once for a double click while its prompt is open", async () => {
+    const { access, state } = await setUp(false);
+    let answer: (granted: boolean) => void = () => undefined;
+    access.request = (permissions) => {
+      state.requests.push(permissions);
+      return new Promise<boolean>((resolve) => (answer = resolve));
+    };
+    allow()!.click();
+    allow()!.click();
+    expect(state.requests).toHaveLength(1);
+    answer(false);
+    await settle(() => status()?.getAttribute("role") === "alert");
+    // Asked again once the prompt closed.
+    allow()!.click();
+    expect(state.requests).toHaveLength(2);
+  });
+
   it("drops the step once access is allowed", async () => {
     const { state } = await setUp(false);
     state.answer = true;
@@ -279,7 +296,7 @@ describe("site access (JoyFox on joyclub.de)", () => {
     allow()!.click();
     await settle(() => allow() === null);
     expect(status()?.textContent).toBe(
-      "Access to joyclub.de is on. JoyFox can now work on JoyClub.",
+      "Access to joyclub.de is on. Reload any JoyClub tab that is open, so JoyFox can work there.",
     );
     expect(root.textContent).toContain("JoyFox is set up.");
     // The button is gone: focus moves to the next step's link.

@@ -384,7 +384,7 @@ describe("M9 live driver on synthetic JoyClub pages (ADR 0011)", () => {
     );
     // The notice says how to bring the list back.
     expect(texts(result.report.lines)).toContain(
-      "Delete works only while the ClubMail list shows beside the conversation. Widen the window and try again.",
+      "Delete works only while this conversation shows in the ClubMail list beside it. Widen the window, or scroll the list until the conversation shows, then try again.",
     );
     expect(pressed).toEqual([]);
     expect(await steps()).toEqual(["Started", "Failed:unverifiable"]);

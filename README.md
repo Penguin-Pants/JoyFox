@@ -107,12 +107,12 @@ search is not opened (V1-3, `docs/manual-acceptance.md`, items 108 to 110).
 
 On an event page, a JoyFox box keeps your own attendance, note and tags for the
 event; on a venue page, a note and tags. The box stays closed until JoyFox
-tracks the page, and the list filter keeps its choice for the tab. JoyClub's own
-sign-up is never touched. On "Dates & Events", a filter shows only the loaded
-events that carry your tags, note or attendance, and a badge marks them. The
-options page's "Events" tab is your personal calendar of every tracked event,
-also after JoyClub removes it (V1-5, `docs/manual-acceptance.md`, items 111 to
-115).
+tracks the page, and the list filter keeps its choice for the tab, except a tag.
+JoyClub's own sign-up is never touched. On "Dates & Events", a filter shows only
+the loaded events that carry your tags, note or attendance, and a badge marks
+them. The options page's "Events" tab is your personal calendar of every tracked
+event, also after JoyClub removes it (V1-5, `docs/manual-acceptance.md`, items
+111 to 115).
 
 The Compatibility Overlay compares a profile's "Vorlieben" with your own. JoyFox
 reads your own preferences when you open your own profile. On another member's

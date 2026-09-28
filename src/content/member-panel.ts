@@ -137,6 +137,8 @@ export class MemberPanel {
    * Log clicks are ignored, so a double click logs one outcome.
    */
   #trustPending?: string;
+  /** The member whose Undo is being stored; a second click waits for it. */
+  #undoPending?: string;
   #page?: MemberPage;
   /** Whether "Why and move" is open; kept across redraws of the bar. */
   #drawerOpen = false;
@@ -329,7 +331,8 @@ export class MemberPanel {
     }
     const failed = this.#errorFor === target.memberId;
     const busy = this.#trustPending === target.memberId;
-    const key = JSON.stringify([target.key, data, failed, busy]);
+    const undoBusy = this.#undoPending === target.memberId;
+    const key = JSON.stringify([target.key, data, failed, busy, undoBusy]);
     const existing = this.document.querySelector(
       `[${UI_ATTRIBUTE}="${MEMBER_PANEL}"]`,
     );
@@ -377,10 +380,21 @@ export class MemberPanel {
             // Drawn again at once, so the Log buttons show they wait.
             if (this.#page) this.update(this.#page);
           },
-          onUndoTrust: () =>
-            this.#write(memberId, () =>
-              this.client.undoTrust(accountId, memberId),
-            ),
+          // A double click on Undo removes one outcome. An Undo right after
+          // a Log still runs, after it, and removes that outcome.
+          onUndoTrust: () => {
+            if (this.#undoPending === memberId) return;
+            this.#undoPending = memberId;
+            this.#write(
+              memberId,
+              () => this.client.undoTrust(accountId, memberId),
+              () => {
+                if (this.#undoPending === memberId)
+                  this.#undoPending = undefined;
+              },
+            );
+            if (this.#page) this.update(this.#page);
+          },
         }
       : {};
     const onToggle = (open: boolean) => {
@@ -413,6 +427,7 @@ export class MemberPanel {
             ...trustActions,
           },
           trustBusy: busy,
+          undoBusy,
           drawerOpen: this.#drawerOpen,
           onToggle,
         }),
@@ -429,6 +444,7 @@ export class MemberPanel {
             },
           },
           trustBusy: busy,
+          undoBusy,
           drawerOpen: this.#drawerOpen,
           onToggle,
         }),

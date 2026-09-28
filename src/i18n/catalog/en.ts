@@ -224,7 +224,7 @@ export const en = {
   "action.next.delete":
     "Next: open the conversation and check whether it is in the trash. If not, move it there yourself with JoyClub's trash button.",
   "action.next.showList":
-    "Delete works only while the ClubMail list shows beside the conversation. Widen the window and try again.",
+    "Delete works only while this conversation shows in the ClubMail list beside it. Widen the window, or scroll the list until the conversation shows, then try again.",
   "action.self.ignore":
     "You can do it yourself: open the member's profile and ignore them there.",
   "action.self.delete":
@@ -250,7 +250,7 @@ export const en = {
   "quick.scope":
     "Experimental. One click moves this conversation to JoyClub's trash, then opens the member's profile and ignores them there. JoyFox stops at the first problem and tells you what was done. It never sends a message.",
   "quick.needsList":
-    "Works only while the ClubMail list shows beside this conversation. Widen the window.",
+    "Works only while this conversation shows in the ClubMail list beside it. Widen the window, or scroll the list until the conversation shows.",
   "quick.noProfile":
     "JoyFox cannot find this member's profile address, where Ignore is, so it did nothing.",
   "quick.resumed": "Ignore and Delete, continued from the conversation:",
@@ -470,7 +470,7 @@ export const en = {
   "events.exception.label":
     "Shared-event exception: place a sender in Qualified when they are on the guest list of an event I marked Attending or Attended",
   "events.exception.hint":
-    'Off by default. JoyFox stores a tracked event\'s guest list when you open the event page, as far as JoyClub has loaded it, and deletes it when you stop tracking the event. A sender you moved yourself keeps your choice, and the "Why" panel can turn the exception off for one sender.',
+    'Off by default. JoyFox stores a tracked event\'s guest list when you open the event page, as far as JoyClub has loaded it, and deletes it when you stop tracking the event. A sender you moved yourself keeps your choice, and the "Why and move" panel can turn the exception off for one sender.',
   "events.exception.saved": "Saved.",
   "events.exception.saveFailed":
     "JoyFox could not save this setting. Try again.",
@@ -696,10 +696,10 @@ export const en = {
   "picker.result.not-editable":
     "The message field cannot be edited right now. Nothing was inserted.",
   "picker.result.too-long": (p: { over: number; limit: number }, f: Format) =>
-    `The template is ${f.plural(p.over, {
+    `With the template, the message would be ${f.plural(p.over, {
       one: "1 character",
       other: `${f.number(p.over)} characters`,
-    })} too long for the message field, which takes at most ${f.number(p.limit)} characters. Nothing was inserted. Shorten your text or the template.`,
+    })} too long. The message field takes at most ${f.number(p.limit)} characters. Nothing was inserted. Shorten your text or the template.`,
   "picker.result.altered":
     "JoyClub changed the text after insertion. Check the message field before you send.",
   "templates.folder.general": "General",
@@ -747,7 +747,7 @@ export const en = {
   // Options page: site access (Get started)
   "access.allow": "Allow access to joyclub.de",
   "access.granted":
-    "Access to joyclub.de is on. JoyFox can now work on JoyClub.",
+    "Access to joyclub.de is on. Reload any JoyClub tab that is open, so JoyFox can work there.",
   "access.refused":
     "Access to joyclub.de is still off. JoyFox cannot work on JoyClub until you allow access here or in about:addons.",
 
@@ -1017,7 +1017,8 @@ export const en = {
   // Import is on the Accounts tab (owner decision); this line points there.
   "data.importPointer": "To import a file, go to [Accounts](#accounts).",
   "data.noAccounts": "No accounts yet.",
-  "data.accountPicker": "Account to inspect",
+  "data.accountPicker":
+    "Account to inspect (does not change the active account)",
   "data.caption": "Stored records for this account",
   "data.col.type": "Data type",
   "data.col.records": "Records",
@@ -1081,6 +1082,15 @@ export const en = {
   ) =>
     `JoyFox keeps the newest snapshots of each member's profile facts, always at least the latest one. Lowering the number deletes older snapshots at once, in every account. From ${f.number(p.minimum)} to ${f.number(p.maximum)}; the default is ${f.number(p.default)}. Click "Save" to apply.`,
   "data.retentionSave": "Save",
+  "data.retentionConfirm": "Save and delete",
+  "data.retentionConfirmPrompt": (p: { keep: number }, f: Format) =>
+    `Lowering the number deletes older snapshots at once, in every account: each member keeps only ${f.plural(
+      p.keep,
+      {
+        one: "the newest snapshot",
+        other: `the newest ${f.number(p.keep)} snapshots`,
+      },
+    )}. Click "Save and delete" to confirm.`,
   "data.retentionSaved": (p: { deleted: number }, f: Format) =>
     p.deleted === 0
       ? "Saved. No snapshot needed deleting."

@@ -156,7 +156,7 @@ stay as they are.
 | `action.stepText.delete.unknown` | Delete: not confirmed. JoyFox started it but did not see JoyClub confirm it. | In den Papierkorb schieben: nicht bestätigt. JoyFox hat den Schritt begonnen, aber keine Bestätigung von JoyClub gesehen. |
 | `action.next.ignore` | Next: open the member's profile and check whether they are ignored. If not, ignore them there yourself. | Nächster Schritt: Öffne das Profil des Mitglieds und prüfe, ob es ignoriert wird. Wenn nicht, ignoriere es dort selbst. |
 | `action.next.delete` | Next: open the conversation and check whether it is in the trash. If not, move it there yourself with JoyClub's trash button. | Nächster Schritt: Öffne die Unterhaltung und prüfe, ob sie im Papierkorb ist. Wenn nicht, verschiebe sie selbst mit „In den Papierkorb schieben“. |
-| `action.next.showList` | Delete works only while the ClubMail list shows beside the conversation. Widen the window and try again. | „In den Papierkorb schieben“ klappt nur, während die ClubMail-Liste neben der Unterhaltung zu sehen ist. Mach das Fenster breiter und versuche es noch einmal. |
+| `action.next.showList` | Delete works only while this conversation shows in the ClubMail list beside it. Widen the window, or scroll the list until the conversation shows, then try again. | „In den Papierkorb schieben“ klappt nur, während diese Unterhaltung in der ClubMail-Liste daneben zu sehen ist. Mach das Fenster breiter oder scrolle die Liste, bis die Unterhaltung erscheint, und versuche es dann noch einmal. |
 | `action.self.ignore` | You can do it yourself: open the member's profile and ignore them there. | Du kannst es selbst tun: Öffne das Profil des Mitglieds und ignoriere es dort mit „Profil ignorieren“. |
 | `action.self.delete` | You can do it yourself: move the conversation to the trash with JoyClub's trash button. | Du kannst es selbst tun: Verschiebe die Unterhaltung mit „In den Papierkorb schieben“ in den Papierkorb. |
 | `action.report.finished` | Ignore and Delete finished. | „Ignorieren und löschen“ ist fertig. |
@@ -178,7 +178,7 @@ stay as they are.
 | `quick.button` | Ignore and Delete | Ignorieren und löschen |
 | `quick.region` | JoyFox Ignore and Delete | JoyFox: Ignorieren und löschen |
 | `quick.scope` | Experimental. One click moves this conversation to JoyClub's trash, then opens the member's profile and ignores them there. JoyFox stops at the first problem and tells you what was done. It never sends a message. | Experimentell. Ein Klick verschiebt diese Unterhaltung in JoyClubs Papierkorb, öffnet dann das Profil des Mitglieds und ignoriert es dort. JoyFox hält beim ersten Problem an und sagt dir, was erledigt wurde. JoyFox sendet nie eine Nachricht. |
-| `quick.needsList` | Works only while the ClubMail list shows beside this conversation. Widen the window. | Klappt nur, während die ClubMail-Liste neben dieser Unterhaltung zu sehen ist. Mach das Fenster breiter. |
+| `quick.needsList` | Works only while this conversation shows in the ClubMail list beside it. Widen the window, or scroll the list until the conversation shows. | Klappt nur, während diese Unterhaltung in der ClubMail-Liste daneben zu sehen ist. Mach das Fenster breiter oder scrolle die Liste, bis die Unterhaltung erscheint. |
 | `quick.noProfile` | JoyFox cannot find this member's profile address, where Ignore is, so it did nothing. | JoyFox findet die Profiladresse dieses Mitglieds nicht. Dort ist „Profil ignorieren“. JoyFox hat deshalb nichts getan. |
 | `quick.resumed` | Ignore and Delete, continued from the conversation: | „Ignorieren und löschen“, fortgesetzt aus der Unterhaltung: |
 | `quick.waitingMenu` | Waiting for JoyClub's profile menu… | JoyFox wartet auf JoyClubs Profilmenü … |
@@ -366,7 +366,7 @@ stay as they are.
 | `events.venuesHeading` | Your venues | Deine Clubs |
 | `events.guests` | 1 guest stored / {count} guests stored | 1 Gast gespeichert / {count} Gäste gespeichert |
 | `events.exception.label` | Shared-event exception: place a sender in Qualified when they are on the guest list of an event I marked Attending or Attended | Ausnahme für gemeinsame Events: eine Person als „Qualifiziert“ einordnen, wenn sie auf der Gästeliste eines Events steht, das ich mit „Ich gehe hin“ oder „Ich war dort“ markiert habe |
-| `events.exception.hint` | Off by default. JoyFox stores a tracked event's guest list when you open the event page, as far as JoyClub has loaded it, and deletes it when you stop tracking the event. A sender you moved yourself keeps your choice, and the "Why" panel can turn the exception off for one sender. | Standardmäßig aus. JoyFox speichert die Gästeliste eines verfolgten Events, wenn du die Event-Seite öffnest, so weit JoyClub sie geladen hat, und löscht sie, wenn du das Event nicht mehr verfolgst. Eine Person, die du selbst verschoben hast, behält deine Wahl, und im Bereich „Warum“ kannst du die Ausnahme für eine Person abschalten. |
+| `events.exception.hint` | Off by default. JoyFox stores a tracked event's guest list when you open the event page, as far as JoyClub has loaded it, and deletes it when you stop tracking the event. A sender you moved yourself keeps your choice, and the "Why and move" panel can turn the exception off for one sender. | Standardmäßig aus. JoyFox speichert die Gästeliste eines verfolgten Events, wenn du die Event-Seite öffnest, so weit JoyClub sie geladen hat, und löscht sie, wenn du das Event nicht mehr verfolgst. Eine Person, die du selbst verschoben hast, behält deine Wahl, und im Bereich „Warum und verschieben“ kannst du die Ausnahme für eine Person abschalten. |
 | `events.exception.saved` | Saved. | Gespeichert. |
 | `events.exception.saveFailed` | JoyFox could not save this setting. Try again. | JoyFox konnte diese Einstellung nicht speichern. Versuche es noch einmal. |
 
@@ -533,7 +533,7 @@ stay as they are.
 | `picker.noAccount` | No JoyFox account is active. Choose one on the JoyFox options page. | Kein JoyFox-Konto ist aktiv. Wähle eines in den JoyFox-Einstellungen. |
 | `picker.result.inserted` | Template inserted. Check the text, then click JoyClub's Send button yourself. | Vorlage eingefügt. Prüfe den Text und klicke dann selbst auf JoyClubs „Senden“. |
 | `picker.result.not-editable` | The message field cannot be edited right now. Nothing was inserted. | Das Nachrichtenfeld kann gerade nicht bearbeitet werden. Es wurde nichts eingefügt. |
-| `picker.result.too-long` | The template is 1 character / {over} characters too long for the message field, which takes at most {limit} characters. Nothing was inserted. Shorten your text or the template. | Die Vorlage ist 1 Zeichen / {over} Zeichen zu lang für das Nachrichtenfeld, das höchstens {limit} Zeichen fasst. Es wurde nichts eingefügt. Kürze deinen Text oder die Vorlage. |
+| `picker.result.too-long` | With the template, the message would be 1 character / {over} characters too long. The message field takes at most {limit} characters. Nothing was inserted. Shorten your text or the template. | Mit der Vorlage wäre die Nachricht 1 Zeichen / {over} Zeichen zu lang. Das Nachrichtenfeld fasst höchstens {limit} Zeichen. Es wurde nichts eingefügt. Kürze deinen Text oder die Vorlage. |
 | `picker.result.altered` | JoyClub changed the text after insertion. Check the message field before you send. | JoyClub hat den Text nach dem Einfügen geändert. Prüfe das Nachrichtenfeld, bevor du sendest. |
 
 ## templates
@@ -583,7 +583,7 @@ stay as they are.
 | Key | English | Deutsch |
 | --- | --- | --- |
 | `access.allow` | Allow access to joyclub.de | Zugriff auf joyclub.de erlauben |
-| `access.granted` | Access to joyclub.de is on. JoyFox can now work on JoyClub. | Der Zugriff auf joyclub.de ist an. JoyFox kann jetzt auf JoyClub arbeiten. |
+| `access.granted` | Access to joyclub.de is on. Reload any JoyClub tab that is open, so JoyFox can work there. | Der Zugriff auf joyclub.de ist an. Lade offene JoyClub-Tabs neu, damit JoyFox dort arbeiten kann. |
 | `access.refused` | Access to joyclub.de is still off. JoyFox cannot work on JoyClub until you allow access here or in about:addons. | Der Zugriff auf joyclub.de ist weiterhin aus. JoyFox kann auf JoyClub erst arbeiten, wenn du den Zugriff hier oder unter about:addons erlaubst. |
 
 ## accounts
@@ -687,7 +687,7 @@ stay as they are.
 | `rule.addRule` | + Add group | + Gruppe hinzufügen |
 | `rule.removeRule` | Remove group | Gruppe entfernen |
 | `rule.confirmRemoveGroup` | Confirm removal | Entfernen bestätigen |
-| `rule.confirmRemoveGroupLabel` | Confirm removal of group {number} | Entfernen von Gruppe {number} bestätigen |
+| `rule.confirmRemoveGroupLabel` | Confirm removal of group {number} | Entfernen bestätigen: Gruppe {number} |
 | `rule.removeGroupPrompt` | Click again to remove group {number} and its conditions. | Klicke noch einmal, um Gruppe {number} und ihre Bedingungen zu entfernen. |
 | `rule.ruleSuffix` | of these are met | dieser Bedingungen |
 | `rule.noConditions` | No conditions yet. Add one below. | Noch keine Bedingungen. Füge unten eine hinzu. |
@@ -700,7 +700,7 @@ stay as they are.
 | `rule.joiner.any` | OR | ODER |
 | `rule.ruleTitle` | Group {number}: met if | Gruppe {number}: erfüllt bei |
 | `rule.ruleMatchLabel` | How group {number} combines its conditions | Wie Gruppe {number} ihre Bedingungen verknüpft |
-| `rule.removeRuleLabel` | Remove group {number} | Gruppe {number} entfernen |
+| `rule.removeRuleLabel` | Remove group {number} | Gruppe entfernen: Nr. {number} |
 | `rule.addConditionLabel` | Add a condition to group {number} | Bedingung zu Gruppe {number} hinzufügen |
 | `rule.addCondition` | + Add condition… | + Bedingung hinzufügen … |
 | `rule.ruleCount` | {count} of {maximum} groups | {count} von {maximum} Gruppen |
@@ -787,7 +787,7 @@ stay as they are.
 | `data.hint` | Everything JoyFox stores stays in this browser profile. You can inspect it, save it as a JSON file and delete it here. Deleting here never changes anything on JoyClub. | Alles, was JoyFox speichert, bleibt in diesem Browserprofil. Hier kannst du es ansehen, als JSON-Datei speichern und löschen. Löschen hier ändert nie etwas auf JoyClub. |
 | `data.importPointer` | To import a file, go to [Accounts](#accounts). | Eine Datei importierst du unter [Konten](#accounts). |
 | `data.noAccounts` | No accounts yet. | Noch keine Konten. |
-| `data.accountPicker` | Account to inspect | Konto ansehen (ändert nicht das aktive Konto) |
+| `data.accountPicker` | Account to inspect (does not change the active account) | Konto zum Ansehen (ändert das aktive Konto nicht) |
 | `data.caption` | Stored records for this account | Gespeicherte Datensätze dieses Kontos |
 | `data.col.type` | Data type | Datentyp |
 | `data.col.records` | Records | Datensätze |
@@ -826,6 +826,8 @@ stay as they are.
 | `data.retentionLabel` | Profile snapshots kept per member | Gespeicherte Profil-Momentaufnahmen je Mitglied |
 | `data.retentionHint` | JoyFox keeps the newest snapshots of each member's profile facts, always at least the latest one. Lowering the number deletes older snapshots at once, in every account. From {minimum} to {maximum}; the default is {default}. Click "Save" to apply. | JoyFox behält die neuesten Momentaufnahmen der Profilangaben jedes Mitglieds, immer mindestens die letzte. Eine kleinere Zahl löscht ältere Momentaufnahmen sofort, in allen Konten. Von {minimum} bis {maximum}; Standard ist {default}. Klicke auf „Speichern“, um die Zahl zu übernehmen. |
 | `data.retentionSave` | Save | Speichern |
+| `data.retentionConfirm` | Save and delete | Speichern und löschen |
+| `data.retentionConfirmPrompt` | Lowering the number deletes older snapshots at once, in every account: each member keeps only the newest snapshot / the newest {keep} snapshots. Click "Save and delete" to confirm. | Eine kleinere Zahl löscht ältere Momentaufnahmen sofort, in allen Konten: Für jedes Mitglied bleibt nur die neueste Momentaufnahme / die neuesten {keep} Momentaufnahmen. Klicke zum Bestätigen auf „Speichern und löschen“. |
 | `data.retentionSaved` | Saved. 1 older snapshot was / {deleted} older snapshots were deleted. | Gespeichert. 1 ältere Momentaufnahme wurde / {deleted} ältere Momentaufnahmen wurden gelöscht. |
 | `data.retentionInvalid` | Enter a whole number from {minimum} to {maximum}. Nothing was changed. | Gib eine ganze Zahl von {minimum} bis {maximum} ein. Es wurde nichts geändert. |
 | `data.retentionFailed` | JoyFox could not save the setting. The field shows the number in use now. Try again. | JoyFox konnte die Einstellung nicht speichern. Das Feld zeigt die Zahl, die jetzt gilt. Versuche es noch einmal. |

@@ -229,6 +229,14 @@ describe("M8 data panel", () => {
     );
     expect(await repositories.profileSnapshots.list(a)).toHaveLength(4);
     input().value = "1";
+    // A lower number deletes at once, so the first click only asks.
+    save().click();
+    await settle(() => save().textContent === "Save and delete");
+    expect(status()?.textContent).toBe(
+      'Lowering the number deletes older snapshots at once, in every account: each member keeps only the newest snapshot. Click "Save and delete" to confirm.',
+    );
+    expect(input().value).toBe("1");
+    expect(await repositories.profileSnapshots.list(a)).toHaveLength(4);
     save().click();
     await settle(() => status()?.textContent?.includes("Saved.") ?? false);
     expect(status()?.textContent).toContain("3 older snapshots were deleted.");
@@ -237,6 +245,25 @@ describe("M8 data panel", () => {
       (await repositories.profileSnapshots.list(a)).map(({ id }) => id),
     ).toEqual(["snap-3"]);
     expect(changes).toBeGreaterThan(0);
+  });
+
+  it("disarms a lower snapshot number when another number is typed, and saves a higher one at once", async () => {
+    await panel.render();
+    const input = () =>
+      root.querySelector<HTMLInputElement>("#joyfox-data-retention")!;
+    const save = () =>
+      root.querySelector<HTMLButtonElement>(".joyfox-data__retention-save")!;
+    input().value = "5";
+    save().click();
+    await settle(() => save().textContent === "Save and delete");
+    input().value = "6";
+    input().dispatchEvent(new Event("input"));
+    expect(save().textContent).toBe("Save");
+    expect(status()?.textContent).toBe("");
+    input().value = "30";
+    save().click();
+    await settle(() => status()?.textContent?.includes("Saved.") ?? false);
+    expect(input().value).toBe("30");
   });
 
   it("keeps expanded records open when the panel redraws", async () => {

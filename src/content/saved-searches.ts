@@ -414,7 +414,9 @@ export class SavedSearchBar {
   /** The notice of the saved search run on this page, by its name. */
   #runStatus(): { text: Message; error: boolean } | undefined {
     const run = this.#run;
-    if (!run) return undefined;
+    // JoyClub can change the address in place after the run (the user's own
+    // filter change): the notice then no longer names what the page shows.
+    if (!run || run.address !== this.#address()) return undefined;
     const name = this.#data?.searches.find((search) =>
       this.#opens(search, run.address),
     )?.name;
@@ -439,7 +441,8 @@ export class SavedSearchBar {
     const focus = rememberFocus(root);
     const heading = t("searches.heading");
     root.setAttribute("aria-label", heading);
-    if (this.#heading) this.#heading.textContent = heading;
+    if (this.#heading && this.#heading.textContent !== heading)
+      this.#heading.textContent = heading;
     this.#drawnFor = this.#address();
     body.replaceChildren();
     const data = this.#data;
@@ -463,7 +466,10 @@ export class SavedSearchBar {
     } else body.append(this.#list(data.searches), this.#saveRow());
     const shown = this.#status ?? this.#runStatus();
     if (this.#statusNode) {
-      this.#statusNode.textContent = shown ? t(shown.text) : "";
+      // Written only when it changes: a live region may read a rewrite again.
+      const text = shown ? t(shown.text) : "";
+      if (this.#statusNode.textContent !== text)
+        this.#statusNode.textContent = text;
       this.#statusNode.classList.toggle("joyfox-error", shown?.error === true);
     }
     restoreFocus(

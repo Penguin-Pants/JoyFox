@@ -300,6 +300,8 @@ export class AccountPanel {
       t("accounts.renameLabel", { name: fullName(account) }),
     );
     button.addEventListener("click", () => {
+      // A removal armed before is disarmed, and its prompt goes with it.
+      if (this.#pendingRemoval) this.#status.clear();
       this.#pendingRemoval = undefined;
       this.#renaming = account.id;
       const label = account.label ?? "";

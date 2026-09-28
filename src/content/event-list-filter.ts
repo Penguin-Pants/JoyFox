@@ -303,10 +303,14 @@ export class EventListFilter {
     }
     if (filtering) list.setAttribute(FILTER_ATTRIBUTE, "on");
     else list.removeAttribute(FILTER_ATTRIBUTE);
-    if (this.#count)
-      this.#count.textContent = filtering
-        ? t(message("eventFilter.count", { shown, loaded }))
-        : "";
+    // Written only when it changes. Replacing the text is a page mutation,
+    // which would start the next pass at once, and the count is a live
+    // region that a screen reader could read again each time.
+    const count = filtering
+      ? t(message("eventFilter.count", { shown, loaded }))
+      : "";
+    if (this.#count && this.#count.textContent !== count)
+      this.#count.textContent = count;
   }
 
   #badge(

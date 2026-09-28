@@ -415,6 +415,18 @@ describe("removing an account (U19)", () => {
     );
   });
 
+  it("drops the removal prompt when Rename disarms the removal", async () => {
+    await mountAccountPanel(root, service);
+    await addAccount("synthetic-a", "Account A");
+    await click(button(".joyfox-panel__remove")!, armed);
+    await click(
+      button(".joyfox-account__rename")!,
+      () => root.querySelector(".joyfox-account__rename-form") !== null,
+    );
+    expect(armed()).toBe(false);
+    expect(status()?.textContent).toBe("");
+  });
+
   it("says no account is active after the active one is removed", async () => {
     await mountAccountPanel(root, service);
     await addAccount("synthetic-a", "Account A");
