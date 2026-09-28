@@ -1,4 +1,4 @@
-import type { PlainKey } from "../i18n/catalog/en";
+import { message, type Message } from "../i18n/message";
 import { t } from "../i18n/translator";
 import type {
   ExtensionMessage,
@@ -42,17 +42,15 @@ export function runtimeTemplateClient(): TemplateClient {
   );
 }
 
-const RESULT_TEXT: Record<string, PlainKey> = {
-  inserted: "picker.result.inserted",
-  "not-editable": "picker.result.not-editable",
-  "too-long": "picker.result.too-long",
-  altered: "picker.result.altered",
-};
-
-function resultText(result: InsertionResult): PlainKey {
-  return RESULT_TEXT[
-    result.status === "refused" ? result.reason : result.status
-  ]!;
+function resultText(result: InsertionResult): Message {
+  if (result.status === "inserted") return message("picker.result.inserted");
+  if (result.status === "altered") return message("picker.result.altered");
+  return result.reason === "too-long"
+    ? message("picker.result.too-long", {
+        over: result.over,
+        limit: result.limit,
+      })
+    : message("picker.result.not-editable");
 }
 
 /** The folder a template is listed under, in the language shown. */
@@ -75,8 +73,8 @@ export class TemplatePicker {
   #list?: HTMLElement;
   #toggle?: HTMLButtonElement;
   #status?: HTMLElement;
-  /** The notice shown, kept as a key so a language change can redraw it. */
-  #statusKey?: PlainKey;
+  /** The notice shown, kept so a language change can redraw it. */
+  #statusText?: Message;
   /** Bumped on every open and teardown, so a late answer is dropped. */
   #generation = 0;
 
@@ -123,7 +121,7 @@ export class TemplatePicker {
   localeChanged(): void {
     if (!this.#root) return;
     if (this.#toggle) this.#toggle.textContent = t("picker.toggle");
-    this.#setStatus(this.#statusKey);
+    this.#setStatus(this.#statusText);
     if (this.#list) void this.#open();
   }
 
@@ -158,12 +156,13 @@ export class TemplatePicker {
   async #open(): Promise<void> {
     this.#close();
     const generation = this.#generation;
-    this.#setStatus("picker.loading");
+    this.#setStatus(message("picker.loading"));
     let answer: Awaited<ReturnType<TemplateClient["listTemplates"]>>;
     try {
       answer = await this.client.listTemplates();
     } catch {
-      if (generation === this.#generation) this.#setStatus("picker.readFailed");
+      if (generation === this.#generation)
+        this.#setStatus(message("picker.readFailed"));
       return;
     }
     if (generation !== this.#generation || !this.#root) return;
@@ -220,11 +219,15 @@ export class TemplatePicker {
     this.#close();
     if (!composer) return;
     this.#setStatus(resultText(insertAtCursor(composer, template.body)));
+    // The list and its button are gone. The composer takes focus when it
+    // can; otherwise the picker's own button does, not the page.
+    if (this.document.activeElement !== composer)
+      this.#toggle?.focus({ preventScroll: true });
   }
 
-  #setStatus(key: PlainKey | undefined): void {
-    this.#statusKey = key;
-    if (this.#status) this.#status.textContent = key ? t(key) : "";
+  #setStatus(text: Message | undefined): void {
+    this.#statusText = text;
+    if (this.#status) this.#status.textContent = text ? t(text) : "";
   }
 }
 

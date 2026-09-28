@@ -20,7 +20,7 @@ import { registerMemberHandlers } from "./member-handlers";
 import { registerMessageHandlers } from "./message-handlers";
 import { registerSignalsHandlers } from "./signals-handlers";
 import { registerNotesHandlers } from "./notes-handlers";
-import { registerOnboarding } from "./onboarding";
+import { registerOnboarding, registerToolbarButton } from "./onboarding";
 import { registerSearchHandlers } from "./search-handlers";
 import { registerTemplateHandlers } from "./template-handlers";
 import { registerTriageHandlers } from "./triage-handlers";
@@ -76,6 +76,7 @@ registerListingHandlers(router, {
   activeAccountId,
 });
 registerOnboarding(browser.runtime);
+registerToolbarButton(browser.action, () => browser.runtime.openOptionsPage());
 browser.runtime.onMessage.addListener(
   (message: unknown, sender: browser.runtime.MessageSender) =>
     router.route(message as never, {

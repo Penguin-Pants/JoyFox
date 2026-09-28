@@ -16,6 +16,7 @@ import {
   type MemberTriage,
   type TriageRequestMember,
 } from "../triage/triage-service";
+import { rememberFocus, restoreFocus } from "../ui/focus";
 import { placeInInboxLine, removeEmptyCardLines } from "./card-line";
 import { factsKey, observedFromInboxRow } from "./observed-facts";
 import type { TriageClient } from "./triage-client";
@@ -23,6 +24,9 @@ import {
   button,
   element,
   explanation,
+  FOCUS,
+  focusFallbacks,
+  keyed,
   openSections,
   reopenSections,
   UI_ATTRIBUTE,
@@ -34,7 +38,27 @@ import {
  * the template picker) would make it mount again on the next mutation, in a
  * loop.
  */
-const INBOX_UI: readonly string[] = ["triage-bar", "badge"];
+const INBOX_UI: readonly string[] = ["triage-bar", "triage-setup", "badge"];
+
+/**
+ * Why the inbox is not sorted, when the user can change it in the options.
+ * Every other reason (a rule turned off, no answer) stays silent (ADR 0006).
+ */
+type SetupReason = "no-account" | "no-rule";
+
+const SETUP_TEXT: Record<SetupReason, PlainKey> = {
+  "no-account": "inbox.setup.no-account",
+  "no-rule": "inbox.setup.no-rule",
+};
+
+/** The Close button of the "Why and move" panel, for focus. */
+const CLOSE_KEY = "close";
+
+/**
+ * The view chosen in this tab, kept across reloads in the tab's session
+ * storage (as the saved-search bar keeps its run request).
+ */
+export const VIEW_STORAGE_KEY = "joyfox.inboxView";
 
 /** The triage views (owner's decision, 2026-09-23). */
 export type TriageView =
@@ -111,6 +135,35 @@ const VIEW_TEXT: Record<TriageView, PlainKey> = {
   all: "inbox.view.all",
 };
 
+/** The view stored for this tab, or the default when there is none. */
+function storedView(document: Document): TriageView {
+  try {
+    const value =
+      document.defaultView?.sessionStorage.getItem(VIEW_STORAGE_KEY);
+    return value && Object.hasOwn(VIEW_TEXT, value)
+      ? (value as TriageView)
+      : "default";
+  } catch {
+    // Storage blocked for the page: the default view.
+    return "default";
+  }
+}
+
+function storeView(document: Document, view: TriageView): void {
+  try {
+    document.defaultView?.sessionStorage.setItem(VIEW_STORAGE_KEY, view);
+  } catch {
+    // Storage blocked: the view lasts until the page reloads.
+  }
+}
+
+/** Whether the stylesheet shows a row with this badge placement in `view`. */
+function shownInView(placement: string | undefined, view: TriageView): boolean {
+  if (view === "all") return true;
+  if (view === "default") return placement !== "quarantined";
+  return placement === view;
+}
+
 interface RowState {
   row: Element;
   key?: string;
@@ -134,7 +187,8 @@ interface RowState {
  *
  * The default view shows everything except Quarantined. A row not yet
  * evaluated is never hidden from the default view, and any failure leaves
- * the list untouched.
+ * the list untouched. Without an account or a saved rule, one line in place
+ * of the tab bar says so, and no row is hidden or labelled.
  *
  * Every write to the page is compared with the current value first. The
  * navigation coordinator reacts to JoyFox's own mutations too, so an update
@@ -142,10 +196,10 @@ interface RowState {
  */
 export class InboxTriage {
   readonly #results = new Map<string, MemberTriage>();
-  #status: "pending" | "ok" | "off" = "pending";
+  #status: "pending" | "ok" | "off" | SetupReason = "pending";
   #inFlight = false;
   #generation = 0;
-  #view: TriageView = "default";
+  #view: TriageView;
   #selected?: string;
   #detailsKey = "";
   /**
@@ -163,7 +217,9 @@ export class InboxTriage {
     private readonly document: Document,
     private readonly client: TriageClient,
     private readonly now: () => Date = () => new Date(),
-  ) {}
+  ) {
+    this.#view = storedView(document);
+  }
 
   get view(): TriageView {
     return this.#view;
@@ -214,9 +270,15 @@ export class InboxTriage {
       this.teardown();
       return;
     }
+    if (this.#status === "no-account" || this.#status === "no-rule") {
+      // Remembered like "off", so no request per mutation; only the line.
+      this.#ensureSetup(list, this.#status);
+      return;
+    }
     const rows = this.#rows();
     this.#requestMissing(rows);
     if (this.#status !== "ok") return;
+    this.document.querySelector(`[${UI_ATTRIBUTE}="triage-setup"]`)?.remove();
     this.#ensureBar(list);
     setAttribute(list, VIEW_ATTRIBUTE, this.#view);
     const counts: Record<TriagePlacement, number> = {
@@ -300,17 +362,23 @@ export class InboxTriage {
    */
   localeChanged(): void {
     const bar = () =>
-      this.document.querySelector(`[${UI_ATTRIBUTE}="triage-bar"]`);
+      this.document.querySelector(
+        `[${UI_ATTRIBUTE}="triage-bar"], [${UI_ATTRIBUTE}="triage-setup"]`,
+      );
     const open = openSections(bar());
+    const focus = rememberFocus(bar());
     bar()?.remove();
     this.#detailsKey = "";
     this.#refresh();
     const redrawn = bar();
-    if (redrawn) reopenSections(redrawn, open);
+    if (!redrawn) return;
+    reopenSections(redrawn, open);
+    restoreFocus(redrawn, focus, [...focusFallbacks(focus?.key), CLOSE_KEY]);
   }
 
   setView(view: TriageView): void {
     this.#view = view;
+    storeView(this.document, view);
     this.#refresh();
   }
 
@@ -393,8 +461,16 @@ export class InboxTriage {
         if (generation !== this.#generation) return;
         this.#inFlight = false;
         if (response.status !== "ok") {
-          this.#status = "off";
           this.teardown();
+          if (
+            response.status === "no-account" ||
+            response.status === "no-rule"
+          ) {
+            // The user can fix these; say so in one line. Rows stay as they
+            // are.
+            this.#status = response.status;
+            this.#refresh();
+          } else this.#status = "off";
           return;
         }
         this.#accountId = response.accountId;
@@ -433,11 +509,14 @@ export class InboxTriage {
     group.setAttribute("role", "group");
     group.setAttribute("aria-label", t("inbox.views"));
     for (const view of Object.keys(VIEW_TEXT) as TriageView[]) {
-      const tab = button(
-        this.document,
-        "joyfox-button joyfox-triage__view",
-        t(VIEW_TEXT[view]),
-        () => this.setView(view),
+      const tab = keyed(
+        button(
+          this.document,
+          "joyfox-button joyfox-triage__view",
+          t(VIEW_TEXT[view]),
+          () => this.setView(view),
+        ),
+        `view:${view}`,
       );
       tab.dataset.view = view;
       group.append(tab);
@@ -457,6 +536,44 @@ export class InboxTriage {
     details.hidden = true;
     bar.append(details);
     list.before(bar);
+  }
+
+  /**
+   * One line where the tab bar goes, when there is no account or no saved
+   * rule, with the way to the options. Written only when it changes.
+   */
+  #ensureSetup(list: Element, reason: SetupReason): void {
+    const existing = this.document.querySelector<HTMLElement>(
+      `[${UI_ATTRIBUTE}="triage-setup"]`,
+    );
+    if (
+      existing &&
+      existing.nextElementSibling === list &&
+      existing.dataset.reason === reason
+    )
+      return;
+    const focus = rememberFocus(existing);
+    existing?.remove();
+    const bar = element(
+      this.document,
+      "div",
+      "joyfox-triage joyfox-triage--setup",
+    );
+    bar.setAttribute(UI_ATTRIBUTE, "triage-setup");
+    bar.dataset.reason = reason;
+    bar.setAttribute("role", "region");
+    bar.setAttribute("aria-label", t("inbox.region"));
+    bar.append(
+      element(this.document, "p", "joyfox-note", t(SETUP_TEXT[reason])),
+      keyed(
+        button(this.document, "joyfox-button", t("common.openOptions"), () => {
+          void this.client.openOptions().catch(() => undefined);
+        }),
+        FOCUS.openOptions,
+      ),
+    );
+    list.before(bar);
+    restoreFocus(bar, focus);
   }
 
   #renderCounts(counts: Record<TriagePlacement, number>): void {
@@ -532,46 +649,40 @@ export class InboxTriage {
       // The name is shown as JoyClub shows it, never logged.
       state?.name ? t("inbox.whyNamed", { name: state.name }) : t("inbox.why"),
     );
-    const close = button(
-      this.document,
-      "joyfox-button",
-      t("common.close"),
-      () => {
+    const close = keyed(
+      button(this.document, "joyfox-button", t("common.close"), () => {
+        const member = this.#selected;
         this.#selected = undefined;
         this.#failedFor = undefined;
         this.#detailsKey = "";
         details.hidden = true;
         details.replaceChildren();
-      },
+        this.#focusAfterClose(member);
+      }),
+      CLOSE_KEY,
     );
+    // Drawn again after a move or a new answer: focus stays on the same
+    // control, or on the nearest one left in the panel.
+    const focus = rememberFocus(details);
+    const redraw = (...body: Node[]) => {
+      details.replaceChildren(heading, ...body, close);
+      restoreFocus(details, focus, [...focusFallbacks(focus?.key), CLOSE_KEY]);
+    };
     if (!state) {
-      details.replaceChildren(
-        heading,
-        element(this.document, "p", "", t("inbox.rowGone")),
-        close,
-      );
+      redraw(element(this.document, "p", "", t("inbox.rowGone")));
       return;
     }
     if (!state.memberId) {
-      details.replaceChildren(
-        heading,
-        element(this.document, "p", "", t("inbox.unidentified")),
-        close,
-      );
+      redraw(element(this.document, "p", "", t("inbox.unidentified")));
       return;
     }
     if (!result) {
-      details.replaceChildren(
-        heading,
-        element(this.document, "p", "", t("inbox.stillChecking")),
-        close,
-      );
+      redraw(element(this.document, "p", "", t("inbox.stillChecking")));
       return;
     }
     const memberId = state.memberId;
     const accountId = this.#accountId;
-    details.replaceChildren(
-      heading,
+    redraw(
       explanation(this.document, result, {
         onOverride: (placement) => {
           // In click order, so a quick second choice never lands first.
@@ -605,9 +716,29 @@ export class InboxTriage {
           );
         },
       }),
-      close,
     );
     if (this.#failedFor === memberId) this.#showError();
+  }
+
+  /**
+   * After Close, focus goes back to the badge of the row the panel was
+   * about, scrolled into view. When the current view hides that row, or it
+   * is gone, focus goes to the current view's button.
+   */
+  #focusAfterClose(member: string | undefined): void {
+    const badge = Array.from(
+      this.document.querySelectorAll<HTMLElement>(`[${UI_ATTRIBUTE}="badge"]`),
+    ).find((node) => member !== undefined && node.dataset.member === member);
+    if (badge && shownInView(badge.dataset.placement, this.#view)) {
+      badge.scrollIntoView?.({ block: "nearest" });
+      badge.focus({ preventScroll: true });
+      return;
+    }
+    this.document
+      .querySelector<HTMLElement>(
+        `[${UI_ATTRIBUTE}="triage-bar"] .joyfox-triage__view[aria-pressed="true"]`,
+      )
+      ?.focus();
   }
 
   /** The failure notice, in the details shown now (a redraw replaces them). */

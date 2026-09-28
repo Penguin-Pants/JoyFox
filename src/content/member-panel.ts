@@ -12,6 +12,7 @@ import type {
   TriageResponse,
   TrustResponse,
 } from "../triage/triage-service";
+import { rememberFocus, restoreFocus } from "../ui/focus";
 import {
   factsKey,
   observedFromConversation,
@@ -26,6 +27,7 @@ import {
 } from "./member-strip";
 import {
   element,
+  focusFallbacks,
   memberBar,
   openSections,
   reopenSections,
@@ -96,6 +98,7 @@ interface Target {
 }
 
 const RULE_OFF_TEXT: Partial<Record<TriageResponse["status"], PlainKey>> = {
+  "no-account": "panel.ruleOff.no-account",
   "no-rule": "panel.ruleOff.no-rule",
   "rule-disabled": "panel.ruleOff.rule-disabled",
 };
@@ -123,8 +126,19 @@ export class MemberPanel {
    */
   #captureQueue: Promise<void> = Promise.resolve();
   #writeQueue: Promise<void> = Promise.resolve();
-  /** Set when the last write failed. The text is drawn in the language shown. */
-  #error = false;
+  /**
+   * The member whose last write failed. The notice shows only on that
+   * member's panel, drawn in the language shown, until the next write, the
+   * page is left or the account changes.
+   */
+  #errorFor?: string;
+  /**
+   * The member an outcome is being logged for. Until it is stored, further
+   * Log clicks are ignored, so a double click logs one outcome.
+   */
+  #trustPending?: string;
+  /** The member whose Undo is being stored; a second click waits for it. */
+  #undoPending?: string;
   #page?: MemberPage;
   /** Whether "Why and move" is open; kept across redraws of the bar. */
   #drawerOpen = false;
@@ -183,6 +197,7 @@ export class MemberPanel {
     this.teardown();
     this.#drawerOpen = false;
     this.#captured = "";
+    this.#errorFor = undefined;
     this.invalidate();
   }
 
@@ -195,6 +210,7 @@ export class MemberPanel {
     this.#inFlight = undefined;
     this.teardown();
     this.#drawerOpen = false;
+    this.#errorFor = undefined;
   }
 
   teardown(): void {
@@ -307,21 +323,26 @@ export class MemberPanel {
   }
 
   #render(target: Target, data: PanelData): void {
-    const key = JSON.stringify([target.key, data, this.#error]);
+    // The viewer's own profile: JoyFox places, scores and logs other members
+    // only. The profile is still captured (`update`), for compatibility.
+    if (target.extras.ownProfile) {
+      this.teardown();
+      return;
+    }
+    const failed = this.#errorFor === target.memberId;
+    const busy = this.#trustPending === target.memberId;
+    const undoBusy = this.#undoPending === target.memberId;
+    const key = JSON.stringify([target.key, data, failed, busy, undoBusy]);
     const existing = this.document.querySelector(
       `[${UI_ATTRIBUTE}="${MEMBER_PANEL}"]`,
     );
     if (existing && key === this.#rendered && isPlaced(existing, target.anchor))
       return;
-    if (data.kind === "trust-only" && data.trust.status === "no-account") {
-      this.teardown();
-      return;
-    }
-    // A redraw for the same member keeps its open sections.
-    const open =
-      existing?.getAttribute("data-member") === target.memberId
-        ? openSections(existing)
-        : new Set<string>();
+    // A redraw for the same member keeps its open sections and the control
+    // that has keyboard focus.
+    const same = existing?.getAttribute("data-member") === target.memberId;
+    const open = same ? openSections(existing) : new Set<string>();
+    const focus = same ? rememberFocus(existing) : undefined;
     existing?.remove();
     this.#rendered = key;
     // Any path to another member (a route, a failed load, the inbox between
@@ -337,16 +358,43 @@ export class MemberPanel {
     );
     panel.setAttribute(UI_ATTRIBUTE, MEMBER_PANEL);
     panel.setAttribute("data-member", target.memberId);
-    // A brand name: the same in every language.
+    // A group, not a landmark: the strip is the one "JoyFox" region. A brand
+    // name: the same in every language.
+    panel.setAttribute("role", "group");
     panel.setAttribute("aria-label", "JoyFox");
     const memberId = target.memberId;
     const accountId = data.accountId;
     const trustActions = accountId
       ? {
-          onTrust: (kind: "positive" | "negative" | "neutral") =>
-            this.#write(() => this.client.logTrust(accountId, memberId, kind)),
-          onUndoTrust: () =>
-            this.#write(() => this.client.undoTrust(accountId, memberId)),
+          onTrust: (kind: "positive" | "negative" | "neutral") => {
+            if (this.#trustPending === memberId) return;
+            this.#trustPending = memberId;
+            this.#write(
+              memberId,
+              () => this.client.logTrust(accountId, memberId, kind),
+              () => {
+                if (this.#trustPending === memberId)
+                  this.#trustPending = undefined;
+              },
+            );
+            // Drawn again at once, so the Log buttons show they wait.
+            if (this.#page) this.update(this.#page);
+          },
+          // A double click on Undo removes one outcome. An Undo right after
+          // a Log still runs, after it, and removes that outcome.
+          onUndoTrust: () => {
+            if (this.#undoPending === memberId) return;
+            this.#undoPending = memberId;
+            this.#write(
+              memberId,
+              () => this.client.undoTrust(accountId, memberId),
+              () => {
+                if (this.#undoPending === memberId)
+                  this.#undoPending = undefined;
+              },
+            );
+            if (this.#page) this.update(this.#page);
+          },
         }
       : {};
     const onToggle = (open: boolean) => {
@@ -369,15 +417,17 @@ export class MemberPanel {
             : {}),
           actions: {
             onOverride: (placement) =>
-              this.#write(() =>
+              this.#write(memberId, () =>
                 this.client.setOverride(data.accountId, memberId, placement),
               ),
             onSharedEventOptOut: () =>
-              this.#write(() =>
+              this.#write(memberId, () =>
                 this.client.optOutSharedEvent(data.accountId, memberId),
               ),
             ...trustActions,
           },
+          trustBusy: busy,
+          undoBusy,
           drawerOpen: this.#drawerOpen,
           onToggle,
         }),
@@ -393,34 +443,46 @@ export class MemberPanel {
               void this.client.openOptions().catch(() => undefined);
             },
           },
+          trustBusy: busy,
+          undoBusy,
           drawerOpen: this.#drawerOpen,
           onToggle,
         }),
       );
-    if (this.#error)
+    if (failed)
       panel.append(
         element(this.document, "p", "joyfox-error", t("common.saveFailed")),
       );
     reopenSections(panel, open);
     placeInStrip(this.document, target.anchor, panel);
+    restoreFocus(panel, focus, focusFallbacks(focus?.key));
   }
 
   /**
-   * Run a write, then reload at once. The background also bumps the triage
-   * revision, which other tabs hear through `storage.onChanged`.
-   */
-  /**
+   * Run a write for `memberId`, then reload at once. The background also
+   * bumps the triage revision, which other tabs hear through
+   * `storage.onChanged`. `settled` runs once the write has ended, either
+   * way, before the reload.
+   *
    * Writes run one after another, in click order. Otherwise "Log" then a
    * quick "Undo" could reach the background in the other order, and undo
    * would remove the earlier outcome instead of the one just logged.
    */
-  #write(action: () => Promise<void>): void {
-    this.#error = false;
+  #write(
+    memberId: string,
+    action: () => Promise<void>,
+    settled?: () => void,
+  ): void {
+    this.#errorFor = undefined;
     this.#writeQueue = this.#writeQueue.then(() =>
       action()
-        .then(() => this.invalidate())
+        .then(() => {
+          settled?.();
+          this.invalidate();
+        })
         .catch(() => {
-          this.#error = true;
+          settled?.();
+          this.#errorFor = memberId;
           this.#rendered = "";
           if (this.#page) this.update(this.#page);
         }),

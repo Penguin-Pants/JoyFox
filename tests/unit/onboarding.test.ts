@@ -1,7 +1,9 @@
 import { describe, expect, it } from "vitest";
 import {
   registerOnboarding,
+  registerToolbarButton,
   type InstallEvents,
+  type ToolbarButton,
 } from "../../src/background/onboarding";
 
 function runtime() {
@@ -43,5 +45,44 @@ describe("onboarding (build plan Section 28)", () => {
     registerOnboarding(events);
     expect(() => fire("install")).not.toThrow();
     await new Promise((resolve) => setTimeout(resolve, 0));
+  });
+});
+
+describe("toolbar button", () => {
+  function button() {
+    let listener: () => void = () => undefined;
+    const action: ToolbarButton = {
+      onClicked: {
+        addListener: (next) => {
+          listener = next;
+        },
+      },
+    };
+    return { action, click: () => listener() };
+  }
+
+  it("opens the options page on each click", () => {
+    const { action, click } = button();
+    const opened: string[] = [];
+    registerToolbarButton(action, () => {
+      opened.push("options");
+      return Promise.resolve();
+    });
+    click();
+    click();
+    expect(opened).toEqual(["options", "options"]);
+  });
+
+  it("does not throw when the options page cannot open", async () => {
+    const { action, click } = button();
+    registerToolbarButton(action, () => Promise.reject(new Error("blocked")));
+    expect(() => click()).not.toThrow();
+    await new Promise((resolve) => setTimeout(resolve, 0));
+  });
+
+  it("registers nothing when the browser has no action API", () => {
+    expect(() =>
+      registerToolbarButton(undefined, () => Promise.resolve()),
+    ).not.toThrow();
   });
 });

@@ -373,6 +373,10 @@ describe("V1-13 on JoyClub pages and the options page", () => {
     await flush();
     const section = document.querySelector('[data-joyfox-ui="shared-events"]');
     expect(section?.textContent).toContain("Shared events");
+    // A labelled group inside the strip's one region, not a landmark.
+    expect(section?.getAttribute("role")).toBe("group");
+    expect(section?.getAttribute("aria-label")).toBe("Shared events");
+    expect(section?.parentElement?.getAttribute("role")).toBe("region");
     expect(section?.querySelector("li")?.textContent).toContain(
       "Synthetic party",
     );

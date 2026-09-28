@@ -229,6 +229,14 @@ describe("M8 data panel", () => {
     );
     expect(await repositories.profileSnapshots.list(a)).toHaveLength(4);
     input().value = "1";
+    // A lower number deletes at once, so the first click only asks.
+    save().click();
+    await settle(() => save().textContent === "Save and delete");
+    expect(status()?.textContent).toBe(
+      'Lowering the number deletes older snapshots at once, in every account: each member keeps only the newest snapshot. Click "Save and delete" to confirm.',
+    );
+    expect(input().value).toBe("1");
+    expect(await repositories.profileSnapshots.list(a)).toHaveLength(4);
     save().click();
     await settle(() => status()?.textContent?.includes("Saved.") ?? false);
     expect(status()?.textContent).toContain("3 older snapshots were deleted.");
@@ -237,6 +245,61 @@ describe("M8 data panel", () => {
       (await repositories.profileSnapshots.list(a)).map(({ id }) => id),
     ).toEqual(["snap-3"]);
     expect(changes).toBeGreaterThan(0);
+  });
+
+  it("disarms a lower snapshot number when another number is typed, and saves a higher one at once", async () => {
+    await panel.render();
+    const input = () =>
+      root.querySelector<HTMLInputElement>("#joyfox-data-retention")!;
+    const save = () =>
+      root.querySelector<HTMLButtonElement>(".joyfox-data__retention-save")!;
+    input().value = "5";
+    save().click();
+    await settle(() => save().textContent === "Save and delete");
+    input().value = "6";
+    input().dispatchEvent(new Event("input"));
+    expect(save().textContent).toBe("Save");
+    expect(status()?.textContent).toBe("");
+    input().value = "30";
+    save().click();
+    await settle(() => status()?.textContent?.includes("Saved.") ?? false);
+    expect(input().value).toBe("30");
+  });
+
+  it("asks again when the armed snapshot number is typed again after a change", async () => {
+    for (let index = 0; index < 4; index += 1)
+      await repositories.profileSnapshots.put(a, {
+        id: `snap-${index}`,
+        accountId: a,
+        memberId: "1234567",
+        capturedAt: new Date(Date.UTC(2026, 0, 1, 0, 0, index)).toISOString(),
+        verification: "unknown",
+        photoCount: index,
+        profileWordCount: "unknown",
+        joinedAt: "unknown",
+        createdAt: "2026-01-01T00:00:00.000Z",
+        updatedAt: "2026-01-01T00:00:00.000Z",
+      });
+    await panel.render();
+    const input = () =>
+      root.querySelector<HTMLInputElement>("#joyfox-data-retention")!;
+    const save = () =>
+      root.querySelector<HTMLButtonElement>(".joyfox-data__retention-save")!;
+    const retype = (value: string) => {
+      input().value = value;
+      input().dispatchEvent(new Event("input"));
+    };
+    input().value = "1";
+    save().click();
+    await settle(() => save().textContent === "Save and delete");
+    // Another number disarms it; the same number again must ask again.
+    retype("2");
+    retype("1");
+    expect(save().textContent).toBe("Save");
+    save().click();
+    await settle(() => save().textContent === "Save and delete");
+    expect(status()?.textContent).toContain('Click "Save and delete"');
+    expect(await repositories.profileSnapshots.list(a)).toHaveLength(4);
   });
 
   it("keeps expanded records open when the panel redraws", async () => {
@@ -290,11 +353,12 @@ describe("M8 data panel", () => {
     await settle(() => root.querySelector(".joyfox-data__record") !== null);
     const id = root.querySelector<HTMLElement>(".joyfox-data__record")!.dataset
       .recordId!;
-    byLabel(`Delete record ${id}`).click();
-    await settle(() => byLabel(`Confirm: Delete record ${id}`) !== null);
-    expect(status()?.textContent).toContain(`delete record ${id}`);
+    // The template's name first, its ID beside it.
+    byLabel(`Delete record Hi (${id})`).click();
+    await settle(() => byLabel(`Confirm: Delete record Hi (${id})`) !== null);
+    expect(status()?.textContent).toContain(`delete record Hi (${id})`);
     expect(await templates.list(a)).toHaveLength(1);
-    byLabel(`Confirm: Delete record ${id}`).click();
+    byLabel(`Confirm: Delete record Hi (${id})`).click();
     await settle(() => count("messageTemplates") === "0");
     expect(await templates.list(a)).toEqual([]);
     expect(await templates.list(b)).toHaveLength(1);
@@ -377,11 +441,12 @@ describe("M8 data panel", () => {
   });
 
   it("clears one account's data and keeps the account", async () => {
-    byLabel("Delete all data of this account").click();
+    byLabel("Delete this account's data (every record)").click();
     await settle(
-      () => byLabel("Confirm: Delete all data of this account") !== null,
+      () =>
+        byLabel("Confirm: Delete this account's data (every record)") !== null,
     );
-    byLabel("Confirm: Delete all data of this account").click();
+    byLabel("Confirm: Delete this account's data (every record)").click();
     await settle(() => count("messageTemplates") === "0");
     expect(count("extensionAccounts")).toBe("1");
     expect(await templates.list(b)).toHaveLength(1);
@@ -705,11 +770,11 @@ describe("M10 template panel", () => {
     await settle(() => byLabel("Delete template One") !== null);
     field<HTMLTextAreaElement>("joyfox-template-body").value = "Draft";
     byLabel("Delete template One").click();
-    await settle(() => byLabel("Confirm deleting template One") !== null);
+    await settle(() => byLabel("Confirm delete: template One") !== null);
     expect(field<HTMLTextAreaElement>("joyfox-template-body").value).toBe(
       "Draft",
     );
-    byLabel("Confirm deleting template One").click();
+    byLabel("Confirm delete: template One").click();
     await settle(() => text().includes("No templates yet."));
     expect(text()).toContain("Deleted One.");
     expect(await templates.list(a)).toEqual([]);

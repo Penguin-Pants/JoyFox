@@ -111,4 +111,26 @@ describe("options tabs", () => {
     key("Home");
     expect(tabs.selected).toBe("start");
   });
+
+  it("moves focus to the selected tab when a link inside a panel switches tabs", () => {
+    mount("#data");
+    const link = document.createElement("a");
+    link.href = "#accounts";
+    link.textContent = "Accounts";
+    panel("data").append(link);
+    link.focus();
+    window.history.replaceState(null, "", "/options.html#accounts");
+    window.dispatchEvent(new HashChangeEvent("hashchange"));
+    expect(shownPanels()).toEqual([panel("accounts").id]);
+    expect(document.activeElement).toBe(tab("accounts"));
+  });
+
+  it("keeps focus where it is when the hash changes from outside a panel", () => {
+    mount("#data");
+    tab("data").focus();
+    window.history.replaceState(null, "", "/options.html#rule");
+    window.dispatchEvent(new HashChangeEvent("hashchange"));
+    expect(shownPanels()).toEqual([panel("rule").id]);
+    expect(document.activeElement).toBe(tab("data"));
+  });
 });

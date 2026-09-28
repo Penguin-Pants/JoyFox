@@ -2,6 +2,8 @@
 import "../setup-indexeddb";
 import { beforeEach, describe, expect, it } from "vitest";
 import { AccountService } from "../../src/accounts/account-service";
+import { setLocale } from "../../src/i18n/translator";
+import { confirmTiming } from "../../src/options/confirm";
 import { RulePanel } from "../../src/options/rule-panel";
 import { RuleService } from "../../src/rules/rule-service";
 import { withAccountLock } from "../../src/storage/account-lock";
@@ -18,6 +20,8 @@ let panel: RulePanel;
 
 beforeEach(async () => {
   await freshDatabase();
+  // A confirming click right after arming counts; one test sets it back.
+  confirmTiming.graceMs = 0;
   settings = new MemorySettingsArea();
   accounts = new AccountService(repositories.extensionAccounts, settings);
   rules = new RuleService(undefined, settings);
@@ -29,7 +33,15 @@ beforeEach(async () => {
 
 const input = (id: string) => root.querySelector<HTMLInputElement>(`#${id}`)!;
 const select = (id: string) => root.querySelector<HTMLSelectElement>(`#${id}`)!;
+/** The panel's status line: the first one, under the note. */
 const status = () => root.querySelector(".joyfox-panel__status");
+const deleteAll = () =>
+  root.querySelector<HTMLButtonElement>(".joyfox-rule__delete-all")!;
+/** The prompt line right under "Delete whole contact rule". */
+const deleteLine = () => deleteAll().nextElementSibling;
+/** The note under a field's row, as `aria-describedby` names it. */
+const noteOf = (field: HTMLElement) =>
+  root.querySelector(`#${field.getAttribute("aria-describedby")}`);
 
 async function settle(until: () => boolean): Promise<void> {
   for (let attempt = 0; attempt < 500 && !until(); attempt += 1)
@@ -147,12 +159,15 @@ describe("M4 rule builder panel", () => {
         root.querySelector(".joyfox-rule__delete-all") !== null &&
         (status()?.textContent?.startsWith("Rule saved") ?? false),
     );
-    await new Promise((resolve) => setTimeout(resolve, 20));
+    // The second save runs after the first, and can take longer under load.
+    // A change that was lost never arrives, so the check still fails then.
+    let kinds = kindsOf((await rules.getGlobalRule(account.id))?.root);
+    for (let attempt = 0; attempt < 200 && kinds.length < 2; attempt += 1) {
+      await new Promise((resolve) => setTimeout(resolve, 5));
+      kinds = kindsOf((await rules.getGlobalRule(account.id))?.root);
+    }
     expect(second.checked).toBe(true);
-    expect(kindsOf((await rules.getGlobalRule(account.id))?.root)).toEqual([
-      "verified",
-      "personallyKnown",
-    ]);
+    expect(kinds).toEqual(["verified", "personallyKnown"]);
   });
 
   it("refuses an invalid number and keeps the stored rule", async () => {
@@ -167,7 +182,7 @@ describe("M4 rule builder panel", () => {
     expect(await rules.getGlobalRule(account.id)).toBeUndefined();
   });
 
-  it("can turn triage off and remove the rule", async () => {
+  it("can turn triage off and delete the rule on a second click", async () => {
     const account = await accounts.createAccount({ joyClubAccountId: "a" });
     await panel.render();
     input("joyfox-rule-enabled").checked = false;
@@ -180,11 +195,109 @@ describe("M4 rule builder panel", () => {
       enabled: false,
       defaultPlacement: "needs-review",
     });
-    root.querySelector<HTMLButtonElement>(".joyfox-rule__delete-all")!.click();
+    // The first click only arms, in place: focus stays on the button.
+    const button = deleteAll();
+    button.focus();
+    button.click();
+    expect(button.textContent).toBe("Confirm delete");
+    expect(document.activeElement).toBe(button);
+    expect(deleteLine()?.textContent).toBe(
+      "Click again to delete the whole contact rule. JoyFox then stops sorting the inbox for this account.",
+    );
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    expect(await rules.getGlobalRule(account.id)).toBeDefined();
+    button.click();
     await settle(
-      () => status()?.textContent?.startsWith("Rule removed") ?? false,
+      () => status()?.textContent?.startsWith("Contact rule deleted") ?? false,
     );
     expect(await rules.getGlobalRule(account.id)).toBeUndefined();
+    // The button is gone; focus goes to the form's first control.
+    expect(root.querySelector(".joyfox-rule__delete-all")).toBeNull();
+    expect(document.activeElement).toBe(input("joyfox-rule-enabled"));
+  });
+
+  it("brings the delete result into view at the top of the form", async () => {
+    const account = await accounts.createAccount({ joyClubAccountId: "a" });
+    await rules.saveGlobalRule(account.id, {
+      schemaVersion: 1,
+      audience: "all",
+      enabled: true,
+      defaultPlacement: "quarantined",
+      root: { type: "group", match: "all", children: [] },
+    });
+    await panel.render();
+    const scrolled: Element[] = [];
+    const proto = Element.prototype as { scrollIntoView?: unknown };
+    const before = proto.scrollIntoView;
+    proto.scrollIntoView = function (this: Element) {
+      scrolled.push(this);
+    };
+    try {
+      const button = deleteAll();
+      button.click();
+      button.click();
+      await settle(
+        () =>
+          status()?.textContent?.startsWith("Contact rule deleted") ?? false,
+      );
+      expect(scrolled).toContain(status());
+    } finally {
+      proto.scrollIntoView = before;
+    }
+  });
+
+  it("never deletes the rule on a double-click", async () => {
+    confirmTiming.graceMs = 500;
+    const account = await accounts.createAccount({ joyClubAccountId: "a" });
+    await rules.saveGlobalRule(account.id, {
+      schemaVersion: 1,
+      audience: "all",
+      enabled: true,
+      defaultPlacement: "quarantined",
+      root: { type: "group", match: "all", children: [] },
+    });
+    await panel.render();
+    const button = deleteAll();
+    // A double-click: the first click arms, its second one is ignored.
+    button.dispatchEvent(new MouseEvent("click", { detail: 1 }));
+    button.dispatchEvent(new MouseEvent("click", { detail: 2 }));
+    // A fast single click inside the grace period is ignored too.
+    button.dispatchEvent(new MouseEvent("click", { detail: 1 }));
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    expect(button.textContent).toBe("Confirm delete");
+    expect(await rules.getGlobalRule(account.id)).toBeDefined();
+    // After the grace period, a single click confirms.
+    confirmTiming.graceMs = 0;
+    button.dispatchEvent(new MouseEvent("click", { detail: 1 }));
+    await settle(
+      () => status()?.textContent?.startsWith("Contact rule deleted") ?? false,
+    );
+    expect(await rules.getGlobalRule(account.id)).toBeUndefined();
+  });
+
+  it("disarms the delete when another action comes first", async () => {
+    const account = await accounts.createAccount({ joyClubAccountId: "a" });
+    await panel.render();
+    const box = input("joyfox-rule-all-verified-on");
+    box.checked = true;
+    change(box);
+    await settle(() => root.querySelector(".joyfox-rule__delete-all") !== null);
+    deleteAll().click();
+    expect(deleteAll().textContent).toBe("Confirm delete");
+    // Another change disarms it and takes the prompt away.
+    const other = input("joyfox-rule-all-personallyKnown-on");
+    other.checked = true;
+    change(other);
+    expect(deleteAll().textContent).toBe("Delete whole contact rule");
+    expect(deleteLine()?.textContent).toBe("");
+    // So does a click on another button.
+    deleteAll().click();
+    root.querySelector<HTMLButtonElement>('[data-view="advanced"]')!.click();
+    expect(deleteAll().textContent).toBe("Delete whole contact rule");
+    // A click on the disarmed button arms it again; nothing was deleted.
+    deleteAll().click();
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    expect(await rules.getGlobalRule(account.id)).toBeDefined();
   });
 
   it("warns when the ANY box cannot matter", async () => {
@@ -260,9 +373,10 @@ describe("M4 rule builder panel", () => {
     });
     await panel.render();
     await accounts.setActiveAccount(b.id);
-    root.querySelector<HTMLButtonElement>(".joyfox-rule__delete-all")!.click();
+    deleteAll().click();
+    deleteAll().click();
     await settle(() => status()?.getAttribute("data-kind") === "error");
-    expect(status()?.textContent).toContain("The rule was not removed");
+    expect(status()?.textContent).toContain("The rule was not deleted");
     expect(await rules.getGlobalRule(a.id)).toBeDefined();
   });
 
@@ -277,9 +391,10 @@ describe("M4 rule builder panel", () => {
     });
     await panel.render();
     submit();
-    root.querySelector<HTMLButtonElement>(".joyfox-rule__delete-all")!.click();
+    deleteAll().click();
+    deleteAll().click();
     await settle(
-      () => status()?.textContent?.startsWith("Rule removed") ?? false,
+      () => status()?.textContent?.startsWith("Contact rule deleted") ?? false,
     );
     // Give any stray write time to land.
     await new Promise((resolve) => setTimeout(resolve, 50));
@@ -300,15 +415,17 @@ describe("M4 rule builder panel", () => {
     document.body.append(otherRoot);
     const other = new RulePanel(otherRoot, rules, accounts);
     await other.render();
-    // The other tab removes the rule and finishes.
-    otherRoot
-      .querySelector<HTMLButtonElement>(".joyfox-rule__delete-all")!
-      .click();
+    // The other tab deletes the rule and finishes.
+    const otherDelete = otherRoot.querySelector<HTMLButtonElement>(
+      ".joyfox-rule__delete-all",
+    )!;
+    otherDelete.click();
+    otherDelete.click();
     await settle(
       () =>
         otherRoot
           .querySelector(".joyfox-panel__status")
-          ?.textContent?.startsWith("Rule removed") ?? false,
+          ?.textContent?.startsWith("Contact rule deleted") ?? false,
     );
     // Later, this tab saves its old form without having redrawn.
     submit();
@@ -431,7 +548,14 @@ describe("advanced rule editor (ADR 0012)", () => {
     root.querySelector<HTMLButtonElement>(".joyfox-rule__add-rule")!.click();
     expect(ruleSets()).toHaveLength(2);
     expect(root.querySelector(".joyfox-rule__joiner")?.textContent).toBe("OR");
-    expect(ruleSets()[1]!.textContent).toContain("Rule 2: met if");
+    // The parts of the rule are groups, so "rule" means only the whole.
+    expect(ruleSets()[1]!.textContent).toContain("Group 2: met if");
+    expect(root.querySelector(".joyfox-rule__add-rule")?.textContent).toBe(
+      "+ Add group",
+    );
+    expect(root.querySelector(".joyfox-rule__rule-count")?.textContent).toBe(
+      "2 of 10 groups",
+    );
     await addCondition(ruleSets()[1]!, "verified");
     await addCondition(ruleSets()[1]!, "minimumAccountAgeDays");
     await addCondition(ruleSets()[1]!, "minimumPhotos");
@@ -518,7 +642,7 @@ describe("advanced rule editor (ADR 0012)", () => {
     );
   });
 
-  it("combines rules with ALL and removes a rule", async () => {
+  it("combines groups with ALL and removes a group on a second click", async () => {
     const account = await accounts.createAccount({ joyClubAccountId: "a" });
     await panel.render();
     button("advanced").click();
@@ -534,12 +658,29 @@ describe("advanced rule editor (ADR 0012)", () => {
     expect((await rules.getGlobalRule(account.id))?.root.match).toBe("all");
     expect(button("simple").disabled).toBe(true);
     status()!.textContent = "";
-    ruleSets()[0]!
-      .querySelector<HTMLButtonElement>(".joyfox-rule__remove-rule")!
-      .click();
+    // A group with conditions only arms on the first click, in place.
+    const remove = ruleSets()[0]!.querySelector<HTMLButtonElement>(
+      ".joyfox-rule__remove-rule",
+    )!;
+    remove.focus();
+    remove.click();
+    expect(ruleSets()).toHaveLength(2);
+    expect(remove.textContent).toBe("Confirm removal");
+    expect(remove.getAttribute("aria-label")).toBe(
+      "Confirm removal of group 1",
+    );
+    expect(document.activeElement).toBe(remove);
+    expect(ruleSets()[0]!.textContent).toContain(
+      "Click again to remove group 1 and its conditions.",
+    );
+    remove.click();
     await settle(saved);
     expect(ruleSets()).toHaveLength(1);
-    expect(ruleSets()[0]!.textContent).toContain("Rule 1: met if");
+    expect(ruleSets()[0]!.textContent).toContain("Group 1: met if");
+    // Focus moves on to adding a group, not to the page.
+    expect(document.activeElement).toBe(
+      root.querySelector(".joyfox-rule__add-rule"),
+    );
     expect(kindsOf((await rules.getGlobalRule(account.id))?.root)).toEqual([
       "personallyKnown",
     ]);
@@ -583,6 +724,62 @@ describe("advanced rule editor (ADR 0012)", () => {
     expect(ruleSets()).toHaveLength(10);
     expect(add.disabled).toBe(true);
   });
+
+  it("removes a group without conditions at once, and disarms on another click", async () => {
+    await accounts.createAccount({ joyClubAccountId: "a" });
+    await panel.render();
+    button("advanced").click();
+    await addCondition(ruleSets()[0]!, "verified");
+    const addGroup = root.querySelector<HTMLButtonElement>(
+      ".joyfox-rule__add-rule",
+    )!;
+    addGroup.click();
+    const removeFirst = () =>
+      ruleSets()[0]!.querySelector<HTMLButtonElement>(
+        ".joyfox-rule__remove-rule",
+      )!;
+    removeFirst().click();
+    expect(removeFirst().textContent).toBe("Confirm removal");
+    // Another click (here: adding a group) puts the button back.
+    addGroup.click();
+    expect(ruleSets()).toHaveLength(3);
+    expect(removeFirst().textContent).toBe("Remove group");
+    expect(removeFirst().getAttribute("aria-label")).toBe("Remove group 1");
+    expect(ruleSets()[0]!.textContent).not.toContain("Click again");
+    // The empty third group goes on one click.
+    ruleSets()[2]!
+      .querySelector<HTMLButtonElement>(".joyfox-rule__remove-rule")!
+      .click();
+    expect(ruleSets()).toHaveLength(2);
+    // Group 1's prompt line is no condition: without its one condition,
+    // the group reads as empty and goes on one click too.
+    status()!.textContent = "";
+    ruleSets()[0]!
+      .querySelector<HTMLButtonElement>(".joyfox-rule__remove-condition")!
+      .click();
+    await settle(saved);
+    expect(
+      ruleSets()[0]!.querySelector<HTMLElement>(".joyfox-rule__empty")!.hidden,
+    ).toBe(false);
+    removeFirst().click();
+    expect(ruleSets()).toHaveLength(1);
+  });
+
+  it('says that "Not flagged as template spam" is never checked yet', async () => {
+    await accounts.createAccount({ joyClubAccountId: "a" });
+    await panel.render();
+    button("advanced").click();
+    await addCondition(ruleSets()[0]!, "notTemplateSpam");
+    const row = root.querySelector<HTMLElement>(
+      '[data-kind="notTemplateSpam"]',
+    )!;
+    expect(row.querySelector(".joyfox-rule__name")?.textContent).toBe(
+      "Not flagged as template spam (not checked yet: always unknown)",
+    );
+    expect(
+      noteOf(row.querySelector(".joyfox-rule__unknown")!)?.textContent,
+    ).toBe("(not checked yet: always unknown)");
+  });
 });
 
 describe("First message contains (ADR 0013)", () => {
@@ -591,7 +788,9 @@ describe("First message contains (ADR 0013)", () => {
   it("saves the typed word, phrase or emoji from the Simple editor", async () => {
     const account = await accounts.createAccount({ joyClubAccountId: "a" });
     await panel.render();
-    input("joyfox-rule-all-firstMessageContains-on").checked = true;
+    const box = input("joyfox-rule-all-firstMessageContains-on");
+    box.checked = true;
+    change(box);
     const text = input("joyfox-rule-all-firstMessageContains-text");
     expect(text.type).toBe("text");
     expect(text.maxLength).toBe(100);
@@ -610,13 +809,61 @@ describe("First message contains (ADR 0013)", () => {
     );
   });
 
-  it("refuses an empty text and keeps the stored rule", async () => {
+  it("waits for the text of a ticked condition and saves the other changes", async () => {
     const account = await accounts.createAccount({ joyClubAccountId: "a" });
     await panel.render();
-    input("joyfox-rule-all-firstMessageContains-on").checked = true;
+    const box = input("joyfox-rule-all-firstMessageContains-on");
+    const text = input("joyfox-rule-all-firstMessageContains-text");
+    expect(text.disabled).toBe(true);
+    box.checked = true;
+    change(box);
+    // No save and no error: focus goes to the field, with a hint.
+    expect(document.activeElement).toBe(text);
+    expect(text.disabled).toBe(false);
+    expect(noteOf(text)?.textContent).toBe(
+      "Type a word, phrase or emoji to use this condition.",
+    );
+    expect(text.hasAttribute("aria-invalid")).toBe(false);
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    expect(status()?.textContent ?? "").toBe("");
+    expect(await rules.getGlobalRule(account.id)).toBeUndefined();
+    // Another change saves without it, and the hint stays.
+    const verified = input("joyfox-rule-all-verified-on");
+    verified.checked = true;
+    change(verified);
+    await settle(saved);
+    expect(kindsOf((await rules.getGlobalRule(account.id))?.root)).toEqual([
+      "verified",
+    ]);
+    expect(noteOf(text)?.textContent).toContain("Type a word");
+    // Once text is typed, the hint goes and the condition is saved.
+    text.value = "Hallo";
+    text.dispatchEvent(new Event("input", { bubbles: true }));
+    expect(text.hasAttribute("aria-describedby")).toBe(false);
+    status()!.textContent = "";
+    change(text);
+    await settle(saved);
+    expect(kindsOf((await rules.getGlobalRule(account.id))?.root)).toEqual([
+      "verified",
+      "firstMessageContains",
+    ]);
+  });
+
+  it("refuses a text that is too long and marks the field", async () => {
+    const account = await accounts.createAccount({ joyClubAccountId: "a" });
+    await panel.render();
+    const box = input("joyfox-rule-all-firstMessageContains-on");
+    box.checked = true;
+    change(box);
+    const text = input("joyfox-rule-all-firstMessageContains-text");
+    text.value = "x".repeat(101);
     submit();
     await settle(() => status()?.getAttribute("role") === "alert");
     expect(status()?.textContent).toContain("Enter a word, phrase or emoji");
+    expect(text.getAttribute("aria-invalid")).toBe("true");
+    expect(noteOf(text)?.textContent).toBe(
+      "Enter a word, phrase or emoji of up to 100 characters.",
+    );
     expect(await rules.getGlobalRule(account.id)).toBeUndefined();
   });
 
@@ -765,13 +1012,16 @@ describe("rule presets (V1-11, ADR 0016)", () => {
     choose("open");
     apply().click();
     expect(apply().textContent).toBe("Replace conditions");
-    expect(status()?.textContent).toContain(
+    const prompt = () =>
+      root.querySelector(".joyfox-rule__presets .joyfox-rule__prompt");
+    expect(prompt()?.textContent).toContain(
       "The preset replaces every condition below",
     );
     expect(await rules.getGlobalRule(account.id)).toEqual(before);
-    // Another choice asks again.
+    // Another choice asks again, and the prompt goes with the armed state.
     choose("verified");
     expect(apply().textContent).toBe("Apply preset");
+    expect(prompt()?.textContent).toBe("");
     apply().click();
     expect(apply().textContent).toBe("Replace conditions");
     apply().click();
@@ -839,5 +1089,331 @@ describe("rule presets (V1-11, ADR 0016)", () => {
     expect(status()?.textContent).toContain("The active account changed");
     expect(await rules.getGlobalRule(first.id)).toBeUndefined();
     expect(await rules.getGlobalRule(second.id)).toBeUndefined();
+  });
+
+  it("never applies a preset on a double-click", async () => {
+    confirmTiming.graceMs = 500;
+    const account = await accounts.createAccount({ joyClubAccountId: "a" });
+    await panel.render();
+    const box = input("joyfox-rule-all-personallyKnown-on");
+    box.checked = true;
+    change(box);
+    await settle(
+      () => status()?.textContent?.startsWith("Rule saved") ?? false,
+    );
+    choose("verified");
+    // The first click arms; the second click of the double-click, and a
+    // fast single click, are ignored.
+    apply().dispatchEvent(new MouseEvent("click", { detail: 1 }));
+    apply().dispatchEvent(new MouseEvent("click", { detail: 2 }));
+    apply().dispatchEvent(new MouseEvent("click", { detail: 1 }));
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    expect(apply().textContent).toBe("Replace conditions");
+    expect(kindsOf((await rules.getGlobalRule(account.id))?.root)).toEqual([
+      "personallyKnown",
+    ]);
+    confirmTiming.graceMs = 0;
+    apply().dispatchEvent(new MouseEvent("click", { detail: 1 }));
+    await settle(applied);
+    expect(kindsOf((await rules.getGlobalRule(account.id))?.root)).toEqual([
+      "verified",
+    ]);
+  });
+});
+
+describe("rule form feedback (UX audit)", () => {
+  const saved = () => status()?.textContent?.startsWith("Rule saved") ?? false;
+
+  it("shows the status under the note, and how saving works before the fields", async () => {
+    await accounts.createAccount({ joyClubAccountId: "a" });
+    await panel.render();
+    const form = root.querySelector("form")!;
+    // Note, status, then the form: a result shows where the form starts.
+    expect(form.previousElementSibling).toBe(status());
+    expect(status()?.previousElementSibling?.textContent).toContain(
+      "No rule is saved",
+    );
+    expect(form.firstElementChild?.textContent).toContain(
+      "Changes are saved automatically",
+    );
+    // The same live region stays after a save.
+    const node = status();
+    const box = input("joyfox-rule-all-verified-on");
+    box.checked = true;
+    change(box);
+    await settle(saved);
+    expect(status()).toBe(node);
+    expect(form.previousElementSibling).toBe(node);
+  });
+
+  it("fills a ticked number with the default and saves it", async () => {
+    const account = await accounts.createAccount({ joyClubAccountId: "a" });
+    await panel.render();
+    for (const [kind, value] of [
+      ["minimumPhotos", "3"],
+      ["minimumProfileWords", "50"],
+      ["minimumAccountAgeDays", "180"],
+      ["minimumTrustScore", "1"],
+    ] as const) {
+      const field = input(`joyfox-rule-all-${kind}-value`);
+      expect(field.value).toBe("");
+      const box = input(`joyfox-rule-all-${kind}-on`);
+      box.checked = true;
+      status()!.textContent = "";
+      change(box);
+      // No alert: the field has the Advanced editor's default, and focus.
+      expect(field.value).toBe(value);
+      expect(document.activeElement).toBe(field);
+      await settle(saved);
+      expect(status()?.getAttribute("role")).toBe("status");
+    }
+    expect(
+      JSON.stringify((await rules.getGlobalRule(account.id))?.root),
+    ).toContain('"kind":"minimumTrustScore","value":1');
+    // Ticked again, a row keeps the value it had.
+    const box = input("joyfox-rule-all-minimumPhotos-on");
+    const photos = input("joyfox-rule-all-minimumPhotos-value");
+    photos.value = "8";
+    change(photos);
+    await settle(saved);
+    box.checked = false;
+    change(box);
+    box.checked = true;
+    change(box);
+    expect(photos.value).toBe("8");
+  });
+
+  it("marks a number it refuses next to the field, until the value is valid", async () => {
+    const account = await accounts.createAccount({ joyClubAccountId: "a" });
+    await panel.render();
+    const box = input("joyfox-rule-all-minimumPhotos-on");
+    box.checked = true;
+    change(box);
+    await settle(saved);
+    const field = input("joyfox-rule-all-minimumPhotos-value");
+    field.value = "-5";
+    change(field);
+    await settle(() => status()?.getAttribute("role") === "alert");
+    // The existing error stays, and the field says what is wrong.
+    expect(status()?.textContent).toBe(
+      'Enter a whole number from 0 to 100,000 for "Minimum photos". The rule was not saved.',
+    );
+    expect(field.getAttribute("aria-invalid")).toBe("true");
+    const note = noteOf(field)!;
+    expect(note.textContent).toBe("Enter a whole number from 0 to 100,000.");
+    expect(note.getAttribute("data-note")).toBe("error");
+    // In the same row, after the row's fields.
+    expect(note.parentElement).toBe(field.parentElement);
+    expect(note.parentElement?.lastElementChild).toBe(note);
+    // Typing a valid value clears both marks at once.
+    field.value = "4";
+    field.dispatchEvent(new Event("input", { bubbles: true }));
+    expect(field.hasAttribute("aria-invalid")).toBe(false);
+    expect(field.hasAttribute("aria-describedby")).toBe(false);
+    expect(note.isConnected).toBe(false);
+    change(field);
+    await settle(saved);
+    expect(
+      JSON.stringify((await rules.getGlobalRule(account.id))?.root),
+    ).toContain('"kind":"minimumPhotos","value":4');
+  });
+
+  it("shows a field's note again after a language change", async () => {
+    await accounts.createAccount({ joyClubAccountId: "a" });
+    await panel.render();
+    const box = input("joyfox-rule-all-minimumPhotos-on");
+    box.checked = true;
+    change(box);
+    await settle(saved);
+    const field = input("joyfox-rule-all-minimumPhotos-value");
+    field.value = "-1";
+    change(field);
+    await settle(() => status()?.getAttribute("role") === "alert");
+    setLocale("de");
+    try {
+      await panel.localeChanged();
+      const again = input("joyfox-rule-all-minimumPhotos-value");
+      expect(again).not.toBe(field);
+      expect(again.value).toBe("-1");
+      expect(again.getAttribute("aria-invalid")).toBe("true");
+      expect(noteOf(again)?.textContent).toBe(
+        "Gib eine ganze Zahl von 0 bis 100.000 ein.",
+      );
+      // A field without a note gets none.
+      expect(
+        input("joyfox-rule-any-minimumPhotos-value").hasAttribute(
+          "aria-describedby",
+        ),
+      ).toBe(false);
+    } finally {
+      setLocale("en");
+    }
+  });
+
+  it("turns off the fields of an unticked row", async () => {
+    const account = await accounts.createAccount({ joyClubAccountId: "a" });
+    await panel.render();
+    const box = input("joyfox-rule-any-minimumAccountAgeDays-on");
+    const fields = () => [
+      input("joyfox-rule-any-minimumAccountAgeDays-value"),
+      select("joyfox-rule-any-minimumAccountAgeDays-unknown"),
+    ];
+    expect(fields().map((field) => field.disabled)).toEqual([true, true]);
+    box.checked = true;
+    change(box);
+    expect(fields().map((field) => field.disabled)).toEqual([false, false]);
+    await settle(saved);
+    status()!.textContent = "";
+    box.checked = false;
+    change(box);
+    expect(fields().map((field) => field.disabled)).toEqual([true, true]);
+    await settle(saved);
+    // A stored rule draws its ticked rows on, the others off.
+    await rules.saveGlobalRule(account.id, {
+      schemaVersion: 1,
+      audience: "all",
+      enabled: true,
+      defaultPlacement: "quarantined",
+      root: {
+        type: "group",
+        match: "any",
+        children: [
+          {
+            type: "group",
+            match: "all",
+            children: [
+              {
+                type: "condition",
+                kind: "minimumAccountAgeDays",
+                value: 30,
+                whenUnknown: "met",
+              },
+            ],
+          },
+        ],
+      },
+    });
+    await new RulePanel(root, rules, accounts).render();
+    expect(input("joyfox-rule-all-minimumAccountAgeDays-value").disabled).toBe(
+      false,
+    );
+    expect(fields().map((field) => field.disabled)).toEqual([true, true]);
+  });
+
+  it("says when a rule without conditions lets every sender through", async () => {
+    const account = await accounts.createAccount({ joyClubAccountId: "a" });
+    await panel.render();
+    const placement = select("joyfox-rule-placement");
+    placement.value = "needs-review";
+    change(placement);
+    await settle(saved);
+    expect(status()?.textContent).toBe(
+      "Rule saved. It has no conditions yet, so every sender qualifies.",
+    );
+    expect(kindsOf((await rules.getGlobalRule(account.id))?.root)).toEqual([]);
+    // With a condition, the plain message.
+    const box = input("joyfox-rule-all-verified-on");
+    box.checked = true;
+    change(box);
+    await settle(
+      () =>
+        status()?.textContent ===
+        "Rule saved. Open JoyClub tabs update at once.",
+    );
+  });
+
+  it('says that "Not flagged as template spam" is never checked yet', async () => {
+    await accounts.createAccount({ joyClubAccountId: "a" });
+    await panel.render();
+    const box = input("joyfox-rule-all-notTemplateSpam-on");
+    expect(box.labels?.[0]?.textContent).toBe(
+      "Not flagged as template spam (not checked yet: always unknown)",
+    );
+    expect(
+      noteOf(select("joyfox-rule-all-notTemplateSpam-unknown"))?.textContent,
+    ).toBe("(not checked yet: always unknown)");
+    // Only that row.
+    expect(input("joyfox-rule-all-verified-on").labels?.[0]?.textContent).toBe(
+      "Verified by JoyClub",
+    );
+  });
+
+  it("clears the status when the active account changes", async () => {
+    await accounts.createAccount({ joyClubAccountId: "a" });
+    const b = await accounts.createAccount({ joyClubAccountId: "b" });
+    await panel.render();
+    const box = input("joyfox-rule-all-verified-on");
+    box.checked = true;
+    change(box);
+    await settle(saved);
+    await accounts.setActiveAccount(b.id);
+    await panel.render();
+    // B has no rule: "Rule saved." would contradict the note.
+    expect(root.textContent).toContain("No rule is saved");
+    expect(status()?.textContent).toBe("");
+  });
+
+  it("keeps the status when the same account is drawn again", async () => {
+    const account = await accounts.createAccount({ joyClubAccountId: "a" });
+    await panel.render();
+    await rules.saveGlobalRule(account.id, {
+      schemaVersion: 1,
+      audience: "all",
+      enabled: false,
+      defaultPlacement: "quarantined",
+      root: { type: "group", match: "all", children: [] },
+    });
+    await panel.refreshIfChanged();
+    expect(status()?.textContent).toContain("changed in another tab");
+    await panel.render();
+    expect(status()?.textContent).toContain("changed in another tab");
+  });
+
+  it("says how to go on when the rule cannot be read or saved", async () => {
+    const account = await accounts.createAccount({ joyClubAccountId: "a" });
+    const unreadable = {
+      getGlobalRule: () => Promise.reject(new Error("read")),
+    } as unknown as RuleService;
+    await new RulePanel(root, unreadable, accounts).render();
+    expect(root.textContent).toBe(
+      "JoyFox could not read the contact rule. No rule was changed. Reload the page to try again.",
+    );
+    const unsaved = {
+      getGlobalRule: (id: string) => rules.getGlobalRule(id),
+      saveGlobalRule: () => Promise.reject(new Error("write")),
+    } as unknown as RuleService;
+    await new RulePanel(root, unsaved, accounts).render();
+    const box = input("joyfox-rule-all-verified-on");
+    box.checked = true;
+    change(box);
+    await settle(() => status()?.getAttribute("role") === "alert");
+    expect(status()?.textContent).toBe(
+      "JoyFox could not save the rule. Nothing was changed. Change the field again, or reload the page to see the saved rule.",
+    );
+    expect(await rules.getGlobalRule(account.id)).toBeUndefined();
+  });
+
+  it("shows a failed delete under the button", async () => {
+    const account = await accounts.createAccount({ joyClubAccountId: "a" });
+    await rules.saveGlobalRule(account.id, {
+      schemaVersion: 1,
+      audience: "all",
+      enabled: true,
+      defaultPlacement: "quarantined",
+      root: { type: "group", match: "all", children: [] },
+    });
+    const undeletable = {
+      getGlobalRule: (id: string) => rules.getGlobalRule(id),
+      deleteGlobalRule: () => Promise.reject(new Error("write")),
+    } as unknown as RuleService;
+    await new RulePanel(root, undeletable, accounts).render();
+    deleteAll().click();
+    deleteAll().click();
+    await settle(() => deleteLine()?.getAttribute("role") === "alert");
+    expect(deleteLine()?.textContent).toBe(
+      "JoyFox could not delete the rule. Nothing was changed.",
+    );
+    expect(deleteAll().textContent).toBe("Delete whole contact rule");
+    expect(await rules.getGlobalRule(account.id)).toBeDefined();
   });
 });

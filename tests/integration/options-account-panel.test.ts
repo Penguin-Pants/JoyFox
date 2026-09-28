@@ -1,7 +1,8 @@
 // @vitest-environment jsdom
 import "../setup-indexeddb";
-import { beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { AccountService } from "../../src/accounts/account-service";
+import { setLocale } from "../../src/i18n/translator";
 import {
   AccountPanel,
   mountAccountPanel,
@@ -27,6 +28,8 @@ beforeEach(async () => {
   root = document.createElement("section");
   document.body.append(root);
 });
+
+afterEach(() => setLocale("en"));
 
 const text = () => root.textContent ?? "";
 const button = (selector: string) =>
@@ -112,7 +115,8 @@ describe("M7 options account switcher", () => {
     );
     expect((await service.getActiveAccount())?.label).toBe("Account B");
     expect(text()).toContain("Active account:");
-    expect(text()).toContain("Active account is now Account B.");
+    // The label with the identifier, so similar labels stay apart.
+    expect(text()).toContain("Active account is now Account B (synthetic-b).");
   });
 
   it("requires a second click before deleting an account and its data", async () => {
@@ -244,5 +248,361 @@ describe("account panel redraw", () => {
     release();
     await redraw;
     expect(identifier().value).toBe("typed-login");
+  });
+});
+
+/** The keyed control that has focus, or the tag name when none has a key. */
+const focused = () =>
+  document.activeElement?.getAttribute("data-joyfox-focus") ??
+  document.activeElement?.tagName;
+
+/** Focuses a control and clicks it, as a keyboard user does. */
+async function press(node: HTMLElement, until: () => boolean): Promise<void> {
+  node.focus();
+  await click(node, until);
+}
+
+const rowOf = (identifier: string) =>
+  items().find((item) => item.textContent?.includes(`(${identifier})`)) ??
+  items().find((item) => item.textContent?.startsWith(identifier));
+const inRow = (identifier: string, selector: string) =>
+  rowOf(identifier)!.querySelector<HTMLButtonElement>(selector)!;
+const armedIn = (identifier: string) => () =>
+  inRow(identifier, ".joyfox-panel__remove").textContent === "Confirm removal";
+
+describe("account identifier and label (U2)", () => {
+  it("explains both fields, linked to them for assistive technology", async () => {
+    await mountAccountPanel(root, service);
+    for (const [id, hint] of [
+      ["joyfox-account-identifier", "Your JoyClub nickname works well."],
+      ["joyfox-account-label", "Only JoyFox shows this label."],
+    ] as const) {
+      const input = root.querySelector<HTMLInputElement>(`#${id}`)!;
+      const described = input.getAttribute("aria-describedby")!;
+      expect(root.querySelector(`#${described}`)?.textContent).toContain(hint);
+    }
+    expect(text()).toContain(
+      "JoyFox uses it only to tell your accounts apart and to match imports. JoyFox does not check it.",
+    );
+  });
+
+  it("shows each account's identifier beside its label", async () => {
+    await mountAccountPanel(root, service);
+    await addAccount("drclaw", "Me");
+    await addAccount("second-login");
+    expect(
+      items().map(
+        (item) => item.querySelector(".joyfox-panel__item-name")?.textContent,
+      ),
+    ).toEqual(["Me (drclaw)", "second-login"]);
+    expect(root.querySelector(".joyfox-panel__active-value")?.textContent).toBe(
+      "Me (drclaw)",
+    );
+  });
+});
+
+describe("renaming an account", () => {
+  const renameField = () =>
+    root.querySelector<HTMLInputElement>("#joyfox-account-rename");
+
+  async function openRename(identifier: string): Promise<HTMLInputElement> {
+    await press(inRow(identifier, ".joyfox-account__rename"), () =>
+      Boolean(renameField()),
+    );
+    return renameField()!;
+  }
+
+  it("changes only the label, with Enter, and returns focus to Rename", async () => {
+    await mountAccountPanel(root, service);
+    await addAccount("drclaw", "Old");
+    const [before] = await service.listAccounts();
+    const input = await openRename("drclaw");
+    // The field opens focused, with the label selected to type over.
+    expect(document.activeElement).toBe(input);
+    expect([input.selectionStart, input.selectionEnd]).toEqual([0, 3]);
+    expect(root.querySelector(`label[for="${input.id}"]`)?.textContent).toBe(
+      "New display label for drclaw",
+    );
+    input.value = "Me";
+    // Enter in a text field submits its form.
+    input.form!.requestSubmit();
+    await settle(() => !renameField());
+    expect(status()?.textContent).toBe(
+      "Label saved. JoyFox now shows this account as Me (drclaw).",
+    );
+    const [after] = await service.listAccounts();
+    expect(after).toMatchObject({
+      id: before!.id,
+      joyClubAccountId: "drclaw",
+      label: "Me",
+    });
+    expect(focused()).toBe(`rename:${before!.id}`);
+  });
+
+  it("cancels with Escape or Cancel and changes nothing", async () => {
+    await mountAccountPanel(root, service);
+    await addAccount("drclaw", "Old");
+    const [account] = await service.listAccounts();
+    let input = await openRename("drclaw");
+    input.value = "Typed";
+    input.dispatchEvent(
+      new KeyboardEvent("keydown", { key: "Escape", bubbles: true }),
+    );
+    await settle(() => !renameField());
+    expect(focused()).toBe(`rename:${account!.id}`);
+    input = await openRename("drclaw");
+    // A new rename starts from the stored label, not the dropped text.
+    expect(input.value).toBe("Old");
+    await press(
+      root.querySelector<HTMLButtonElement>(".joyfox-account__rename-cancel")!,
+      () => !renameField(),
+    );
+    expect(focused()).toBe(`rename:${account!.id}`);
+    expect((await service.listAccounts())[0]?.label).toBe("Old");
+  });
+
+  it("keeps the typed label across a redraw", async () => {
+    const panel = await mountAccountPanel(root, service);
+    await addAccount("drclaw", "Old");
+    const input = await openRename("drclaw");
+    input.value = "Half typed";
+    await panel.render();
+    expect(renameField()?.value).toBe("Half typed");
+    expect(document.activeElement).toBe(renameField());
+  });
+
+  it("shows the identifier when the label is emptied", async () => {
+    await mountAccountPanel(root, service);
+    await addAccount("drclaw", "Old");
+    const input = await openRename("drclaw");
+    input.value = "  ";
+    input.form!.requestSubmit();
+    await settle(() => !renameField());
+    expect(
+      items()[0]?.querySelector(".joyfox-panel__item-name")?.textContent,
+    ).toBe("drclaw");
+    expect((await service.listAccounts())[0]).not.toHaveProperty("label");
+  });
+
+  it("keeps the field open with the text when the account is gone", async () => {
+    await mountAccountPanel(root, service);
+    await addAccount("drclaw", "Old");
+    const [account] = await service.listAccounts();
+    const input = await openRename("drclaw");
+    input.value = "Me";
+    // Removed in another tab meanwhile.
+    const other = new AccountService(
+      repositories.extensionAccounts,
+      new MemorySettingsArea(),
+    );
+    await other.deleteAccount(account!.id);
+    input.form!.requestSubmit();
+    await settle(failed);
+    expect(status()?.textContent).toBe(
+      "That account no longer exists. Nothing was changed.",
+    );
+    expect(await service.listAccounts()).toEqual([]);
+  });
+});
+
+describe("removing an account (U19)", () => {
+  it("names everything the removal deletes", async () => {
+    await mountAccountPanel(root, service);
+    await addAccount("synthetic-a", "Account A");
+    await click(button(".joyfox-panel__remove")!, armed);
+    expect(status()?.textContent).toBe(
+      "Removing Account A (synthetic-a) deletes everything JoyFox stored for this account, for example notes, tags, rules, templates, messages, event notes and saved searches. Click again to confirm.",
+    );
+  });
+
+  it("drops the removal prompt when Rename disarms the removal", async () => {
+    await mountAccountPanel(root, service);
+    await addAccount("synthetic-a", "Account A");
+    await click(button(".joyfox-panel__remove")!, armed);
+    await click(
+      button(".joyfox-account__rename")!,
+      () => root.querySelector(".joyfox-account__rename-form") !== null,
+    );
+    expect(armed()).toBe(false);
+    expect(status()?.textContent).toBe("");
+  });
+
+  it("says no account is active after the active one is removed", async () => {
+    await mountAccountPanel(root, service);
+    await addAccount("synthetic-a", "Account A");
+    await addAccount("synthetic-b", "Account B");
+    await click(inRow("synthetic-a", ".joyfox-panel__remove"), armed);
+    await click(
+      inRow("synthetic-a", ".joyfox-panel__remove"),
+      () => items().length === 1,
+    );
+    expect(status()?.textContent).toBe(
+      'Removed Account A (synthetic-a) and its stored data. No account is active now. Choose one with "Use this account".',
+    );
+    // No other account became active on its own.
+    expect(await service.getActiveAccount()).toBeUndefined();
+    expect(text()).toContain("None selected");
+  });
+
+  it("says no account is left after the last one is removed", async () => {
+    await mountAccountPanel(root, service);
+    await addAccount("synthetic-a", "Account A");
+    await click(button(".joyfox-panel__remove")!, armed);
+    await click(button(".joyfox-panel__remove")!, () => items().length === 0);
+    expect(status()?.textContent).toBe(
+      "Removed Account A (synthetic-a) and its stored data. No accounts are left. Add one to use JoyFox.",
+    );
+  });
+
+  it("keeps the short message when another account is removed", async () => {
+    await mountAccountPanel(root, service);
+    await addAccount("synthetic-a", "Account A");
+    await addAccount("synthetic-b", "Account B");
+    await click(
+      inRow("synthetic-b", ".joyfox-panel__remove"),
+      armedIn("synthetic-b"),
+    );
+    await click(
+      inRow("synthetic-b", ".joyfox-panel__remove"),
+      () => items().length === 1,
+    );
+    expect(status()?.textContent).toBe(
+      "Removed Account B (synthetic-b) and its stored data.",
+    );
+    expect((await service.getActiveAccount())?.joyClubAccountId).toBe(
+      "synthetic-a",
+    );
+  });
+});
+
+describe("adding an account (U23)", () => {
+  it("adds once on a double submit, with no error, and disables the button meanwhile", async () => {
+    await mountAccountPanel(root, service);
+    root.querySelector<HTMLInputElement>("#joyfox-account-identifier")!.value =
+      "synthetic-a";
+    const form = root.querySelector<HTMLFormElement>(".joyfox-panel__form")!;
+    const submit = button(".joyfox-panel__submit")!;
+    form.requestSubmit();
+    expect(submit.disabled).toBe(true);
+    // The second submit, before the first one is saved.
+    form.dispatchEvent(
+      new Event("submit", { cancelable: true, bubbles: true }),
+    );
+    await settle(() => items().length === 1);
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    expect(failed()).toBe(false);
+    expect(status()?.textContent).toBe("Added synthetic-a.");
+    expect(await service.listAccounts()).toHaveLength(1);
+    expect(button(".joyfox-panel__submit")!.disabled).toBe(false);
+  });
+});
+
+describe("keyboard focus across redraws (U50)", () => {
+  it("stays on Remove when it arms, then moves to the list after the removal", async () => {
+    await mountAccountPanel(root, service);
+    await addAccount("synthetic-a", "Account A");
+    await addAccount("synthetic-b", "Account B");
+    const [first] = await service.listAccounts();
+    await press(inRow("synthetic-a", ".joyfox-panel__remove"), armed);
+    expect(document.activeElement).toBe(
+      inRow("synthetic-a", ".joyfox-panel__remove"),
+    );
+    expect(document.activeElement?.textContent).toBe("Confirm removal");
+    expect(focused()).toBe(`remove:${first!.id}`);
+    await press(
+      inRow("synthetic-a", ".joyfox-panel__remove"),
+      () => items().length === 1,
+    );
+    expect(document.activeElement).toBe(root.querySelector("ul"));
+    expect(document.activeElement?.getAttribute("aria-label")).toBe(
+      "Stored accounts",
+    );
+  });
+
+  it("moves to the add form after the last account is removed", async () => {
+    await mountAccountPanel(root, service);
+    await addAccount("synthetic-a", "Account A");
+    await press(button(".joyfox-panel__remove")!, armed);
+    await press(button(".joyfox-panel__remove")!, () => items().length === 0);
+    expect(document.activeElement?.id).toBe("joyfox-account-identifier");
+  });
+
+  it("stays in the row after Use this account", async () => {
+    await mountAccountPanel(root, service);
+    await addAccount("synthetic-a", "Account A");
+    await addAccount("synthetic-b", "Account B");
+    const second = (await service.listAccounts())[1]!;
+    await press(
+      inRow("synthetic-b", ".joyfox-panel__activate"),
+      () => rowOf("synthetic-b")?.getAttribute("aria-current") === "true",
+    );
+    expect(focused()).toBe(`rename:${second.id}`);
+  });
+
+  it("returns to Add account after an add, even when focus fell to the page", async () => {
+    await mountAccountPanel(root, service);
+    root.querySelector<HTMLInputElement>("#joyfox-account-identifier")!.value =
+      "synthetic-a";
+    const submit = button(".joyfox-panel__submit")!;
+    submit.focus();
+    submit.form!.requestSubmit(submit);
+    // Firefox drops focus from a button that is disabled. jsdom keeps it,
+    // so move it off and let it fall to the page.
+    const elsewhere = document.createElement("button");
+    document.body.append(elsewhere);
+    elsewhere.focus();
+    elsewhere.remove();
+    expect(document.activeElement).toBe(document.body);
+    await settle(() => items().length === 1);
+    expect(document.activeElement).toBe(button(".joyfox-panel__submit"));
+  });
+
+  it("keeps focus and the caret in the add form across a redraw", async () => {
+    const panel = await mountAccountPanel(root, service);
+    const input = root.querySelector<HTMLInputElement>(
+      "#joyfox-account-identifier",
+    )!;
+    input.value = "typed";
+    input.focus();
+    input.setSelectionRange(2, 2);
+    await panel.render();
+    const next = root.querySelector<HTMLInputElement>(
+      "#joyfox-account-identifier",
+    )!;
+    expect(next).not.toBe(input);
+    expect(document.activeElement).toBe(next);
+    expect([next.selectionStart, next.selectionEnd]).toEqual([2, 2]);
+  });
+});
+
+describe("accessible names start with the visible text (U56)", () => {
+  it("holds for every account button, in English and German", async () => {
+    const panel = await mountAccountPanel(root, service);
+    await addAccount("synthetic-a", "Account A");
+    await addAccount("synthetic-b", "Account B");
+    // Draw every state: one removal armed, one rename open.
+    await click(
+      inRow("synthetic-b", ".joyfox-panel__remove"),
+      armedIn("synthetic-b"),
+    );
+    await click(inRow("synthetic-a", ".joyfox-account__rename"), () =>
+      Boolean(root.querySelector("#joyfox-account-rename")),
+    );
+    for (const locale of ["en", "de"] as const) {
+      setLocale(locale);
+      await panel.render();
+      const buttons = Array.from(root.querySelectorAll("button"));
+      expect(buttons.length).toBeGreaterThan(5);
+      for (const node of buttons) {
+        const visible = node.textContent ?? "";
+        const name = node.getAttribute("aria-label") ?? visible;
+        expect(name.startsWith(visible), `${locale}: ${name}`).toBe(true);
+      }
+    }
+    expect(
+      inRow("synthetic-b", ".joyfox-panel__activate").getAttribute(
+        "aria-label",
+      ),
+    ).toBe("Dieses Konto verwenden: Account B (synthetic-b)");
   });
 });

@@ -2,9 +2,12 @@
   "manifest_version": 3,
   "name": "JoyFox",
   "version": "1.0.0",
-  "description": "Local-first enhancements for pages you open on JoyClub and JOYCE.",
+  "description": "Local-first enhancements for pages you open on JoyClub.",
   "permissions": ["storage"],
   "host_permissions": ["*://*.joyclub.de/*", "*://*.joyce.app/*"],
+  "action": {
+    "default_title": "JoyFox"
+  },
   "background": {
     "scripts": ["background.js"]
   },

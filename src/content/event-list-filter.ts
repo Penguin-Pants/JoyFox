@@ -2,6 +2,7 @@ import { message, type Message } from "../i18n/message";
 import { t } from "../i18n/translator";
 import type { ListingSummary } from "../messaging/protocol";
 import { verifiedSelector } from "../selectors/registry";
+import { FOCUS_KEY, rememberFocus, restoreFocus } from "../ui/focus";
 import {
   ATTENDANCE_TEXT,
   type ListingClient,
@@ -14,6 +15,16 @@ export const FILTER_ATTRIBUTE = "data-joyfox-event-filter";
 /** Set on each list item: `yes` when it matches the chosen filter. */
 export const MATCH_ATTRIBUTE = "data-joyfox-event-match";
 const BADGE = "joyfox-event-badge";
+
+/**
+ * The tab's last choice, in the page's session storage: each of JoyClub's
+ * quick filters loads the page again, which would reset it. JoyClub's own
+ * scripts can read that storage, so a tag, which is the user's own text, is
+ * never kept there; a tag filter starts again at "all".
+ */
+const FILTER_KEY = "joyfox.eventFilter";
+
+export type FilterStore = Pick<Storage, "getItem" | "setItem" | "removeItem">;
 
 type Filter =
   | { kind: "all" }
@@ -62,7 +73,8 @@ function decode(value: string): Filter {
  * notes, tags and attendance (PRD 9.1, 10.1), and a small badge on each
  * tracked event. It hides and shows the items JoyClub already loaded; it
  * never loads more, sends nothing and asks JoyClub for nothing. Items
- * JoyClub adds while scrolling are checked as they appear.
+ * JoyClub adds while scrolling are checked as they appear. The choice
+ * lasts for the tab, across JoyClub's quick filters.
  */
 export class EventListFilter {
   #bar?: HTMLElement;
@@ -71,13 +83,42 @@ export class EventListFilter {
   #data?: ListingListAnswer;
   #error?: Message;
   #filter: Filter = { kind: "all" };
+  /** The tab's last choice, applied once the notes are read. */
+  #kept?: Filter;
   #session = 0;
   #loadSequence = 0;
 
   constructor(
     private readonly document: Document,
     private readonly client: ListingClient,
+    /** The tab's session storage; tests supply their own. */
+    private readonly store: () => FilterStore | undefined = () =>
+      document.defaultView?.sessionStorage ?? undefined,
   ) {}
+
+  /** The kept choice; nothing when the browser blocks the storage. */
+  #readKept(): Filter | undefined {
+    try {
+      const value = this.store()?.getItem(FILTER_KEY);
+      const filter = value ? decode(value) : undefined;
+      return filter && filter.kind !== "all" && filter.kind !== "tag"
+        ? filter
+        : undefined;
+    } catch {
+      return undefined;
+    }
+  }
+
+  #keep(filter: Filter): void {
+    try {
+      const store = this.store();
+      if (filter.kind === "all" || filter.kind === "tag")
+        store?.removeItem(FILTER_KEY);
+      else store?.setItem(FILTER_KEY, encode(filter));
+    } catch {
+      // The choice then lasts only for this page.
+    }
+  }
 
   update(): void {
     const selector = verifiedSelector("event-calendar", "list");
@@ -94,6 +135,7 @@ export class EventListFilter {
         "joyfox-panel joyfox-event-filter",
       );
       this.#bar.setAttribute(UI_ATTRIBUTE, "event-filter");
+      this.#kept = this.#readKept();
       this.#draw();
       void this.#load();
     }
@@ -112,6 +154,7 @@ export class EventListFilter {
     this.#data = undefined;
     this.#error = undefined;
     this.#filter = { kind: "all" };
+    this.#kept = undefined;
   }
 
   /** Another account's notes must never stay on screen after a switch. */
@@ -120,6 +163,8 @@ export class EventListFilter {
     if (!this.#bar) return;
     this.#data = undefined;
     this.#filter = { kind: "all" };
+    this.#kept = undefined;
+    this.#keep(this.#filter);
     this.#draw();
     this.#apply();
     void this.#load();
@@ -152,6 +197,11 @@ export class EventListFilter {
     if (!current()) return;
     this.#data = answer;
     this.#error = undefined;
+    // Only now, so the list is not hidden while the notes are unknown.
+    if (this.#kept) {
+      if (answer.accountId) this.#filter = this.#kept;
+      this.#kept = undefined;
+    }
     // A tag no longer in use cannot stay chosen.
     if (this.#filter.kind === "tag" && !this.#tags().includes(this.#filter.tag))
       this.#filter = { kind: "all" };
@@ -180,6 +230,8 @@ export class EventListFilter {
     const bar = this.#bar;
     if (!bar) return;
     const document = this.document;
+    // New notes from another tab draw the bar again; the list keeps focus.
+    const focus = rememberFocus(bar);
     bar.replaceChildren();
     const label = element(
       document,
@@ -189,6 +241,7 @@ export class EventListFilter {
     );
     const select = element(document, "select", "joyfox-event-filter__select");
     select.id = "joyfox-event-filter";
+    select.setAttribute(FOCUS_KEY, "event-filter");
     label.htmlFor = select.id;
     const option = (value: string, text: string) =>
       select.append(
@@ -206,6 +259,7 @@ export class EventListFilter {
     select.disabled = !this.#data?.accountId;
     select.addEventListener("change", () => {
       this.#filter = decode(select.value);
+      this.#keep(this.#filter);
       this.#apply();
     });
     const count = element(document, "span", "joyfox-event-filter__count");
@@ -219,6 +273,7 @@ export class EventListFilter {
         element(document, "p", "joyfox-note", t("eventFilter.noAccount")),
       );
     this.#count = count;
+    restoreFocus(bar, focus);
   }
 
   /**
@@ -248,10 +303,14 @@ export class EventListFilter {
     }
     if (filtering) list.setAttribute(FILTER_ATTRIBUTE, "on");
     else list.removeAttribute(FILTER_ATTRIBUTE);
-    if (this.#count)
-      this.#count.textContent = filtering
-        ? t(message("eventFilter.count", { shown, loaded }))
-        : "";
+    // Written only when it changes. Replacing the text is a page mutation,
+    // which would start the next pass at once, and the count is a live
+    // region that a screen reader could read again each time.
+    const count = filtering
+      ? t(message("eventFilter.count", { shown, loaded }))
+      : "";
+    if (this.#count && this.#count.textContent !== count)
+      this.#count.textContent = count;
   }
 
   #badge(

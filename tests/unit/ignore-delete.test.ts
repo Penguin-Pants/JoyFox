@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { texts } from "../i18n-text";
+import { setLocale } from "../../src/i18n/translator";
 import {
   ACTION_STATES,
   canTransition,
@@ -137,8 +138,9 @@ describe("M9 report", () => {
       "Delete: not done.",
       "Ignore: not done.",
       "Nothing was changed on JoyClub.",
-      expect.stringMatching(/^Next: open the conversation/),
-      expect.stringMatching(/^Next: open the member's profile/),
+      // Nothing was clicked, so there is nothing to check (M9 review).
+      "You can do it yourself: move the conversation to the trash with JoyClub's trash button.",
+      "You can do it yourself: open the member's profile and ignore them there.",
     ]);
   });
 
@@ -233,5 +235,71 @@ describe("M9 report", () => {
         ),
       ])
         expect(lines.join(" ")).not.toMatch(/rolled back|restored|reverted/i);
+  });
+
+  it("tells how to undo a finished run with JoyClub's own controls", () => {
+    const logged = steps(
+      "Started",
+      "DeleteRequested",
+      "DeleteConfirmed",
+      "IgnoreRequested",
+      "IgnoreConfirmed",
+      "Completed",
+    );
+    expect(texts(report(logged).lines).at(-1)).toBe(
+      "To undo, restore the conversation from JoyClub's trash. Then open the member's profile and choose \"Profil nicht mehr ignorieren\" in its menu.",
+    );
+    setLocale("de");
+    try {
+      // JoyClub's exact label (live-evidence/10-ignore.md).
+      expect(texts(report(logged).lines).at(-1)).toContain(
+        "„Profil nicht mehr ignorieren“",
+      );
+    } finally {
+      setLocale("en");
+    }
+  });
+
+  it("says how to show the list when Delete could not be checked", () => {
+    const lines = texts(
+      report(steps("Started", ["Failed", "unverifiable"])).lines,
+    );
+    expect(lines).toEqual([
+      "Ignore and Delete stopped.",
+      "JoyFox cannot see JoyClub's result for Delete on this page, so it stopped before Delete.",
+      "Delete works only while this conversation shows in the ClubMail list beside it. Widen the window, or scroll the list until the conversation shows, then try again.",
+      "Delete: not done.",
+      "Ignore: not done.",
+      "Nothing was changed on JoyClub.",
+      "You can do it yourself: move the conversation to the trash with JoyClub's trash button.",
+      "You can do it yourself: open the member's profile and ignore them there.",
+    ]);
+    // Only for Delete, whose result the list shows.
+    expect(
+      texts(
+        report(
+          steps("Started", "DeleteRequested", "DeleteConfirmed", [
+            "Failed",
+            "unverifiable",
+          ]),
+        ).lines,
+      ).join(" "),
+    ).not.toMatch(/Widen the window/);
+  });
+
+  it("asks to check a step only when JoyFox started it", () => {
+    // Delete was clicked but not confirmed: the user checks it.
+    const started = texts(
+      report(steps("Started", "DeleteRequested", ["Failed", "timeout"])).lines,
+    );
+    expect(started).toContain(
+      "Next: open the conversation and check whether it is in the trash. If not, move it there yourself with JoyClub's trash button.",
+    );
+    expect(started.join(" ")).not.toMatch(/You can do it yourself/);
+    // Stopped before any click: nothing to check.
+    const untouched = texts(
+      report(steps("Started", ["Failed", "account-changed"])).lines,
+    );
+    expect(untouched.join(" ")).not.toMatch(/Next:|check whether/);
   });
 });

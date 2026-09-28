@@ -80,19 +80,25 @@ open JoyClub tabs switch at once (ADR 0014, `docs/manual-acceptance.md`, items
 91 to 97).
 
 On a fresh install the options page opens once, and "Get started" at its top
-lists the three steps to a triaged inbox. The options page holds the account
-switcher. JoyFox cannot detect which JoyClub login a tab uses, so the active
-account is the one selected there, and every stored note, tag and rule belongs
-to it. A private note and tags can be kept for a member on their profile page
-and in a conversation with them, below the JoyFox panel. They are stored only
-for a verified member ID, never a display name. See `docs/manual-acceptance.md`,
-items 36 to 42.
+lists the three steps to a triaged inbox. The JoyFox button in the Firefox
+toolbar (or in the Extensions menu, until you pin it) opens the options page at
+any time. If Firefox does not let JoyFox run on joyclub.de, "Get started" shows
+a button to allow it. The options page holds the account switcher. You can
+rename an account's display label; its JoyClub identifier stays as entered,
+because an import matches accounts by it. JoyFox cannot detect which JoyClub
+login a tab uses, so the active account is the one selected there, and every
+stored note, tag and rule belongs to it. A private note and tags can be kept for
+a member on their profile page and in a conversation with them, below the JoyFox
+panel. They are stored only for a verified member ID, never a display name. They
+are not shown on your own profile. See `docs/manual-acceptance.md`, items 36
+to 42.
 
 The contact rule is built on the options page in plain language, in a Simple or
-an Advanced editor, and saves on each change. "Start from a preset" fills it
-with one of the PRD's presets: Open, Complete profiles only, Verified members,
-High-trust members or Custom (ADR 0016, `docs/manual-acceptance.md`, items 105
-to 107).
+an Advanced editor (whose parts are groups), and saves on each change. Until an
+account is active and a rule is saved, the inbox shows one line with a link to
+the options page. "Start from a preset" fills it with one of the PRD's presets:
+Open, Complete profiles only, Verified members, High-trust members or Custom
+(ADR 0016, `docs/manual-acceptance.md`, items 105 to 107).
 
 On JoyClub's member search, a "JoyFox saved searches" bar above the results
 saves the search's address, which holds every filter, under a name, and opens it
@@ -100,19 +106,21 @@ again in one click. A saved search whose address no longer matches JoyClub's
 search is not opened (V1-3, `docs/manual-acceptance.md`, items 108 to 110).
 
 On an event page, a JoyFox box keeps your own attendance, note and tags for the
-event; on a venue page, a note and tags. JoyClub's own sign-up is never touched.
-On "Dates & Events", a filter shows only the loaded events that carry your tags,
-note or attendance, and a badge marks them. The options page's "Events" tab is
-your personal calendar of every tracked event, also after JoyClub removes it
-(V1-5, `docs/manual-acceptance.md`, items 111 to 115).
+event; on a venue page, a note and tags. The box stays closed until JoyFox
+tracks the page, and the list filter keeps its choice for the tab, except a tag.
+JoyClub's own sign-up is never touched. On "Dates & Events", a filter shows only
+the loaded events that carry your tags, note or attendance, and a badge marks
+them. The options page's "Events" tab is your personal calendar of every tracked
+event, also after JoyClub removes it (V1-5, `docs/manual-acceptance.md`, items
+111 to 115).
 
 The Compatibility Overlay compares a profile's "Vorlieben" with your own. JoyFox
 reads your own preferences when you open your own profile. On another member's
-profile it frames the tags you both like and lists them; on search results,
-inbox rows and event guest lists it shows "N shared" for each member whose
-profile you opened before, and it can sort the loaded search results by that
-number. It never shows a percentage (V1-2, `docs/manual-acceptance.md`, items
-116 to 120).
+profile it frames the tags you both like and lists them on request; on search
+results, inbox rows and event guest lists it shows "N shared" for each member
+whose profile you opened before, and it can sort the loaded search results by
+that number. It never shows a percentage (V1-2, `docs/manual-acceptance.md`,
+items 116 to 120).
 
 On search results, inbox rows and event guest lists, JoyFox shows what it knows
 about each member: the completeness badge (photos, words, verification), the
@@ -124,25 +132,33 @@ loaded results known to be below 3 photos or 50 words (V1-10,
 For an event you track, JoyFox stores the guest list the event page shows
 (member IDs only) and lists the shared events on each guest's profile. An
 optional exception, off by default, places a sender in Qualified when they are
-on the guest list of an event you marked Attending or Attended; the "Why" panel
-names the event and can turn it off for that sender (V1-13,
+on the guest list of an event you marked Attending or Attended; the "Why and
+move" panel names the event and can turn it off for that sender (V1-13,
 `docs/manual-acceptance.md`, items 129 to 132).
 
 Conversation History Search stores the ClubMail messages you open, sent and
 received, and the options page's "Messages" tab searches them. It is on by
 default and can be turned off there; messages older than 12 months (you choose 1
-to 120) are deleted automatically, and each message can be deleted under "Your
+to 120; lowering the number deletes older messages at once, after a second
+click) are deleted automatically, and each message can be deleted under "Your
 data". It stores only what a conversation shows on screen (V1-4,
 `docs/manual-acceptance.md`, items 121 to 124).
+
+Firefox runs JoyFox in private windows only if you allow it (about:addons >
+JoyFox > "Run in Private Windows"); the default is off. If you allow it, JoyFox
+stores what it reads in a private window like in a normal window: messages,
+profile facts and nicknames stay after the private window closes. Delete them
+under "Your data".
 
 The options page also holds message templates and "Your data", where every
 stored record can be inspected field by field, exported as JSON and deleted, per
 account or for the whole extension. It also sets how many profile snapshots
 JoyFox keeps per member (20 by default). A "JoyFox templates" button below
 JoyClub's message box inserts a template at the cursor; it never sends. See
-`docs/manual-acceptance.md`, items 27 to 35.
+`docs/manual-acceptance.md`, items 27 to 35. Import is on the "Accounts" tab,
+and "Your data" links to it.
 
-Quick Ignore and Delete (M9) has its state machine, ActionLog and on-screen
+Quick Ignore and Delete (M9) has its state machine, action log and on-screen
 notice. Its live driver follows F7's evidence: Delete on the conversation page,
 then Ignore on the member's profile in the same tab (ADR 0011). It stays off
 until you tick "Ignore and Delete" on the options page's "Contact rule" tab

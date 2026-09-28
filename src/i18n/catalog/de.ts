@@ -31,7 +31,7 @@ export const de: Catalog = {
   "common.close": "Schließen",
   "common.openOptions": "JoyFox-Einstellungen öffnen",
   "common.saveFailed":
-    "JoyFox konnte diese Änderung nicht speichern. Es wurde nichts geändert.",
+    "JoyFox konnte diese Änderung nicht speichern. Es wurde nichts geändert. Versuche es noch einmal. Wenn es weiter nicht klappt, lade die Seite neu.",
   "legacy.text": (p) => p.text,
 
   // Triage reasons
@@ -94,7 +94,7 @@ export const de: Catalog = {
   "triage.reason.unknownNotMet": (p) =>
     `${p.reason} Deine Regel zählt einen unbekannten Wert als nicht erfüllt.`,
   "triage.reason.numbered": (p, f) =>
-    `Regel ${f.number(p.number)}: ${p.reason}`,
+    `Gruppe ${f.number(p.number)}: ${p.reason}`,
   "triage.reason.userMoved": (p) =>
     `Du hast diese Person nach „${p.placement}“ verschoben.`,
   "triage.headline.noConditions":
@@ -194,7 +194,15 @@ export const de: Catalog = {
     "Nächster Schritt: Öffne das Profil des Mitglieds und prüfe, ob es ignoriert wird. Wenn nicht, ignoriere es dort selbst.",
   "action.next.delete":
     "Nächster Schritt: Öffne die Unterhaltung und prüfe, ob sie im Papierkorb ist. Wenn nicht, verschiebe sie selbst mit „In den Papierkorb schieben“.",
+  "action.next.showList":
+    "„In den Papierkorb schieben“ klappt nur, während diese Unterhaltung in der ClubMail-Liste daneben zu sehen ist. Mach das Fenster breiter oder scrolle die Liste, bis die Unterhaltung erscheint, und versuche es dann noch einmal.",
+  "action.self.ignore":
+    "Du kannst es selbst tun: Öffne das Profil des Mitglieds und ignoriere es dort mit „Profil ignorieren“.",
+  "action.self.delete":
+    "Du kannst es selbst tun: Verschiebe die Unterhaltung mit „In den Papierkorb schieben“ in den Papierkorb.",
   "action.report.finished": "„Ignorieren und löschen“ ist fertig.",
+  "action.report.undo":
+    "Rückgängig machen: Hol die Unterhaltung aus JoyClubs Papierkorb zurück. Öffne dann das Profil des Mitglieds und wähle im Menü „Profil nicht mehr ignorieren“.",
   "action.report.running": "„Ignorieren und löschen“ läuft.",
   "action.report.stopped": "„Ignorieren und löschen“ wurde angehalten.",
   "action.report.interrupted":
@@ -214,10 +222,13 @@ export const de: Catalog = {
   "quick.region": "JoyFox: Ignorieren und löschen",
   "quick.scope":
     "Experimentell. Ein Klick verschiebt diese Unterhaltung in JoyClubs Papierkorb, öffnet dann das Profil des Mitglieds und ignoriert es dort. JoyFox hält beim ersten Problem an und sagt dir, was erledigt wurde. JoyFox sendet nie eine Nachricht.",
+  "quick.needsList":
+    "Klappt nur, während diese Unterhaltung in der ClubMail-Liste daneben zu sehen ist. Mach das Fenster breiter oder scrolle die Liste, bis die Unterhaltung erscheint.",
   "quick.noProfile":
     "JoyFox findet die Profiladresse dieses Mitglieds nicht. Dort ist „Profil ignorieren“. JoyFox hat deshalb nichts getan.",
   "quick.resumed":
     "„Ignorieren und löschen“, fortgesetzt aus der Unterhaltung:",
+  "quick.waitingMenu": "JoyFox wartet auf JoyClubs Profilmenü …",
   "quick.previous":
     "Dein letztes „Ignorieren und löschen“ für dieses Mitglied:",
   "quick.previousOther":
@@ -253,6 +264,7 @@ export const de: Catalog = {
     `Du hast diese Person am ${p.date} verschoben. Deine Regel allein würde sie in „${p.placement}“ einordnen.`,
   "triage.move.group": "Diese Person verschieben",
   "triage.move.to": (p) => `Nach „${p.placement}“ verschieben`,
+  "triage.move.keep": (p) => `In „${p.placement}“ lassen`,
   "triage.move.useRule": "Wieder meine Regel verwenden",
   "triage.profileFact.minimumPhotos": "Anzahl der Fotos",
   "triage.profileFact.minimumProfileWords": "Wörter im Profil",
@@ -290,6 +302,8 @@ export const de: Catalog = {
   "panel.ruleOff.rule-disabled":
     "Deine Kontaktregel ist ausgeschaltet, deshalb ordnet JoyFox diese Person nicht ein.",
   "panel.ruleOff.other": "JoyFox ordnet diese Person nicht ein.",
+  "panel.ruleOff.no-account":
+    "Es ist kein JoyFox-Konto aktiv, deshalb zeigt JoyFox zu diesem Mitglied nichts an.",
 
   // Content script: inbox triage
   "inbox.region": "JoyFox-Sortierung",
@@ -300,14 +314,18 @@ export const de: Catalog = {
   "inbox.about": "Über diese Ansichten",
   "inbox.aboutText":
     "„Posteingang“ blendet Zeilen aus „Quarantäne“ nur in dieser Ansicht aus. Nichts wird gelöscht, und JoyFox ändert nichts auf JoyClub.",
-  "inbox.checking": "Wird geprüft",
-  "inbox.badge": (p) => `JoyFox: ${p.text}. Grund zeigen.`,
-  "inbox.why": "Warum diese Einordnung",
-  "inbox.whyNamed": (p) => `Warum: ${p.name}`,
+  "inbox.checking": "Wird eingeordnet …",
+  "inbox.badge": (p) => `JoyFox: ${p.text}. Warum und verschieben.`,
+  "inbox.why": "Warum und verschieben",
+  "inbox.whyNamed": (p) => `Warum und verschieben: ${p.name}`,
   "inbox.rowGone": "Diese Zeile wird nicht mehr angezeigt.",
   "inbox.unidentified":
     "JoyFox konnte die Profilnummer dieser Person nicht lesen und deine Regel deshalb nicht prüfen. Die Zeile bleibt sichtbar.",
   "inbox.stillChecking": "JoyFox prüft diese Person noch.",
+  "inbox.setup.no-account":
+    "Es ist kein JoyFox-Konto aktiv, deshalb sortiert JoyFox diesen Posteingang nicht.",
+  "inbox.setup.no-rule":
+    "Es ist keine Kontaktregel gespeichert, deshalb sortiert JoyFox diesen Posteingang nicht.",
 
   // Content script: notes and tags
   "notes.region": "JoyFox-Notizen und -Tags",
@@ -322,8 +340,13 @@ export const de: Catalog = {
   "notes.emptyTag": "Gib zuerst einen Tag ein. Es wurde nichts hinzugefügt.",
   "notes.emptyNote": "Gib zuerst eine Notiz ein. Es wurde nichts gespeichert.",
   "notes.tagAdded": "Tag hinzugefügt.",
+  "notes.tagExists": "Diesen Tag hat das Mitglied schon.",
   "notes.tagRemoved": "Tag entfernt.",
   "notes.privateNote": "Private Notiz",
+  "notes.length": (p, f) =>
+    `${f.number(p.count)} von ${f.number(p.maximum)} Zeichen`,
+  "notes.pasteCut":
+    "Nur ein Teil des eingefügten Texts hat gepasst. Der Rest wurde nicht eingefügt.",
   "notes.discard": "Meine Änderungen verwerfen",
   "notes.save": "Notiz speichern",
   "notes.tags": "Tags",
@@ -346,38 +369,50 @@ export const de: Catalog = {
     })})`,
 
   // Content script: template picker
-  "listing.heading.event": "JoyFox: meine Notizen zu diesem Event",
-  "listing.heading.venue": "JoyFox: meine Notizen zu diesem Club",
+  "listing.heading.event": "JoyFox: deine Notizen zu diesem Event",
+  "listing.heading.venue": "JoyFox: deine Notizen zu diesem Club",
+  "listing.summary.event": (p) =>
+    `JoyFox: deine Notizen zu diesem Event (${p.state})`,
+  "listing.summary.venue": (p) =>
+    `JoyFox: deine Notizen zu diesem Club (${p.state})`,
+  "listing.summary.none": "noch keine",
+  "listing.summary.note": "eine Notiz",
   "listing.loading": "Deine Notizen werden geladen …",
   "listing.readFailed":
     "JoyFox konnte deine Notizen zu dieser Seite nicht lesen. Lade die Seite neu, um es noch einmal zu versuchen.",
   "listing.noAccount":
     "Wähle in den JoyFox-Einstellungen ein Konto aus oder füge eines hinzu, um Notizen zu Events zu speichern.",
-  "listing.attendanceLabel": "Meine Teilnahme",
+  "listing.attendanceLabel": "Deine Teilnahme",
   "listing.attendance.unknown": "Kein Status",
   "listing.attendance.interested": "Interessiert",
   "listing.attendance.attending": "Ich gehe hin",
   "listing.attendance.not-attending": "Ich gehe nicht hin",
   "listing.attendance.attended": "Ich war dort",
-  "listing.noteLabel": "Meine Notiz",
+  "listing.noteLabel": "Deine Notiz",
   "listing.saveNote": "Notiz speichern",
-  "listing.tagsLabel": "Meine Tags",
+  "listing.tagsLabel": "Deine Tags",
   "listing.tagLabel": "Neuer Tag",
   "listing.addTag": "Tag hinzufügen",
   "listing.removeTag": (p) => `Tag ${p.tag} entfernen`,
   "listing.emptyTag": "Gib zuerst einen Tag ein. Es wurde nichts hinzugefügt.",
-  "listing.tooManyTags": (p, f) =>
-    `Ein Eintrag kann höchstens ${f.number(p.maximum)} Tags haben. Entferne zuerst einen.`,
+  "listing.tooManyTags.event": (p, f) =>
+    `Du kannst einem Event höchstens ${f.number(p.maximum)} Tags geben. Entferne zuerst einen.`,
+  "listing.tooManyTags.venue": (p, f) =>
+    `Du kannst einem Club höchstens ${f.number(p.maximum)} Tags geben. Entferne zuerst einen.`,
   "listing.privacy":
     "Privat: nur in diesem Browser gespeichert. JoyClub sieht nichts, und deine Anmeldung bei JoyClub ändert sich nicht.",
   "listing.saved": "Gespeichert.",
-  "listing.removed":
-    "Hier ist nichts mehr eingetragen, deshalb verfolgt JoyFox diesen Eintrag nicht mehr.",
+  "listing.tracked.event": "Gespeichert. JoyFox verfolgt dieses Event jetzt.",
+  "listing.tracked.venue": "Gespeichert. JoyFox verfolgt diesen Club jetzt.",
+  "listing.removed.event":
+    "Es ist keine Notiz, kein Tag und keine Teilnahme mehr eingetragen, deshalb verfolgt JoyFox dieses Event nicht mehr.",
+  "listing.removed.venue":
+    "Es ist keine Notiz und kein Tag mehr eingetragen, deshalb verfolgt JoyFox diesen Club nicht mehr.",
   "listing.conflict":
     "Diese Notizen wurden in einem anderen Tab geändert, deshalb hat JoyFox nicht gespeichert. Jetzt werden die gespeicherten Notizen angezeigt; deine eingegebene Notiz steht noch im Feld.",
   "listing.refused":
     "Das aktive JoyFox-Konto hat sich geändert, deshalb wurde nichts gespeichert.",
-  "events.heading": "Meine Events",
+  "events.heading": "Deine Events",
   "events.hint":
     "Alle Events und Clubs, zu denen du auf JoyClub eine Notiz, einen Tag oder deine Teilnahme eingetragen hast, nach Datum. JoyFox behält sie, auch wenn JoyClub ein Event entfernt. Um einen Eintrag zu ändern, öffne ihn auf JoyClub.",
   "events.readFailed":
@@ -395,7 +430,7 @@ export const de: Catalog = {
   "events.untitled": (p) => `Event ${p.id}`,
   "events.past": (p) => `${p.when} (vorbei)`,
   "events.venue": (p) => `Club: ${p.venue}`,
-  "events.venuesHeading": "Meine Clubs",
+  "events.venuesHeading": "Deine Clubs",
   "events.guests": (p, f) =>
     f.plural(p.count, {
       one: "1 Gast gespeichert",
@@ -404,13 +439,19 @@ export const de: Catalog = {
   "events.exception.label":
     "Ausnahme für gemeinsame Events: eine Person als „Qualifiziert“ einordnen, wenn sie auf der Gästeliste eines Events steht, das ich mit „Ich gehe hin“ oder „Ich war dort“ markiert habe",
   "events.exception.hint":
-    "Standardmäßig aus. JoyFox speichert die Gästeliste eines verfolgten Events, wenn du die Event-Seite öffnest, so weit JoyClub sie geladen hat, und löscht sie, wenn du das Event nicht mehr verfolgst. Eine Person, die du selbst verschoben hast, behält deine Wahl, und im Bereich „Warum“ kannst du die Ausnahme für eine Person abschalten.",
+    "Standardmäßig aus. JoyFox speichert die Gästeliste eines verfolgten Events, wenn du die Event-Seite öffnest, so weit JoyClub sie geladen hat, und löscht sie, wenn du das Event nicht mehr verfolgst. Eine Person, die du selbst verschoben hast, behält deine Wahl, und im Bereich „Warum und verschieben“ kannst du die Ausnahme für eine Person abschalten.",
   "events.exception.saved": "Gespeichert.",
+  "events.exception.saveFailed":
+    "JoyFox konnte diese Einstellung nicht speichern. Versuche es noch einmal.",
   "quickSetting.heading": "Ignorieren und löschen",
   "quickSetting.label":
     "Die Schaltfläche „Ignorieren und löschen“ in ClubMail-Unterhaltungen zeigen",
   "quickSetting.hint":
-    "Experimentell und standardmäßig aus. Ein Klick schiebt die Unterhaltung in JoyClubs Papierkorb, öffnet das Profil des Mitglieds im selben Tab und ignoriert das Mitglied dort. JoyFox handelt nur, wenn du klickst, und das ActionLog unter „Deine Daten“ hält jeden Schritt fest.",
+    "Experimentell und standardmäßig aus. Ein Klick schiebt die Unterhaltung in JoyClubs Papierkorb, öffnet das Profil des Mitglieds im selben Tab und ignoriert das Mitglied dort. Das funktioniert nur, solange die ClubMail-Liste neben der Unterhaltung zu sehen ist. JoyFox handelt nur, wenn du klickst. Das „Aktionsprotokoll“ unter „Deine Daten“ hält jeden Schritt fest.",
+  "quickSetting.risk":
+    "Bemerkt JoyClub ein Werkzeug, das für dich klickt, kann dein Konto eingeschränkt oder geschlossen werden. Von allen JoyFox-Funktionen hat diese das höchste Risiko.",
+  "quickSetting.undo":
+    "Um es rückgängig zu machen, stelle die Unterhaltung aus JoyClubs Papierkorb wieder her. Öffne dann das Profil des Mitglieds und wähle im Menü „Profil nicht mehr ignorieren“.",
   "quickSetting.saved": "Gespeichert. Offene ClubMail-Tabs folgen sofort.",
   "quickSetting.saveFailed":
     "JoyFox konnte diese Einstellung nicht speichern. Versuche es noch einmal.",
@@ -419,11 +460,11 @@ export const de: Catalog = {
     "Dieses Mitglied steht auf der gespeicherten Gästeliste dieser Events, die du verfolgst:",
   "eventFilter.label": "JoyFox: zeigen",
   "eventFilter.all": "Alle geladenen Events und Dates",
-  "eventFilter.tracked": "Nur meine verfolgten Events",
-  "eventFilter.note": "Nur Events mit meiner Notiz",
-  "eventFilter.attending": "Nur Events, zu denen ich gehe",
-  "eventFilter.interested": "Nur Events, die mich interessieren",
-  "eventFilter.tag": (p) => `Nur mein Tag: ${p.tag}`,
+  "eventFilter.tracked": "Nur Events, die JoyFox verfolgt",
+  "eventFilter.note": "Nur Events mit deiner Notiz",
+  "eventFilter.attending": "Nur Events, zu denen du gehst",
+  "eventFilter.interested": "Nur Events, die dich interessieren",
+  "eventFilter.tag": (p) => `Nur Events mit deinem Tag: ${p.tag}`,
   "eventFilter.count": (p, f) =>
     `${f.number(p.shown)} von ${f.number(p.loaded)} geladenen Events angezeigt. Später geladene Events werden auch geprüft.`,
   "eventFilter.readFailed":
@@ -434,16 +475,23 @@ export const de: Catalog = {
   "eventFilter.hasNote": "Notiz",
   "messages.heading": "Nachrichtensuche",
   "messages.hint":
-    "JoyFox speichert die ClubMail-Nachrichten, die du öffnest, gesendete und empfangene, damit du sie hier durchsuchen kannst. Es speichert nur, was eine Unterhaltung auf dem Bildschirm zeigt, und lädt nie ältere Nachrichten. Der Text bleibt in diesem Browser, und eine Exportdatei enthält ihn auch.",
+    "JoyFox speichert die ClubMail-Nachrichten, die du öffnest, gesendete und empfangene, damit du sie hier durchsuchen kannst. Es speichert nur, was eine Unterhaltung auf dem Bildschirm zeigt, und lädt nie ältere Nachrichten. Der Text bleibt in diesem Browser, und eine Exportdatei enthält ihn auch. Wenn du JoyFox in privaten Fenstern erlaubst, speichert es die Nachrichten, die du dort öffnest, genauso.",
   "messages.caching": "Die Nachrichten speichern, die ich in ClubMail öffne",
   "messages.cachingOn": "Das Speichern von Nachrichten ist an.",
   "messages.cachingOff":
-    "Das Speichern von Nachrichten ist aus. Schon gespeicherte Nachrichten bleiben, bis sie älter als die Zeit unten sind oder bis du sie unter „Deine Daten“ löschst.",
-  "messages.onHint": "Ältere Nachrichten werden automatisch gelöscht.",
+    "Das Speichern von Nachrichten ist aus. Schon gespeicherte Nachrichten bleiben, bis sie älter als die hier eingestellte Zeit sind oder bis du sie unter „Deine Daten“ löschst.",
   "messages.offHint":
     "Das Speichern ist aus: JoyFox speichert keine neuen Nachrichten. Die Suche umfasst weiter die schon gespeicherten Nachrichten.",
   "messages.retentionLabel": "Nachrichten behalten für (Monate)",
   "messages.retentionSave": "Speichern",
+  "messages.retentionHint": (p, f) =>
+    `Ältere Nachrichten werden automatisch gelöscht. Eine kleinere Zahl löscht ältere Nachrichten sofort. Standard ist ${f.number(p.default)}. Klicke zum Übernehmen auf „Speichern“.`,
+  "messages.retentionConfirm": "Speichern und löschen",
+  "messages.retentionConfirmPrompt": (p, f) =>
+    `Eine kleinere Zahl löscht die gespeicherten Nachrichten, die älter als ${f.plural(
+      p.months,
+      { one: "1 Monat", other: `${f.number(p.months)} Monate` },
+    )} sind, sofort. Klicke zum Bestätigen auf „Speichern und löschen“.`,
   "messages.retentionSaved": (p, f) =>
     p.deleted === 0
       ? "Gespeichert. Keine ältere Nachricht musste gelöscht werden."
@@ -491,11 +539,10 @@ export const de: Catalog = {
   "signals.heading": "Vollständigkeit des Profils",
   "signals.trust": (p, f) =>
     `Vertrauen ${p.score > 0 ? "+" : ""}${f.number(p.score)}`,
-  "signals.trustNone": "Kein Vertrauensverlauf",
   "signals.trustNoneShort": "Vertrauen –",
   "signals.noteAdd": "Notiz hinzufügen",
   "signals.noteEdit": "Notiz",
-  "signals.tagsLabel": "Meine Tags",
+  "signals.tagsLabel": "Deine Tags",
   "signals.tagCount": (p, f) =>
     f.plural(p.count, {
       one: "1 Tag",
@@ -508,7 +555,7 @@ export const de: Catalog = {
   "signals.editor.noAccount":
     "Wähle in den JoyFox-Einstellungen ein Konto aus oder füge eines hinzu, um Notizen zu führen.",
   "signals.editor.readFailed":
-    "JoyFox konnte die Notizen zu diesem Mitglied nicht lesen. Schließe dieses Fenster und versuche es noch einmal.",
+    "JoyFox konnte die Notizen zu diesem Mitglied nicht lesen. Schließe die Notiz und öffne sie erneut.",
   "signals.filter.label": "JoyFox: unvollständige Profile ausblenden",
   "signals.filter.count": (p, f) =>
     `${f.number(p.hidden)} von ${f.number(p.loaded)} geladenen Profilen ausgeblendet. Profile, über die JoyFox nichts weiß, bleiben sichtbar.`,
@@ -519,6 +566,7 @@ export const de: Catalog = {
       other: `${f.number(p.count)} Vorlieben`,
     })} mit diesem Mitglied:`,
   "compat.none": "Du teilst keine Vorlieben mit diesem Mitglied.",
+  "compat.listToggle": "Gemeinsame Vorlieben anzeigen",
   "compat.own": (p, f) =>
     `Das ist dein Profil. JoyFox vergleicht andere Profile mit ${f.plural(
       p.count,
@@ -570,6 +618,10 @@ export const de: Catalog = {
   "searches.saved": (p) => `„${p.name}“ gespeichert.`,
   "searches.noMatch": (p) =>
     `„${p.name}“ passt nicht mehr zur Suchadresse von JoyClub, deshalb hat JoyFox die Suche nicht geöffnet. Führe die Suche noch einmal aus und speichere sie neu.`,
+  "searches.running": (p) => `„${p.name}“ wird ausgeführt …`,
+  "searches.runningUnnamed": "Die gespeicherte Suche wird ausgeführt …",
+  "searches.shown": (p) => `„${p.name}“ wird angezeigt.`,
+  "searches.shownUnnamed": "Die gespeicherte Suche wird angezeigt.",
   "searches.runFailed":
     "JoyFox konnte die gespeicherte Suche nicht ausführen. Öffne den Filter von JoyClub und klicke auf „Anwenden“.",
   "searches.deleteLabel": (p) => `Gespeicherte Suche ${p.name} löschen`,
@@ -588,8 +640,11 @@ export const de: Catalog = {
     "Vorlage eingefügt. Prüfe den Text und klicke dann selbst auf JoyClubs „Senden“.",
   "picker.result.not-editable":
     "Das Nachrichtenfeld kann gerade nicht bearbeitet werden. Es wurde nichts eingefügt.",
-  "picker.result.too-long":
-    "Die Vorlage passt nicht in das Nachrichtenfeld. Es wurde nichts eingefügt, und die Vorlage wurde nicht gekürzt.",
+  "picker.result.too-long": (p, f) =>
+    `Mit der Vorlage wäre die Nachricht ${f.plural(p.over, {
+      one: "1 Zeichen",
+      other: `${f.number(p.over)} Zeichen`,
+    })} zu lang. Das Nachrichtenfeld fasst höchstens ${f.number(p.limit)} Zeichen. Es wurde nichts eingefügt. Kürze deinen Text oder die Vorlage.`,
   "picker.result.altered":
     "JoyClub hat den Text nach dem Einfügen geändert. Prüfe das Nachrichtenfeld, bevor du sendest.",
   "templates.folder.general": "Allgemein",
@@ -608,49 +663,84 @@ export const de: Catalog = {
   "options.tabs.messages": "Nachrichten",
   "options.tabs.data": "Deine Daten",
   "options.importRegion": "JoyFox-Daten importieren",
+  "options.languageSaveFailed":
+    "JoyFox konnte die Sprache nicht speichern. Versuche es noch einmal.",
 
   // Options page: Get started
   "start.state.done": "Erledigt",
   "start.state.off": "Gespeichert, aber ausgeschaltet",
   "start.state.todo": "Noch nicht erledigt",
+  "start.state.doneOpen":
+    "Erledigt: keine Bedingungen, deshalb ist jede Person qualifiziert",
   "start.ready":
     "JoyFox ist eingerichtet. Öffne deinen JoyClub-Posteingang, um ihn sortiert zu sehen.",
   "start.intro":
     "Drei Schritte, ein paar Minuten. Alles bleibt in diesem Browser.",
+  "start.introAccess":
+    "Vier Schritte, ein paar Minuten. Alles bleibt in diesem Browser.",
+  "start.readFailed":
+    "JoyFox konnte seine Einrichtung nicht lesen. Lade die Seite neu, um es noch einmal zu versuchen.",
+  "start.step.access":
+    "Erlaube JoyFox den Zugriff auf joyclub.de. Der Zugriff ist gerade aus, deshalb kann JoyFox auf JoyClub nicht arbeiten.",
   "start.step.account":
     "Füge dein JoyClub-Konto unter [Konten](#accounts) hinzu. JoyFox macht das erste Konto aktiv.",
+  "start.step.chooseAccount":
+    "Wähle das aktive Konto unter [Konten](#accounts) aus.",
   "start.step.rule":
     "Speichere eine Kontaktregel unter [Kontaktregel](#rule). Die Sortierung des Posteingangs bleibt aus, bis eine Regel gespeichert und eingeschaltet ist.",
   "start.step.inbox":
     "Öffne deinen JoyClub-Posteingang (www.joyclub.de, ClubMail). JoyFox zeigt seine Tabs über der Liste.",
 
+  // Options page: site access (Get started)
+  "access.allow": "Zugriff auf joyclub.de erlauben",
+  "access.granted":
+    "Der Zugriff auf joyclub.de ist an. Lade offene JoyClub-Tabs neu, damit JoyFox dort arbeiten kann.",
+  "access.refused":
+    "Der Zugriff auf joyclub.de ist weiterhin aus. JoyFox kann auf JoyClub erst arbeiten, wenn du den Zugriff hier oder unter about:addons erlaubst.",
+
   // Options page: accounts
   "accounts.readFailed":
-    "JoyFox konnte die gespeicherten Konten nicht lesen. Es wurde kein Konto geändert.",
+    "JoyFox konnte die gespeicherten Konten nicht lesen. Es wurde kein Konto geändert. Lade die Seite neu, um es noch einmal zu versuchen.",
   "accounts.hint":
-    "JoyFox kann nicht lesen, mit welchem JoyClub-Login ein Tab arbeitet. Aktiv ist das Konto, das du hier auswählst. Alle Notizen, Tags und Regeln werden darunter gespeichert.",
+    "JoyFox kann nicht lesen, mit welchem JoyClub-Login ein Tab arbeitet. Aktiv ist das Konto, das du hier auswählst. JoyFox speichert deine Notizen, Tags, Regeln, Vorlagen und andere Daten unter diesem Konto.",
   "accounts.activeLabel": "Aktives Konto:",
   "accounts.noneSelected": "Keines ausgewählt",
   "accounts.empty":
-    "Noch keine Konten. Füge unten ein Konto hinzu, um Notizen und Tags zu speichern.",
+    "Noch keine Konten. Füge unten ein Konto hinzu, um JoyFox zu verwenden.",
   "accounts.list": "Gespeicherte Konten",
+  "accounts.nameWithIdentifier": (p) => `${p.label} (${p.identifier})`,
   "accounts.active": "Aktiv",
   "accounts.inactive": "Nicht aktiv",
   "accounts.use": "Dieses Konto verwenden",
-  "accounts.useLabel": (p) => `Konto ${p.name} verwenden`,
+  "accounts.useLabel": (p) => `Dieses Konto verwenden: ${p.name}`,
   "accounts.nowActive": (p) => `Aktives Konto ist jetzt ${p.name}.`,
+  "accounts.rename": "Umbenennen",
+  "accounts.renameLabel": (p) => `Umbenennen: Konto ${p.name}`,
+  "accounts.renameField": (p) => `Neuer Anzeigename für ${p.identifier}`,
+  "accounts.renameSave": "Speichern",
+  "accounts.renameCancel": "Abbrechen",
+  "accounts.renamed": (p) =>
+    `Anzeigename gespeichert. JoyFox zeigt dieses Konto jetzt als ${p.name}.`,
   "accounts.remove": "Entfernen",
   "accounts.confirmRemove": "Entfernen bestätigen",
-  "accounts.removeLabel": (p) => `Konto ${p.name} entfernen`,
+  "accounts.removeLabel": (p) => `Entfernen: Konto ${p.name}`,
   "accounts.confirmRemoveLabel": (p) =>
-    `Entfernen von Konto ${p.name} und allen seinen Daten bestätigen`,
+    `Entfernen bestätigen: Konto ${p.name} und alle seine Daten`,
   "accounts.removePrompt": (p) =>
-    `Wenn du ${p.name} entfernst, löscht JoyFox auch die Notizen, Tags und Regeln dieses Kontos. Klicke zum Bestätigen noch einmal.`,
+    `Wenn du ${p.name} entfernst, löscht JoyFox alles, was es für dieses Konto gespeichert hat, zum Beispiel Notizen, Tags, Regeln, Vorlagen, Nachrichten, Event-Notizen und gespeicherte Suchen. Klicke zum Bestätigen noch einmal.`,
   "accounts.removed": (p) =>
     `${p.name} und die gespeicherten Daten wurden entfernt.`,
+  "accounts.removedNoneActive": (p) =>
+    `${p.name} und die gespeicherten Daten wurden entfernt. Jetzt ist kein Konto aktiv. Wähle eines mit „Dieses Konto verwenden“.`,
+  "accounts.removedNoneLeft": (p) =>
+    `${p.name} und die gespeicherten Daten wurden entfernt. Es gibt keine Konten mehr. Füge ein Konto hinzu, um JoyFox zu verwenden.`,
   "accounts.addForm": "Konto hinzufügen",
   "accounts.identifier": "JoyClub-Kontokennung",
+  "accounts.identifierHint":
+    "Dein JoyClub-Nickname eignet sich gut. JoyFox verwendet ihn nur, um deine Konten zu unterscheiden und Importe zuzuordnen. JoyFox prüft ihn nicht. Du kannst ihn später nicht ändern.",
   "accounts.label": "Anzeigename (optional)",
+  "accounts.labelHint":
+    "Nur JoyFox zeigt diesen Namen. Wenn du ihn leer lässt, zeigt JoyFox die Kennung.",
   "accounts.add": "Konto hinzufügen",
   "accounts.added": (p) => `${p.name} wurde hinzugefügt.`,
   "accounts.saveFailed":
@@ -658,7 +748,7 @@ export const de: Catalog = {
 
   // Options page: contact rule
   "rule.readFailed":
-    "JoyFox konnte die Kontaktregel nicht lesen. Es wurde keine Regel geändert.",
+    "JoyFox konnte die Kontaktregel nicht lesen. Es wurde keine Regel geändert. Lade die Seite neu, um es noch einmal zu versuchen.",
   "rule.hint":
     "Die Regel ändert nur, wie JoyFox deinen eigenen Posteingang in „Qualifiziert“, „Zu prüfen“ und „Quarantäne“ gruppiert. Sie hält keine Nachricht auf, löscht nichts, und die sendende Person sieht nichts davon.",
   "rule.noAccount":
@@ -727,13 +817,25 @@ export const de: Catalog = {
   "rule.textLabel": (p) => `${p.condition}: Wort, Formulierung oder Emoji`,
   "rule.textProblem": (p, f) =>
     `Gib für „${p.condition}“ ein Wort, eine Formulierung oder ein Emoji mit höchstens ${f.number(p.maximum)} Zeichen ein.`,
-  "rule.combine.label": "Wie die Regeln verknüpft werden",
+  "rule.fieldNumberProblem": (p, f) =>
+    `Gib eine ganze Zahl von ${f.number(p.minimum)} bis ${f.number(p.maximum)} ein.`,
+  "rule.fieldTextProblem": (p, f) =>
+    `Gib ein Wort, eine Formulierung oder ein Emoji mit höchstens ${f.number(p.maximum)} Zeichen ein.`,
+  "rule.textHint":
+    "Gib ein Wort, eine Formulierung oder ein Emoji ein, um diese Bedingung zu verwenden.",
+  "rule.spamNote": "(noch nicht geprüft: immer unbekannt)",
+  "rule.combine.label": "Wie die Gruppen verknüpft werden",
   "rule.combine.prefix": "Eine Person ist qualifiziert bei ",
-  "rule.combine.suffix": " dieser Regeln.",
+  "rule.combine.suffix": " dieser Gruppen.",
   "rule.advancedHint":
-    "Jede Regel ist erfüllt bei ALLEN oder MINDESTENS EINER ihrer Bedingungen, wie du es wählst. Setze ein Häkchen bei „nicht“, um eine Bedingung umzukehren: „nicht Mindestanzahl Fotos 3“ bedeutet weniger als 3 Fotos. Eine Regel ohne Bedingungen wird nicht gespeichert.",
-  "rule.addRule": "+ Regel hinzufügen",
-  "rule.removeRule": "Regel entfernen",
+    "Jede Gruppe ist erfüllt bei ALLEN oder MINDESTENS EINER ihrer Bedingungen, wie du es wählst. Setze ein Häkchen bei „nicht“, um eine Bedingung umzukehren: „nicht Mindestanzahl Fotos 3“ bedeutet weniger als 3 Fotos. Eine Gruppe ohne Bedingungen wird nicht gespeichert.",
+  "rule.addRule": "+ Gruppe hinzufügen",
+  "rule.removeRule": "Gruppe entfernen",
+  "rule.confirmRemoveGroup": "Entfernen bestätigen",
+  "rule.confirmRemoveGroupLabel": (p, f) =>
+    `Entfernen bestätigen: Gruppe ${f.number(p.number)}`,
+  "rule.removeGroupPrompt": (p, f) =>
+    `Klicke noch einmal, um Gruppe ${f.number(p.number)} und ihre Bedingungen zu entfernen.`,
   "rule.ruleSuffix": " dieser Bedingungen",
   "rule.noConditions": "Noch keine Bedingungen. Füge unten eine hinzu.",
   "rule.removeCondition": "Bedingung entfernen",
@@ -743,23 +845,24 @@ export const de: Catalog = {
   "rule.notLabel": (p) => `nicht: „${p.condition}“ umkehren`,
   "rule.joiner.all": "UND",
   "rule.joiner.any": "ODER",
-  "rule.ruleTitle": (p, f) => `Regel ${f.number(p.number)}: erfüllt bei `,
+  "rule.ruleTitle": (p, f) => `Gruppe ${f.number(p.number)}: erfüllt bei `,
   "rule.ruleMatchLabel": (p, f) =>
-    `Wie Regel ${f.number(p.number)} ihre Bedingungen verknüpft`,
-  "rule.removeRuleLabel": (p, f) => `Regel ${f.number(p.number)} entfernen`,
+    `Wie Gruppe ${f.number(p.number)} ihre Bedingungen verknüpft`,
+  "rule.removeRuleLabel": (p, f) =>
+    `Gruppe entfernen: Nr. ${f.number(p.number)}`,
   "rule.addConditionLabel": (p, f) =>
-    `Bedingung zu Regel ${f.number(p.number)} hinzufügen`,
+    `Bedingung zu Gruppe ${f.number(p.number)} hinzufügen`,
   "rule.addCondition": "+ Bedingung hinzufügen …",
   "rule.ruleCount": (p, f) =>
-    `${f.number(p.count)} von ${f.number(p.maximum)} Regeln`,
+    `${f.number(p.count)} von ${f.number(p.maximum)} Gruppen`,
   "rule.simpleUnavailable.all":
-    "Die einfache Ansicht ist nicht verfügbar: Die Regeln sind mit ALLEN verknüpft.",
+    "Die einfache Ansicht ist nicht verfügbar: Die Gruppen sind mit ALLEN verknüpft.",
   "rule.simpleUnavailable.not":
     "Die einfache Ansicht ist nicht verfügbar: Die Regel verwendet „nicht“.",
   "rule.simpleUnavailable.severalAll":
-    "Die einfache Ansicht ist nicht verfügbar: Mehr als eine Regel verlangt ALLE von mehreren Bedingungen.",
+    "Die einfache Ansicht ist nicht verfügbar: Mehr als eine Gruppe verlangt ALLE von mehreren Bedingungen.",
   "rule.simpleUnavailable.duplicate":
-    "Die einfache Ansicht ist nicht verfügbar: Eine Bedingung steht in mehr als einer Regel.",
+    "Die einfache Ansicht ist nicht verfügbar: Eine Bedingung steht in mehr als einer Gruppe.",
   "rule.savedNoConditions":
     "Regel gespeichert. Sie hat noch keine Bedingungen, deshalb ist jede Person qualifiziert.",
   "rule.savedVacuous":
@@ -768,41 +871,44 @@ export const de: Catalog = {
     "Regel gespeichert. Offene JoyClub-Tabs werden sofort aktualisiert.",
   "rule.notSaved": (p) => `${p.problem} Die Regel wurde nicht gespeichert.`,
   "rule.saveFailed":
-    "JoyFox konnte die Regel nicht speichern. Es wurde nichts geändert.",
+    "JoyFox konnte die Regel nicht speichern. Es wurde nichts geändert. Ändere das Feld noch einmal, oder lade die Seite neu, um die gespeicherte Regel zu sehen.",
   "rule.deleteAll": "Ganze Kontaktregel löschen",
+  "rule.confirmDeleteAll": "Löschen bestätigen",
+  "rule.deletePrompt":
+    "Klicke noch einmal, um die ganze Kontaktregel zu löschen. JoyFox sortiert den Posteingang für dieses Konto dann nicht mehr.",
   "rule.removed":
-    "Regel entfernt. JoyFox sortiert den Posteingang für dieses Konto nicht mehr.",
+    "Kontaktregel gelöscht. JoyFox sortiert den Posteingang für dieses Konto nicht mehr.",
   "rule.removeFailed":
-    "JoyFox konnte die Regel nicht entfernen. Es wurde nichts geändert.",
+    "JoyFox konnte die Regel nicht löschen. Es wurde nichts geändert.",
   "rule.stale.account.saved":
     "Das aktive Konto hat sich geändert. Die Regel wurde nicht gespeichert. Prüfe das Formular und versuche es noch einmal.",
   "rule.stale.account.removed":
-    "Das aktive Konto hat sich geändert. Die Regel wurde nicht entfernt. Prüfe das Formular und versuche es noch einmal.",
+    "Das aktive Konto hat sich geändert. Die Regel wurde nicht gelöscht. Prüfe das Formular und versuche es noch einmal.",
   "rule.stale.rule.saved":
     "Die Regel wurde in einem anderen Tab geändert. Sie wurde nicht gespeichert. Das Formular zeigt jetzt die gespeicherte Regel.",
   "rule.stale.rule.removed":
-    "Die Regel wurde in einem anderen Tab geändert. Sie wurde nicht entfernt. Das Formular zeigt jetzt die gespeicherte Regel.",
+    "Die Regel wurde in einem anderen Tab geändert. Sie wurde nicht gelöscht. Das Formular zeigt jetzt die gespeicherte Regel.",
   "rule.changedElsewhere":
     "Die Regel wurde in einem anderen Tab geändert. Das Formular zeigt jetzt die gespeicherte Regel.",
 
   // Options page: templates
   "templates.readFailed":
-    "JoyFox konnte deine Vorlagen nicht lesen. Es wurde keine Vorlage geändert.",
+    "JoyFox konnte deine Vorlagen nicht lesen. Es wurde keine Vorlage geändert. Lade die Seite neu, um es noch einmal zu versuchen.",
   "templates.heading": "Nachrichtenvorlagen",
   "templates.hint":
     "In einer JoyClub-Unterhaltung fügt die Schaltfläche „JoyFox-Vorlagen“ unter dem Nachrichtenfeld eine Vorlage an der Cursorposition ein. Du kannst den Text danach noch ändern, und du klickst JoyClubs „Senden“ immer selbst. JoyFox sendet nie eine Nachricht.",
   "templates.noAccount":
-    "Wähle unter „Konten“ ein aktives Konto, um Vorlagen zu speichern.",
+    "Wähle unter [Konten](#accounts) ein aktives Konto, um Vorlagen zu speichern.",
   "templates.empty": "Noch keine Vorlagen. Füge unten eine hinzu.",
   "templates.inFolder": (p) => `Vorlagen in ${p.folder}`,
   "templates.edit": "Bearbeiten",
-  "templates.editLabel": (p) => `Vorlage ${p.name} bearbeiten`,
+  "templates.editLabel": (p) => `Bearbeiten: Vorlage ${p.name}`,
   "templates.editing": (p) => `Du bearbeitest ${p.name}.`,
   "templates.delete": "Löschen",
   "templates.confirmDelete": "Löschen bestätigen",
-  "templates.deleteLabel": (p) => `Vorlage ${p.name} löschen`,
+  "templates.deleteLabel": (p) => `Löschen: Vorlage ${p.name}`,
   "templates.confirmDeleteLabel": (p) =>
-    `Löschen der Vorlage ${p.name} bestätigen`,
+    `Löschen bestätigen: Vorlage ${p.name}`,
   "templates.deletePrompt": (p) =>
     `Klicke auf „Löschen bestätigen“, um ${p.name} zu löschen.`,
   "templates.deleted": (p) => `${p.name} wurde gelöscht.`,
@@ -841,31 +947,33 @@ export const de: Catalog = {
   "entity.messagePhraseMatches": "Gefundene Formulierungen in Nachrichten",
   "entity.cachedMessages": "Gespeicherte Nachrichten (für die Suche)",
   "data.readFailed":
-    "JoyFox konnte die gespeicherten Daten nicht lesen. Es wurde nichts geändert.",
+    "JoyFox konnte die gespeicherten Daten nicht lesen. Es wurde nichts geändert. Lade die Seite neu, um es noch einmal zu versuchen.",
   "data.hint":
     "Alles, was JoyFox speichert, bleibt in diesem Browserprofil. Hier kannst du es ansehen, als JSON-Datei speichern und löschen. Löschen hier ändert nie etwas auf JoyClub.",
+  "data.importPointer": "Eine Datei importierst du unter [Konten](#accounts).",
   "data.noAccounts": "Noch keine Konten.",
-  "data.accountPicker": "Angezeigtes Konto",
+  "data.accountPicker": "Konto zum Ansehen (ändert das aktive Konto nicht)",
   "data.caption": "Gespeicherte Datensätze dieses Kontos",
   "data.col.type": "Datentyp",
   "data.col.records": "Datensätze",
   "data.col.actions": "Aktionen",
   "data.show": "Zeigen",
   "data.hide": "Ausblenden",
-  "data.showLabel": (p) => `${p.label} zeigen`,
-  "data.hideLabel": (p) => `${p.label} ausblenden`,
+  "data.showLabel": (p) => `Zeigen: ${p.label}`,
+  "data.hideLabel": (p) => `Ausblenden: ${p.label}`,
   "data.deleteAll": "Alle löschen",
-  "data.deleteAllLabel": (p) => `Alle Datensätze „${p.label}“ löschen`,
+  "data.deleteAllLabel": (p) => `Alle löschen: ${p.label}`,
   "data.deleteAllPrompt": (p, f) =>
     `Klicke auf „Bestätigen“, um alle ${f.number(p.count)} Datensätze „${p.label}“ dieses Kontos zu löschen.`,
   "data.deletedAll": (p) =>
     `Alle Datensätze „${p.label}“ dieses Kontos wurden gelöscht.`,
   "data.recordsTitle": (p, f) => `${p.label} (${f.number(p.count)})`,
   "data.accountRecordHint":
-    "Der Kontodatensatz wird nur mit dem ganzen Konto entfernt, unter „Konten“.",
+    "Der Kontodatensatz wird nur mit dem ganzen Konto entfernt, unter [Konten](#accounts).",
   "data.recordSummary": (p) => `${p.id} (geändert: ${p.updated})`,
   "data.recordSummaryNamed": (p) =>
     `${p.name}: ${p.id} (geändert: ${p.updated})`,
+  "data.recordNamed": (p) => `${p.name} (${p.id})`,
   "data.valueYes": "ja",
   "data.valueNo": "nein",
   "data.valueEmpty": "(leer)",
@@ -875,15 +983,16 @@ export const de: Catalog = {
   "data.moreValues": (p, f) =>
     `…und ${f.number(p.count)} weitere (siehe „Gespeichertes JSON“)`,
   "data.delete": "Löschen",
-  "data.deleteRecordLabel": (p) => `Datensatz ${p.id} löschen`,
+  "data.deleteRecordLabel": (p) => `Löschen: Datensatz ${p.record}`,
   "data.deleteRecordPrompt": (p) =>
-    `Klicke auf „Bestätigen“, um den Datensatz ${p.id} zu löschen.`,
-  "data.deletedRecord": (p) => `Datensatz ${p.id} wurde gelöscht.`,
+    `Klicke auf „Bestätigen“, um den Datensatz ${p.record} zu löschen.`,
+  "data.deletedRecord": (p) => `Datensatz ${p.record} wurde gelöscht.`,
   "data.showMore": (p, f) => `${f.number(p.count)} weitere zeigen`,
   "data.exportAccount": "Dieses Konto exportieren (JSON)",
   "data.exportedAccount": "Der Export dieses Kontos wurde erstellt.",
   "data.deleteAccountData": "Daten dieses Kontos löschen",
-  "data.deleteAccountDataLabel": "Alle Daten dieses Kontos löschen",
+  "data.deleteAccountDataLabel":
+    "Daten dieses Kontos löschen (alle Datensätze)",
   "data.deleteAccountDataPrompt":
     "Klicke auf „Bestätigen“, um alle Datensätze dieses Kontos zu löschen. Das Konto selbst bleibt unter „Konten“.",
   "data.deletedAccountData":
@@ -891,8 +1000,17 @@ export const de: Catalog = {
   "data.allAccounts": "Alle Konten",
   "data.retentionLabel": "Gespeicherte Profil-Momentaufnahmen je Mitglied",
   "data.retentionHint": (p, f) =>
-    `JoyFox behält die neuesten Momentaufnahmen der Profilangaben jedes Mitglieds, immer mindestens die letzte. Eine kleinere Zahl löscht ältere Momentaufnahmen sofort, in allen Konten. Von ${f.number(p.minimum)} bis ${f.number(p.maximum)}; Standard ist ${f.number(p.default)}.`,
+    `JoyFox behält die neuesten Momentaufnahmen der Profilangaben jedes Mitglieds, immer mindestens die letzte. Eine kleinere Zahl löscht ältere Momentaufnahmen sofort, in allen Konten. Von ${f.number(p.minimum)} bis ${f.number(p.maximum)}; Standard ist ${f.number(p.default)}. Klicke auf „Speichern“, um die Zahl zu übernehmen.`,
   "data.retentionSave": "Speichern",
+  "data.retentionConfirm": "Speichern und löschen",
+  "data.retentionConfirmPrompt": (p, f) =>
+    `Eine kleinere Zahl löscht ältere Momentaufnahmen sofort, in allen Konten: Für jedes Mitglied bleibt nur ${f.plural(
+      p.keep,
+      {
+        one: "die neueste Momentaufnahme",
+        other: `die neuesten ${f.number(p.keep)} Momentaufnahmen`,
+      },
+    )}. Klicke zum Bestätigen auf „Speichern und löschen“.`,
   "data.retentionSaved": (p, f) =>
     p.deleted === 0
       ? "Gespeichert. Keine Momentaufnahme musste gelöscht werden."
@@ -902,10 +1020,12 @@ export const de: Catalog = {
         })} gelöscht.`,
   "data.retentionInvalid": (p, f) =>
     `Gib eine ganze Zahl von ${f.number(p.minimum)} bis ${f.number(p.maximum)} ein. Es wurde nichts geändert.`,
+  "data.retentionFailed":
+    "JoyFox konnte die Einstellung nicht speichern. Das Feld zeigt die Zahl, die jetzt gilt. Versuche es noch einmal.",
   "data.exportAll": "Alle JoyFox-Daten exportieren (JSON)",
   "data.exportedAll": "Der Export aller JoyFox-Daten wurde erstellt.",
   "data.deleteEverything": "Alle JoyFox-Daten löschen",
-  "data.deleteEverythingLabel": "Alle JoyFox-Daten in diesem Browser löschen",
+  "data.deleteEverythingLabel": "Alle JoyFox-Daten löschen (in diesem Browser)",
   "data.deleteEverythingPrompt":
     "Klicke auf „Bestätigen“, um alle Konten, alle Datensätze und alle JoyFox-Einstellungen in diesem Browser zu löschen. Das kann nicht rückgängig gemacht werden.",
   "data.deletedEverything":
@@ -914,6 +1034,8 @@ export const de: Catalog = {
   "data.confirmLabel": (p) => `Bestätigen: ${p.label}`,
   "data.actionFailed":
     "Diese Aktion konnte nicht abgeschlossen werden. Die angezeigten Zahlen zeigen, was jetzt gespeichert ist.",
+  "data.exportFailed":
+    "JoyFox konnte den Export nicht erstellen. Es wurde nichts exportiert. Versuche es noch einmal.",
   "data.import.title": "Importieren",
   "data.import.hint":
     "Importiere eine JoyFox-Exportdatei: alles oder ein Konto. Sie wird mit dem zusammengeführt, was hier gespeichert ist. Ein Konto mit derselben JoyClub-Kennung wird mit dem vorhandenen Konto zusammengeführt. Bei derselben Notiz, Regel oder Einordnung gewinnt die neuere Version. Vorhandene Tags und Korrekturen bleiben erhalten. Der Import beginnt, sobald du die Datei wählst, und danach siehst du, was sich geändert hat.",
@@ -934,6 +1056,15 @@ export const de: Catalog = {
   "data.import.col.kept": "Behalten",
   "data.import.col.duplicates": "Übersprungene Duplikate",
   "data.import.noRecords": "Die Datei enthält keine Datensätze.",
+  "data.setting.activeAccount": "aktives Konto",
+  "data.setting.language": "Sprache",
+  "data.setting.messageCaching": "Nachrichten speichern",
+  "data.setting.messageRetention": "Nachrichten behalten für",
+  "data.setting.quickIgnoreDelete": "Schaltfläche „Ignorieren und löschen“",
+  "data.setting.templatePicker": "Vorlagenauswahl",
+  "data.setting.sharedEventException": "Ausnahme für gemeinsame Events",
+  "data.setting.snapshotRetention": "Momentaufnahmen je Mitglied",
+  "data.setting.diagnostics": "Diagnose",
   "data.import.settingsSkipped": (p) =>
     `Einstellungen in der Datei, die nie importiert werden (sie schalten Funktionen ein): ${p.keys}.`,
   "data.import.settingsNotSaved": (p) =>
@@ -959,6 +1090,10 @@ export const de: Catalog = {
     `${p.error}. Es wurde nichts importiert.`,
   "error.withSuffix.nothingDeleted": (p) =>
     `${p.error}. Es wurde nichts gelöscht.`,
+  "error.withSuffix.nothingExported": (p) =>
+    `${p.error}. Es wurde nichts exportiert. Versuche es noch einmal.`,
+  "error.withSuffix.settingNotChanged": (p) =>
+    `${p.error}. Die Einstellung wurde nicht geändert. Versuche es noch einmal.`,
   "error.code.SelectorUnavailable":
     "JoyFox findet das erwartete Element auf der Seite nicht",
   "error.code.ExtractionInvalid": "Die Daten sind ungültig",
@@ -991,48 +1126,54 @@ export const de: Catalog = {
   "error.data.unknownType": "Unbekannter Datentyp",
   "error.data.accountRecord":
     "Der Kontodatensatz wird nur mit dem ganzen Konto entfernt",
-  "error.import.tooLarge": "Die Datei ist zu groß für einen JoyFox-Export",
+  "error.import.tooLarge":
+    "Die Datei ist zu groß für einen JoyFox-Export. Wähle eine Datei, die JoyFox exportiert hat",
   "error.import.notJson":
-    "Die Datei ist kein JoyFox-Export (kein gültiges JSON)",
-  "error.import.notExport": "Die Datei ist kein JoyFox-Export",
-  "error.import.noVersion": "Die Datei hat keine gültige Schemaversion",
+    "Die Datei ist kein JoyFox-Export. Wähle eine Datei, die JoyFox exportiert hat",
+  "error.import.notExport":
+    "Die Datei ist kein JoyFox-Export. Wähle eine Datei, die JoyFox exportiert hat",
+  "error.import.noVersion":
+    "Die Datei sagt nicht, welche JoyFox-Version sie erstellt hat. Wähle eine Datei, die JoyFox exportiert hat",
   "error.import.newerVersion":
     "Die Datei stammt aus einer neueren JoyFox-Version. Aktualisiere zuerst JoyFox",
-  "error.import.noScope": "Die Datei hat keinen gültigen Exportumfang",
-  "error.import.noAccountNamed": "Der Kontoexport nennt kein Konto",
+  "error.import.noScope":
+    "Die Datei sagt nicht, ob sie ein Konto oder alle Daten enthält. Wähle eine Datei, die JoyFox exportiert hat",
+  "error.import.noAccountNamed":
+    "Die Datei ist der Export eines Kontos, nennt das Konto aber nicht. Wähle eine Datei, die JoyFox exportiert hat",
   "error.import.unknownType": (p) =>
-    `Die Datei enthält einen unbekannten Datentyp (${p.name})`,
-  "error.import.notList": (p) => `„${p.entity}“ ist in der Datei keine Liste`,
+    `Die Datei enthält eine Art von Daten, die JoyFox nicht kennt (${p.name}). Wähle eine Datei, die JoyFox exportiert hat`,
+  "error.import.notList": (p) =>
+    `Der Teil „${p.entity}“ der Datei ist beschädigt. Wähle eine Datei, die JoyFox exportiert hat`,
   "error.import.notRecord": (p, f) =>
-    `Eintrag ${f.number(p.index)} in „${p.entity}“ ist kein Datensatz`,
+    `Eintrag ${f.number(p.index)} in „${p.entity}“ ist beschädigt. Wähle eine Datei, die JoyFox exportiert hat`,
   "error.import.forbiddenKey": (p, f) =>
-    `Eintrag ${f.number(p.index)} in „${p.entity}“ enthält einen verbotenen Schlüssel`,
+    `Eintrag ${f.number(p.index)} in „${p.entity}“ enthält einen Feldnamen, den JoyFox nicht erlaubt. Wähle eine Datei, die JoyFox exportiert hat`,
   "error.import.unknownField": (p, f) =>
-    `Eintrag ${f.number(p.index)} in „${p.entity}“ enthält ein unbekanntes Feld (${p.field})`,
+    `Eintrag ${f.number(p.index)} in „${p.entity}“ enthält ein Feld, das JoyFox nicht kennt (${p.field}). Wähle eine Datei, die JoyFox exportiert hat`,
   "error.import.tooLong": (p, f) =>
-    `Eintrag ${f.number(p.index)} in „${p.entity}“ ist ungültig: ${p.field} hat mehr als ${f.number(p.maximum)} Zeichen`,
+    `Eintrag ${f.number(p.index)} in „${p.entity}“ ist zu lang: ${p.field} hat mehr als ${f.number(p.maximum)} Zeichen. Wähle eine Datei, die JoyFox exportiert hat`,
   "error.import.invalid": (p, f) =>
-    `Eintrag ${f.number(p.index)} in „${p.entity}“ ist ungültig`,
+    `Eintrag ${f.number(p.index)} in „${p.entity}“ ist beschädigt. Wähle eine Datei, die JoyFox exportiert hat`,
   "error.import.future": (p, f) =>
-    `Eintrag ${f.number(p.index)} in „${p.entity}“ hat ein Datum in der Zukunft`,
+    `Eintrag ${f.number(p.index)} in „${p.entity}“ hat ein Datum in der Zukunft. Prüfe die Uhr des Computers, der die Datei erstellt hat`,
   "error.import.otherAccount": (p, f) =>
-    `Eintrag ${f.number(p.index)} in „${p.entity}“ gehört zu einem anderen Konto`,
+    `Eintrag ${f.number(p.index)} in „${p.entity}“ gehört zu einem anderen Konto. Wähle eine Datei, die JoyFox exportiert hat`,
   "error.import.notOwnScope": (p, f) =>
-    `Kontodatensatz ${f.number(p.index)} gehört nicht zu sich selbst`,
+    `Kontodatensatz ${f.number(p.index)} ist beschädigt. Wähle eine Datei, die JoyFox exportiert hat`,
   "error.import.twice": (p, f) =>
-    `Eintrag ${f.number(p.index)} in „${p.entity}“ kommt zweimal vor`,
+    `Eintrag ${f.number(p.index)} in „${p.entity}“ kommt in der Datei zweimal vor. Wähle eine Datei, die JoyFox exportiert hat`,
   "error.import.sameIdentifier":
-    "Zwei Konten in der Datei haben dieselbe Kennung",
+    "Zwei Konten in der Datei haben dieselbe Kennung. Wähle eine Datei, die JoyFox exportiert hat",
   "error.import.noAccountRecord":
-    "Der Kontoexport enthält keinen Kontodatensatz",
+    "Die Datei ist der Export eines Kontos, enthält dieses Konto aber nicht. Wähle eine Datei, die JoyFox exportiert hat",
   "error.import.settingsInvalid":
-    "Die Einstellungen in der Datei sind ungültig",
+    "Die Einstellungen in der Datei sind beschädigt. Wähle eine Datei, die JoyFox exportiert hat",
   "error.import.settingsForbidden":
-    "Die Einstellungen in der Datei enthalten einen verbotenen Schlüssel",
+    "Die Einstellungen in der Datei enthalten einen Namen, den JoyFox nicht erlaubt. Wähle eine Datei, die JoyFox exportiert hat",
   "error.import.unknownSetting": (p) =>
-    `Die Datei enthält eine Einstellung, die JoyFox nicht verwendet (${p.key})`,
+    `Die Datei enthält eine Einstellung, die JoyFox nicht verwendet (${p.key}). Wähle eine Datei, die JoyFox exportiert hat`,
   "error.import.orphans":
-    "Einige Datensätze in der Datei gehören zu einem Konto, das die Datei nicht enthält",
+    "Einige Datensätze in der Datei gehören zu einem Konto, das die Datei nicht enthält. Wähle eine Datei, die JoyFox exportiert hat",
   "error.import.sameRecordTwice":
-    "Die Datei enthält nach dem Zusammenführen der Konten denselben Datensatz zweimal",
+    "Zwei Datensätze in der Datei würden hier zum selben Datensatz. Wähle eine Datei, die JoyFox exportiert hat",
 };

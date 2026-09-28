@@ -62,6 +62,11 @@
   font-size: 0.875em;
 }
 
+/* The rename field takes its own line under the account's name and buttons. */
+.joyfox-account__rename-form {
+  flex-basis: 100%;
+}
+
 .joyfox-panel__field {
   display: flex;
   flex-direction: column;
@@ -143,6 +148,32 @@
   grid-column: 3 / 5;
 }
 
+/* A field's note (why a save refuses its value, or what it still needs)
+   comes last in the row, so it goes on a line of its own under the fields. */
+.joyfox-rule__field-note {
+  grid-column: 2 / -1;
+  font-size: 0.875em;
+}
+
+.joyfox-rule__condition--advanced .joyfox-rule__field-note {
+  grid-column: 3 / -1;
+}
+
+.joyfox-rule__field-note[data-note="error"] {
+  color: var(--joyfox-danger);
+  font-weight: 600;
+}
+
+/* A condition JoyFox cannot check yet says so beside its name. */
+.joyfox-rule__condition-note {
+  font-size: 0.8125em;
+}
+
+/* A button's own prompt line takes no room until it has text. */
+.joyfox-rule__prompt {
+  margin: 0;
+}
+
 @media (max-width: 40rem) {
   .joyfox-rule__condition {
     grid-template-columns: auto 1fr 6rem;
@@ -217,11 +248,14 @@
   margin: var(--joyfox-space-3) 0 var(--joyfox-space-2);
 }
 
+/*
+ * The end buttons are rounded themselves, so the group needs no
+ * `overflow: hidden`: that would clip the focus ring drawn outside a button.
+ */
 .joyfox-rule__switch {
   display: inline-flex;
   border: 1px solid var(--joyfox-border);
   border-radius: 999px;
-  overflow: hidden;
 }
 
 .joyfox-rule__switch button {
@@ -231,6 +265,14 @@
   font: inherit;
   padding: 0.2rem 0.9rem;
   cursor: pointer;
+}
+
+.joyfox-rule__switch button:first-child {
+  border-radius: 999px 0 0 999px;
+}
+
+.joyfox-rule__switch button:last-child {
+  border-radius: 0 999px 999px 0;
 }
 
 .joyfox-rule__switch button[aria-pressed="true"] {
@@ -389,6 +431,11 @@
 
 .joyfox-get-started__steps li {
   margin-bottom: var(--joyfox-space-1);
+}
+
+.joyfox-get-started__allow {
+  display: block;
+  margin-top: var(--joyfox-space-1);
 }
 
 /* Tabs: one section at a time. */

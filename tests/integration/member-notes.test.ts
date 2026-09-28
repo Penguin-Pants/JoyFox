@@ -99,6 +99,9 @@ describe("M5 note and tag editor", () => {
       "member-strip",
     );
     expect(header.contains(editor())).toBe(false);
+    // A labelled group, not a landmark: the strip is the one JoyFox region.
+    expect(editor()?.getAttribute("role")).toBe("group");
+    expect(editor()?.getAttribute("aria-label")).toBe("JoyFox notes and tags");
     expect(editor()?.querySelector("details")?.open).toBe(false);
     expect(editor()?.textContent).toContain("Your notes and tags (none yet)");
     expect(editor()?.textContent).toContain(t(NOTES_TEXT.scope));
@@ -217,6 +220,46 @@ describe("M5 note and tag editor", () => {
       expect(editor()?.textContent).toContain("No tags yet."),
     );
     expect(await repositories.userTags.list("account-a")).toEqual([]);
+  });
+
+  it("says so when the member already has the tag, and writes nothing", async () => {
+    await openProfile();
+    await openEditor();
+    type(tagInput()!, "Met twice");
+    buttonNamed("Add tag").click();
+    await vi.waitFor(() => expect(status()).toBe(t(NOTES_TEXT.tagAdded)));
+    const [stored] = await repositories.userTags.list("account-a");
+    type(tagInput()!, "  met   TWICE ");
+    buttonNamed("Add tag").click();
+    await vi.waitFor(() => expect(status()).toBe("Already tagged."));
+    expect(tagInput()?.value).toBe("");
+    expect(await repositories.userTags.list("account-a")).toEqual([stored]);
+  });
+
+  it("shows the note's length near the limit and says when a paste was cut", async () => {
+    await openProfile();
+    await openEditor();
+    const length = () => editor()!.querySelector(".joyfox-note-length")!;
+    expect(length().textContent).toBe("");
+    expect(noteBox()?.getAttribute("aria-describedby")).toBe(length().id);
+    type(noteBox()!, "x".repeat(3700));
+    expect(length().textContent).toBe("3,700 of 4,000 characters");
+    noteBox()!.setSelectionRange(0, 100);
+    const paste = new Event("paste", { bubbles: true, cancelable: true });
+    // 400 characters fit over the 100 selected; line breaks count once.
+    Object.defineProperty(paste, "clipboardData", {
+      value: { getData: () => `${"y".repeat(399)}\r\n` },
+    });
+    noteBox()!.dispatchEvent(paste);
+    expect(status()).toBe("");
+    const tooLong = new Event("paste", { bubbles: true, cancelable: true });
+    Object.defineProperty(tooLong, "clipboardData", {
+      value: { getData: () => "y".repeat(401) },
+    });
+    noteBox()!.dispatchEvent(tooLong);
+    expect(status()).toBe(t(NOTES_TEXT.pasteCut));
+    // The notice is shown in place: the typed text and the box stay.
+    expect(noteBox()?.value).toBe("x".repeat(3700));
   });
 
   it("refuses an empty tag or new note without a write", async () => {
@@ -497,6 +540,33 @@ describe("M5 note and tag editor", () => {
     await vi.waitFor(() => expect(editor()).not.toBeNull());
     expect(editor()?.getAttribute("data-member")).toBe("5550001");
     expect(noteBox()?.value).toBe("");
+  });
+
+  it("shows no editor on the user's own profile", async () => {
+    // JoyClub shows the "Account" headline only on the viewer's own profile.
+    setPage(PROFILE, `${profileHtml}<h2 class="profile-headline">Account</h2>`);
+    const reads: string[] = [];
+    new MemberNotes(document, {
+      ...client,
+      getNotes: (memberId) => {
+        reads.push(memberId);
+        return client.getNotes(memberId);
+      },
+    }).update("profile");
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    expect(editor()).toBeNull();
+    expect(reads).toEqual([]);
+  });
+
+  it("goes when the page turns out to be the user's own profile", async () => {
+    const notes = await openProfile();
+    // The headline is drawn after the header.
+    const headline = document.createElement("h2");
+    headline.className = "profile-headline";
+    headline.textContent = "Account";
+    document.body.append(headline);
+    notes.update("profile");
+    expect(editor()).toBeNull();
   });
 
   it("shows nothing without an active account", async () => {

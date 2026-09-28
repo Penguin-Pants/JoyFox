@@ -109,12 +109,17 @@ class FakeDriver implements QuickActionDriver {
   controls: Partial<Record<ActionStep, boolean>> = {};
   confirmation: Partial<Record<ActionStep, "shown" | "missing" | "none">> = {};
   verified: Partial<Record<ActionStep, boolean>> = {};
+  /** Whether the page can show Delete's result (the list beside it). */
+  listShown = true;
   afterClick?: (click: string) => void | Promise<void>;
   currentTarget(): CurrentTarget {
     return this.current();
   }
   hasControl(step: ActionStep): boolean {
     return this.controls[step] ?? true;
+  }
+  canVerify(step: ActionStep): boolean {
+    return step === "ignore" || this.listShown;
   }
   async request(step: ActionStep): Promise<void> {
     this.clicks.push(`request:${step}`);
@@ -188,6 +193,7 @@ describe("M9 manual test matrix, synthetic (build plan Section 24)", () => {
       "Ignore and Delete finished.",
       "Delete: done. JoyClub moved the conversation to the trash.",
       "Ignore: done. JoyClub ignores this member.",
+      "To undo, restore the conversation from JoyClub's trash. Then open the member's profile and choose \"Profil nicht mehr ignorieren\" in its menu.",
     ]);
     const [log] = await repositories.actionLogs.list("account-a");
     expect(log).toMatchObject({
@@ -1960,5 +1966,183 @@ describe("M9 button and notice", () => {
     openConversation(new FakeDriver());
     await new Promise((resolve) => setTimeout(resolve, 20));
     expect(section()).toBeNull();
+  });
+
+  it("names what the click does in the button's description, as a group", async () => {
+    openConversation(new FakeDriver());
+    await vi.waitFor(() => expect(runButton()).toBeDefined());
+    // The click is the confirmation, so a screen reader reads the note too.
+    const described = runButton()!.getAttribute("aria-describedby")!;
+    expect(document.getElementById(described)?.textContent).toBe(
+      t(QUICK_ACTION_TEXT.scope),
+    );
+    // A group inside the strip's one region, not a landmark of its own.
+    expect(section()?.getAttribute("role")).toBe("group");
+    expect(section()?.parentElement?.getAttribute("role")).toBe("region");
+  });
+
+  it("says under the button when the list that shows Delete's result is missing", async () => {
+    const driver = new FakeDriver();
+    driver.listShown = false;
+    const quick = openConversation(driver);
+    await vi.waitFor(() => expect(runButton()).toBeDefined());
+    const hint = () =>
+      Array.from(section()!.querySelectorAll<HTMLElement>("p")).find(
+        (node) => node.textContent === t(QUICK_ACTION_TEXT.needsList),
+      )!;
+    expect(t(QUICK_ACTION_TEXT.needsList)).toBe(
+      "Works only while this conversation shows in the ClubMail list beside it. Widen the window, or scroll the list until the conversation shows.",
+    );
+    expect(hint().hidden).toBe(false);
+    // Right under the button, and part of its description.
+    expect(runButton()!.nextElementSibling).toBe(hint());
+    expect(runButton()!.getAttribute("aria-describedby")?.split(" ")).toContain(
+      hint().id,
+    );
+    // The window is widened: the next redraw hides it.
+    driver.listShown = true;
+    quick.update();
+    expect(hint().hidden).toBe(true);
+    expect(runButton()!.getAttribute("aria-describedby")?.split(" ")).toEqual([
+      expect.stringMatching(/^joyfox-quick-scope-/),
+    ]);
+    // The button stays usable; the run stops safely before any click, and
+    // the notice says how to fix it.
+    driver.listShown = false;
+    quick.update();
+    expect(hint().hidden).toBe(false);
+    expect(runButton()!.getAttribute("aria-disabled")).toBe("false");
+    runButton()!.click();
+    await vi.waitFor(() =>
+      expect(notice()).toContain(
+        "Delete works only while this conversation shows in the ClubMail list beside it. Widen the window, or scroll the list until the conversation shows, then try again.",
+      ),
+    );
+    expect(driver.clicks).toEqual([]);
+    expect(await logged()).toEqual([["Started", "Failed:unverifiable"]]);
+  });
+
+  it("hides the list hint while a run goes and once the conversation is in the trash", async () => {
+    const driver = new FakeDriver();
+    // The live page stays on the conversation; Delete removes the row.
+    driver.current = () => HERE;
+    let release: () => void = () => undefined;
+    driver.afterClick = (click) => {
+      if (click !== "confirm:delete") return undefined;
+      driver.listShown = false;
+      return new Promise<void>((resolve) => (release = resolve));
+    };
+    const visited: string[] = [];
+    window.history.replaceState(
+      null,
+      "",
+      `/clubmail/conversation/conversation-wrapper-${CONVERSATION}`,
+    );
+    document.body.innerHTML = conversationHtml;
+    const quick = new QuickIgnoreDelete(
+      document,
+      client,
+      () => driver,
+      (url) => visited.push(url),
+      () => Date.now(),
+      60,
+    );
+    quick.update();
+    await vi.waitFor(() => expect(runButton()).toBeDefined());
+    const hint = () =>
+      section()!.querySelector<HTMLElement>(".joyfox-quick-action__hint")!;
+    runButton()!.click();
+    await vi.waitFor(() => expect(driver.clicks).toContain("confirm:delete"));
+    quick.update();
+    expect(hint().hidden).toBe(true);
+    release();
+    // The move to the profile is cancelled: the page stays, Delete is done.
+    await vi.waitFor(async () =>
+      expect((await logged())[0]?.at(-1)).toBe("Failed:handoff-failed"),
+    );
+    await vi.waitFor(() => expect(notice()).toContain("Delete: done."));
+    quick.update();
+    expect(hint().hidden).toBe(true);
+  });
+
+  /** A run handed off to the profile, whose menu is not there yet. */
+  async function handedOffToProfile(driver: FakeDriver) {
+    const recorder = client.recorder("account-a");
+    const begun = await recorder.begin(TARGET);
+    if (begun.status !== "started") throw new Error("not started");
+    await recorder.record(begun.operationId, "DeleteRequested");
+    await recorder.record(begun.operationId, "DeleteConfirmed");
+    await fromConversation().handOff(
+      "account-a",
+      begun.operationId,
+      "ignore",
+      PROFILE_PATH,
+    );
+    onProfilePage();
+    document.body.innerHTML = profileHtml;
+    driver.current = () => PROFILE;
+    const quick = new QuickIgnoreDelete(document, client, () => driver);
+    quick.updateProfile();
+    return quick;
+  }
+
+  const lines = () =>
+    Array.from(section()?.querySelectorAll("li") ?? [], (item) =>
+      item.textContent?.trim(),
+    );
+
+  it("says it waits for JoyClub's profile menu, then runs once it is there", async () => {
+    const driver = new FakeDriver();
+    driver.controls.ignore = false;
+    const quick = await handedOffToProfile(driver);
+    await vi.waitFor(() =>
+      expect(lines()).toEqual([
+        t(QUICK_ACTION_TEXT.resumed),
+        "Waiting for JoyClub's profile menu…",
+      ]),
+    );
+    // The menu renders; the next page event starts the run.
+    driver.controls.ignore = true;
+    quick.updateProfile();
+    await vi.waitFor(() =>
+      expect(notice()).toContain("Ignore and Delete finished."),
+    );
+    expect(notice()).not.toContain("Waiting for JoyClub's profile menu");
+    expect(driver.clicks).toEqual(["request:ignore", "confirm:ignore"]);
+  });
+
+  it("shows the continued line once while a resumed run starts", async () => {
+    const driver = new FakeDriver();
+    // Hold the first stored step, so the run's first line stays on screen.
+    let release: () => void = () => undefined;
+    const record = client.recorder;
+    client = {
+      ...client,
+      recorder: (accountId) => {
+        const inner = record(accountId);
+        return {
+          ...inner,
+          record: async (operationId, state, failure) => {
+            if (state === "IgnoreRequested")
+              await new Promise<void>((resolve) => (release = resolve));
+            return inner.record(operationId, state, failure);
+          },
+        };
+      },
+    };
+    await handedOffToProfile(driver);
+    await vi.waitFor(() =>
+      expect(lines()).toEqual([
+        t(QUICK_ACTION_TEXT.resumed),
+        "Ignore and Delete is running. Checking the page.",
+      ]),
+    );
+    release();
+    await vi.waitFor(() =>
+      expect(notice()).toContain("Ignore and Delete finished."),
+    );
+    expect(
+      lines().filter((line) => line === t(QUICK_ACTION_TEXT.resumed)),
+    ).toHaveLength(1);
   });
 });

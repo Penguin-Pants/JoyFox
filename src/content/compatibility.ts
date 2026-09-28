@@ -14,6 +14,7 @@ import type {
 import { request, type MessageSender } from "../messaging/request";
 import { verifiedSelector, type PageType } from "../selectors/registry";
 import { MAX_COMPATIBILITY_MEMBERS } from "../compatibility/limits";
+import { FOCUS_KEY, rememberFocus, restoreFocus } from "../ui/focus";
 import {
   COMPAT_BADGE,
   memberCards,
@@ -88,6 +89,8 @@ export class CompatibilityOverlay {
   #version = 0;
   #rendered = "";
   #sorted = false;
+  /** Whether the user opened the shared list, for the member it was on. */
+  #listOpen?: { memberId: string; open: boolean };
 
   constructor(
     private readonly document: Document,
@@ -351,6 +354,8 @@ export class CompatibilityOverlay {
     );
     section.setAttribute(UI_ATTRIBUTE, COMPAT_SECTION);
     section.setAttribute("data-member", member.memberId);
+    // A group inside the member strip, which is the page's one JoyFox region.
+    section.setAttribute("role", "group");
     section.setAttribute("aria-label", t("compat.heading"));
     section.append(
       element(
@@ -362,13 +367,37 @@ export class CompatibilityOverlay {
       element(this.document, "p", "joyfox-compat__text", t(text)),
     );
     if (labels.length > 0) {
+      // The count stays in view and the list opens on demand, as JoyClub
+      // frames the tags in its own list too (ADR 0010: details on demand).
+      const memberId = member.memberId;
+      const details = element(
+        this.document,
+        "details",
+        "joyfox-compat__details",
+      );
+      details.open =
+        this.#listOpen?.memberId === memberId && this.#listOpen.open;
+      details.addEventListener("toggle", () => {
+        if (details.isConnected)
+          this.#listOpen = { memberId, open: details.open };
+      });
+      const summary = element(
+        this.document,
+        "summary",
+        "joyfox-compat__summary",
+        t("compat.listToggle"),
+      );
+      summary.setAttribute(FOCUS_KEY, "compat-list");
       const list = element(this.document, "ul", "joyfox-compat__list");
       for (const label of labels)
         list.append(element(this.document, "li", "", label));
-      section.append(list);
+      details.append(summary, list);
+      section.append(details);
     }
+    const focus = rememberFocus(existing);
     existing?.remove();
     placeInStrip(this.document, member.anchor, section);
+    restoreFocus(section, focus);
   }
 
   // --- Search sort --------------------------------------------------------
@@ -422,6 +451,7 @@ export class CompatibilityOverlay {
         },
       );
       toggle.setAttribute("aria-pressed", String(this.#sorted));
+      toggle.setAttribute(FOCUS_KEY, "compat-sort");
       toggle.disabled = !ready;
       const note = element(
         this.document,
@@ -431,8 +461,11 @@ export class CompatibilityOverlay {
       );
       note.setAttribute("role", "status");
       next.append(toggle, note);
+      // Each press draws the bar again; the button keeps focus.
+      const focus = rememberFocus(bar);
       if (bar) bar.replaceWith(next);
       else list.before(next);
+      restoreFocus(next, focus);
       bar = next;
     } else if (!bar.isConnected) list.before(bar);
     if (!this.#sorted || !ready || !results || !sortable)

@@ -997,7 +997,9 @@ describe("M8 import: language and schema version 4", () => {
       },
     });
     setLocale("de");
-    expect(t(display!)).toBe("Eintrag 1 in „Eigene Einordnungen“ ist ungültig");
+    expect(t(display!)).toBe(
+      "Eintrag 1 in „Eigene Einordnungen“ ist beschädigt. Wähle eine Datei, die JoyFox exportiert hat",
+    );
     setLocale("en");
   });
 
@@ -1019,6 +1021,56 @@ describe("M8 import: language and schema version 4", () => {
       }
       expect(isMessage((refusal as ExtensionError).display), text).toBe(true);
     }
+  });
+
+  it("words each refusal plainly and names the next step (U36)", () => {
+    const shown = (text: string) => {
+      try {
+        parseImportFile(text);
+      } catch (error) {
+        return t((error as ExtensionError).display!);
+      }
+      throw new Error("The file was accepted");
+    };
+    expect(shown("{")).toBe(
+      "The file is not a JoyFox export. Choose a file exported by JoyFox",
+    );
+    expect(shown(JSON.stringify({ scope: "all", entities: {} }))).toBe(
+      "The file does not say which JoyFox version made it. Choose a file exported by JoyFox",
+    );
+    expect(
+      shown(JSON.stringify({ schemaVersion: 3, scope: "x", entities: {} })),
+    ).toBe(
+      "The file does not say if it holds one account or all data. Choose a file exported by JoyFox",
+    );
+    expect(
+      shown(fullFile({ userNotes: [{ ...note("a", "x", t0), html: "<b>" }] })),
+    ).toBe(
+      "Record 1 in Notes holds a field that JoyFox does not know (html). Choose a file exported by JoyFox",
+    );
+    // An account record that is not its own scope, without the jargon.
+    expect(
+      shown(
+        fullFile({
+          extensionAccounts: [{ ...account("a", "me"), accountId: "b" }],
+        }),
+      ),
+    ).toBe("Account record 1 is damaged. Choose a file exported by JoyFox");
+    // A newer file needs a newer JoyFox, not another file.
+    expect(
+      shown(
+        JSON.stringify({
+          schemaVersion: DATABASE_VERSION + 1,
+          scope: "all",
+          entities: {},
+        }),
+      ),
+    ).toBe("The file comes from a newer JoyFox version. Update JoyFox first");
+    setLocale("de");
+    expect(shown("{")).toBe(
+      "Die Datei ist kein JoyFox-Export. Wähle eine Datei, die JoyFox exportiert hat",
+    );
+    setLocale("en");
   });
 
   it("imports the language only when it is valid and none is stored", async () => {

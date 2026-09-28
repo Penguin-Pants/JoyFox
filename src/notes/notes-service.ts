@@ -21,6 +21,12 @@ export interface SaveNoteResult {
   current: string | null;
 }
 
+/** `added` is false when the member already had the tag. */
+export interface AddTagResult {
+  tag: UserTag;
+  added: boolean;
+}
+
 export const noteId = (memberId: string) =>
   `note:${encodeURIComponent(memberId)}`;
 export const tagId = (memberId: string, tagKey: string) =>
@@ -168,12 +174,15 @@ export class NotesService {
     );
   }
 
-  /** Adding an existing tag keeps the stored label and does not duplicate it. */
+  /**
+   * Adding an existing tag keeps the stored label and does not duplicate it.
+   * The result says so, so the editor does not report a tag as added.
+   */
   async addTag(
     accountId: string,
     identity: MemberIdentity,
     label: string,
-  ): Promise<PersistenceOutcome<UserTag>> {
+  ): Promise<PersistenceOutcome<AddTagResult>> {
     requireAccountId(accountId);
     if (identity.status === "unresolved") return disabled(identity.reason);
     const normalized = normalizeTagLabel(label);
@@ -186,7 +195,7 @@ export class NotesService {
       );
     const id = tagId(identity.memberId, tagKeyFor(normalized));
     const existing = await this.tags.get(accountId, id);
-    if (existing) return ok(existing);
+    if (existing) return ok({ tag: existing, added: false });
     const timestamp = this.now();
     const tag: UserTag = {
       id,
@@ -198,7 +207,7 @@ export class NotesService {
     };
     await this.#ensureMember(accountId, identity.memberId);
     await this.tags.put(accountId, tag);
-    return ok(tag);
+    return ok({ tag, added: true });
   }
 
   async removeTag(

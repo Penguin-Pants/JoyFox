@@ -1,4 +1,9 @@
-import { AccountService } from "../accounts/account-service";
+import {
+  AccountService,
+  ACTIVE_ACCOUNT_SETTING_KEY,
+} from "../accounts/account-service";
+import { QUICK_IGNORE_DELETE, reportOperation } from "../actions/ignore-delete";
+import { QUICK_ACTION_KEY } from "../actions/quick-action-setting";
 import {
   DataService,
   ENTITY_LABELS,
@@ -8,10 +13,16 @@ import {
   type AnyEntity,
 } from "../data/data-service";
 import { MAX_IMPORT_BYTES, type ImportPlan } from "../data/import";
-import type { EntityName, ExtensionAccount } from "../domain/types";
+import type { ActionLog, EntityName, ExtensionAccount } from "../domain/types";
 import { ExtensionError } from "../errors";
+import type { PlainKey } from "../i18n/catalog/en";
+import { LOCALE_KEY } from "../i18n/locale";
 import { message, type Message } from "../i18n/message";
 import { errorDisplay, formatDate, formatNumber, t } from "../i18n/translator";
+import {
+  MESSAGE_CACHING_KEY,
+  MESSAGE_RETENTION_KEY,
+} from "../messages/message-settings";
 import { ENTITY_NAMES } from "../storage/database";
 import type { EntityCounts } from "../storage/repositories";
 import {
@@ -19,7 +30,15 @@ import {
   isSnapshotRetention,
   MAX_SNAPSHOT_RETENTION,
   MIN_SNAPSHOT_RETENTION,
+  SNAPSHOT_RETENTION_KEY,
 } from "../storage/snapshot-retention";
+import { SHARED_EVENT_EXCEPTION_KEY } from "../triage/shared-event";
+import {
+  FOCUS_KEY,
+  rememberFocus,
+  restoreFocus,
+  type FocusMemo,
+} from "../ui/focus";
 import { confirmAllowed, confirmTiming } from "./confirm";
 import { renderFields } from "./record-fields";
 import { StatusLine } from "./status-line";
@@ -37,8 +56,39 @@ function element<K extends keyof HTMLElementTagNameMap>(
   return node;
 }
 
+/**
+ * Catalog text in which `[Name](#tab)` is a link to that options tab, as in
+ * the "Get started" steps. The tabs follow the address, so the plain link is
+ * enough. Only for catalog text: user text never goes through this.
+ */
+export function withTabLinks(
+  document: Document,
+  text: string,
+): DocumentFragment {
+  const fragment = document.createDocumentFragment();
+  for (const part of text.split(/(\[[^\]]+\]\(#[a-z]+\))/u)) {
+    const link = /^\[([^\]]+)\]\((#[a-z]+)\)$/u.exec(part);
+    if (!link) {
+      if (part) fragment.append(part);
+      continue;
+    }
+    const anchor = document.createElement("a");
+    anchor.textContent = link[1] ?? "";
+    anchor.href = link[2] ?? "";
+    fragment.append(anchor);
+  }
+  return fragment;
+}
+
+/** The label with the JoyClub identifier, as the Accounts tab shows it. */
 function accountName(account: ExtensionAccount): string {
-  return account.label?.trim() || account.joyClubAccountId;
+  const label = account.label?.trim();
+  return label && label !== account.joyClubAccountId
+    ? t("accounts.nameWithIdentifier", {
+        label,
+        identifier: account.joyClubAccountId,
+      })
+    : account.joyClubAccountId;
 }
 
 /**
@@ -92,12 +142,72 @@ function whenOpened(details: HTMLDetailsElement, fill: () => void): void {
   run();
 }
 
+/**
+ * The names of the settings an import can add or skip, so the result lists
+ * words instead of stored keys. The template picker and diagnostics keys
+ * are written out: their constants live in the content script.
+ */
+const SETTING_NAMES: Readonly<Record<string, PlainKey>> = {
+  [ACTIVE_ACCOUNT_SETTING_KEY]: "data.setting.activeAccount",
+  [LOCALE_KEY]: "data.setting.language",
+  [MESSAGE_CACHING_KEY]: "data.setting.messageCaching",
+  [MESSAGE_RETENTION_KEY]: "data.setting.messageRetention",
+  [QUICK_ACTION_KEY]: "data.setting.quickIgnoreDelete",
+  "joyfox.templatePicker": "data.setting.templatePicker",
+  [SHARED_EVENT_EXCEPTION_KEY]: "data.setting.sharedEventException",
+  [SNAPSHOT_RETENTION_KEY]: "data.setting.snapshotRetention",
+  "joyfox.diagnostics": "data.setting.diagnostics",
+};
+
+/**
+ * Settings by name, in the UI language. A setting JoyFox does not name is
+ * shown by its stored key.
+ */
+function settingNames(keys: readonly string[]): string {
+  return keys
+    .map((key) =>
+      Object.hasOwn(SETTING_NAMES, key) ? t(SETTING_NAMES[key]!) : key,
+    )
+    .join(", ");
+}
+
+/** Focus fell to the page, as when the focused control was disabled. */
+const focusFell = (document: Document) =>
+  !document.activeElement || document.activeElement === document.body;
+
+/** How a failed action ends its message: what did not happen. */
+interface Failure {
+  /** With the error's own text. */
+  suffix:
+    | "error.withSuffix.nothingDeleted"
+    | "error.withSuffix.nothingExported"
+    | "error.withSuffix.settingNotChanged";
+  /** For an error without one. */
+  fallback: PlainKey;
+}
+
+/** Deletes may stop part-way; the counts show what is left. */
+const DELETE_FAILED: Failure = {
+  suffix: "error.withSuffix.nothingDeleted",
+  fallback: "data.actionFailed",
+};
+const EXPORT_FAILED: Failure = {
+  suffix: "error.withSuffix.nothingExported",
+  fallback: "data.exportFailed",
+};
+const RETENTION_FAILED: Failure = {
+  suffix: "error.withSuffix.settingNotChanged",
+  fallback: "data.retentionFailed",
+};
+
 /** A destructive action waiting for its confirming second click. */
 type Pending =
   | { kind: "record"; entity: EntityName; id: string }
   | { kind: "entity"; entity: EntityName }
   | { kind: "account" }
-  | { kind: "all" };
+  | { kind: "all" }
+  /** A lower snapshot number, which deletes older snapshots once saved. */
+  | { kind: "retention"; keep: number };
 
 const samePending = (a: Pending | undefined, b: Pending) =>
   JSON.stringify(a) === JSON.stringify(b);
@@ -142,6 +252,13 @@ export class DataPanel {
    * disabled meanwhile, so a second choice can never overlap a write.
    */
   #importing = false;
+  /** Where the next draw puts focus, whatever had it before. */
+  #focusNext: FocusMemo | undefined;
+  /**
+   * The control that had focus when an import started. The disabled file
+   * chooser drops focus to the page; the draw after the import puts it back.
+   */
+  #focusBefore: FocusMemo | undefined;
 
   constructor(
     private readonly root: HTMLElement,
@@ -164,16 +281,41 @@ export class DataPanel {
   /** Nicknames by member ID, for the shown account's records. */
   #names = new Map<string, string>();
 
-  /** A record's line: its ID and date, and the member's nickname if known. */
-  #summary(record: AnyEntity): string {
-    const updated = formatDate(record.updatedAt);
+  /**
+   * The name a person knows a record by, if it has one: a template's or
+   * saved search's name, an event's title, an account's label, or the
+   * member's nickname.
+   */
+  #recordName(entity: EntityName, record: AnyEntity): string | undefined {
     const fields = record as unknown as Record<string, unknown>;
+    const text = (value: unknown) =>
+      typeof value === "string" && value.trim() ? value.trim() : undefined;
+    switch (entity) {
+      case "messageTemplates":
+      case "savedSearches":
+        return text(fields.name);
+      case "eventMetadata":
+        return text(fields.title) ?? text(fields.venueName);
+      case "extensionAccounts":
+        return text(fields.label) ?? text(fields.joyClubAccountId);
+    }
     const memberId = fields.joyClubMemberId ?? fields.memberId;
-    const name =
-      typeof memberId === "string" ? this.#names.get(memberId) : undefined;
+    return typeof memberId === "string" ? this.#names.get(memberId) : undefined;
+  }
+
+  /** A record's line: its name if it has one, then its ID and date. */
+  #summary(entity: EntityName, record: AnyEntity): string {
+    const updated = formatDate(record.updatedAt);
+    const name = this.#recordName(entity, record);
     return name
       ? t("data.recordSummaryNamed", { name, id: record.id, updated })
       : t("data.recordSummary", { id: record.id, updated });
+  }
+
+  /** A record in delete labels and messages: its name first, then its ID. */
+  #recordText(entity: EntityName, record: AnyEntity): string {
+    const name = this.#recordName(entity, record);
+    return name ? t("data.recordNamed", { name, id: record.id }) : record.id;
   }
 
   async render(): Promise<void> {
@@ -205,6 +347,7 @@ export class DataPanel {
       }
     } catch {
       if (generation === this.#generation) {
+        const focus = this.#rememberFocus(document);
         this.root.textContent = t("data.readFailed");
         // Import needs none of these reads. Redraw it, so a chooser that a
         // file choice disabled is enabled again.
@@ -213,6 +356,7 @@ export class DataPanel {
           this.#renderImport(document),
           this.#importStatus.node,
         );
+        if (this.importRoot) restoreFocus(this.importRoot, focus);
       }
       return;
     }
@@ -234,6 +378,7 @@ export class DataPanel {
         .filter((item) => item.querySelector("details")?.open)
         .map((item) => item.dataset.recordId ?? ""),
     );
+    const focus = this.#rememberFocus(document);
     this.root.replaceChildren();
     this.#status.redraw();
     this.#importStatus.redraw();
@@ -249,6 +394,12 @@ export class DataPanel {
       heading,
       element(document, "p", "joyfox-panel__hint", t("data.hint")),
     );
+    if (this.importRoot) {
+      // Import is on the Accounts tab (owner decision); say so here too.
+      const pointer = element(document, "p", "joyfox-panel__hint");
+      pointer.append(withTabLinks(document, t("data.importPointer")));
+      this.root.append(pointer);
+    }
     if (accounts.length > 0 && selected && counts) {
       this.root.append(
         this.#renderAccountPicker(document, accounts, selected),
@@ -271,6 +422,39 @@ export class DataPanel {
       this.#renderImport(document),
       this.#importStatus.node,
     );
+    const next = this.#focusNext;
+    this.#focusNext = undefined;
+    if (next) restoreFocus(this.root, next);
+    else if (!restoreFocus(this.root, focus, this.#fallbacks(focus)))
+      if (this.importRoot) restoreFocus(this.importRoot, focus);
+  }
+
+  /** The keyed control that has focus, in this panel or in Import. */
+  #rememberFocus(document: Document): FocusMemo | undefined {
+    return (
+      rememberFocus(this.root) ??
+      rememberFocus(this.importRoot) ??
+      (focusFell(document) ? this.#focusBefore : undefined)
+    );
+  }
+
+  /**
+   * Where focus goes when its control is gone after a draw: after a record
+   * is deleted, the list's heading; after a type is emptied, the table.
+   */
+  #fallbacks(focus: FocusMemo | undefined): string[] {
+    const kind = focus?.key.split(":")[0];
+    switch (kind) {
+      case "delete":
+      case "record":
+      case "more":
+        return ["records-heading", "counts"];
+      case "delete-all":
+      case "show":
+        return ["counts"];
+      default:
+        return [];
+    }
   }
 
   #renderAccountPicker(
@@ -288,6 +472,7 @@ export class DataPanel {
     label.htmlFor = "joyfox-data-account";
     const select = element(document, "select", "joyfox-data__account");
     select.id = "joyfox-data-account";
+    select.setAttribute(FOCUS_KEY, "account-picker");
     for (const account of accounts) {
       const option = document.createElement("option");
       option.value = account.id;
@@ -308,6 +493,9 @@ export class DataPanel {
 
   #renderCounts(document: Document, counts: EntityCounts): HTMLElement {
     const table = element(document, "table", "joyfox-data__counts");
+    // Takes focus when a type's buttons go (its records were deleted).
+    table.tabIndex = -1;
+    table.setAttribute(FOCUS_KEY, "counts");
     const caption = element(
       document,
       "caption",
@@ -346,24 +534,28 @@ export class DataPanel {
       const label = message(ENTITY_LABELS[name]);
       if (counts[name] > 0) {
         const showing = this.#shown === name;
-        actions.append(
-          this.#button(
-            document,
-            "joyfox-data__show",
-            t(showing ? "data.hide" : "data.show"),
-            t(showing ? "data.hideLabel" : "data.showLabel", { label }),
-            () => {
-              this.#pending = undefined;
-              this.#shown = showing ? undefined : name;
-              this.#shownLimit = RECORD_PAGE_SIZE;
-              void this.render();
-            },
-          ),
+        const show = this.#button(
+          document,
+          "joyfox-data__show",
+          t(showing ? "data.hide" : "data.show"),
+          t(showing ? "data.hideLabel" : "data.showLabel", { label }),
+          () => {
+            this.#pending = undefined;
+            this.#shown = showing ? undefined : name;
+            this.#shownLimit = RECORD_PAGE_SIZE;
+            // Shown: straight to the records. Hidden: focus stays here.
+            if (!showing)
+              this.#focusNext = { key: "records-heading", scroll: true };
+            void this.render();
+          },
         );
+        show.setAttribute(FOCUS_KEY, `show:${name}`);
+        actions.append(show);
         if (isDeletableEntity(name))
           actions.append(
             this.#confirmButton(
               document,
+              `delete-all:${name}`,
               { kind: "entity", entity: name },
               t("data.deleteAll"),
               message("data.deleteAllLabel", { label }),
@@ -395,22 +587,29 @@ export class DataPanel {
         count: records.length,
       }),
     );
+    // "Show" moves focus here, so the records are read next.
+    title.tabIndex = -1;
+    title.setAttribute(FOCUS_KEY, "records-heading");
     section.append(title);
-    if (!isDeletableEntity(name))
-      section.append(
-        element(
-          document,
-          "p",
-          "joyfox-panel__hint",
-          t("data.accountRecordHint"),
-        ),
-      );
+    if (!isDeletableEntity(name)) {
+      const hint = element(document, "p", "joyfox-panel__hint");
+      // "Accounts" links to the Accounts tab.
+      hint.append(withTabLinks(document, t("data.accountRecordHint")));
+      section.append(hint);
+    }
     const list = element(document, "ul", "joyfox-data__record-list");
     for (const record of records.slice(0, this.#shownLimit)) {
       const item = element(document, "li", "joyfox-data__record");
       item.dataset.recordId = record.id;
       const details = element(document, "details", "joyfox-data__details");
-      details.append(element(document, "summary", "", this.#summary(record)));
+      const summary = element(
+        document,
+        "summary",
+        "",
+        this.#summary(name, record),
+      );
+      summary.setAttribute(FOCUS_KEY, `record:${record.id}`);
+      details.append(summary);
       details.open = this.#openRecords.has(record.id);
       // A record's fields and its stored JSON are drawn when it is opened,
       // never for every listed record: an imported record can be very large.
@@ -428,24 +627,32 @@ export class DataPanel {
             ),
           ),
         );
+        // An Ignore and Delete run in plain words first, as its notice on
+        // JoyClub says it; the stored steps stay below.
+        const log = record as ActionLog;
+        if (name === "actionLogs" && log.action === QUICK_IGNORE_DELETE)
+          details.append(this.#renderReport(document, log));
         details.append(
           renderFields(document, record as unknown as Record<string, unknown>),
           raw,
         );
       });
       item.append(details);
-      if (isDeletableEntity(name))
+      if (isDeletableEntity(name)) {
+        const shown = this.#recordText(name, record);
         item.append(
           this.#confirmButton(
             document,
+            `delete:${record.id}`,
             { kind: "record", entity: name, id: record.id },
             t("data.delete"),
-            message("data.deleteRecordLabel", { id: record.id }),
-            message("data.deleteRecordPrompt", { id: record.id }),
+            message("data.deleteRecordLabel", { record: shown }),
+            message("data.deleteRecordPrompt", { record: shown }),
             (accountId) => this.data.deleteRecord(accountId, name, record.id),
-            message("data.deletedRecord", { id: record.id }),
+            message("data.deletedRecord", { record: shown }),
           ),
         );
+      }
       list.append(item);
     }
     section.append(list);
@@ -463,12 +670,30 @@ export class DataPanel {
           undefined,
           () => {
             this.#pending = undefined;
+            // Focus goes to the first record the click adds.
+            const first = records[this.#shownLimit];
+            if (first)
+              this.#focusNext = { key: `record:${first.id}`, scroll: true };
             this.#shownLimit += RECORD_PAGE_SIZE;
             void this.render();
           },
+          "more",
         ),
       );
     return section;
+  }
+
+  /** What an Ignore and Delete run did, from its steps (PRD Section 21.2). */
+  #renderReport(document: Document, log: ActionLog): HTMLElement {
+    const list = element(document, "ul", "joyfox-data__report");
+    // Steps are checked on import; a malformed one must not break the page.
+    try {
+      for (const line of reportOperation(log, Date.now()).lines)
+        list.append(element(document, "li", "", t(line)));
+    } catch {
+      list.replaceChildren();
+    }
+    return list;
   }
 
   #renderAccountActions(document: Document): HTMLElement {
@@ -487,11 +712,13 @@ export class DataPanel {
             const exported = await this.data.exportAccount(accountId);
             this.saveFile(exportFileName(exported), serializeExport(exported));
             this.#setStatus(message("data.exportedAccount"), "info");
-          }),
+          }, EXPORT_FAILED),
+        "export",
       ),
       document.createTextNode(" "),
       this.#confirmButton(
         document,
+        "delete-account",
         { kind: "account" },
         t("data.deleteAccountData"),
         message("data.deleteAccountDataLabel"),
@@ -523,7 +750,11 @@ export class DataPanel {
     input.step = "1";
     input.min = String(MIN_SNAPSHOT_RETENTION);
     input.max = String(MAX_SNAPSHOT_RETENTION);
-    input.value = String(current);
+    // Drawn armed, the field keeps the number the second click saves.
+    const pending = this.#pending;
+    const armed = pending?.kind === "retention" ? pending : undefined;
+    input.value = String(armed?.keep ?? current);
+    input.setAttribute(FOCUS_KEY, "retention");
     const hint = element(
       document,
       "p",
@@ -539,13 +770,38 @@ export class DataPanel {
     const save = this.#button(
       document,
       "joyfox-data__retention-save",
-      t("data.retentionSave"),
+      t(armed ? "data.retentionConfirm" : "data.retentionSave"),
       undefined,
-      () =>
+      (event) => {
+        const keep = Number(input.value);
+        // A lower number deletes older snapshots at once, in every account:
+        // it saves only on a second click, as a delete does.
+        if (isSnapshotRetention(keep) && keep < current) {
+          // Confirms only on a button drawn armed, and only while that
+          // request is still armed now: typing a number disarms it without a
+          // redraw, and typing the same number again must ask again.
+          const live = this.#pending;
+          if (
+            !armed ||
+            armed.keep !== keep ||
+            live?.kind !== "retention" ||
+            live.keep !== keep
+          ) {
+            if (event.detail > 1) return;
+            this.#pending = { kind: "retention", keep };
+            this.#armedAt = confirmTiming.now();
+            this.#setStatus(
+              message("data.retentionConfirmPrompt", { keep }),
+              "info",
+            );
+            void this.render();
+            return;
+          }
+          if (!confirmAllowed(event, this.#armedAt)) return;
+        }
         void this.#guard(async () => {
           // Any other action disarms a pending delete, at once.
           this.#pending = undefined;
-          const keep = Number(input.value);
           if (!isSnapshotRetention(keep)) {
             this.#setStatus(
               message("data.retentionInvalid", {
@@ -559,8 +815,17 @@ export class DataPanel {
           const deleted = await this.data.setSnapshotRetention(keep);
           this.#setStatus(message("data.retentionSaved", { deleted }), "info");
           this.onChange();
-        }),
+        }, RETENTION_FAILED);
+      },
+      "retention-save",
     );
+    input.addEventListener("input", () => {
+      // Another number: the armed one no longer applies.
+      if (this.#pending?.kind !== "retention") return;
+      this.#pending = undefined;
+      save.textContent = t("data.retentionSave");
+      this.#status.clear();
+    });
     field.append(label, " ", input, " ", save);
     section.append(field, hint);
     return section;
@@ -587,11 +852,13 @@ export class DataPanel {
             const exported = await this.data.exportAll();
             this.saveFile(exportFileName(exported), serializeExport(exported));
             this.#setStatus(message("data.exportedAll"), "info");
-          }),
+          }, EXPORT_FAILED),
+        "export-all",
       ),
       document.createTextNode(" "),
       this.#confirmButton(
         document,
+        "delete-everything",
         { kind: "all" },
         t("data.deleteEverything"),
         message("data.deleteEverythingLabel"),
@@ -633,10 +900,13 @@ export class DataPanel {
     input.id = "joyfox-data-import";
     input.accept = ".json,application/json";
     input.disabled = this.#importing;
+    input.setAttribute(FOCUS_KEY, "import-file");
     input.addEventListener("change", () => {
       const file = input.files?.[0];
       if (!file || this.#importing) return;
       this.#importing = true;
+      // Before the chooser is disabled, which drops its focus.
+      this.#focusBefore = this.#rememberFocus(input.ownerDocument);
       input.disabled = true;
       void this.#importFile(file);
     });
@@ -714,7 +984,8 @@ export class DataPanel {
     preview.append(
       rows > 0 ? table : element(document, "p", "", t("data.import.noRecords")),
     );
-    // Setting names are technical keys, the same in every language.
+    // Settings by name in the UI language; one JoyFox does not name keeps
+    // its stored key.
     if (plan.settingsSkipped.length > 0)
       preview.append(
         element(
@@ -722,7 +993,7 @@ export class DataPanel {
           "p",
           "",
           t("data.import.settingsSkipped", {
-            keys: plan.settingsSkipped.join(", "),
+            keys: settingNames(plan.settingsSkipped),
           }),
         ),
       );
@@ -736,7 +1007,7 @@ export class DataPanel {
             plan.settingsSaved === false
               ? "data.import.settingsNotSaved"
               : "data.import.settingsAdded",
-            { keys: plan.settingsAdded.join(", ") },
+            { keys: settingNames(plan.settingsAdded) },
           ),
         ),
       );
@@ -799,7 +1070,11 @@ export class DataPanel {
     } finally {
       this.#importing = false;
     }
-    await this.render();
+    try {
+      await this.render();
+    } finally {
+      this.#focusBefore = undefined;
+    }
   }
 
   #button(
@@ -808,10 +1083,13 @@ export class DataPanel {
     text: string,
     ariaLabel: string | undefined,
     onClick: (event: MouseEvent) => void,
+    focusKey?: string,
   ): HTMLButtonElement {
     const node = element(document, "button", className, text);
     node.type = "button";
     if (ariaLabel) node.setAttribute("aria-label", ariaLabel);
+    // A key that stays the same across draws keeps focus on this button.
+    if (focusKey) node.setAttribute(FOCUS_KEY, focusKey);
     node.addEventListener("click", onClick);
     return node;
   }
@@ -823,6 +1101,7 @@ export class DataPanel {
    */
   #confirmButton(
     document: Document,
+    focusKey: string,
     pending: Pending,
     text: string,
     ariaLabel: Message,
@@ -856,6 +1135,8 @@ export class DataPanel {
           this.onChange();
         });
       },
+      // The same key armed and unarmed, so focus stays on it when it arms.
+      focusKey,
     );
     return node;
   }
@@ -875,11 +1156,15 @@ export class DataPanel {
 
   /**
    * Every action redraws from storage, so the panel shows committed state.
-   * A refusal (an `ExtensionError`) comes before any change. Any other
+   * A refusal (an `ExtensionError`) comes before any change, so its message
+   * says what did not happen: for a delete, nothing was deleted. Any other
    * failure may come part-way through "delete everything", so its message
    * points at the redrawn counts instead of claiming nothing changed.
    */
-  async #guard(action: () => Promise<void>): Promise<void> {
+  async #guard(
+    action: () => Promise<void>,
+    failure: Failure = DELETE_FAILED,
+  ): Promise<void> {
     try {
       await action();
     } catch (error) {
@@ -887,8 +1172,8 @@ export class DataPanel {
       const display = errorDisplay(error);
       this.#setStatus(
         display
-          ? message("error.withSuffix.nothingDeleted", { error: display })
-          : message("data.actionFailed"),
+          ? message(failure.suffix, { error: display })
+          : message(failure.fallback),
         "error",
       );
     }

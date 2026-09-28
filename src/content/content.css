@@ -86,10 +86,15 @@
   border-radius: var(--joyfox-radius);
   background: var(--joyfox-surface-strong);
   color: inherit;
+}
+
+/* Only a control shows the pointer; a badge that is a label does not. */
+.joyfox-button,
+button.joyfox-badge {
   cursor: pointer;
 }
 
-.joyfox-button:hover:not(:disabled) {
+.joyfox-button:hover:not(:disabled):not([aria-disabled="true"]) {
   border-color: currentColor;
 }
 
@@ -98,7 +103,13 @@
   font-weight: 700;
 }
 
-.joyfox-button:disabled {
+/*
+ * `aria-disabled` keeps keyboard focus on a busy button (Ignore and Delete
+ * while it runs, the Log buttons while an outcome is stored), so it looks
+ * the same as `disabled`.
+ */
+.joyfox-button:disabled,
+.joyfox-button[aria-disabled="true"] {
   cursor: default;
   opacity: 0.6;
 }
@@ -133,8 +144,13 @@
   margin: var(--joyfox-space) 0;
 }
 
+/*
+ * Text in a placement or brand color is mixed with the text color around it
+ * (60% color, 40% text), so it reaches 4.5:1 on a light and a dark page. The
+ * pure color stays on borders and dots.
+ */
 .joyfox-error {
-  color: var(--joyfox-quarantined);
+  color: color-mix(in srgb, var(--joyfox-quarantined) 60%, currentColor);
   font-weight: 700;
 }
 
@@ -219,6 +235,17 @@
  */
 .joyfox-notes__status {
   margin: var(--joyfox-space) 0 0;
+}
+
+/* The length of a note box, shown near its limit (notes, cards, events). */
+.joyfox-note-length {
+  display: block;
+  color: var(--joyfox-muted);
+  font-size: 0.8125rem;
+}
+
+.joyfox-note-length:empty {
+  display: none;
 }
 
 .joyfox-notes__status:empty {
@@ -337,7 +364,7 @@
 }
 
 .joyfox-bar__brand {
-  color: var(--joyfox-brand);
+  color: color-mix(in srgb, var(--joyfox-brand) 60%, currentColor);
   font-weight: 800;
 }
 
@@ -374,14 +401,19 @@
   display: none;
 }
 
-/* The placement pill: the word carries the meaning, the color repeats it. */
+/*
+ * The placement pill: the word carries the meaning, the color repeats it.
+ * The border and the dot take the placement color; the word is mixed with
+ * the text color, as `.joyfox-error` is, so it stays readable.
+ */
 .joyfox-pill {
   display: inline-flex;
   align-items: center;
   gap: 0.35em;
   padding: 0.05em 0.6em;
-  border: 1px solid currentColor;
+  border: 1px solid var(--joyfox-pill, currentColor);
   border-radius: 999px;
+  color: color-mix(in srgb, var(--joyfox-pill, currentColor) 60%, currentColor);
   font-weight: 700;
   white-space: nowrap;
 }
@@ -391,20 +423,20 @@
   width: 0.5em;
   height: 0.5em;
   border-radius: 50%;
-  background: currentColor;
+  background: var(--joyfox-pill, currentColor);
 }
 
 .joyfox-pill[data-placement="qualified"] {
-  color: var(--joyfox-qualified);
+  --joyfox-pill: var(--joyfox-qualified);
 }
 
 .joyfox-pill[data-placement="needs-review"] {
-  color: var(--joyfox-review);
+  --joyfox-pill: var(--joyfox-review);
   border-style: dashed;
 }
 
 .joyfox-pill[data-placement="quarantined"] {
-  color: var(--joyfox-quarantined);
+  --joyfox-pill: var(--joyfox-quarantined);
   border-style: double;
   border-width: 3px;
 }
@@ -447,6 +479,18 @@
   margin: var(--joyfox-space) 0 0;
 }
 
+/* Without an account or a rule: one line where the tab bar goes. */
+.joyfox-triage--setup {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--joyfox-space);
+}
+
+.joyfox-triage--setup .joyfox-note {
+  margin: 0;
+}
+
 /* V1-3: saved searches above JoyClub's member search results. */
 .joyfox-saved-searches {
   box-sizing: border-box;
@@ -479,6 +523,13 @@
   gap: 0.25em;
 }
 
+/* The saved search whose results the page shows; not by color alone. */
+.joyfox-saved-searches__open[aria-current="true"] {
+  border-color: currentColor;
+  font-weight: 700;
+  text-decoration: underline;
+}
+
 .joyfox-saved-searches__save {
   display: flex;
   flex-wrap: wrap;
@@ -506,6 +557,30 @@
 }
 
 /* V1-5: the user's notes on an event or venue page. */
+.joyfox-listing__summary {
+  cursor: pointer;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.joyfox-listing__details[open] > .joyfox-listing__summary {
+  margin-bottom: var(--joyfox-space);
+}
+
+.joyfox-listing__summary:focus-visible,
+.joyfox-compat__summary:focus-visible,
+.joyfox-card-editor:focus-visible {
+  outline: 2px solid var(--joyfox-focus);
+  outline-offset: 2px;
+}
+
+/* A control on hold while a save runs; it keeps focus, unlike `disabled`. */
+.joyfox-listing [aria-disabled="true"],
+.joyfox-card-editor [aria-disabled="true"] {
+  cursor: default;
+  opacity: 0.6;
+}
+
 .joyfox-listing__row {
   display: flex;
   flex-wrap: wrap;
@@ -614,6 +689,11 @@
 
 .joyfox-compat__text {
   margin: 0.25em 0;
+}
+
+.joyfox-compat__summary {
+  cursor: pointer;
+  margin: 0 0 0.25em;
 }
 
 .joyfox-compat__list {
@@ -737,6 +817,12 @@
   color: CanvasText;
 }
 
+.joyfox-card-editor__body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5em;
+}
+
 .joyfox-card-editor__tags {
   margin: 0;
   padding-inline-start: 1.25em;
@@ -798,6 +884,15 @@
   border-width: 1px;
   font-size: 11px;
   line-height: 14px;
+}
+
+/*
+ * A near miss on a small control opens the member's profile (item 126), so
+ * each control is at least 24 px wide. The line keeps its 18 px height.
+ */
+.joyfox-card-line .joyfox-button {
+  min-width: 24px;
+  text-align: center;
 }
 
 .joyfox-card-line .joyfox-signals__note[data-has-note="true"] {

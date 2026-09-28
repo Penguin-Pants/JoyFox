@@ -819,3 +819,112 @@ Do these after the one-time setup in `release.md`.
      page and its files open in a private window (not signed in to GitHub). Then
      send the `update_link` and `update_hash` so the `updates.json` PR can add
      1.0.0.
+
+## UX audit fixes (2026-09-28)
+
+These items check the changes from the UX audit (`docs/ux-audit.md`). Where an
+item changes what an earlier item expects, it names that item; the earlier
+result stays as recorded.
+
+139. Click the JoyFox button in the Firefox toolbar, or in the Extensions menu
+     until you pin it. Confirm the options page opens.
+140. In `about:addons` > JoyFox > Permissions, turn off access to joyclub.de.
+     Reload the options page. Confirm "Get started" first shows "Allow JoyFox to
+     access joyclub.de", says four steps and does not say "JoyFox is set up".
+     Click the button and refuse Firefox's prompt: confirm the page says access
+     is still off. Click again and allow: confirm the step goes.
+141. With no account (a fresh profile, or after item 35), open the ClubMail
+     inbox and a conversation. Confirm the inbox shows one line, "JoyFox has no
+     active account, so it does not sort this inbox.", with "Open JoyFox
+     options", that the conversation's JoyFox strip shows a similar line, and
+     that no row is labelled or hidden. This replaces item 35's "no JoyFox UI".
+     Click "Open JoyFox options" and confirm the options page opens.
+142. Add an account but no rule. Confirm the inbox line says that no contact
+     rule is saved. Save a rule and confirm the tab bar replaces the line
+     without a reload. Turn the rule off and confirm the inbox shows nothing
+     from JoyFox.
+143. On "Accounts", confirm a hint under each field. Add an account and confirm
+     the list shows "Label (identifier)". Click "Add account" twice quickly and
+     confirm one account and no red alert.
+144. Click "Rename", type a new label and press Enter. Confirm the list shows it
+     and an export keeps the identifier. Open "Rename" again and press Escape:
+     nothing changes.
+145. With two accounts, remove the active one. Confirm the prompt names
+     everything that is deleted, that the status then says no account is active,
+     and that "Get started" asks you to choose the active account.
+146. In the Simple editor, tick "Minimum photos" with an empty field. Confirm it
+     fills 3, saves, moves focus to the number and shows no error. Tick "First
+     message contains": confirm focus moves to its text field, a hint shows and
+     nothing is saved until you type. This changes item 57.
+147. Type -5 in "Minimum photos" and press Tab. Confirm the field is marked, a
+     short error shows beside it and the status at the top of the form says the
+     rule was not saved. Type 3 and confirm the mark goes.
+148. Confirm the autosave hint and the status line are at the top of the form,
+     and that the fields of unticked rows are greyed out.
+149. With no condition ticked, change "A sender who does not meet the rule goes
+     to". Confirm the status says every sender qualifies, and "Get started" says
+     "Done: no conditions, so every sender qualifies."
+150. Confirm "Not flagged as template spam" says "(not checked yet: always
+     unknown)" in the Simple and the Advanced editor.
+151. Click "Delete whole contact rule". Confirm it asks first, with a prompt
+     under the button, and that a double-click does not delete. Click again and
+     confirm the rule is deleted. This changes item 56.
+152. In the Advanced editor, confirm "Group 1", "+ Add group" and "Remove
+     group", and that "Remove group" on a group with conditions asks first. On
+     the inbox, confirm the "Why and move" reasons start with "Group 1:". This
+     changes the wording in items 75 to 80, and "Why" becomes "Why and move" in
+     items 87 and 131.
+153. Press Tab to reach "Simple" and "Advanced". Confirm a visible focus ring in
+     the light and the dark theme.
+154. On "Messages", change "Keep messages for (months)" from 12 to 1 and click
+     Save. Confirm nothing is deleted yet, the button says "Save and delete" and
+     the message names 1 month. Click again and confirm the older messages are
+     deleted. Confirm a higher number saves with one click. On "Your data", do
+     the same with "Profile snapshots kept per member" (20 to 5). This changes
+     item 124.
+155. Confirm the "Ignore and Delete" switch's hint names the account risk, the
+     undo steps (JoyClub's trash and "Profil nicht mehr ignorieren") and the
+     "Action log". This adds to item 133.
+156. On "Your data", confirm "To import a file, go to Accounts." switches to the
+     Accounts tab and moves focus to it. Confirm records with a name (a
+     template, a saved search, an event) show the name first. After a Quick
+     Ignore and Delete run, open its "Action log" record and confirm a plain
+     report shows above the fields.
+157. On the inbox, choose "Quarantined" and reload: confirm the view stays. With
+     the keyboard only, open "Why and move" on a row's badge, move the sender
+     and press "Close": confirm focus is back on that row's badge.
+158. Double-click "Positive" and confirm the trust score rises by 1. With at
+     least two outcomes logged, double-click "Undo" and confirm only one goes.
+     Open your own profile and confirm the strip shows no placement, no "Log"
+     buttons and no note editor, while the shared-preferences section stays. On
+     another profile, confirm the shared-preferences list opens only with "Show
+     the shared preferences". This changes item 117.
+159. With "Ignore and Delete" on, make the window so narrow that the ClubMail
+     list is hidden. Confirm the line "Works only while this conversation shows
+     in the ClubMail list beside it. Widen the window, or scroll the list until
+     the conversation shows." under the button. In a run, confirm the profile
+     page shows "Waiting for JoyClub's profile menu…" until Ignore starts, and
+     that the finished report says how to undo. This changes the report texts in
+     items 44 and 45.
+160. With the keyboard only, press Enter on a card's "✎". Confirm focus is in
+     the note box. Type a tag and press Enter: it is added. Press Escape: focus
+     is back on "✎". Type a change and click "Discard my changes": the stored
+     note shows again. Add a tag the member already has: "Already tagged."
+161. Open an event you do not track. Confirm the JoyFox box is closed and says
+     "(none yet)", and that the first save says "Saved. JoyFox now tracks this
+     event." On "Dates & Events", choose "Only events you attend", use a JoyClub
+     quick filter and confirm the choice stays. Confirm the Events tab says
+     "Your venues" and that a venue box also stays closed until the venue is
+     tracked. This changes items 111 to 115.
+162. Click a saved search. Confirm the bar says "Running "<name>"…", then
+     "Showing "<name>".", and that the button is marked as the current search.
+     Change a filter with JoyClub's own panel and confirm the "Showing" notice
+     goes. This adds to item 109.
+163. Insert a template longer than the message field allows. Confirm the notice
+     says how many characters are too many.
+164. On JoyClub's light and dark theme, confirm the placement pill, the "JoyFox"
+     label and error texts are easy to read.
+165. Paste more than 4,000 characters into a note. Confirm the counter and the
+     notice that the rest was not pasted.
+166. Switch the language to German and repeat items 141, 146, 151, 154 and 160.
+     Confirm every new text is German.

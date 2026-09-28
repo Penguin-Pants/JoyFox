@@ -48,7 +48,7 @@ placements are stored per account and per member ID. The trust score uses only
 this browser's own records; nothing is shared with other members or sent
 anywhere. Triage changes only what the user's own inbox shows: it never deletes,
 archives, sends or changes anything on JoyClub. The sender name appears in the
-"Why" panel as JoyClub shows it and is never logged.
+"Why and move" panel as JoyClub shows it and is never logged.
 
 The Compatibility Overlay (V1-2) reads a profile's "Vorlieben" checklist and
 stores, with the profile's snapshot, the labels of the tags it lists at a
@@ -152,6 +152,29 @@ of "Your data". It is never an identity (the member ID is), never logged, and
 never leaves the browser except in an export file the user saves. It is
 exported, imported and deleted with the other records. When JoyFox has never
 seen a member's nickname, its texts show "Member" and the number.
+
+## Page session storage (UX audit, 2026-09-28)
+
+Besides the saved-search run record above, JoyFox keeps two small choices in the
+JoyClub tab's own session storage, so they survive JoyClub's full page loads for
+that tab: `joyfox.inboxView` (the inbox view, for example "quarantined") and
+`joyfox.eventFilter` (the event list filter's kind, for example "attending").
+JoyClub's own scripts can read this storage, so it holds no member data and no
+text the user typed: a tag filter is never kept. Both keys go when the tab
+closes; the event filter key is also removed on an account switch.
+
+## Private windows (owner decision, 2026-09-28)
+
+Firefox runs an extension in private windows only when the user allows it, and
+the default is off. The manifest has no `incognito` key, so once allowed JoyFox
+runs there in Firefox's default "spanning" mode. It then stores what it reads in
+a private window exactly as in a normal window: message text while message
+storing is on, profile facts, nicknames and guest lists. These records go to the
+same local database and stay after the private window closes. By the owner's
+decision (UX audit, 2026-09-28) this is documented rather than changed: the
+README and the options page's "Messages" tab say so, and every such record can
+be deleted under "Your data". Notes and tags the user types are stored in both
+cases, as the user asked for them.
 
 ## Update check (V1-9, ADR 0016)
 

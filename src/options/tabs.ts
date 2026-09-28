@@ -21,9 +21,14 @@ export class OptionsTabs {
         event.preventDefault();
         this.select(this.#name(tab), { push: true });
       });
-    document.defaultView?.addEventListener("hashchange", () =>
-      this.select(this.#fromHash()),
-    );
+    document.defaultView?.addEventListener("hashchange", () => {
+      // A link inside a panel (such as "Accounts" in Get started) hides the
+      // panel that holds it. Focus then moves to the selected tab rather than
+      // falling to the page. The back button, with focus elsewhere, keeps it.
+      const active = document.activeElement;
+      const fromPanel = active?.closest('[role="tabpanel"]') != null;
+      this.select(this.#fromHash(), { focus: fromPanel });
+    });
     this.select(this.#fromHash());
   }
 

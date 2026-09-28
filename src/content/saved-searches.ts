@@ -15,6 +15,7 @@ import {
   replayAddress,
 } from "../search/saved-search";
 import { verifiedSelector } from "../selectors/registry";
+import { FOCUS_KEY, rememberFocus, restoreFocus } from "../ui/focus";
 import { button, element, UI_ATTRIBUTE } from "./triage-ui";
 
 export type SaveSearchAnswer = MessageContract["search.save"]["response"];
@@ -129,14 +130,21 @@ function press(control: Element): void {
  * click also leaves a run request in the tab's session storage, which the
  * next page must find for that address; a link with the marker alone does
  * nothing. A run stops before any click once the page is left.
- * When a control does not appear in time, the bar asks the user to click
- * "Anwenden" instead.
+ * The bar says while it waits and clicks, and when it is done. When a
+ * control does not appear in time, it asks the user to click "Anwenden"
+ * instead. The saved search whose address the page shows is marked current.
  *
  * Otherwise the bar only reads the page's address. It never reads a
  * result, a member or a filter value.
  */
 export class SavedSearchBar {
   #root?: HTMLElement;
+  #heading?: HTMLElement;
+  /** The part each draw replaces; the heading and the notice stay. */
+  #body?: HTMLElement;
+  #statusNode?: HTMLElement;
+  /** The page address the list was drawn for, which marks the current one. */
+  #drawnFor?: string;
   #data?: SearchList;
   /**
    * Bumped on teardown and on an account switch, so a late answer for the
@@ -160,6 +168,8 @@ export class SavedSearchBar {
   #markerChecked = false;
   /** JoyFox is opening the filter panel and clicking "Anwenden". */
   #running = false;
+  /** The saved search run on this page, for the notice while and after. */
+  #run?: { address: string; done: boolean };
 
   constructor(
     private readonly document: Document,
@@ -231,10 +241,26 @@ export class SavedSearchBar {
     const list = selector ? this.document.querySelector(selector) : null;
     if (!list) return this.leave();
     this.#checkMarker();
-    if (this.#root?.isConnected) return;
+    if (this.#root?.isConnected) {
+      // JoyClub can change the address in place; the current mark follows.
+      if (this.#drawnFor !== this.#address()) this.#draw();
+      return;
+    }
     if (!this.#root) {
-      this.#root = element(this.document, "section", "joyfox-saved-searches");
-      this.#root.setAttribute(UI_ATTRIBUTE, "saved-searches");
+      const document = this.document;
+      const root = element(document, "section", "joyfox-saved-searches");
+      root.setAttribute(UI_ATTRIBUTE, "saved-searches");
+      const heading = element(document, "p", "joyfox-saved-searches__heading");
+      const body = element(document, "div", "joyfox-saved-searches__body");
+      // One live region for the bar's life, so each notice is announced.
+      const status = element(document, "p", "joyfox-saved-searches__status");
+      status.setAttribute("role", "status");
+      status.setAttribute("aria-live", "polite");
+      root.append(heading, body, status);
+      this.#root = root;
+      this.#heading = heading;
+      this.#body = body;
+      this.#statusNode = status;
       this.#draw();
       void this.#load();
     }
@@ -245,6 +271,11 @@ export class SavedSearchBar {
     this.#session += 1;
     this.#root?.remove();
     this.#root = undefined;
+    this.#heading = undefined;
+    this.#body = undefined;
+    this.#statusNode = undefined;
+    this.#drawnFor = undefined;
+    this.#run = undefined;
     this.#data = undefined;
     this.#status = undefined;
     this.#naming = false;
@@ -274,6 +305,17 @@ export class SavedSearchBar {
     if (this.#root) this.#draw();
   }
 
+  /** The page's address without its fragment. */
+  #address(): string {
+    return withoutFragment(this.currentUrl());
+  }
+
+  /** Whether a saved search opens `address`. */
+  #opens(search: SavedSearchSummary, address: string): boolean {
+    const url = replayAddress(search);
+    return url !== undefined && withoutFragment(url) === address;
+  }
+
   /** Run the saved search this page was opened for, once per page. */
   #checkMarker(): void {
     if (this.#markerChecked) return;
@@ -301,14 +343,27 @@ export class SavedSearchBar {
     const current = () =>
       session === this.#session &&
       withoutFragment(this.currentUrl()) === address;
+    // Said at once: JoyClub's filter panel can take seconds to appear.
+    this.#run = { address, done: false };
+    this.#status = undefined;
+    this.#draw();
     try {
       for (const field of ["filterButton", "applyButton"]) {
         const control = await this.#waitFor(field, current);
-        if (!current()) return;
+        if (!current()) {
+          // Another search in place: this run's notice no longer applies.
+          if (session === this.#session) {
+            this.#run = undefined;
+            this.#draw();
+          }
+          return;
+        }
         if (!control)
           return this.#setStatus(message("searches.runFailed"), true);
         press(control);
       }
+      this.#run = { address, done: true };
+      this.#draw();
     } finally {
       this.#running = false;
     }
@@ -356,50 +411,74 @@ export class SavedSearchBar {
     this.#draw();
   }
 
+  /** The notice of the saved search run on this page, by its name. */
+  #runStatus(): { text: Message; error: boolean } | undefined {
+    const run = this.#run;
+    // JoyClub can change the address in place after the run (the user's own
+    // filter change): the notice then no longer names what the page shows.
+    if (!run || run.address !== this.#address()) return undefined;
+    const name = this.#data?.searches.find((search) =>
+      this.#opens(search, run.address),
+    )?.name;
+    const text = run.done
+      ? name
+        ? message("searches.shown", { name })
+        : message("searches.shownUnnamed")
+      : name
+        ? message("searches.running", { name })
+        : message("searches.runningUnnamed");
+    return { text, error: false };
+  }
+
   #draw(): void {
     const root = this.#root;
-    if (!root) return;
+    const body = this.#body;
+    if (!root || !body) return;
     const document = this.document;
-    const focusedName =
-      document.activeElement?.classList.contains(NAME_INPUT) ?? false;
-    root.replaceChildren();
-    root.setAttribute("aria-label", t("searches.heading"));
-    root.append(
-      element(
-        document,
-        "p",
-        "joyfox-saved-searches__heading",
-        t("searches.heading"),
-      ),
-    );
+    // Every draw replaces the list and the save row. The focused control is
+    // found again by its key; a deleted search's buttons leave focus to
+    // "Save this search", a closed name box to the button that opens it.
+    const focus = rememberFocus(root);
+    const heading = t("searches.heading");
+    root.setAttribute("aria-label", heading);
+    if (this.#heading && this.#heading.textContent !== heading)
+      this.#heading.textContent = heading;
+    this.#drawnFor = this.#address();
+    body.replaceChildren();
     const data = this.#data;
     if (!data) {
       if (!this.#status)
-        root.append(
+        body.append(
           element(document, "p", "joyfox-note", t("searches.loading")),
         );
     } else if (!data.accountId) {
-      root.append(
-        element(document, "p", "joyfox-note", t("searches.noAccount")),
-        button(
-          document,
-          "joyfox-button",
-          t("common.openOptions"),
-          () => void this.client.openOptions().catch(() => undefined),
-        ),
+      const options = button(
+        document,
+        "joyfox-button",
+        t("common.openOptions"),
+        () => void this.client.openOptions().catch(() => undefined),
       );
-    } else {
-      root.append(this.#list(data.searches));
-      root.append(this.#saveRow(focusedName));
+      options.setAttribute(FOCUS_KEY, "options");
+      body.append(
+        element(document, "p", "joyfox-note", t("searches.noAccount")),
+        options,
+      );
+    } else body.append(this.#list(data.searches), this.#saveRow());
+    const shown = this.#status ?? this.#runStatus();
+    if (this.#statusNode) {
+      // Written only when it changes: a live region may read a rewrite again.
+      const text = shown ? t(shown.text) : "";
+      if (this.#statusNode.textContent !== text)
+        this.#statusNode.textContent = text;
+      this.#statusNode.classList.toggle("joyfox-error", shown?.error === true);
     }
-    const status = element(document, "p", "joyfox-saved-searches__status");
-    status.setAttribute("role", "status");
-    status.setAttribute("aria-live", "polite");
-    if (this.#status) {
-      status.textContent = t(this.#status.text);
-      status.classList.toggle("joyfox-error", this.#status.error);
-    }
-    root.append(status);
+    restoreFocus(
+      root,
+      focus,
+      /^(open|delete):/u.test(focus?.key ?? "")
+        ? ["save", "name", "options"]
+        : ["name", "save", "options"],
+    );
   }
 
   #list(searches: readonly SavedSearchSummary[]): HTMLElement {
@@ -407,6 +486,7 @@ export class SavedSearchBar {
     if (searches.length === 0)
       return element(document, "p", "joyfox-note", t("searches.empty"));
     const list = element(document, "ul", "joyfox-saved-searches__list");
+    const address = this.#address();
     for (const search of searches) {
       const item = element(document, "li", "joyfox-saved-searches__item");
       const open = button(
@@ -415,6 +495,10 @@ export class SavedSearchBar {
         search.name,
         () => this.#open(search),
       );
+      open.setAttribute(FOCUS_KEY, `open:${search.id}`);
+      // The saved search whose results the page shows.
+      if (this.#opens(search, address))
+        open.setAttribute("aria-current", "true");
       const remove = button(
         document,
         "joyfox-button joyfox-saved-searches__delete",
@@ -423,6 +507,7 @@ export class SavedSearchBar {
       );
       const label = t(message("searches.deleteLabel", { name: search.name }));
       remove.setAttribute("aria-label", label);
+      remove.setAttribute(FOCUS_KEY, `delete:${search.id}`);
       remove.title = label;
       if (this.#armed === search.id)
         remove.setAttribute("aria-pressed", "true");
@@ -432,23 +517,23 @@ export class SavedSearchBar {
     return list;
   }
 
-  #saveRow(focusName: boolean): HTMLElement {
+  #saveRow(): HTMLElement {
     const document = this.document;
     const row = element(document, "div", "joyfox-saved-searches__save");
     if (!this.#naming) {
-      row.append(
-        button(document, "joyfox-button", t("searches.save"), () => {
-          this.#naming = true;
-          this.#status = undefined;
-          this.#draw();
-          this.#root
-            ?.querySelector<HTMLInputElement>(`.${NAME_INPUT}`)
-            ?.focus();
-        }),
-      );
+      const save = button(document, "joyfox-button", t("searches.save"), () => {
+        this.#naming = true;
+        this.#status = undefined;
+        this.#run = undefined;
+        this.#draw();
+        this.#root?.querySelector<HTMLInputElement>(`.${NAME_INPUT}`)?.focus();
+      });
+      save.setAttribute(FOCUS_KEY, "save");
+      row.append(save);
       return row;
     }
     const input = element(document, "input", NAME_INPUT);
+    input.setAttribute(FOCUS_KEY, "name");
     input.type = "text";
     input.maxLength = MAX_SAVED_SEARCH_NAME_LENGTH;
     input.autocomplete = "off";
@@ -470,16 +555,20 @@ export class SavedSearchBar {
         this.#cancel();
       }
     });
-    row.append(
-      input,
-      button(document, "joyfox-button", t("searches.confirmSave"), () => {
+    const confirm = button(
+      document,
+      "joyfox-button",
+      t("searches.confirmSave"),
+      () => {
         void this.#save();
-      }),
-      button(document, "joyfox-button", t("searches.cancel"), () =>
-        this.#cancel(),
-      ),
+      },
     );
-    if (focusName) queueMicrotask(() => input.focus());
+    confirm.setAttribute(FOCUS_KEY, "confirm");
+    const cancel = button(document, "joyfox-button", t("searches.cancel"), () =>
+      this.#cancel(),
+    );
+    cancel.setAttribute(FOCUS_KEY, "cancel");
+    row.append(input, confirm, cancel);
     return row;
   }
 
@@ -491,6 +580,7 @@ export class SavedSearchBar {
 
   #setStatus(text: Message, error: boolean): void {
     this.#status = { text, error };
+    this.#run = undefined;
     this.#draw();
   }
 
@@ -554,6 +644,7 @@ export class SavedSearchBar {
     if (answer.status === "saved") {
       this.#naming = false;
       this.#draft = "";
+      this.#run = undefined;
       this.#status = {
         text: message("searches.saved", { name }),
         error: false,
@@ -597,6 +688,7 @@ export class SavedSearchBar {
     }
     if (session !== this.#session) return;
     if (answer.status === "deleted") {
+      this.#run = undefined;
       this.#status = {
         text: message("searches.deleted", { name: search.name }),
         error: false,
