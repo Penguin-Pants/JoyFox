@@ -562,26 +562,37 @@ stay as they are.
 
 | Key | English | Deutsch |
 | --- | --- | --- |
-| `accounts.readFailed` | JoyFox could not read its stored accounts. No account was changed. | JoyFox konnte die gespeicherten Konten nicht lesen. Es wurde kein Konto geändert. |
-| `accounts.hint` | JoyFox cannot read which JoyClub login a tab uses. The active account is the one selected here, and all notes, tags and rules are stored under it. | JoyFox kann nicht lesen, mit welchem JoyClub-Login ein Tab arbeitet. Aktiv ist das Konto, das du hier auswählst. Alle Notizen, Tags und Regeln werden darunter gespeichert. |
+| `accounts.readFailed` | JoyFox could not read its stored accounts. No account was changed. Reload the page to try again. | JoyFox konnte die gespeicherten Konten nicht lesen. Es wurde kein Konto geändert. Lade die Seite neu, um es noch einmal zu versuchen. |
+| `accounts.hint` | JoyFox cannot read which JoyClub login a tab uses. The active account is the one selected here. JoyFox stores your notes, tags, rules, templates and other data under it. | JoyFox kann nicht lesen, mit welchem JoyClub-Login ein Tab arbeitet. Aktiv ist das Konto, das du hier auswählst. JoyFox speichert deine Notizen, Tags, Regeln, Vorlagen und andere Daten unter diesem Konto. |
 | `accounts.activeLabel` | Active account: | Aktives Konto: |
 | `accounts.noneSelected` | None selected | Keines ausgewählt |
-| `accounts.empty` | No accounts yet. Add one below to start storing notes and tags. | Noch keine Konten. Füge unten ein Konto hinzu, um Notizen und Tags zu speichern. |
+| `accounts.empty` | No accounts yet. Add one below to use JoyFox. | Noch keine Konten. Füge unten ein Konto hinzu, um JoyFox zu verwenden. |
 | `accounts.list` | Stored accounts | Gespeicherte Konten |
+| `accounts.nameWithIdentifier` | {label} ({identifier}) | {label} ({identifier}) |
 | `accounts.active` | Active | Aktiv |
 | `accounts.inactive` | Not active | Nicht aktiv |
 | `accounts.use` | Use this account | Dieses Konto verwenden |
-| `accounts.useLabel` | Use account {name} | Konto {name} verwenden |
+| `accounts.useLabel` | Use this account: {name} | Dieses Konto verwenden: {name} |
 | `accounts.nowActive` | Active account is now {name}. | Aktives Konto ist jetzt {name}. |
+| `accounts.rename` | Rename | Umbenennen |
+| `accounts.renameLabel` | Rename account {name} | Umbenennen: Konto {name} |
+| `accounts.renameField` | New display label for {identifier} | Neuer Anzeigename für {identifier} |
+| `accounts.renameSave` | Save | Speichern |
+| `accounts.renameCancel` | Cancel | Abbrechen |
+| `accounts.renamed` | Label saved. JoyFox now shows this account as {name}. | Anzeigename gespeichert. JoyFox zeigt dieses Konto jetzt als {name}. |
 | `accounts.remove` | Remove | Entfernen |
 | `accounts.confirmRemove` | Confirm removal | Entfernen bestätigen |
-| `accounts.removeLabel` | Remove account {name} | Konto {name} entfernen |
-| `accounts.confirmRemoveLabel` | Confirm removal of account {name} and all of its data | Entfernen von Konto {name} und allen seinen Daten bestätigen |
-| `accounts.removePrompt` | Removing {name} also deletes its notes, tags and rules. Click again to confirm. | Wenn du {name} entfernst, löscht JoyFox auch die Notizen, Tags und Regeln dieses Kontos. Klicke zum Bestätigen noch einmal. |
+| `accounts.removeLabel` | Remove account {name} | Entfernen: Konto {name} |
+| `accounts.confirmRemoveLabel` | Confirm removal of account {name} and all of its data | Entfernen bestätigen: Konto {name} und alle seine Daten |
+| `accounts.removePrompt` | Removing {name} deletes everything JoyFox stored for this account, for example notes, tags, rules, templates, messages, event notes and saved searches. Click again to confirm. | Wenn du {name} entfernst, löscht JoyFox alles, was es für dieses Konto gespeichert hat, zum Beispiel Notizen, Tags, Regeln, Vorlagen, Nachrichten, Event-Notizen und gespeicherte Suchen. Klicke zum Bestätigen noch einmal. |
 | `accounts.removed` | Removed {name} and its stored data. | {name} und die gespeicherten Daten wurden entfernt. |
+| `accounts.removedNoneActive` | Removed {name} and its stored data. No account is active now. Choose one with "Use this account". | {name} und die gespeicherten Daten wurden entfernt. Jetzt ist kein Konto aktiv. Wähle eines mit „Dieses Konto verwenden“. |
+| `accounts.removedNoneLeft` | Removed {name} and its stored data. No accounts are left. Add one to use JoyFox. | {name} und die gespeicherten Daten wurden entfernt. Es gibt keine Konten mehr. Füge ein Konto hinzu, um JoyFox zu verwenden. |
 | `accounts.addForm` | Add an account | Konto hinzufügen |
 | `accounts.identifier` | JoyClub account identifier | JoyClub-Kontokennung |
+| `accounts.identifierHint` | Your JoyClub nickname works well. JoyFox uses it only to tell your accounts apart and to match imports. JoyFox does not check it. You cannot change it later. | Dein JoyClub-Nickname eignet sich gut. JoyFox verwendet ihn nur, um deine Konten zu unterscheiden und Importe zuzuordnen. JoyFox prüft ihn nicht. Du kannst ihn später nicht ändern. |
 | `accounts.label` | Display label (optional) | Anzeigename (optional) |
+| `accounts.labelHint` | Only JoyFox shows this label. If you leave it empty, JoyFox shows the identifier. | Nur JoyFox zeigt diesen Namen. Wenn du ihn leer lässt, zeigt JoyFox die Kennung. |
 | `accounts.add` | Add account | Konto hinzufügen |
 | `accounts.added` | Added {name}. | {name} wurde hinzugefügt. |
 | `accounts.saveFailed` | That change could not be saved. Nothing was changed. | Diese Änderung konnte nicht gespeichert werden. Es wurde nichts geändert. |
@@ -680,19 +691,19 @@ stay as they are.
 
 | Key | English | Deutsch |
 | --- | --- | --- |
-| `templates.readFailed` | JoyFox could not read your templates. No template was changed. | JoyFox konnte deine Vorlagen nicht lesen. Es wurde keine Vorlage geändert. |
+| `templates.readFailed` | JoyFox could not read your templates. No template was changed. Reload the page to try again. | JoyFox konnte deine Vorlagen nicht lesen. Es wurde keine Vorlage geändert. Lade die Seite neu, um es noch einmal zu versuchen. |
 | `templates.heading` | Message templates | Nachrichtenvorlagen |
 | `templates.hint` | On a JoyClub conversation, the "JoyFox templates" button below the message field inserts a template at the cursor. You can still edit the text, and you always click JoyClub's Send button yourself. JoyFox never sends a message. | In einer JoyClub-Unterhaltung fügt die Schaltfläche „JoyFox-Vorlagen“ unter dem Nachrichtenfeld eine Vorlage an der Cursorposition ein. Du kannst den Text danach noch ändern, und du klickst JoyClubs „Senden“ immer selbst. JoyFox sendet nie eine Nachricht. |
-| `templates.noAccount` | Choose an active account above to store templates. | Wähle unter „Konten“ ein aktives Konto, um Vorlagen zu speichern. |
+| `templates.noAccount` | Choose an active account on the [Accounts](#accounts) tab to store templates. | Wähle unter [Konten](#accounts) ein aktives Konto, um Vorlagen zu speichern. |
 | `templates.empty` | No templates yet. Add one below. | Noch keine Vorlagen. Füge unten eine hinzu. |
 | `templates.inFolder` | Templates in {folder} | Vorlagen in {folder} |
 | `templates.edit` | Edit | Bearbeiten |
-| `templates.editLabel` | Edit template {name} | Vorlage {name} bearbeiten |
+| `templates.editLabel` | Edit template {name} | Bearbeiten: Vorlage {name} |
 | `templates.editing` | Editing {name}. | Du bearbeitest {name}. |
 | `templates.delete` | Delete | Löschen |
 | `templates.confirmDelete` | Confirm delete | Löschen bestätigen |
-| `templates.deleteLabel` | Delete template {name} | Vorlage {name} löschen |
-| `templates.confirmDeleteLabel` | Confirm deleting template {name} | Löschen der Vorlage {name} bestätigen |
+| `templates.deleteLabel` | Delete template {name} | Löschen: Vorlage {name} |
+| `templates.confirmDeleteLabel` | Confirm delete: template {name} | Löschen bestätigen: Vorlage {name} |
 | `templates.deletePrompt` | Click "Confirm delete" to delete {name}. | Klicke auf „Löschen bestätigen“, um {name} zu löschen. |
 | `templates.deleted` | Deleted {name}. | {name} wurde gelöscht. |
 | `templates.addForm` | Add a template | Vorlage hinzufügen |
@@ -735,26 +746,28 @@ stay as they are.
 
 | Key | English | Deutsch |
 | --- | --- | --- |
-| `data.readFailed` | JoyFox could not read its stored data. Nothing was changed. | JoyFox konnte die gespeicherten Daten nicht lesen. Es wurde nichts geändert. |
+| `data.readFailed` | JoyFox could not read its stored data. Nothing was changed. Reload the page to try again. | JoyFox konnte die gespeicherten Daten nicht lesen. Es wurde nichts geändert. Lade die Seite neu, um es noch einmal zu versuchen. |
 | `data.hint` | Everything JoyFox stores stays in this browser profile. You can inspect it, save it as a JSON file and delete it here. Deleting here never changes anything on JoyClub. | Alles, was JoyFox speichert, bleibt in diesem Browserprofil. Hier kannst du es ansehen, als JSON-Datei speichern und löschen. Löschen hier ändert nie etwas auf JoyClub. |
+| `data.importPointer` | To import a file, go to [Accounts](#accounts). | Eine Datei importierst du unter [Konten](#accounts). |
 | `data.noAccounts` | No accounts yet. | Noch keine Konten. |
-| `data.accountPicker` | Account to inspect | Angezeigtes Konto |
+| `data.accountPicker` | Account to inspect | Konto ansehen (ändert nicht das aktive Konto) |
 | `data.caption` | Stored records for this account | Gespeicherte Datensätze dieses Kontos |
 | `data.col.type` | Data type | Datentyp |
 | `data.col.records` | Records | Datensätze |
 | `data.col.actions` | Actions | Aktionen |
 | `data.show` | Show | Zeigen |
 | `data.hide` | Hide | Ausblenden |
-| `data.showLabel` | Show {label} | {label} zeigen |
-| `data.hideLabel` | Hide {label} | {label} ausblenden |
+| `data.showLabel` | Show {label} | Zeigen: {label} |
+| `data.hideLabel` | Hide {label} | Ausblenden: {label} |
 | `data.deleteAll` | Delete all | Alle löschen |
-| `data.deleteAllLabel` | Delete all {label} | Alle Datensätze „{label}“ löschen |
+| `data.deleteAllLabel` | Delete all {label} | Alle löschen: {label} |
 | `data.deleteAllPrompt` | Click "Confirm" to delete all {count} {label} records of this account. | Klicke auf „Bestätigen“, um alle {count} Datensätze „{label}“ dieses Kontos zu löschen. |
 | `data.deletedAll` | Deleted all {label} of this account. | Alle Datensätze „{label}“ dieses Kontos wurden gelöscht. |
 | `data.recordsTitle` | {label} ({count}) | {label} ({count}) |
-| `data.accountRecordHint` | The account record is removed only with the whole account, in Accounts above. | Der Kontodatensatz wird nur mit dem ganzen Konto entfernt, unter „Konten“. |
+| `data.accountRecordHint` | The account record is removed only with the whole account, on the [Accounts](#accounts) tab. | Der Kontodatensatz wird nur mit dem ganzen Konto entfernt, unter [Konten](#accounts). |
 | `data.recordSummary` | {id} (updated {updated}) | {id} (geändert: {updated}) |
 | `data.recordSummaryNamed` | {name}: {id} (updated {updated}) | {name}: {id} (geändert: {updated}) |
+| `data.recordNamed` | {name} ({id}) | {name} ({id}) |
 | `data.valueYes` | yes | ja |
 | `data.valueNo` | no | nein |
 | `data.valueEmpty` | (empty) | (leer) |
@@ -762,31 +775,33 @@ stay as they are.
 | `data.moreCharacters` | …and {count} more characters (see "Stored JSON") | …und {count} weitere Zeichen (siehe „Gespeichertes JSON“) |
 | `data.moreValues` | …and {count} more (see "Stored JSON") | …und {count} weitere (siehe „Gespeichertes JSON“) |
 | `data.delete` | Delete | Löschen |
-| `data.deleteRecordLabel` | Delete record {id} | Datensatz {id} löschen |
-| `data.deleteRecordPrompt` | Click "Confirm" to delete record {id}. | Klicke auf „Bestätigen“, um den Datensatz {id} zu löschen. |
-| `data.deletedRecord` | Deleted record {id}. | Datensatz {id} wurde gelöscht. |
+| `data.deleteRecordLabel` | Delete record {record} | Löschen: Datensatz {record} |
+| `data.deleteRecordPrompt` | Click "Confirm" to delete record {record}. | Klicke auf „Bestätigen“, um den Datensatz {record} zu löschen. |
+| `data.deletedRecord` | Deleted record {record}. | Datensatz {record} wurde gelöscht. |
 | `data.showMore` | Show {count} more | {count} weitere zeigen |
 | `data.exportAccount` | Export this account (JSON) | Dieses Konto exportieren (JSON) |
 | `data.exportedAccount` | Export of this account created. | Der Export dieses Kontos wurde erstellt. |
 | `data.deleteAccountData` | Delete this account's data | Daten dieses Kontos löschen |
-| `data.deleteAccountDataLabel` | Delete all data of this account | Alle Daten dieses Kontos löschen |
+| `data.deleteAccountDataLabel` | Delete this account's data (every record) | Daten dieses Kontos löschen (alle Datensätze) |
 | `data.deleteAccountDataPrompt` | Click "Confirm" to delete every record of this account. The account itself stays in Accounts. | Klicke auf „Bestätigen“, um alle Datensätze dieses Kontos zu löschen. Das Konto selbst bleibt unter „Konten“. |
 | `data.deletedAccountData` | Deleted all data of this account. The account itself is kept. | Alle Daten dieses Kontos wurden gelöscht. Das Konto selbst bleibt erhalten. |
 | `data.allAccounts` | All accounts | Alle Konten |
 | `data.retentionLabel` | Profile snapshots kept per member | Gespeicherte Profil-Momentaufnahmen je Mitglied |
-| `data.retentionHint` | JoyFox keeps the newest snapshots of each member's profile facts, always at least the latest one. Lowering the number deletes older snapshots at once, in every account. From {minimum} to {maximum}; the default is {default}. | JoyFox behält die neuesten Momentaufnahmen der Profilangaben jedes Mitglieds, immer mindestens die letzte. Eine kleinere Zahl löscht ältere Momentaufnahmen sofort, in allen Konten. Von {minimum} bis {maximum}; Standard ist {default}. |
+| `data.retentionHint` | JoyFox keeps the newest snapshots of each member's profile facts, always at least the latest one. Lowering the number deletes older snapshots at once, in every account. From {minimum} to {maximum}; the default is {default}. Click "Save" to apply. | JoyFox behält die neuesten Momentaufnahmen der Profilangaben jedes Mitglieds, immer mindestens die letzte. Eine kleinere Zahl löscht ältere Momentaufnahmen sofort, in allen Konten. Von {minimum} bis {maximum}; Standard ist {default}. Klicke auf „Speichern“, um die Zahl zu übernehmen. |
 | `data.retentionSave` | Save | Speichern |
 | `data.retentionSaved` | Saved. 1 older snapshot was / {deleted} older snapshots were deleted. | Gespeichert. 1 ältere Momentaufnahme wurde / {deleted} ältere Momentaufnahmen wurden gelöscht. |
 | `data.retentionInvalid` | Enter a whole number from {minimum} to {maximum}. Nothing was changed. | Gib eine ganze Zahl von {minimum} bis {maximum} ein. Es wurde nichts geändert. |
+| `data.retentionFailed` | JoyFox could not save the setting. The field shows the number in use now. Try again. | JoyFox konnte die Einstellung nicht speichern. Das Feld zeigt die Zahl, die jetzt gilt. Versuche es noch einmal. |
 | `data.exportAll` | Export all JoyFox data (JSON) | Alle JoyFox-Daten exportieren (JSON) |
 | `data.exportedAll` | Export of all JoyFox data created. | Der Export aller JoyFox-Daten wurde erstellt. |
 | `data.deleteEverything` | Delete all JoyFox data | Alle JoyFox-Daten löschen |
-| `data.deleteEverythingLabel` | Delete all JoyFox data in this browser | Alle JoyFox-Daten in diesem Browser löschen |
+| `data.deleteEverythingLabel` | Delete all JoyFox data in this browser | Alle JoyFox-Daten löschen (in diesem Browser) |
 | `data.deleteEverythingPrompt` | Click "Confirm" to delete every account, every record and every JoyFox setting in this browser. This cannot be undone. | Klicke auf „Bestätigen“, um alle Konten, alle Datensätze und alle JoyFox-Einstellungen in diesem Browser zu löschen. Das kann nicht rückgängig gemacht werden. |
 | `data.deletedEverything` | Deleted all JoyFox data in this browser. | Alle JoyFox-Daten in diesem Browser wurden gelöscht. |
 | `data.confirm` | Confirm | Bestätigen |
 | `data.confirmLabel` | Confirm: {label} | Bestätigen: {label} |
 | `data.actionFailed` | That action could not be completed. The counts shown now are what is stored. | Diese Aktion konnte nicht abgeschlossen werden. Die angezeigten Zahlen zeigen, was jetzt gespeichert ist. |
+| `data.exportFailed` | JoyFox could not create the export. Nothing was exported. Try again. | JoyFox konnte den Export nicht erstellen. Es wurde nichts exportiert. Versuche es noch einmal. |
 | `data.import.title` | Import | Importieren |
 | `data.import.hint` | Import a JoyFox export file: everything, or one account. It is merged into what is stored here. An account with the same JoyClub identifier is merged into the existing one. For the same note, rule or placement the newer version wins; existing tags and corrections are kept. The import starts when you choose the file, and you then see what changed. | Importiere eine JoyFox-Exportdatei: alles oder ein Konto. Sie wird mit dem zusammengeführt, was hier gespeichert ist. Ein Konto mit derselben JoyClub-Kennung wird mit dem vorhandenen Konto zusammengeführt. Bei derselben Notiz, Regel oder Einordnung gewinnt die neuere Version. Vorhandene Tags und Korrekturen bleiben erhalten. Der Import beginnt, sobald du die Datei wählst, und danach siehst du, was sich geändert hat. |
 | `data.import.fileLabel` | JoyFox export file (JSON) | JoyFox-Exportdatei (JSON) |
@@ -798,6 +813,15 @@ stay as they are.
 | `data.import.col.kept` | Kept | Behalten |
 | `data.import.col.duplicates` | Skipped duplicates | Übersprungene Duplikate |
 | `data.import.noRecords` | The file holds no records. | Die Datei enthält keine Datensätze. |
+| `data.setting.activeAccount` | active account | aktives Konto |
+| `data.setting.language` | language | Sprache |
+| `data.setting.messageCaching` | store messages | Nachrichten speichern |
+| `data.setting.messageRetention` | keep messages for | Nachrichten behalten für |
+| `data.setting.quickIgnoreDelete` | Ignore and Delete button | Schaltfläche „Ignorieren und löschen“ |
+| `data.setting.templatePicker` | template picker | Vorlagenauswahl |
+| `data.setting.sharedEventException` | shared-event exception | Ausnahme für gemeinsame Events |
+| `data.setting.snapshotRetention` | snapshots kept per member | Momentaufnahmen je Mitglied |
+| `data.setting.diagnostics` | diagnostics | Diagnose |
 | `data.import.settingsSkipped` | Settings in the file that are never imported (they switch features on): {keys}. | Einstellungen in der Datei, die nie importiert werden (sie schalten Funktionen ein): {keys}. |
 | `data.import.settingsNotSaved` | Settings that could not be saved: {keys}. | Einstellungen, die nicht gespeichert werden konnten: {keys}. |
 | `data.import.settingsAdded` | Settings added (only those not set here): {keys}. | Hinzugefügte Einstellungen (nur solche, die hier nicht gesetzt waren): {keys}. |
@@ -815,6 +839,8 @@ stay as they are.
 | `error.withSuffix.nothingChanged` | {error}. Nothing was changed. | {error}. Es wurde nichts geändert. |
 | `error.withSuffix.nothingImported` | {error}. Nothing was imported. | {error}. Es wurde nichts importiert. |
 | `error.withSuffix.nothingDeleted` | {error}. Nothing was deleted. | {error}. Es wurde nichts gelöscht. |
+| `error.withSuffix.nothingExported` | {error}. Nothing was exported. Try again. | {error}. Es wurde nichts exportiert. Versuche es noch einmal. |
+| `error.withSuffix.settingNotChanged` | {error}. The setting was not changed. Try again. | {error}. Die Einstellung wurde nicht geändert. Versuche es noch einmal. |
 | `error.code.SelectorUnavailable` | JoyFox cannot find the expected element on the page | JoyFox findet das erwartete Element auf der Seite nicht |
 | `error.code.ExtractionInvalid` | The data is not valid | Die Daten sind ungültig |
 | `error.code.IdentityMismatch` | The account or member does not match | Konto oder Mitglied passen nicht zusammen |
@@ -837,28 +863,28 @@ stay as they are.
 | `error.data.changedDuringCheck` | Stored data changed while the file was checked. Choose the file again | Die gespeicherten Daten haben sich geändert, während JoyFox die Datei geprüft hat. Wähle die Datei noch einmal |
 | `error.data.unknownType` | Unknown data type | Unbekannter Datentyp |
 | `error.data.accountRecord` | The account record is removed only with the whole account | Der Kontodatensatz wird nur mit dem ganzen Konto entfernt |
-| `error.import.tooLarge` | The file is too large to be a JoyFox export | Die Datei ist zu groß für einen JoyFox-Export |
-| `error.import.notJson` | The file is not a JoyFox export (not valid JSON) | Die Datei ist kein JoyFox-Export (kein gültiges JSON) |
-| `error.import.notExport` | The file is not a JoyFox export | Die Datei ist kein JoyFox-Export |
-| `error.import.noVersion` | The file has no valid schema version | Die Datei hat keine gültige Schemaversion |
+| `error.import.tooLarge` | The file is too large to be a JoyFox export. Choose a file exported by JoyFox | Die Datei ist zu groß für einen JoyFox-Export. Wähle eine Datei, die JoyFox exportiert hat |
+| `error.import.notJson` | The file is not a JoyFox export. Choose a file exported by JoyFox | Die Datei ist kein JoyFox-Export. Wähle eine Datei, die JoyFox exportiert hat |
+| `error.import.notExport` | The file is not a JoyFox export. Choose a file exported by JoyFox | Die Datei ist kein JoyFox-Export. Wähle eine Datei, die JoyFox exportiert hat |
+| `error.import.noVersion` | The file does not say which JoyFox version made it. Choose a file exported by JoyFox | Die Datei sagt nicht, welche JoyFox-Version sie erstellt hat. Wähle eine Datei, die JoyFox exportiert hat |
 | `error.import.newerVersion` | The file comes from a newer JoyFox version. Update JoyFox first | Die Datei stammt aus einer neueren JoyFox-Version. Aktualisiere zuerst JoyFox |
-| `error.import.noScope` | The file has no valid export scope | Die Datei hat keinen gültigen Exportumfang |
-| `error.import.noAccountNamed` | The account export names no account | Der Kontoexport nennt kein Konto |
-| `error.import.unknownType` | The file holds an unknown data type ({name}) | Die Datei enthält einen unbekannten Datentyp ({name}) |
-| `error.import.notList` | The file's {entity} list is not a list | „{entity}“ ist in der Datei keine Liste |
-| `error.import.notRecord` | Record {index} of {entity} is not a record | Eintrag {index} in „{entity}“ ist kein Datensatz |
-| `error.import.forbiddenKey` | Record {index} of {entity} holds a forbidden key | Eintrag {index} in „{entity}“ enthält einen verbotenen Schlüssel |
-| `error.import.unknownField` | Record {index} of {entity} holds an unknown field ({field}) | Eintrag {index} in „{entity}“ enthält ein unbekanntes Feld ({field}) |
-| `error.import.tooLong` | Record {index} of {entity} is invalid: {field} is longer than {maximum} characters | Eintrag {index} in „{entity}“ ist ungültig: {field} hat mehr als {maximum} Zeichen |
-| `error.import.invalid` | Record {index} of {entity} is invalid | Eintrag {index} in „{entity}“ ist ungültig |
-| `error.import.future` | Record {index} of {entity} is dated in the future | Eintrag {index} in „{entity}“ hat ein Datum in der Zukunft |
-| `error.import.otherAccount` | Record {index} of {entity} belongs to another account | Eintrag {index} in „{entity}“ gehört zu einem anderen Konto |
-| `error.import.notOwnScope` | Account record {index} is not its own scope | Kontodatensatz {index} gehört nicht zu sich selbst |
-| `error.import.twice` | Record {index} of {entity} appears twice | Eintrag {index} in „{entity}“ kommt zweimal vor |
-| `error.import.sameIdentifier` | Two accounts in the file have the same identifier | Zwei Konten in der Datei haben dieselbe Kennung |
-| `error.import.noAccountRecord` | The account export holds no account record | Der Kontoexport enthält keinen Kontodatensatz |
-| `error.import.settingsInvalid` | The file's settings are invalid | Die Einstellungen in der Datei sind ungültig |
-| `error.import.settingsForbidden` | The file's settings hold a forbidden key | Die Einstellungen in der Datei enthalten einen verbotenen Schlüssel |
-| `error.import.unknownSetting` | The file holds a setting JoyFox does not use ({key}) | Die Datei enthält eine Einstellung, die JoyFox nicht verwendet ({key}) |
-| `error.import.orphans` | Some records in the file belong to an account the file does not hold | Einige Datensätze in der Datei gehören zu einem Konto, das die Datei nicht enthält |
-| `error.import.sameRecordTwice` | The file holds the same record twice after merging accounts | Die Datei enthält nach dem Zusammenführen der Konten denselben Datensatz zweimal |
+| `error.import.noScope` | The file does not say if it holds one account or all data. Choose a file exported by JoyFox | Die Datei sagt nicht, ob sie ein Konto oder alle Daten enthält. Wähle eine Datei, die JoyFox exportiert hat |
+| `error.import.noAccountNamed` | The file is an export of one account, but it does not name the account. Choose a file exported by JoyFox | Die Datei ist der Export eines Kontos, nennt das Konto aber nicht. Wähle eine Datei, die JoyFox exportiert hat |
+| `error.import.unknownType` | The file holds a type of data that JoyFox does not know ({name}). Choose a file exported by JoyFox | Die Datei enthält eine Art von Daten, die JoyFox nicht kennt ({name}). Wähle eine Datei, die JoyFox exportiert hat |
+| `error.import.notList` | The {entity} part of the file is damaged. Choose a file exported by JoyFox | Der Teil „{entity}“ der Datei ist beschädigt. Wähle eine Datei, die JoyFox exportiert hat |
+| `error.import.notRecord` | Record {index} in {entity} is damaged. Choose a file exported by JoyFox | Eintrag {index} in „{entity}“ ist beschädigt. Wähle eine Datei, die JoyFox exportiert hat |
+| `error.import.forbiddenKey` | Record {index} in {entity} holds a field name that JoyFox does not allow. Choose a file exported by JoyFox | Eintrag {index} in „{entity}“ enthält einen Feldnamen, den JoyFox nicht erlaubt. Wähle eine Datei, die JoyFox exportiert hat |
+| `error.import.unknownField` | Record {index} in {entity} holds a field that JoyFox does not know ({field}). Choose a file exported by JoyFox | Eintrag {index} in „{entity}“ enthält ein Feld, das JoyFox nicht kennt ({field}). Wähle eine Datei, die JoyFox exportiert hat |
+| `error.import.tooLong` | Record {index} in {entity} is too long: {field} has more than {maximum} characters. Choose a file exported by JoyFox | Eintrag {index} in „{entity}“ ist zu lang: {field} hat mehr als {maximum} Zeichen. Wähle eine Datei, die JoyFox exportiert hat |
+| `error.import.invalid` | Record {index} in {entity} is damaged. Choose a file exported by JoyFox | Eintrag {index} in „{entity}“ ist beschädigt. Wähle eine Datei, die JoyFox exportiert hat |
+| `error.import.future` | Record {index} in {entity} has a date in the future. Check the clock of the computer that made the file | Eintrag {index} in „{entity}“ hat ein Datum in der Zukunft. Prüfe die Uhr des Computers, der die Datei erstellt hat |
+| `error.import.otherAccount` | Record {index} in {entity} belongs to another account. Choose a file exported by JoyFox | Eintrag {index} in „{entity}“ gehört zu einem anderen Konto. Wähle eine Datei, die JoyFox exportiert hat |
+| `error.import.notOwnScope` | Account record {index} is damaged. Choose a file exported by JoyFox | Kontodatensatz {index} ist beschädigt. Wähle eine Datei, die JoyFox exportiert hat |
+| `error.import.twice` | Record {index} in {entity} is in the file twice. Choose a file exported by JoyFox | Eintrag {index} in „{entity}“ kommt in der Datei zweimal vor. Wähle eine Datei, die JoyFox exportiert hat |
+| `error.import.sameIdentifier` | Two accounts in the file have the same identifier. Choose a file exported by JoyFox | Zwei Konten in der Datei haben dieselbe Kennung. Wähle eine Datei, die JoyFox exportiert hat |
+| `error.import.noAccountRecord` | The file is an export of one account, but it does not hold that account. Choose a file exported by JoyFox | Die Datei ist der Export eines Kontos, enthält dieses Konto aber nicht. Wähle eine Datei, die JoyFox exportiert hat |
+| `error.import.settingsInvalid` | The settings in the file are damaged. Choose a file exported by JoyFox | Die Einstellungen in der Datei sind beschädigt. Wähle eine Datei, die JoyFox exportiert hat |
+| `error.import.settingsForbidden` | The settings in the file hold a name that JoyFox does not allow. Choose a file exported by JoyFox | Die Einstellungen in der Datei enthalten einen Namen, den JoyFox nicht erlaubt. Wähle eine Datei, die JoyFox exportiert hat |
+| `error.import.unknownSetting` | The file holds a setting that JoyFox does not use ({key}). Choose a file exported by JoyFox | Die Datei enthält eine Einstellung, die JoyFox nicht verwendet ({key}). Wähle eine Datei, die JoyFox exportiert hat |
+| `error.import.orphans` | Some records in the file belong to an account that the file does not hold. Choose a file exported by JoyFox | Einige Datensätze in der Datei gehören zu einem Konto, das die Datei nicht enthält. Wähle eine Datei, die JoyFox exportiert hat |
+| `error.import.sameRecordTwice` | Two records in the file would become the same record here. Choose a file exported by JoyFox | Zwei Datensätze in der Datei würden hier zum selben Datensatz. Wähle eine Datei, die JoyFox exportiert hat |
