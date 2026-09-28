@@ -347,6 +347,7 @@ stay as they are.
 | `events.exception.label` | Shared-event exception: place a sender in Qualified when they are on the guest list of an event I marked Attending or Attended | Ausnahme für gemeinsame Events: eine Person als „Qualifiziert“ einordnen, wenn sie auf der Gästeliste eines Events steht, das ich mit „Ich gehe hin“ oder „Ich war dort“ markiert habe |
 | `events.exception.hint` | Off by default. JoyFox stores a tracked event's guest list when you open the event page, as far as JoyClub has loaded it, and deletes it when you stop tracking the event. A sender you moved yourself keeps your choice, and the "Why" panel can turn the exception off for one sender. | Standardmäßig aus. JoyFox speichert die Gästeliste eines verfolgten Events, wenn du die Event-Seite öffnest, so weit JoyClub sie geladen hat, und löscht sie, wenn du das Event nicht mehr verfolgst. Eine Person, die du selbst verschoben hast, behält deine Wahl, und im Bereich „Warum“ kannst du die Ausnahme für eine Person abschalten. |
 | `events.exception.saved` | Saved. | Gespeichert. |
+| `events.exception.saveFailed` | JoyFox could not save this setting. Try again. | JoyFox konnte diese Einstellung nicht speichern. Versuche es noch einmal. |
 
 ## quickSetting
 
@@ -354,7 +355,9 @@ stay as they are.
 | --- | --- | --- |
 | `quickSetting.heading` | Ignore and Delete | Ignorieren und löschen |
 | `quickSetting.label` | Show the "Ignore and Delete" button on ClubMail conversations | Die Schaltfläche „Ignorieren und löschen“ in ClubMail-Unterhaltungen zeigen |
-| `quickSetting.hint` | Experimental and off by default. One click moves the conversation to JoyClub's trash, opens the member's profile in the same tab and ignores the member there. JoyFox acts only when you click, and the ActionLog in "Your data" records every step. | Experimentell und standardmäßig aus. Ein Klick schiebt die Unterhaltung in JoyClubs Papierkorb, öffnet das Profil des Mitglieds im selben Tab und ignoriert das Mitglied dort. JoyFox handelt nur, wenn du klickst, und das ActionLog unter „Deine Daten“ hält jeden Schritt fest. |
+| `quickSetting.hint` | Experimental and off by default. One click moves the conversation to JoyClub's trash, opens the member's profile in the same tab and ignores the member there. It works only while the ClubMail list shows beside the conversation. JoyFox acts only when you click. The "Action log" in "Your data" records every step. | Experimentell und standardmäßig aus. Ein Klick schiebt die Unterhaltung in JoyClubs Papierkorb, öffnet das Profil des Mitglieds im selben Tab und ignoriert das Mitglied dort. Das funktioniert nur, solange die ClubMail-Liste neben der Unterhaltung zu sehen ist. JoyFox handelt nur, wenn du klickst. Das „Aktionsprotokoll“ unter „Deine Daten“ hält jeden Schritt fest. |
+| `quickSetting.risk` | If JoyClub finds a tool that clicks for you, it can restrict or close your account. Of all JoyFox features, this one has the highest risk. | Bemerkt JoyClub ein Werkzeug, das für dich klickt, kann dein Konto eingeschränkt oder geschlossen werden. Von allen JoyFox-Funktionen hat diese das höchste Risiko. |
+| `quickSetting.undo` | To undo, restore the conversation from JoyClub's trash. Then open the member's profile and choose "Profil nicht mehr ignorieren" in its menu. | Um es rückgängig zu machen, stelle die Unterhaltung aus JoyClubs Papierkorb wieder her. Öffne dann das Profil des Mitglieds und wähle im Menü „Profil nicht mehr ignorieren“. |
 | `quickSetting.saved` | Saved. Open ClubMail tabs follow at once. | Gespeichert. Offene ClubMail-Tabs folgen sofort. |
 | `quickSetting.saveFailed` | JoyFox could not save this setting. Try again. | JoyFox konnte diese Einstellung nicht speichern. Versuche es noch einmal. |
 
@@ -387,14 +390,16 @@ stay as they are.
 | Key | English | Deutsch |
 | --- | --- | --- |
 | `messages.heading` | Message search | Nachrichtensuche |
-| `messages.hint` | JoyFox stores the ClubMail messages you open, sent and received, so you can search them here. It stores only what a conversation shows on screen and never loads older messages. The text stays in this browser, and an export file holds it too. | JoyFox speichert die ClubMail-Nachrichten, die du öffnest, gesendete und empfangene, damit du sie hier durchsuchen kannst. Es speichert nur, was eine Unterhaltung auf dem Bildschirm zeigt, und lädt nie ältere Nachrichten. Der Text bleibt in diesem Browser, und eine Exportdatei enthält ihn auch. |
+| `messages.hint` | JoyFox stores the ClubMail messages you open, sent and received, so you can search them here. It stores only what a conversation shows on screen and never loads older messages. The text stays in this browser, and an export file holds it too. If you allow JoyFox in private windows, it stores the messages you open there in the same way. | JoyFox speichert die ClubMail-Nachrichten, die du öffnest, gesendete und empfangene, damit du sie hier durchsuchen kannst. Es speichert nur, was eine Unterhaltung auf dem Bildschirm zeigt, und lädt nie ältere Nachrichten. Der Text bleibt in diesem Browser, und eine Exportdatei enthält ihn auch. Wenn du JoyFox in privaten Fenstern erlaubst, speichert es die Nachrichten, die du dort öffnest, genauso. |
 | `messages.caching` | Store the messages I open in ClubMail | Die Nachrichten speichern, die ich in ClubMail öffne |
 | `messages.cachingOn` | Message storing is on. | Das Speichern von Nachrichten ist an. |
-| `messages.cachingOff` | Message storing is off. Messages stored before stay until they are older than the time below, or until you delete them under "Your data". | Das Speichern von Nachrichten ist aus. Schon gespeicherte Nachrichten bleiben, bis sie älter als die Zeit unten sind oder bis du sie unter „Deine Daten“ löschst. |
-| `messages.onHint` | Messages older than this are deleted automatically. | Ältere Nachrichten werden automatisch gelöscht. |
+| `messages.cachingOff` | Message storing is off. Messages stored before stay until they are older than the time set here, or until you delete them under "Your data". | Das Speichern von Nachrichten ist aus. Schon gespeicherte Nachrichten bleiben, bis sie älter als die hier eingestellte Zeit sind oder bis du sie unter „Deine Daten“ löschst. |
 | `messages.offHint` | Storing is off: JoyFox stores no new messages. Search still covers the messages stored before. | Das Speichern ist aus: JoyFox speichert keine neuen Nachrichten. Die Suche umfasst weiter die schon gespeicherten Nachrichten. |
 | `messages.retentionLabel` | Keep messages for (months) | Nachrichten behalten für (Monate) |
 | `messages.retentionSave` | Save | Speichern |
+| `messages.retentionHint` | Messages older than this are deleted automatically. Lowering the number deletes older messages at once. The default is {default}. Click "Save" to apply. | Ältere Nachrichten werden automatisch gelöscht. Eine kleinere Zahl löscht ältere Nachrichten sofort. Standard ist {default}. Klicke zum Übernehmen auf „Speichern“. |
+| `messages.retentionConfirm` | Save and delete | Speichern und löschen |
+| `messages.retentionConfirmPrompt` | Lowering the number deletes the stored messages older than 1 month / {months} months at once. Click "Save and delete" to confirm. | Eine kleinere Zahl löscht die gespeicherten Nachrichten, die älter als 1 Monat / {months} Monate sind, sofort. Klicke zum Bestätigen auf „Speichern und löschen“. |
 | `messages.retentionSaved` | Saved. 1 older message was / {deleted} older messages were deleted. | Gespeichert. 1 ältere Nachricht wurde / {deleted} ältere Nachrichten wurden gelöscht. |
 | `messages.retentionInvalid` | Enter a whole number from {minimum} to {maximum}. Nothing was changed. | Gib eine ganze Zahl von {minimum} bis {maximum} ein. Es wurde nichts geändert. |
 | `messages.noAccount` | Select or add an account first. | Wähle zuerst ein Konto aus oder füge eines hinzu. |
@@ -528,6 +533,7 @@ stay as they are.
 | `options.tabs.messages` | Messages | Nachrichten |
 | `options.tabs.data` | Your data | Deine Daten |
 | `options.importRegion` | Import JoyFox data | JoyFox-Daten importieren |
+| `options.languageSaveFailed` | JoyFox could not save the language. Try again. | JoyFox konnte die Sprache nicht speichern. Versuche es noch einmal. |
 
 ## start
 
