@@ -212,6 +212,23 @@ describe("V1-5 event panel", () => {
     expect(document.activeElement).toBe(attendance());
   });
 
+  it("says nothing was saved when the active account changed first", async () => {
+    mount();
+    await flush();
+    client.save.mockResolvedValueOnce({ status: "refused" });
+    const select = document.querySelector<HTMLSelectElement>(
+      "#joyfox-listing-attendance",
+    )!;
+    select.value = "attending";
+    select.dispatchEvent(new Event("change"));
+    await flush();
+    expect(status()).toBe(
+      "The active JoyFox account changed, so nothing was saved.",
+    );
+    // The box reads the notes of the account active now.
+    expect(client.get).toHaveBeenCalledTimes(2);
+  });
+
   it("saves the note with its button and keeps a typed note across a conflict", async () => {
     mount();
     await flush();

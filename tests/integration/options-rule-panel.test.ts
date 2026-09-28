@@ -407,6 +407,28 @@ describe("M4 rule builder panel", () => {
     expect(await rules.getGlobalRule(a.id)).toBeUndefined();
   });
 
+  it("does not delete a rule that another tab changed meanwhile", async () => {
+    const a = await accounts.createAccount({ joyClubAccountId: "a" });
+    const stored = {
+      schemaVersion: 1 as const,
+      audience: "all" as const,
+      enabled: true,
+      defaultPlacement: "quarantined" as const,
+      root: { type: "group" as const, match: "all" as const, children: [] },
+    };
+    await rules.saveGlobalRule(a.id, stored);
+    await panel.render();
+    // Another tab saves a change; this tab has not redrawn.
+    await rules.saveGlobalRule(a.id, { ...stored, enabled: false });
+    deleteAll().click();
+    deleteAll().click();
+    await settle(() => status()?.getAttribute("data-kind") === "error");
+    expect(status()?.textContent).toBe(
+      "The rule was changed in another tab. It was not deleted. The form now shows the saved rule.",
+    );
+    expect(await rules.getGlobalRule(a.id)).toBeDefined();
+  });
+
   it("does not let a stale second tab recreate a removed rule", async () => {
     const a = await accounts.createAccount({ joyClubAccountId: "a" });
     await rules.saveGlobalRule(a.id, {
