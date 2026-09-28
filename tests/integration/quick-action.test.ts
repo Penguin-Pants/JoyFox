@@ -2187,6 +2187,40 @@ describe("M9 button and notice", () => {
     expect(visited).toEqual([]);
   });
 
+  it("does not return when the flag is turned off while the end is stored", async () => {
+    // Hold the last stored step, so the flag goes off before the run ends.
+    let release: () => void = () => undefined;
+    let held = false;
+    const record = client.recorder;
+    client = {
+      ...client,
+      recorder: (accountId) => {
+        const inner = record(accountId);
+        return {
+          ...inner,
+          record: async (operationId, state, failure) => {
+            if (state === "Completed") {
+              held = true;
+              await new Promise<void>((resolve) => (release = resolve));
+            }
+            return inner.record(operationId, state, failure);
+          },
+        };
+      },
+    };
+    const driver = new FakeDriver();
+    const visited: string[] = [];
+    const quick = await handedOffToProfile(driver, visited);
+    await vi.waitFor(() => expect(held).toBe(true));
+    quick.turnOff();
+    release();
+    await vi.waitFor(async () =>
+      expect((await logged())[0]?.at(-1)).toBe("Completed"),
+    );
+    await new Promise((resolve) => setTimeout(resolve, 80));
+    expect(visited).toEqual([]);
+  });
+
   it("shows the continued line once while a resumed run starts", async () => {
     const driver = new FakeDriver();
     // Hold the first stored step, so the run's first line stays on screen.

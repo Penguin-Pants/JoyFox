@@ -352,7 +352,9 @@ export class QuickIgnoreDelete {
         this.#result = { key, lines: result.report.lines };
         // Both steps are done: back to the ClubMail list. A run that stopped
         // stays on the profile, where its notice names the next manual step.
-        if (result.report.status === "completed")
+        // Not when the flag was turned off or the account changed while the
+        // end was stored: `turnOff` had no timer to clear yet.
+        if (result.report.status === "completed" && !this.#stop)
           this.#returnToClubMail(answer.memberId);
       })
       .catch(() => {
