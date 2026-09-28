@@ -169,6 +169,8 @@ export const MESSAGE_PARAMS: {
   "signals.editor.label": { member: "string" },
   "member.number": { id: "string" },
   "signals.filter.count": { hidden: "number", loaded: "number" },
+  "messages.retentionHint": { default: "number" },
+  "messages.retentionConfirmPrompt": { months: "number" },
   "messages.retentionSaved": { deleted: "number" },
   "messages.retentionInvalid": { minimum: "number", maximum: "number" },
   "messages.count": { count: "number" },

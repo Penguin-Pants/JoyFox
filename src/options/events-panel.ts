@@ -11,6 +11,7 @@ import {
 } from "../storage/local-settings";
 import { bumpTriageRevision } from "../storage/triage-revision";
 import { SHARED_EVENT_EXCEPTION_KEY } from "../triage/shared-event";
+import { StatusLine } from "./status-line";
 
 const ATTENDANCE_TEXT: Record<Attendance, PlainKey> = {
   unknown: "listing.attendance.unknown",
@@ -79,7 +80,11 @@ export class EventsPanel {
   #search = "";
   /** V1-13: the shared-event exception; off unless turned on. */
   #exception = false;
-  #exceptionSaved = false;
+  /**
+   * What the last change of the exception did. Created once and re-attached
+   * on every draw (see `StatusLine`).
+   */
+  readonly #status: StatusLine;
 
   constructor(
     private readonly root: HTMLElement,
@@ -87,7 +92,9 @@ export class EventsPanel {
     private readonly accounts = new AccountService(),
     private readonly now: () => Date = () => new Date(),
     private readonly settings: SettingsArea = runtimeSettingsArea,
-  ) {}
+  ) {
+    this.#status = new StatusLine(root.ownerDocument);
+  }
 
   async render(): Promise<void> {
     const generation = (this.#generation += 1);
@@ -210,6 +217,8 @@ export class EventsPanel {
       option(`tag:${tag}`, t(message("eventFilter.tag", { tag })));
     select.addEventListener("change", () => {
       this.#filter = select.value as Filter;
+      // The user moved on: the switch's last result no longer applies.
+      this.#status.clear();
       this.#draw(accountId, records);
     });
     const searchLabel = element(document, "label", "", t("events.searchLabel"));
@@ -222,6 +231,7 @@ export class EventsPanel {
       // Kept as typed, so a space before the next word is not lost when
       // the list is drawn again; `matches` trims it.
       this.#search = search.value;
+      this.#status.clear();
       const start = search.selectionStart;
       this.#draw(accountId, records);
       const again = this.root.querySelector<HTMLInputElement>(
@@ -333,28 +343,20 @@ export class EventsPanel {
         // Open JoyClub pages place their senders again at once.
         .then(() => bumpTriageRevision(this.settings))
         .then(() => {
-          this.#exceptionSaved = true;
+          this.#status.set(message("events.exception.saved"), "info");
           return this.render();
         })
         .catch(() => {
           toggle.checked = this.#exception;
+          this.#status.set(message("events.exception.saveFailed"), "error");
         });
     });
+    this.#status.redraw();
     box.append(
       label,
       element(document, "p", "joyfox-panel__hint", t("events.exception.hint")),
+      this.#status.node,
     );
-    if (this.#exceptionSaved) {
-      const status = element(
-        document,
-        "p",
-        "joyfox-panel__status",
-        t("events.exception.saved"),
-      );
-      status.setAttribute("role", "status");
-      box.append(status);
-      this.#exceptionSaved = false;
-    }
     return box;
   }
 }

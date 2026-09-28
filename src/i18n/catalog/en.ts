@@ -434,12 +434,18 @@ export const en = {
   "events.exception.hint":
     'Off by default. JoyFox stores a tracked event\'s guest list when you open the event page, as far as JoyClub has loaded it, and deletes it when you stop tracking the event. A sender you moved yourself keeps your choice, and the "Why" panel can turn the exception off for one sender.',
   "events.exception.saved": "Saved.",
+  "events.exception.saveFailed":
+    "JoyFox could not save this setting. Try again.",
   // Options page: the switch for the experimental Ignore and Delete (M9)
   "quickSetting.heading": "Ignore and Delete",
   "quickSetting.label":
     'Show the "Ignore and Delete" button on ClubMail conversations',
   "quickSetting.hint":
-    "Experimental and off by default. One click moves the conversation to JoyClub's trash, opens the member's profile in the same tab and ignores the member there. JoyFox acts only when you click, and the ActionLog in \"Your data\" records every step.",
+    'Experimental and off by default. One click moves the conversation to JoyClub\'s trash, opens the member\'s profile in the same tab and ignores the member there. It works only while the ClubMail list shows beside the conversation. JoyFox acts only when you click. The "Action log" in "Your data" records every step.',
+  "quickSetting.risk":
+    "If JoyClub finds a tool that clicks for you, it can restrict or close your account. Of all JoyFox features, this one has the highest risk.",
+  "quickSetting.undo":
+    "To undo, restore the conversation from JoyClub's trash. Then open the member's profile and choose \"Profil nicht mehr ignorieren\" in its menu.",
   "quickSetting.saved": "Saved. Open ClubMail tabs follow at once.",
   "quickSetting.saveFailed": "JoyFox could not save this setting. Try again.",
   "sharedEvents.heading": "Shared events",
@@ -466,16 +472,24 @@ export const en = {
   // Options page: message search (V1-4)
   "messages.heading": "Message search",
   "messages.hint":
-    "JoyFox stores the ClubMail messages you open, sent and received, so you can search them here. It stores only what a conversation shows on screen and never loads older messages. The text stays in this browser, and an export file holds it too.",
+    "JoyFox stores the ClubMail messages you open, sent and received, so you can search them here. It stores only what a conversation shows on screen and never loads older messages. The text stays in this browser, and an export file holds it too. If you allow JoyFox in private windows, it stores the messages you open there in the same way.",
   "messages.caching": "Store the messages I open in ClubMail",
   "messages.cachingOn": "Message storing is on.",
   "messages.cachingOff":
-    'Message storing is off. Messages stored before stay until they are older than the time below, or until you delete them under "Your data".',
-  "messages.onHint": "Messages older than this are deleted automatically.",
+    'Message storing is off. Messages stored before stay until they are older than the time set here, or until you delete them under "Your data".',
   "messages.offHint":
     "Storing is off: JoyFox stores no new messages. Search still covers the messages stored before.",
   "messages.retentionLabel": "Keep messages for (months)",
   "messages.retentionSave": "Save",
+  "messages.retentionHint": (p: { default: number }, f: Format) =>
+    `Messages older than this are deleted automatically. Lowering the number deletes older messages at once. The default is ${f.number(p.default)}. Click "Save" to apply.`,
+  // Save asks for a second click when the number goes down, as deletes do.
+  "messages.retentionConfirm": "Save and delete",
+  "messages.retentionConfirmPrompt": (p: { months: number }, f: Format) =>
+    `Lowering the number deletes the stored messages older than ${f.plural(
+      p.months,
+      { one: "1 month", other: `${f.number(p.months)} months` },
+    )} at once. Click "Save and delete" to confirm.`,
   "messages.retentionSaved": (p: { deleted: number }, f: Format) =>
     p.deleted === 0
       ? "Saved. No older message needed deleting."
@@ -658,6 +672,8 @@ export const en = {
   "options.tabs.messages": "Messages",
   "options.tabs.data": "Your data",
   "options.importRegion": "Import JoyFox data",
+  "options.languageSaveFailed":
+    "JoyFox could not save the language. Try again.",
 
   // Options page: Get started
   "start.state.done": "Done",

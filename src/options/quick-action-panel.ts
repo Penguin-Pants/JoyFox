@@ -1,10 +1,22 @@
 import { QUICK_ACTION_KEY } from "../actions/quick-action-setting";
 import type { PlainKey } from "../i18n/catalog/en";
+import { message } from "../i18n/message";
 import { t } from "../i18n/translator";
 import {
   runtimeSettingsArea,
   type SettingsArea,
 } from "../storage/local-settings";
+import { StatusLine } from "./status-line";
+
+/**
+ * What the switch does, what can go wrong and how to undo it, in that
+ * order. The switch names all three as its description.
+ */
+const HINTS: readonly [id: string, key: PlainKey][] = [
+  ["joyfox-quick-action-hint", "quickSetting.hint"],
+  ["joyfox-quick-action-risk", "quickSetting.risk"],
+  ["joyfox-quick-action-undo", "quickSetting.undo"],
+];
 
 function element<K extends keyof HTMLElementTagNameMap>(
   document: Document,
@@ -26,13 +38,16 @@ function element<K extends keyof HTMLElementTagNameMap>(
 export class QuickActionPanel {
   #generation = 0;
   #on = false;
-  #status?: PlainKey;
+  /** Created once and re-attached on every draw (see `StatusLine`). */
+  readonly #status: StatusLine;
   #focusToggle = false;
 
   constructor(
     private readonly root: HTMLElement,
     private readonly settings: SettingsArea = runtimeSettingsArea,
-  ) {}
+  ) {
+    this.#status = new StatusLine(root.ownerDocument);
+  }
 
   async render(): Promise<void> {
     const generation = (this.#generation += 1);
@@ -61,6 +76,7 @@ export class QuickActionPanel {
     toggle.type = "checkbox";
     toggle.id = "joyfox-quick-action-toggle";
     toggle.checked = this.#on;
+    toggle.setAttribute("aria-describedby", HINTS.map(([id]) => id).join(" "));
     label.append(toggle, " ", t("quickSetting.label"));
     toggle.addEventListener("change", () => {
       // The redraw replaces the box; the keyboard stays on it.
@@ -68,31 +84,22 @@ export class QuickActionPanel {
       void this.settings
         .set({ [QUICK_ACTION_KEY]: toggle.checked })
         .then(() => {
-          this.#status = "quickSetting.saved";
+          this.#status.set(message("quickSetting.saved"), "info");
           return this.render();
         })
         .catch(() => {
           toggle.checked = this.#on;
-          this.#status = "quickSetting.saveFailed";
+          this.#status.set(message("quickSetting.saveFailed"), "error");
           this.#draw();
         });
     });
-    this.root.replaceChildren(
-      heading,
-      label,
-      element(document, "p", "joyfox-panel__hint", t("quickSetting.hint")),
-    );
-    if (this.#status) {
-      const status = element(
-        document,
-        "p",
-        "joyfox-panel__status",
-        t(this.#status),
-      );
-      status.setAttribute("role", "status");
-      this.root.append(status);
-      this.#status = undefined;
-    }
+    const hints = HINTS.map(([id, key]) => {
+      const hint = element(document, "p", "joyfox-panel__hint", t(key));
+      hint.id = id;
+      return hint;
+    });
+    this.#status.redraw();
+    this.root.replaceChildren(heading, label, ...hints, this.#status.node);
     if (this.#focusToggle) {
       this.#focusToggle = false;
       toggle.focus();
