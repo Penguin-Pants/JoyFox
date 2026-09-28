@@ -8,8 +8,9 @@ How to publish a signed, unlisted release on GitHub. The background is in
 - **Every release has a higher version than all earlier ones.** Firefox installs
   only an update with a higher version. A fix for a bad release is a new, higher
   version, never an older number again.
-- **The version is in two places:** `package.json` (with `package-lock.json`)
-  and `manifests/firefox.json`. `npm run lint` checks that they match.
+- **The version is in three places:** `package.json` (with `package-lock.json`),
+  `manifests/firefox.json` and `manifests/chrome.json`. `npm run lint` checks
+  that they match.
 - **Every version needs its release notes** in
   `docs/release-notes/<version>.md`, with the README's "Disclaimer" section word
   for word. `npm run lint` checks this.
@@ -35,8 +36,8 @@ How to publish a signed, unlisted release on GitHub. The background is in
 
 1. **Release PR.** Raise the version with
    `npm version <x.y.z> --no-git-tag-version`, set the same `version` in
-   `manifests/firefox.json`, and add `docs/release-notes/<x.y.z>.md`. Merge it
-   into `main` once CI is green.
+   `manifests/firefox.json` and `manifests/chrome.json`, and add
+   `docs/release-notes/<x.y.z>.md`. Merge it into `main` once CI is green.
 2. **Sign.** In GitHub, open Actions > "Release" > "Run workflow" on `main`. The
    workflow:
    - runs every check, builds `dist/firefox` and runs Mozilla's linter;

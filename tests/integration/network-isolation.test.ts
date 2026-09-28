@@ -27,6 +27,7 @@ import { TriageService } from "../../src/triage/triage-service";
 import { TrustService } from "../../src/trust/trust-service";
 import { MemorySettingsArea } from "../memory-settings";
 import { freshDatabase } from "../setup-indexeddb";
+import chromeManifestText from "../../manifests/chrome.json?raw";
 import manifestText from "../../manifests/firefox.json?raw";
 import conversationHtml from "../fixtures/joyclub/conversation.html?raw";
 import inboxHtml from "../fixtures/joyclub/inbox.html?raw";
@@ -74,21 +75,33 @@ describe("network isolation (build plan Section 23)", () => {
     expect(found).toEqual([]);
   });
 
-  it("the manifest loads no remote code and allows no remote origin", async () => {
-    const manifest = JSON.parse(manifestText) as Record<string, unknown>;
-    expect(manifest.content_security_policy).toBeUndefined();
-    const origins = manifestText.match(/\*:\/\/[^"/]+/g) ?? [];
-    expect(new Set(origins)).toEqual(
-      new Set(["*://*.joyclub.de", "*://*.joyce.app"]),
-    );
-  });
+  it.each([
+    ["Firefox", manifestText],
+    ["Chrome", chromeManifestText],
+  ])(
+    "the %s manifest loads no remote code and allows no remote origin",
+    async (_browser, text) => {
+      const manifest = JSON.parse(text) as Record<string, unknown>;
+      expect(manifest.content_security_policy).toBeUndefined();
+      const origins = text.match(/\*:\/\/[^"/]+/g) ?? [];
+      expect(new Set(origins)).toEqual(
+        new Set(["*://*.joyclub.de", "*://*.joyce.app"]),
+      );
+    },
+  );
 
-  it("the manifest names one remote address: Firefox's own update check", () => {
+  it("the Firefox manifest names one remote address: Firefox's own update check", () => {
     // Firefox, not JoyFox, fetches `update_url` (ADR 0016, privacy model).
     const addresses = manifestText.match(/https?:\/\/[^"]+/g) ?? [];
     expect(addresses).toEqual([
       "https://raw.githubusercontent.com/Penguin-Pants/JoyFox/main/updates.json",
     ]);
+  });
+
+  it("the Chrome manifest names no remote address", () => {
+    // The Chrome Web Store updates the extension; the manifest has no
+    // `update_url`.
+    expect(chromeManifestText.match(/https?:\/\/[^"]+/g)).toBeNull();
   });
 
   describe("at runtime", () => {

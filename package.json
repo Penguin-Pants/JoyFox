@@ -6,13 +6,15 @@
   "type": "module",
   "scripts": {
     "build:firefox": "node scripts/build-firefox.mjs",
+    "build:chrome": "node scripts/build-chrome.mjs",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "lint": "eslint . && node scripts/check-permissions.mjs && node scripts/check-release.mjs",
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
     "lint:amo": "web-ext lint --source-dir dist/firefox --self-hosted",
-    "package:source": "node scripts/package-source.mjs"
+    "package:source": "node scripts/package-source.mjs",
+    "package:chrome": "npm run build:chrome && web-ext build --source-dir dist/chrome --artifacts-dir dist --filename joyfox-{version}-chrome.zip --overwrite-dest"
   },
   "devDependencies": {
     "@eslint/js": "9.36.0",

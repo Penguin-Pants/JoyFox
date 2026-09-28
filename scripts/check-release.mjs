@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 
 /**
- * Release files (V1-9, `docs/release.md`): the manifest and `package.json`
+ * Release files (V1-9, `docs/release.md`): the manifests and `package.json`
  * carry the same version, the manifest points Firefox at the decided update
  * address (ADR 0016), and `updates.json` has the form Mozilla documents
  * ("Updating your extension", `docs/distribution.md`).
@@ -14,12 +14,14 @@ const HASH = /^sha(256:[0-9a-f]{64}|512:[0-9a-f]{128})$/;
 
 const readJson = async (path) => JSON.parse(await readFile(path, "utf8"));
 const manifest = await readJson("manifests/firefox.json");
+const chrome = await readJson("manifests/chrome.json");
 const pkg = await readJson("package.json");
 const updates = await readJson("updates.json");
 const gecko = manifest.browser_specific_settings.gecko;
 
 assert.match(manifest.version, VERSION, "manifest version is x.y.z");
 assert.equal(pkg.version, manifest.version, "package.json version");
+assert.equal(chrome.version, manifest.version, "Chrome manifest version");
 assert.equal(gecko.update_url, UPDATE_URL, "manifest update_url");
 
 assert.deepEqual(Object.keys(updates), ["addons"], "updates.json top level");
