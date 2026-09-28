@@ -709,32 +709,51 @@ export const en = {
 
   // Options page: accounts
   "accounts.readFailed":
-    "JoyFox could not read its stored accounts. No account was changed.",
+    "JoyFox could not read its stored accounts. No account was changed. Reload the page to try again.",
   "accounts.hint":
-    "JoyFox cannot read which JoyClub login a tab uses. The active account is the one selected here, and all notes, tags and rules are stored under it.",
+    "JoyFox cannot read which JoyClub login a tab uses. The active account is the one selected here. JoyFox stores your notes, tags, rules, templates and other data under it.",
   "accounts.activeLabel": "Active account:",
   "accounts.noneSelected": "None selected",
-  "accounts.empty":
-    "No accounts yet. Add one below to start storing notes and tags.",
+  "accounts.empty": "No accounts yet. Add one below to use JoyFox.",
   "accounts.list": "Stored accounts",
+  // An account's label with its JoyClub identifier, so two accounts with
+  // similar labels can be told apart.
+  "accounts.nameWithIdentifier": (p: { label: string; identifier: string }) =>
+    `${p.label} (${p.identifier})`,
   "accounts.active": "Active",
   "accounts.inactive": "Not active",
   "accounts.use": "Use this account",
-  "accounts.useLabel": (p: { name: string }) => `Use account ${p.name}`,
+  "accounts.useLabel": (p: { name: string }) => `Use this account: ${p.name}`,
   "accounts.nowActive": (p: { name: string }) =>
     `Active account is now ${p.name}.`,
+  "accounts.rename": "Rename",
+  "accounts.renameLabel": (p: { name: string }) => `Rename account ${p.name}`,
+  "accounts.renameField": (p: { identifier: string }) =>
+    `New display label for ${p.identifier}`,
+  "accounts.renameSave": "Save",
+  "accounts.renameCancel": "Cancel",
+  "accounts.renamed": (p: { name: string }) =>
+    `Label saved. JoyFox now shows this account as ${p.name}.`,
   "accounts.remove": "Remove",
   "accounts.confirmRemove": "Confirm removal",
   "accounts.removeLabel": (p: { name: string }) => `Remove account ${p.name}`,
   "accounts.confirmRemoveLabel": (p: { name: string }) =>
     `Confirm removal of account ${p.name} and all of its data`,
   "accounts.removePrompt": (p: { name: string }) =>
-    `Removing ${p.name} also deletes its notes, tags and rules. Click again to confirm.`,
+    `Removing ${p.name} deletes everything JoyFox stored for this account, for example notes, tags, rules, templates, messages, event notes and saved searches. Click again to confirm.`,
   "accounts.removed": (p: { name: string }) =>
     `Removed ${p.name} and its stored data.`,
+  "accounts.removedNoneActive": (p: { name: string }) =>
+    `Removed ${p.name} and its stored data. No account is active now. Choose one with "Use this account".`,
+  "accounts.removedNoneLeft": (p: { name: string }) =>
+    `Removed ${p.name} and its stored data. No accounts are left. Add one to use JoyFox.`,
   "accounts.addForm": "Add an account",
   "accounts.identifier": "JoyClub account identifier",
+  "accounts.identifierHint":
+    "Your JoyClub nickname works well. JoyFox uses it only to tell your accounts apart and to match imports. JoyFox does not check it. You cannot change it later.",
   "accounts.label": "Display label (optional)",
+  "accounts.labelHint":
+    "Only JoyFox shows this label. If you leave it empty, JoyFox shows the identifier.",
   "accounts.add": "Add account",
   "accounts.added": (p: { name: string }) => `Added ${p.name}.`,
   "accounts.saveFailed": "That change could not be saved. Nothing was changed.",
@@ -876,11 +895,13 @@ export const en = {
 
   // Options page: templates
   "templates.readFailed":
-    "JoyFox could not read your templates. No template was changed.",
+    "JoyFox could not read your templates. No template was changed. Reload the page to try again.",
   "templates.heading": "Message templates",
   "templates.hint":
     'On a JoyClub conversation, the "JoyFox templates" button below the message field inserts a template at the cursor. You can still edit the text, and you always click JoyClub\'s Send button yourself. JoyFox never sends a message.',
-  "templates.noAccount": "Choose an active account above to store templates.",
+  // `[Accounts](#accounts)` is drawn as a link to the Accounts tab.
+  "templates.noAccount":
+    "Choose an active account on the [Accounts](#accounts) tab to store templates.",
   "templates.empty": "No templates yet. Add one below.",
   "templates.inFolder": (p: { folder: string }) => `Templates in ${p.folder}`,
   "templates.edit": "Edit",
@@ -890,7 +911,7 @@ export const en = {
   "templates.confirmDelete": "Confirm delete",
   "templates.deleteLabel": (p: { name: string }) => `Delete template ${p.name}`,
   "templates.confirmDeleteLabel": (p: { name: string }) =>
-    `Confirm deleting template ${p.name}`,
+    `Confirm delete: template ${p.name}`,
   "templates.deletePrompt": (p: { name: string }) =>
     `Click "Confirm delete" to delete ${p.name}.`,
   "templates.deleted": (p: { name: string }) => `Deleted ${p.name}.`,
@@ -928,9 +949,11 @@ export const en = {
   "entity.messagePhraseMatches": "Message phrase matches",
   "entity.cachedMessages": "Stored messages (for search)",
   "data.readFailed":
-    "JoyFox could not read its stored data. Nothing was changed.",
+    "JoyFox could not read its stored data. Nothing was changed. Reload the page to try again.",
   "data.hint":
     "Everything JoyFox stores stays in this browser profile. You can inspect it, save it as a JSON file and delete it here. Deleting here never changes anything on JoyClub.",
+  // Import is on the Accounts tab (owner decision); this line points there.
+  "data.importPointer": "To import a file, go to [Accounts](#accounts).",
   "data.noAccounts": "No accounts yet.",
   "data.accountPicker": "Account to inspect",
   "data.caption": "Stored records for this account",
@@ -950,15 +973,19 @@ export const en = {
   "data.recordsTitle": (p: { label: T; count: number }, f: Format) =>
     `${p.label} (${f.number(p.count)})`,
   "data.accountRecordHint":
-    "The account record is removed only with the whole account, in Accounts above.",
+    "The account record is removed only with the whole account, on the [Accounts](#accounts) tab.",
   "data.recordSummary": (p: { id: string; updated: string }) =>
     `${p.id} (updated ${p.updated})`,
-  // A record about a member whose nickname JoyFox knows.
+  // A record with a name a person knows: a member's nickname, a template's
+  // or saved search's name, an event's title or an account's label.
   "data.recordSummaryNamed": (p: {
     name: string;
     id: string;
     updated: string;
   }) => `${p.name}: ${p.id} (updated ${p.updated})`,
+  // A record with a name a person reads, in delete labels and messages.
+  "data.recordNamed": (p: { name: string; id: string }) =>
+    `${p.name} (${p.id})`,
   "data.valueYes": "yes",
   "data.valueNo": "no",
   "data.valueEmpty": "(empty)",
@@ -968,16 +995,18 @@ export const en = {
   "data.moreValues": (p: { count: number }, f: Format) =>
     `…and ${f.number(p.count)} more (see "Stored JSON")`,
   "data.delete": "Delete",
-  "data.deleteRecordLabel": (p: { id: string }) => `Delete record ${p.id}`,
-  "data.deleteRecordPrompt": (p: { id: string }) =>
-    `Click "Confirm" to delete record ${p.id}.`,
-  "data.deletedRecord": (p: { id: string }) => `Deleted record ${p.id}.`,
+  "data.deleteRecordLabel": (p: { record: string }) =>
+    `Delete record ${p.record}`,
+  "data.deleteRecordPrompt": (p: { record: string }) =>
+    `Click "Confirm" to delete record ${p.record}.`,
+  "data.deletedRecord": (p: { record: string }) =>
+    `Deleted record ${p.record}.`,
   "data.showMore": (p: { count: number }, f: Format) =>
     `Show ${f.number(p.count)} more`,
   "data.exportAccount": "Export this account (JSON)",
   "data.exportedAccount": "Export of this account created.",
   "data.deleteAccountData": "Delete this account's data",
-  "data.deleteAccountDataLabel": "Delete all data of this account",
+  "data.deleteAccountDataLabel": "Delete this account's data (every record)",
   "data.deleteAccountDataPrompt":
     'Click "Confirm" to delete every record of this account. The account itself stays in Accounts.',
   "data.deletedAccountData":
@@ -988,7 +1017,7 @@ export const en = {
     p: { minimum: number; maximum: number; default: number },
     f: Format,
   ) =>
-    `JoyFox keeps the newest snapshots of each member's profile facts, always at least the latest one. Lowering the number deletes older snapshots at once, in every account. From ${f.number(p.minimum)} to ${f.number(p.maximum)}; the default is ${f.number(p.default)}.`,
+    `JoyFox keeps the newest snapshots of each member's profile facts, always at least the latest one. Lowering the number deletes older snapshots at once, in every account. From ${f.number(p.minimum)} to ${f.number(p.maximum)}; the default is ${f.number(p.default)}. Click "Save" to apply.`,
   "data.retentionSave": "Save",
   "data.retentionSaved": (p: { deleted: number }, f: Format) =>
     p.deleted === 0
@@ -1002,6 +1031,8 @@ export const en = {
     f: Format,
   ) =>
     `Enter a whole number from ${f.number(p.minimum)} to ${f.number(p.maximum)}. Nothing was changed.`,
+  "data.retentionFailed":
+    "JoyFox could not save the setting. The field shows the number in use now. Try again.",
   "data.exportAll": "Export all JoyFox data (JSON)",
   "data.exportedAll": "Export of all JoyFox data created.",
   "data.deleteEverything": "Delete all JoyFox data",
@@ -1013,6 +1044,8 @@ export const en = {
   "data.confirmLabel": (p: { label: T }) => `Confirm: ${p.label}`,
   "data.actionFailed":
     "That action could not be completed. The counts shown now are what is stored.",
+  "data.exportFailed":
+    "JoyFox could not create the export. Nothing was exported. Try again.",
   "data.import.title": "Import",
   "data.import.hint":
     "Import a JoyFox export file: everything, or one account. It is merged into what is stored here. An account with the same JoyClub identifier is merged into the existing one. For the same note, rule or placement the newer version wins; existing tags and corrections are kept. The import starts when you choose the file, and you then see what changed.",
@@ -1033,6 +1066,17 @@ export const en = {
   "data.import.col.kept": "Kept",
   "data.import.col.duplicates": "Skipped duplicates",
   "data.import.noRecords": "The file holds no records.",
+  // Setting names in the import result. A setting JoyFox does not name is
+  // shown by its stored key.
+  "data.setting.activeAccount": "active account",
+  "data.setting.language": "language",
+  "data.setting.messageCaching": "store messages",
+  "data.setting.messageRetention": "keep messages for",
+  "data.setting.quickIgnoreDelete": "Ignore and Delete button",
+  "data.setting.templatePicker": "template picker",
+  "data.setting.sharedEventException": "shared-event exception",
+  "data.setting.snapshotRetention": "snapshots kept per member",
+  "data.setting.diagnostics": "diagnostics",
   "data.import.settingsSkipped": (p: { keys: string }) =>
     `Settings in the file that are never imported (they switch features on): ${p.keys}.`,
   "data.import.settingsNotSaved": (p: { keys: string }) =>
@@ -1062,6 +1106,10 @@ export const en = {
     `${p.error}. Nothing was imported.`,
   "error.withSuffix.nothingDeleted": (p: { error: T }) =>
     `${p.error}. Nothing was deleted.`,
+  "error.withSuffix.nothingExported": (p: { error: T }) =>
+    `${p.error}. Nothing was exported. Try again.`,
+  "error.withSuffix.settingNotChanged": (p: { error: T }) =>
+    `${p.error}. The setting was not changed. Try again.`,
   "error.code.SelectorUnavailable":
     "JoyFox cannot find the expected element on the page",
   "error.code.ExtractionInvalid": "The data is not valid",
@@ -1091,53 +1139,63 @@ export const en = {
   "error.data.unknownType": "Unknown data type",
   "error.data.accountRecord":
     "The account record is removed only with the whole account",
-  "error.import.tooLarge": "The file is too large to be a JoyFox export",
-  "error.import.notJson": "The file is not a JoyFox export (not valid JSON)",
-  "error.import.notExport": "The file is not a JoyFox export",
-  "error.import.noVersion": "The file has no valid schema version",
+  // The next step ends each refusal that a correct export file fixes.
+  "error.import.tooLarge":
+    "The file is too large to be a JoyFox export. Choose a file exported by JoyFox",
+  "error.import.notJson":
+    "The file is not a JoyFox export. Choose a file exported by JoyFox",
+  "error.import.notExport":
+    "The file is not a JoyFox export. Choose a file exported by JoyFox",
+  "error.import.noVersion":
+    "The file does not say which JoyFox version made it. Choose a file exported by JoyFox",
   "error.import.newerVersion":
     "The file comes from a newer JoyFox version. Update JoyFox first",
-  "error.import.noScope": "The file has no valid export scope",
-  "error.import.noAccountNamed": "The account export names no account",
+  "error.import.noScope":
+    "The file does not say if it holds one account or all data. Choose a file exported by JoyFox",
+  "error.import.noAccountNamed":
+    "The file is an export of one account, but it does not name the account. Choose a file exported by JoyFox",
   "error.import.unknownType": (p: { name: string }) =>
-    `The file holds an unknown data type (${p.name})`,
+    `The file holds a type of data that JoyFox does not know (${p.name}). Choose a file exported by JoyFox`,
   "error.import.notList": (p: { entity: T }) =>
-    `The file's ${p.entity} list is not a list`,
+    `The ${p.entity} part of the file is damaged. Choose a file exported by JoyFox`,
   "error.import.notRecord": (p: { index: number; entity: T }, f: Format) =>
-    `Record ${f.number(p.index)} of ${p.entity} is not a record`,
+    `Record ${f.number(p.index)} in ${p.entity} is damaged. Choose a file exported by JoyFox`,
   "error.import.forbiddenKey": (p: { index: number; entity: T }, f: Format) =>
-    `Record ${f.number(p.index)} of ${p.entity} holds a forbidden key`,
+    `Record ${f.number(p.index)} in ${p.entity} holds a field name that JoyFox does not allow. Choose a file exported by JoyFox`,
   "error.import.unknownField": (
     p: { index: number; entity: T; field: string },
     f: Format,
   ) =>
-    `Record ${f.number(p.index)} of ${p.entity} holds an unknown field (${p.field})`,
+    `Record ${f.number(p.index)} in ${p.entity} holds a field that JoyFox does not know (${p.field}). Choose a file exported by JoyFox`,
   "error.import.tooLong": (
     p: { index: number; entity: T; field: string; maximum: number },
     f: Format,
   ) =>
-    `Record ${f.number(p.index)} of ${p.entity} is invalid: ${p.field} is longer than ${f.number(p.maximum)} characters`,
+    `Record ${f.number(p.index)} in ${p.entity} is too long: ${p.field} has more than ${f.number(p.maximum)} characters. Choose a file exported by JoyFox`,
   "error.import.invalid": (p: { index: number; entity: T }, f: Format) =>
-    `Record ${f.number(p.index)} of ${p.entity} is invalid`,
+    `Record ${f.number(p.index)} in ${p.entity} is damaged. Choose a file exported by JoyFox`,
   "error.import.future": (p: { index: number; entity: T }, f: Format) =>
-    `Record ${f.number(p.index)} of ${p.entity} is dated in the future`,
+    `Record ${f.number(p.index)} in ${p.entity} has a date in the future. Check the clock of the computer that made the file`,
   "error.import.otherAccount": (p: { index: number; entity: T }, f: Format) =>
-    `Record ${f.number(p.index)} of ${p.entity} belongs to another account`,
+    `Record ${f.number(p.index)} in ${p.entity} belongs to another account. Choose a file exported by JoyFox`,
   "error.import.notOwnScope": (p: { index: number }, f: Format) =>
-    `Account record ${f.number(p.index)} is not its own scope`,
+    `Account record ${f.number(p.index)} is damaged. Choose a file exported by JoyFox`,
   "error.import.twice": (p: { index: number; entity: T }, f: Format) =>
-    `Record ${f.number(p.index)} of ${p.entity} appears twice`,
+    `Record ${f.number(p.index)} in ${p.entity} is in the file twice. Choose a file exported by JoyFox`,
   "error.import.sameIdentifier":
-    "Two accounts in the file have the same identifier",
-  "error.import.noAccountRecord": "The account export holds no account record",
-  "error.import.settingsInvalid": "The file's settings are invalid",
-  "error.import.settingsForbidden": "The file's settings hold a forbidden key",
+    "Two accounts in the file have the same identifier. Choose a file exported by JoyFox",
+  "error.import.noAccountRecord":
+    "The file is an export of one account, but it does not hold that account. Choose a file exported by JoyFox",
+  "error.import.settingsInvalid":
+    "The settings in the file are damaged. Choose a file exported by JoyFox",
+  "error.import.settingsForbidden":
+    "The settings in the file hold a name that JoyFox does not allow. Choose a file exported by JoyFox",
   "error.import.unknownSetting": (p: { key: string }) =>
-    `The file holds a setting JoyFox does not use (${p.key})`,
+    `The file holds a setting that JoyFox does not use (${p.key}). Choose a file exported by JoyFox`,
   "error.import.orphans":
-    "Some records in the file belong to an account the file does not hold",
+    "Some records in the file belong to an account that the file does not hold. Choose a file exported by JoyFox",
   "error.import.sameRecordTwice":
-    "The file holds the same record twice after merging accounts",
+    "Two records in the file would become the same record here. Choose a file exported by JoyFox",
 } as const;
 
 export type MessageKey = keyof typeof en;

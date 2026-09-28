@@ -3,6 +3,12 @@ import type { MessageTemplate } from "../domain/types";
 import { message, type Message } from "../i18n/message";
 import { errorDisplay, t } from "../i18n/translator";
 import {
+  FOCUS_KEY,
+  rememberFocus,
+  restoreFocus,
+  type FocusMemo,
+} from "../ui/focus";
+import {
   compareTemplates,
   DEFAULT_FOLDER,
   folderOf,
@@ -13,6 +19,7 @@ import {
   TemplateService,
 } from "../templates/template-service";
 import { confirmAllowed, confirmTiming } from "./confirm";
+import { withTabLinks } from "./data-panel";
 import { StatusLine } from "./status-line";
 
 function element<K extends keyof HTMLElementTagNameMap>(
@@ -36,6 +43,10 @@ function preview(body: string): string {
     ? `${flat.slice(0, PREVIEW_LENGTH)}…`
     : flat;
 }
+
+/** Focus fell to the page, as when the focused control was disabled. */
+const focusFell = (document: Document) =>
+  !document.activeElement || document.activeElement === document.body;
 
 interface TemplateForm {
   /** The template the form edits, or `undefined` for a new one. */
@@ -63,6 +74,15 @@ export class TemplatePanel {
   #form: TemplateForm | undefined;
   /** Set while a save runs, so a double submit cannot add a template twice. */
   #saving = false;
+  /** Where the next draw puts focus, whatever had it before. */
+  #focusNext: FocusMemo | undefined;
+  /**
+   * The control that had focus when a save started. The disabled submit
+   * button drops focus to the page; the draw after the save puts it back.
+   */
+  #focusBefore: FocusMemo | undefined;
+  /** The folder each drawn template is listed in, by template ID. */
+  #folders = new Map<string, string>();
   readonly #guard = {
     activeAccountId: () => this.accounts.getActiveAccountId(),
   };
@@ -113,6 +133,11 @@ export class TemplatePanel {
         : undefined;
     this.#form = undefined;
     this.#accountId = accountId;
+    const focus =
+      rememberFocus(this.root) ??
+      (focusFell(document) ? this.#focusBefore : undefined);
+    const folders = this.#folders;
+    this.#folders = new Map();
     this.root.replaceChildren();
     this.#status.redraw();
     const heading = element(
@@ -128,10 +153,10 @@ export class TemplatePanel {
       element(document, "p", "joyfox-panel__hint", t("templates.hint")),
     );
     if (!accountId) {
-      this.root.append(
-        element(document, "p", "joyfox-panel__empty", t("templates.noAccount")),
-        this.#status.node,
-      );
+      const empty = element(document, "p", "joyfox-panel__empty");
+      // "Accounts" links to the Accounts tab.
+      empty.append(withTabLinks(document, t("templates.noAccount")));
+      this.root.append(empty, this.#status.node);
       return;
     }
     this.root.append(this.#renderList(document, accountId, templates));
@@ -143,6 +168,26 @@ export class TemplatePanel {
     }
     this.#form = form;
     this.root.append(form.form, this.#status.node);
+    const next = this.#focusNext;
+    this.#focusNext = undefined;
+    if (next) restoreFocus(this.root, next);
+    else restoreFocus(this.root, focus, this.#fallbacks(focus, folders));
+  }
+
+  /**
+   * Where focus goes when its control is gone after a draw: after a delete,
+   * the template's folder list, else the name field of the form.
+   */
+  #fallbacks(
+    focus: FocusMemo | undefined,
+    folders: ReadonlyMap<string, string>,
+  ): string[] {
+    if (!focus?.key.startsWith("delete:")) return [];
+    const folder = folders.get(focus.key.slice("delete:".length));
+    return [
+      ...(folder === undefined ? [] : [`folder:${folder}`]),
+      "field:name",
+    ];
   }
 
   #renderList(
@@ -177,9 +222,13 @@ export class TemplatePanel {
         );
         list = element(document, "ul", "joyfox-panel__list");
         list.setAttribute("aria-label", t("templates.inFolder", { folder }));
+        // Takes focus after a delete in this folder.
+        list.tabIndex = -1;
+        list.setAttribute(FOCUS_KEY, `folder:${folder}`);
         wrapper.append(title, list);
       }
       list!.append(this.#renderItem(document, accountId, template));
+      this.#folders.set(template.id, folder);
     }
     return wrapper;
   }
@@ -208,12 +257,14 @@ export class TemplatePanel {
       t("templates.edit"),
     );
     edit.type = "button";
+    edit.setAttribute(FOCUS_KEY, `edit:${template.id}`);
     edit.setAttribute("aria-label", t("templates.editLabel", name));
     edit.addEventListener("click", () => {
       this.#pendingDelete = undefined;
       this.#editing = template;
       this.#setStatus(message("templates.editing", name), "info");
-      void this.render().then(() => this.#form?.name.focus());
+      this.#focusNext = { key: "field:name" };
+      void this.render();
     });
     const confirming = this.#pendingDelete === template.id;
     const remove = element(
@@ -223,6 +274,8 @@ export class TemplatePanel {
       t(confirming ? "templates.confirmDelete" : "templates.delete"),
     );
     remove.type = "button";
+    // The same key armed and unarmed, so focus stays on it when it arms.
+    remove.setAttribute(FOCUS_KEY, `delete:${template.id}`);
     remove.setAttribute(
       "aria-label",
       t(
@@ -266,6 +319,7 @@ export class TemplatePanel {
       document,
       form,
       "joyfox-template-name",
+      "field:name",
       t("templates.name"),
       MAX_TEMPLATE_NAME_LENGTH,
     );
@@ -275,6 +329,7 @@ export class TemplatePanel {
       document,
       form,
       "joyfox-template-folder",
+      "field:folder",
       t("templates.folder"),
       MAX_TEMPLATE_FOLDER_LENGTH,
     );
@@ -300,6 +355,7 @@ export class TemplatePanel {
     const body = element(document, "textarea", "joyfox-panel__field-input");
     body.id = "joyfox-template-body";
     body.name = body.id;
+    body.setAttribute(FOCUS_KEY, "field:body");
     body.rows = 6;
     body.required = true;
     body.maxLength = MAX_TEMPLATE_BODY_LENGTH;
@@ -314,6 +370,7 @@ export class TemplatePanel {
       t(editing ? "templates.saveChanges" : "templates.add"),
     );
     submit.type = "submit";
+    submit.setAttribute(FOCUS_KEY, "submit");
     form.append(submit);
     if (editing) {
       const cancel = element(
@@ -326,6 +383,8 @@ export class TemplatePanel {
       cancel.addEventListener("click", () => {
         this.#editing = undefined;
         this.#status.clear();
+        // Back to the template that was being edited.
+        this.#focusNext = { key: `edit:${editing.id}` };
         void this.render();
       });
       form.append(cancel);
@@ -341,6 +400,9 @@ export class TemplatePanel {
         body: body.value,
       };
       this.#saving = true;
+      // Before the button is disabled, which drops its focus.
+      const focus = rememberFocus(this.root);
+      this.#focusBefore = focus;
       submit.disabled = true;
       void this.#run(accountId, async () => {
         this.#pendingDelete = undefined;
@@ -364,6 +426,9 @@ export class TemplatePanel {
         this.#editing = undefined;
         // Saved: the next render starts from an empty form.
         this.#form = undefined;
+        // After an edit, back to the saved template. After an add, focus
+        // stays in the form, ready for the next one.
+        if (id && focus) this.#focusNext = { key: `edit:${saved.id}` };
         this.#setStatus(
           message(id ? "templates.saved" : "templates.added", {
             name: saved.name,
@@ -373,6 +438,10 @@ export class TemplatePanel {
       }).finally(() => {
         this.#saving = false;
         submit.disabled = false;
+        // A failed save draws nothing again: put focus back on the button.
+        if (focusFell(this.root.ownerDocument))
+          restoreFocus(this.root, this.#focusBefore);
+        if (this.#focusBefore === focus) this.#focusBefore = undefined;
       });
     });
     return { editingId: editing?.id, form, name, folder, body };
@@ -382,6 +451,7 @@ export class TemplatePanel {
     document: Document,
     form: HTMLFormElement,
     id: string,
+    focusKey: string,
     labelText: string,
     maxLength: number,
   ): HTMLInputElement {
@@ -399,6 +469,7 @@ export class TemplatePanel {
     input.type = "text";
     input.autocomplete = "off";
     input.maxLength = maxLength;
+    input.setAttribute(FOCUS_KEY, focusKey);
     wrapper.append(label, input);
     form.append(wrapper);
     return input;

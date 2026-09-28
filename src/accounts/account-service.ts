@@ -84,6 +84,34 @@ export class AccountService {
     return account;
   }
 
+  /**
+   * Changes only the display label. The JoyClub identifier never changes: an
+   * import matches accounts by it. The label is checked as on create: it is
+   * trimmed, and an empty one is dropped so the identifier shows instead.
+   */
+  async renameAccount(
+    accountId: string,
+    label: string,
+  ): Promise<ExtensionAccount> {
+    const trimmed = label.trim();
+    // Under the account's lock, so a removal cannot run between the read
+    // and the write and a rename can never bring a removed account back.
+    return withAccountLock(accountId, async () => {
+      const account = await this.accounts.get(accountId, accountId);
+      if (!account)
+        throw new ExtensionError(
+          "IdentityMismatch",
+          "That account no longer exists",
+          { display: message("error.account.gone") },
+        );
+      const renamed: ExtensionAccount = { ...account, updatedAt: this.now() };
+      delete renamed.label;
+      if (trimmed) renamed.label = trimmed;
+      await this.accounts.put(accountId, renamed);
+      return renamed;
+    });
+  }
+
   async getActiveAccountId(): Promise<string | undefined> {
     const stored = await this.settings.get([ACTIVE_ACCOUNT_SETTING_KEY]);
     const value = stored[ACTIVE_ACCOUNT_SETTING_KEY];
@@ -137,15 +165,17 @@ export class AccountService {
   /**
    * Removes the account and every record scoped to it. The pointer is cleared
    * first so an interrupted delete can never leave the extension active on a
-   * half-removed scope.
+   * half-removed scope. No other account becomes active. Returns whether the
+   * removed account was the active one, so the caller can say so.
    */
-  async deleteAccount(accountId: string): Promise<void> {
+  async deleteAccount(accountId: string): Promise<boolean> {
     // Held with every write to this account, so no accepted write can land
     // after the sweep and recreate data for a removed account.
-    await withAccountLock(accountId, async () => {
-      if ((await this.getActiveAccountId()) === accountId)
-        await this.clearActiveAccount();
+    return withAccountLock(accountId, async () => {
+      const wasActive = (await this.getActiveAccountId()) === accountId;
+      if (wasActive) await this.clearActiveAccount();
       await deleteAccountData(accountId);
+      return wasActive;
     });
   }
 }
