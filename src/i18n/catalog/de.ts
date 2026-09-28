@@ -613,16 +613,33 @@ export const de: Catalog = {
   "start.state.done": "Erledigt",
   "start.state.off": "Gespeichert, aber ausgeschaltet",
   "start.state.todo": "Noch nicht erledigt",
+  "start.state.doneOpen":
+    "Erledigt: keine Bedingungen, deshalb ist jede Person qualifiziert",
   "start.ready":
     "JoyFox ist eingerichtet. Öffne deinen JoyClub-Posteingang, um ihn sortiert zu sehen.",
   "start.intro":
     "Drei Schritte, ein paar Minuten. Alles bleibt in diesem Browser.",
+  "start.introAccess":
+    "Vier Schritte, ein paar Minuten. Alles bleibt in diesem Browser.",
+  "start.readFailed":
+    "JoyFox konnte seine Einrichtung nicht lesen. Lade die Seite neu, um es noch einmal zu versuchen.",
+  "start.step.access":
+    "Erlaube JoyFox den Zugriff auf joyclub.de. Der Zugriff ist gerade aus, deshalb kann JoyFox auf JoyClub nicht arbeiten.",
   "start.step.account":
     "Füge dein JoyClub-Konto unter [Konten](#accounts) hinzu. JoyFox macht das erste Konto aktiv.",
+  "start.step.chooseAccount":
+    "Wähle das aktive Konto unter [Konten](#accounts) aus.",
   "start.step.rule":
     "Speichere eine Kontaktregel unter [Kontaktregel](#rule). Die Sortierung des Posteingangs bleibt aus, bis eine Regel gespeichert und eingeschaltet ist.",
   "start.step.inbox":
     "Öffne deinen JoyClub-Posteingang (www.joyclub.de, ClubMail). JoyFox zeigt seine Tabs über der Liste.",
+
+  // Options page: site access (Get started)
+  "access.allow": "Zugriff auf joyclub.de erlauben",
+  "access.granted":
+    "Der Zugriff auf joyclub.de ist an. JoyFox kann jetzt auf JoyClub arbeiten.",
+  "access.refused":
+    "Der Zugriff auf joyclub.de ist weiterhin aus. JoyFox kann auf JoyClub erst arbeiten, wenn du den Zugriff hier oder unter about:addons erlaubst.",
 
   // Options page: accounts
   "accounts.readFailed":
@@ -658,7 +675,7 @@ export const de: Catalog = {
 
   // Options page: contact rule
   "rule.readFailed":
-    "JoyFox konnte die Kontaktregel nicht lesen. Es wurde keine Regel geändert.",
+    "JoyFox konnte die Kontaktregel nicht lesen. Es wurde keine Regel geändert. Lade die Seite neu, um es noch einmal zu versuchen.",
   "rule.hint":
     "Die Regel ändert nur, wie JoyFox deinen eigenen Posteingang in „Qualifiziert“, „Zu prüfen“ und „Quarantäne“ gruppiert. Sie hält keine Nachricht auf, löscht nichts, und die sendende Person sieht nichts davon.",
   "rule.noAccount":
@@ -727,13 +744,25 @@ export const de: Catalog = {
   "rule.textLabel": (p) => `${p.condition}: Wort, Formulierung oder Emoji`,
   "rule.textProblem": (p, f) =>
     `Gib für „${p.condition}“ ein Wort, eine Formulierung oder ein Emoji mit höchstens ${f.number(p.maximum)} Zeichen ein.`,
-  "rule.combine.label": "Wie die Regeln verknüpft werden",
+  "rule.fieldNumberProblem": (p, f) =>
+    `Gib eine ganze Zahl von ${f.number(p.minimum)} bis ${f.number(p.maximum)} ein.`,
+  "rule.fieldTextProblem": (p, f) =>
+    `Gib ein Wort, eine Formulierung oder ein Emoji mit höchstens ${f.number(p.maximum)} Zeichen ein.`,
+  "rule.textHint":
+    "Gib ein Wort, eine Formulierung oder ein Emoji ein, um diese Bedingung zu verwenden.",
+  "rule.spamNote": "(noch nicht geprüft: immer unbekannt)",
+  "rule.combine.label": "Wie die Gruppen verknüpft werden",
   "rule.combine.prefix": "Eine Person ist qualifiziert bei ",
-  "rule.combine.suffix": " dieser Regeln.",
+  "rule.combine.suffix": " dieser Gruppen.",
   "rule.advancedHint":
-    "Jede Regel ist erfüllt bei ALLEN oder MINDESTENS EINER ihrer Bedingungen, wie du es wählst. Setze ein Häkchen bei „nicht“, um eine Bedingung umzukehren: „nicht Mindestanzahl Fotos 3“ bedeutet weniger als 3 Fotos. Eine Regel ohne Bedingungen wird nicht gespeichert.",
-  "rule.addRule": "+ Regel hinzufügen",
-  "rule.removeRule": "Regel entfernen",
+    "Jede Gruppe ist erfüllt bei ALLEN oder MINDESTENS EINER ihrer Bedingungen, wie du es wählst. Setze ein Häkchen bei „nicht“, um eine Bedingung umzukehren: „nicht Mindestanzahl Fotos 3“ bedeutet weniger als 3 Fotos. Eine Gruppe ohne Bedingungen wird nicht gespeichert.",
+  "rule.addRule": "+ Gruppe hinzufügen",
+  "rule.removeRule": "Gruppe entfernen",
+  "rule.confirmRemoveGroup": "Entfernen bestätigen",
+  "rule.confirmRemoveGroupLabel": (p, f) =>
+    `Entfernen von Gruppe ${f.number(p.number)} bestätigen`,
+  "rule.removeGroupPrompt": (p, f) =>
+    `Klicke noch einmal, um Gruppe ${f.number(p.number)} und ihre Bedingungen zu entfernen.`,
   "rule.ruleSuffix": " dieser Bedingungen",
   "rule.noConditions": "Noch keine Bedingungen. Füge unten eine hinzu.",
   "rule.removeCondition": "Bedingung entfernen",
@@ -743,23 +772,23 @@ export const de: Catalog = {
   "rule.notLabel": (p) => `nicht: „${p.condition}“ umkehren`,
   "rule.joiner.all": "UND",
   "rule.joiner.any": "ODER",
-  "rule.ruleTitle": (p, f) => `Regel ${f.number(p.number)}: erfüllt bei `,
+  "rule.ruleTitle": (p, f) => `Gruppe ${f.number(p.number)}: erfüllt bei `,
   "rule.ruleMatchLabel": (p, f) =>
-    `Wie Regel ${f.number(p.number)} ihre Bedingungen verknüpft`,
-  "rule.removeRuleLabel": (p, f) => `Regel ${f.number(p.number)} entfernen`,
+    `Wie Gruppe ${f.number(p.number)} ihre Bedingungen verknüpft`,
+  "rule.removeRuleLabel": (p, f) => `Gruppe ${f.number(p.number)} entfernen`,
   "rule.addConditionLabel": (p, f) =>
-    `Bedingung zu Regel ${f.number(p.number)} hinzufügen`,
+    `Bedingung zu Gruppe ${f.number(p.number)} hinzufügen`,
   "rule.addCondition": "+ Bedingung hinzufügen …",
   "rule.ruleCount": (p, f) =>
-    `${f.number(p.count)} von ${f.number(p.maximum)} Regeln`,
+    `${f.number(p.count)} von ${f.number(p.maximum)} Gruppen`,
   "rule.simpleUnavailable.all":
-    "Die einfache Ansicht ist nicht verfügbar: Die Regeln sind mit ALLEN verknüpft.",
+    "Die einfache Ansicht ist nicht verfügbar: Die Gruppen sind mit ALLEN verknüpft.",
   "rule.simpleUnavailable.not":
     "Die einfache Ansicht ist nicht verfügbar: Die Regel verwendet „nicht“.",
   "rule.simpleUnavailable.severalAll":
-    "Die einfache Ansicht ist nicht verfügbar: Mehr als eine Regel verlangt ALLE von mehreren Bedingungen.",
+    "Die einfache Ansicht ist nicht verfügbar: Mehr als eine Gruppe verlangt ALLE von mehreren Bedingungen.",
   "rule.simpleUnavailable.duplicate":
-    "Die einfache Ansicht ist nicht verfügbar: Eine Bedingung steht in mehr als einer Regel.",
+    "Die einfache Ansicht ist nicht verfügbar: Eine Bedingung steht in mehr als einer Gruppe.",
   "rule.savedNoConditions":
     "Regel gespeichert. Sie hat noch keine Bedingungen, deshalb ist jede Person qualifiziert.",
   "rule.savedVacuous":
@@ -768,20 +797,23 @@ export const de: Catalog = {
     "Regel gespeichert. Offene JoyClub-Tabs werden sofort aktualisiert.",
   "rule.notSaved": (p) => `${p.problem} Die Regel wurde nicht gespeichert.`,
   "rule.saveFailed":
-    "JoyFox konnte die Regel nicht speichern. Es wurde nichts geändert.",
+    "JoyFox konnte die Regel nicht speichern. Es wurde nichts geändert. Ändere das Feld noch einmal, oder lade die Seite neu, um die gespeicherte Regel zu sehen.",
   "rule.deleteAll": "Ganze Kontaktregel löschen",
+  "rule.confirmDeleteAll": "Löschen bestätigen",
+  "rule.deletePrompt":
+    "Klicke noch einmal, um die ganze Kontaktregel zu löschen. JoyFox sortiert den Posteingang für dieses Konto dann nicht mehr.",
   "rule.removed":
-    "Regel entfernt. JoyFox sortiert den Posteingang für dieses Konto nicht mehr.",
+    "Kontaktregel gelöscht. JoyFox sortiert den Posteingang für dieses Konto nicht mehr.",
   "rule.removeFailed":
-    "JoyFox konnte die Regel nicht entfernen. Es wurde nichts geändert.",
+    "JoyFox konnte die Regel nicht löschen. Es wurde nichts geändert.",
   "rule.stale.account.saved":
     "Das aktive Konto hat sich geändert. Die Regel wurde nicht gespeichert. Prüfe das Formular und versuche es noch einmal.",
   "rule.stale.account.removed":
-    "Das aktive Konto hat sich geändert. Die Regel wurde nicht entfernt. Prüfe das Formular und versuche es noch einmal.",
+    "Das aktive Konto hat sich geändert. Die Regel wurde nicht gelöscht. Prüfe das Formular und versuche es noch einmal.",
   "rule.stale.rule.saved":
     "Die Regel wurde in einem anderen Tab geändert. Sie wurde nicht gespeichert. Das Formular zeigt jetzt die gespeicherte Regel.",
   "rule.stale.rule.removed":
-    "Die Regel wurde in einem anderen Tab geändert. Sie wurde nicht entfernt. Das Formular zeigt jetzt die gespeicherte Regel.",
+    "Die Regel wurde in einem anderen Tab geändert. Sie wurde nicht gelöscht. Das Formular zeigt jetzt die gespeicherte Regel.",
   "rule.changedElsewhere":
     "Die Regel wurde in einem anderen Tab geändert. Das Formular zeigt jetzt die gespeicherte Regel.",
 
