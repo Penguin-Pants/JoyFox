@@ -322,8 +322,13 @@ export const de: Catalog = {
   "notes.emptyTag": "Gib zuerst einen Tag ein. Es wurde nichts hinzugefügt.",
   "notes.emptyNote": "Gib zuerst eine Notiz ein. Es wurde nichts gespeichert.",
   "notes.tagAdded": "Tag hinzugefügt.",
+  "notes.tagExists": "Diesen Tag hat das Mitglied schon.",
   "notes.tagRemoved": "Tag entfernt.",
   "notes.privateNote": "Private Notiz",
+  "notes.length": (p, f) =>
+    `${f.number(p.count)} von ${f.number(p.maximum)} Zeichen`,
+  "notes.pasteCut":
+    "Nur ein Teil des eingefügten Texts hat gepasst. Der Rest wurde nicht eingefügt.",
   "notes.discard": "Meine Änderungen verwerfen",
   "notes.save": "Notiz speichern",
   "notes.tags": "Tags",
@@ -346,33 +351,45 @@ export const de: Catalog = {
     })})`,
 
   // Content script: template picker
-  "listing.heading.event": "JoyFox: meine Notizen zu diesem Event",
-  "listing.heading.venue": "JoyFox: meine Notizen zu diesem Club",
+  "listing.heading.event": "JoyFox: deine Notizen zu diesem Event",
+  "listing.heading.venue": "JoyFox: deine Notizen zu diesem Club",
+  "listing.summary.event": (p) =>
+    `JoyFox: deine Notizen zu diesem Event (${p.state})`,
+  "listing.summary.venue": (p) =>
+    `JoyFox: deine Notizen zu diesem Club (${p.state})`,
+  "listing.summary.none": "noch keine",
+  "listing.summary.note": "eine Notiz",
   "listing.loading": "Deine Notizen werden geladen …",
   "listing.readFailed":
     "JoyFox konnte deine Notizen zu dieser Seite nicht lesen. Lade die Seite neu, um es noch einmal zu versuchen.",
   "listing.noAccount":
     "Wähle in den JoyFox-Einstellungen ein Konto aus oder füge eines hinzu, um Notizen zu Events zu speichern.",
-  "listing.attendanceLabel": "Meine Teilnahme",
+  "listing.attendanceLabel": "Deine Teilnahme",
   "listing.attendance.unknown": "Kein Status",
   "listing.attendance.interested": "Interessiert",
   "listing.attendance.attending": "Ich gehe hin",
   "listing.attendance.not-attending": "Ich gehe nicht hin",
   "listing.attendance.attended": "Ich war dort",
-  "listing.noteLabel": "Meine Notiz",
+  "listing.noteLabel": "Deine Notiz",
   "listing.saveNote": "Notiz speichern",
-  "listing.tagsLabel": "Meine Tags",
+  "listing.tagsLabel": "Deine Tags",
   "listing.tagLabel": "Neuer Tag",
   "listing.addTag": "Tag hinzufügen",
   "listing.removeTag": (p) => `Tag ${p.tag} entfernen`,
   "listing.emptyTag": "Gib zuerst einen Tag ein. Es wurde nichts hinzugefügt.",
-  "listing.tooManyTags": (p, f) =>
-    `Ein Eintrag kann höchstens ${f.number(p.maximum)} Tags haben. Entferne zuerst einen.`,
+  "listing.tooManyTags.event": (p, f) =>
+    `Du kannst einem Event höchstens ${f.number(p.maximum)} Tags geben. Entferne zuerst einen.`,
+  "listing.tooManyTags.venue": (p, f) =>
+    `Du kannst einem Club höchstens ${f.number(p.maximum)} Tags geben. Entferne zuerst einen.`,
   "listing.privacy":
     "Privat: nur in diesem Browser gespeichert. JoyClub sieht nichts, und deine Anmeldung bei JoyClub ändert sich nicht.",
   "listing.saved": "Gespeichert.",
-  "listing.removed":
-    "Hier ist nichts mehr eingetragen, deshalb verfolgt JoyFox diesen Eintrag nicht mehr.",
+  "listing.tracked.event": "Gespeichert. JoyFox verfolgt dieses Event jetzt.",
+  "listing.tracked.venue": "Gespeichert. JoyFox verfolgt diesen Club jetzt.",
+  "listing.removed.event":
+    "Es ist keine Notiz, kein Tag und keine Teilnahme mehr eingetragen, deshalb verfolgt JoyFox dieses Event nicht mehr.",
+  "listing.removed.venue":
+    "Es ist keine Notiz und kein Tag mehr eingetragen, deshalb verfolgt JoyFox diesen Club nicht mehr.",
   "listing.conflict":
     "Diese Notizen wurden in einem anderen Tab geändert, deshalb hat JoyFox nicht gespeichert. Jetzt werden die gespeicherten Notizen angezeigt; deine eingegebene Notiz steht noch im Feld.",
   "listing.refused":
@@ -419,11 +436,11 @@ export const de: Catalog = {
     "Dieses Mitglied steht auf der gespeicherten Gästeliste dieser Events, die du verfolgst:",
   "eventFilter.label": "JoyFox: zeigen",
   "eventFilter.all": "Alle geladenen Events und Dates",
-  "eventFilter.tracked": "Nur meine verfolgten Events",
-  "eventFilter.note": "Nur Events mit meiner Notiz",
-  "eventFilter.attending": "Nur Events, zu denen ich gehe",
-  "eventFilter.interested": "Nur Events, die mich interessieren",
-  "eventFilter.tag": (p) => `Nur mein Tag: ${p.tag}`,
+  "eventFilter.tracked": "Nur Events, die JoyFox verfolgt",
+  "eventFilter.note": "Nur Events mit deiner Notiz",
+  "eventFilter.attending": "Nur Events, zu denen du gehst",
+  "eventFilter.interested": "Nur Events, die dich interessieren",
+  "eventFilter.tag": (p) => `Nur Events mit deinem Tag: ${p.tag}`,
   "eventFilter.count": (p, f) =>
     `${f.number(p.shown)} von ${f.number(p.loaded)} geladenen Events angezeigt. Später geladene Events werden auch geprüft.`,
   "eventFilter.readFailed":
@@ -491,11 +508,10 @@ export const de: Catalog = {
   "signals.heading": "Vollständigkeit des Profils",
   "signals.trust": (p, f) =>
     `Vertrauen ${p.score > 0 ? "+" : ""}${f.number(p.score)}`,
-  "signals.trustNone": "Kein Vertrauensverlauf",
   "signals.trustNoneShort": "Vertrauen –",
   "signals.noteAdd": "Notiz hinzufügen",
   "signals.noteEdit": "Notiz",
-  "signals.tagsLabel": "Meine Tags",
+  "signals.tagsLabel": "Deine Tags",
   "signals.tagCount": (p, f) =>
     f.plural(p.count, {
       one: "1 Tag",
@@ -508,7 +524,7 @@ export const de: Catalog = {
   "signals.editor.noAccount":
     "Wähle in den JoyFox-Einstellungen ein Konto aus oder füge eines hinzu, um Notizen zu führen.",
   "signals.editor.readFailed":
-    "JoyFox konnte die Notizen zu diesem Mitglied nicht lesen. Schließe dieses Fenster und versuche es noch einmal.",
+    "JoyFox konnte die Notizen zu diesem Mitglied nicht lesen. Schließe die Notiz und öffne sie erneut.",
   "signals.filter.label": "JoyFox: unvollständige Profile ausblenden",
   "signals.filter.count": (p, f) =>
     `${f.number(p.hidden)} von ${f.number(p.loaded)} geladenen Profilen ausgeblendet. Profile, über die JoyFox nichts weiß, bleiben sichtbar.`,
@@ -519,6 +535,7 @@ export const de: Catalog = {
       other: `${f.number(p.count)} Vorlieben`,
     })} mit diesem Mitglied:`,
   "compat.none": "Du teilst keine Vorlieben mit diesem Mitglied.",
+  "compat.listToggle": "Gemeinsame Vorlieben anzeigen",
   "compat.own": (p, f) =>
     `Das ist dein Profil. JoyFox vergleicht andere Profile mit ${f.plural(
       p.count,
@@ -570,6 +587,10 @@ export const de: Catalog = {
   "searches.saved": (p) => `„${p.name}“ gespeichert.`,
   "searches.noMatch": (p) =>
     `„${p.name}“ passt nicht mehr zur Suchadresse von JoyClub, deshalb hat JoyFox die Suche nicht geöffnet. Führe die Suche noch einmal aus und speichere sie neu.`,
+  "searches.running": (p) => `„${p.name}“ wird ausgeführt …`,
+  "searches.runningUnnamed": "Die gespeicherte Suche wird ausgeführt …",
+  "searches.shown": (p) => `„${p.name}“ wird angezeigt.`,
+  "searches.shownUnnamed": "Die gespeicherte Suche wird angezeigt.",
   "searches.runFailed":
     "JoyFox konnte die gespeicherte Suche nicht ausführen. Öffne den Filter von JoyClub und klicke auf „Anwenden“.",
   "searches.deleteLabel": (p) => `Gespeicherte Suche ${p.name} löschen`,
@@ -588,8 +609,11 @@ export const de: Catalog = {
     "Vorlage eingefügt. Prüfe den Text und klicke dann selbst auf JoyClubs „Senden“.",
   "picker.result.not-editable":
     "Das Nachrichtenfeld kann gerade nicht bearbeitet werden. Es wurde nichts eingefügt.",
-  "picker.result.too-long":
-    "Die Vorlage passt nicht in das Nachrichtenfeld. Es wurde nichts eingefügt, und die Vorlage wurde nicht gekürzt.",
+  "picker.result.too-long": (p, f) =>
+    `Die Vorlage ist ${f.plural(p.over, {
+      one: "1 Zeichen",
+      other: `${f.number(p.over)} Zeichen`,
+    })} zu lang für das Nachrichtenfeld, das höchstens ${f.number(p.limit)} Zeichen fasst. Es wurde nichts eingefügt. Kürze deinen Text oder die Vorlage.`,
   "picker.result.altered":
     "JoyClub hat den Text nach dem Einfügen geändert. Prüfe das Nachrichtenfeld, bevor du sendest.",
   "templates.folder.general": "Allgemein",

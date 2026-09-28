@@ -149,34 +149,56 @@ describe("V1-5 event panel", () => {
       },
       expectedUpdatedAt: null,
     });
-    expect(status()).toBe("Saved.");
+    // The first save says what "tracked" means.
+    expect(status()).toBe("Saved. JoyFox now tracks this event.");
   });
 
-  it("disables the box while a save is on its way, so no change is dropped", async () => {
+  it("holds every change while a save is on its way, and keeps focus", async () => {
     mount();
     await flush();
     let answer: (value: unknown) => void = () => undefined;
     client.save.mockImplementationOnce(
       () => new Promise((resolve) => (answer = resolve)),
     );
-    const select = document.querySelector<HTMLSelectElement>(
-      "#joyfox-listing-attendance",
-    )!;
-    select.value = "interested";
-    select.dispatchEvent(new Event("change"));
-    const controls = document.querySelectorAll<HTMLButtonElement>(
-      ".joyfox-listing button, .joyfox-listing select, .joyfox-listing input, .joyfox-listing textarea",
-    );
-    expect(Array.from(controls).every((control) => control.disabled)).toBe(
-      true,
-    );
-    // Another tab's change redraws the box meanwhile: it stays disabled.
+    const attendance = () =>
+      document.querySelector<HTMLSelectElement>("#joyfox-listing-attendance")!;
+    // Nothing is stored yet, so the user opens the box first.
+    document.querySelector<HTMLElement>(".joyfox-listing__summary")!.click();
+    await flush();
+    attendance().focus();
+    attendance().value = "interested";
+    attendance().dispatchEvent(new Event("change"));
+    const controls = () =>
+      Array.from(
+        document.querySelectorAll<HTMLElement>(
+          ".joyfox-listing button, .joyfox-listing select, .joyfox-listing input, .joyfox-listing textarea",
+        ),
+      );
+    // Unavailable, but not disabled: a disabled control drops focus.
+    expect(
+      controls().every(
+        (control) => control.getAttribute("aria-disabled") === "true",
+      ),
+    ).toBe(true);
+    expect(
+      controls().some((control) => (control as HTMLInputElement).disabled),
+    ).toBe(false);
+    expect(
+      document.querySelector<HTMLTextAreaElement>("#joyfox-listing-note")!
+        .readOnly,
+    ).toBe(true);
+    expect(document.activeElement).toBe(attendance());
+    // A second change meanwhile is refused, never sent.
+    attendance().value = "attending";
+    attendance().dispatchEvent(new Event("change"));
+    expect(attendance().value).toBe("interested");
+    button("Save note").click();
+    expect(client.save).toHaveBeenCalledTimes(1);
+    // Another tab's change redraws the box meanwhile: it stays on hold.
     (panelRef as ListingPanel).invalidate();
     await flush();
-    expect(
-      document.querySelector<HTMLSelectElement>("#joyfox-listing-attendance")!
-        .disabled,
-    ).toBe(true);
+    expect(attendance().getAttribute("aria-disabled")).toBe("true");
+    expect(document.activeElement).toBe(attendance());
     answer({
       status: "saved",
       listing: listing({
@@ -185,11 +207,9 @@ describe("V1-5 event panel", () => {
       }),
     });
     await flush();
-    const after = document.querySelector<HTMLSelectElement>(
-      "#joyfox-listing-attendance",
-    )!;
-    expect(after.disabled).toBe(false);
-    expect(after.value).toBe("interested");
+    expect(attendance().hasAttribute("aria-disabled")).toBe(false);
+    expect(attendance().value).toBe("interested");
+    expect(document.activeElement).toBe(attendance());
   });
 
   it("saves the note with its button and keeps a typed note across a conflict", async () => {
@@ -204,9 +224,13 @@ describe("V1-5 event panel", () => {
       status: "conflict",
       listing: listing({ note: "From another tab" }),
     });
+    note.focus();
+    button("Save note").focus();
     button("Save note").click();
     await flush();
     expect(status()).toContain("changed in another tab");
+    // The box was drawn again; the button kept focus.
+    expect(document.activeElement).toBe(button("Save note"));
     expect(
       document.querySelector<HTMLTextAreaElement>("#joyfox-listing-note")!
         .value,
@@ -230,12 +254,12 @@ describe("V1-5 event panel", () => {
     };
     mount();
     await flush();
-    const input = document.querySelector<HTMLInputElement>(
-      ".joyfox-listing__tag-input",
-    )!;
-    input.value = "Friends";
-    input.dispatchEvent(new Event("input"));
-    input.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter" }));
+    const input = () =>
+      document.querySelector<HTMLInputElement>(".joyfox-listing__tag-input")!;
+    input().focus();
+    input().value = "Friends";
+    input().dispatchEvent(new Event("input"));
+    input().dispatchEvent(new KeyboardEvent("keydown", { key: "Enter" }));
     await flush();
     expect(client.save).toHaveBeenLastCalledWith(
       expect.objectContaining({
@@ -243,14 +267,127 @@ describe("V1-5 event panel", () => {
         attendance: "interested",
       }),
     );
+    expect(status()).toBe("Saved.");
+    expect(document.activeElement).toBe(input());
     const remove = document.querySelector<HTMLButtonElement>(
       '[aria-label="Remove tag Dresscode"]',
     )!;
+    remove.focus();
     remove.click();
     await flush();
     expect(client.save).toHaveBeenLastCalledWith(
       expect.objectContaining({ tags: ["Friends"] }),
     );
+    // The removed tag's button is gone; the tag box takes focus.
+    expect(document.activeElement).toBe(input());
+  });
+
+  it("is closed while nothing is stored, open once JoyFox tracks the event, and says what is stored", async () => {
+    mount();
+    await flush();
+    const details = () =>
+      document.querySelector<HTMLDetailsElement>(".joyfox-listing__details")!;
+    const summary = () =>
+      document.querySelector(".joyfox-listing__summary")?.textContent;
+    expect(details().open).toBe(false);
+    expect(summary()).toBe("JoyFox: your notes on this event (none yet)");
+    // The privacy note is inside the box.
+    expect(details().textContent).toContain("Private: stored only");
+    // The region keeps its name; the summary is the heading.
+    expect(
+      document.querySelector(".joyfox-listing")?.getAttribute("aria-label"),
+    ).toBe("JoyFox: your notes on this event");
+    panelRef!.leave();
+    getAnswer = {
+      status: "ok",
+      accountId: "account-a",
+      listing: listing({
+        tags: ["Dresscode", "Friends"],
+        attendance: "attending",
+        note: "Bring a mask",
+      }),
+    };
+    mount();
+    await flush();
+    expect(details().open).toBe(true);
+    expect(summary()).toBe(
+      "JoyFox: your notes on this event (Attending, 2 tags, a note)",
+    );
+    // The user's choice stays across a redraw.
+    details().open = false;
+    details().dispatchEvent(new Event("toggle"));
+    panelRef!.invalidate();
+    await flush();
+    expect(details().open).toBe(false);
+  });
+
+  it("says when JoyFox stops tracking an event or venue, and names it in the tag limit", async () => {
+    getAnswer = {
+      status: "ok",
+      accountId: "account-a",
+      listing: listing({
+        tags: Array.from({ length: 20 }, (_, index) => `Tag ${index}`),
+      }),
+    };
+    mount();
+    await flush();
+    const input = document.querySelector<HTMLInputElement>(
+      ".joyfox-listing__tag-input",
+    )!;
+    input.value = "One more";
+    input.dispatchEvent(new Event("input"));
+    button("Add tag").click();
+    expect(status()).toBe(
+      "You can add at most 20 tags to an event. Remove one first.",
+    );
+    expect(client.save).not.toHaveBeenCalled();
+    client.save.mockResolvedValueOnce({ status: "removed" });
+    document
+      .querySelector<HTMLButtonElement>('[aria-label="Remove tag Tag 0"]')!
+      .click();
+    await flush();
+    expect(status()).toBe(
+      "No note, tag or attendance is left, so JoyFox no longer tracks this event.",
+    );
+    panelRef!.leave();
+    getAnswer = {
+      status: "ok",
+      accountId: "account-a",
+      listing: listing({ kind: "venue", eventId: "123", tags: ["Bar"] }),
+    };
+    mount(VENUE_PAGE, "/club/123.synthetic-club.html");
+    await flush();
+    client.save.mockResolvedValueOnce({ status: "removed" });
+    document
+      .querySelector<HTMLButtonElement>('[aria-label="Remove tag Bar"]')!
+      .click();
+    await flush();
+    expect(status()).toBe(
+      "No note or tag is left, so JoyFox no longer tracks this venue.",
+    );
+  });
+
+  it("shows the note's length near the limit and says when a paste was cut", async () => {
+    mount();
+    await flush();
+    const note = document.querySelector<HTMLTextAreaElement>(
+      "#joyfox-listing-note",
+    )!;
+    const length = () => document.querySelector(".joyfox-note-length")!;
+    note.value = "x".repeat(3900);
+    note.dispatchEvent(new Event("input"));
+    expect(length().textContent).toBe("3,900 of 4,000 characters");
+    note.setSelectionRange(3900, 3900);
+    const paste = new Event("paste", { bubbles: true, cancelable: true });
+    Object.defineProperty(paste, "clipboardData", {
+      value: { getData: () => "y".repeat(101) },
+    });
+    note.dispatchEvent(paste);
+    expect(status()).toBe(
+      "Only part of the pasted text fit. The rest was not pasted.",
+    );
+    // Said in place: the box was not drawn again under the paste.
+    expect(document.querySelector("#joyfox-listing-note")).toBe(note);
   });
 
   it("shows no attendance on a venue and keeps the venue's name", async () => {
@@ -258,7 +395,7 @@ describe("V1-5 event panel", () => {
     await flush();
     expect(document.querySelector("#joyfox-listing-attendance")).toBeNull();
     expect(document.querySelector(".joyfox-listing")?.textContent).toContain(
-      "my notes on this venue",
+      "your notes on this venue",
     );
     button("Add tag");
     const input = document.querySelector<HTMLInputElement>(
@@ -278,6 +415,7 @@ describe("V1-5 event panel", () => {
         },
       }),
     );
+    expect(status()).toBe("Saved. JoyFox now tracks this venue.");
   });
 
   it("asks for an account first", async () => {
@@ -312,6 +450,7 @@ describe("V1-5 event list filter", () => {
   };
 
   beforeEach(() => {
+    sessionStorage.clear();
     document.body.innerHTML = LIST_PAGE;
     listAnswer = {
       accountId: "account-a",
@@ -366,6 +505,73 @@ describe("V1-5 event list filter", () => {
     expect(
       document.querySelector(".joyfox-event-filter")?.textContent,
     ).toContain("Select or add an account");
+  });
+
+  it("keeps the choice for the tab across JoyClub's page loads, but never a tag", async () => {
+    const filter = new EventListFilter(document, client);
+    filter.update();
+    await flush();
+    choose("attendance:attending");
+    // A quick filter on JoyClub loads the page again.
+    filter.leave();
+    document.body.innerHTML = LIST_PAGE;
+    const next = new EventListFilter(document, client);
+    next.update();
+    // Nothing is hidden before the notes are read.
+    expect(list().getAttribute(FILTER_ATTRIBUTE)).toBeNull();
+    await flush();
+    const select = () =>
+      document.querySelector<HTMLSelectElement>("#joyfox-event-filter")!;
+    expect(select().value).toBe("attendance:attending");
+    expect(list().getAttribute(FILTER_ATTRIBUTE)).toBe("on");
+    expect(items().map((item) => item.getAttribute(MATCH_ATTRIBUTE))).toEqual([
+      "yes",
+      "no",
+      "no",
+    ]);
+    // A tag is the user's own text, which JoyClub's scripts could read in
+    // the page's storage: it is not kept.
+    choose("tag:Friends");
+    expect(JSON.stringify({ ...sessionStorage })).not.toContain("Friends");
+    next.leave();
+    document.body.innerHTML = LIST_PAGE;
+    new EventListFilter(document, client).update();
+    await flush();
+    expect(select().value).toBe("all");
+    expect(list().getAttribute(FILTER_ATTRIBUTE)).toBeNull();
+  });
+
+  it("starts with all events when the tab's storage fails or holds nonsense", async () => {
+    const broken = new EventListFilter(document, client, () => {
+      throw new Error("blocked");
+    });
+    broken.update();
+    await flush();
+    choose("note");
+    expect(list().getAttribute(FILTER_ATTRIBUTE)).toBe("on");
+    broken.leave();
+    sessionStorage.setItem("joyfox.eventFilter", "nonsense");
+    document.body.innerHTML = LIST_PAGE;
+    new EventListFilter(document, client).update();
+    await flush();
+    expect(
+      document.querySelector<HTMLSelectElement>("#joyfox-event-filter")!.value,
+    ).toBe("all");
+    expect(list().getAttribute(FILTER_ATTRIBUTE)).toBeNull();
+  });
+
+  it("keeps focus on its list when new notes draw it again", async () => {
+    const filter = new EventListFilter(document, client);
+    filter.update();
+    await flush();
+    const select = () =>
+      document.querySelector<HTMLSelectElement>("#joyfox-event-filter")!;
+    const first = select();
+    first.focus();
+    filter.invalidate();
+    await flush();
+    expect(select()).not.toBe(first);
+    expect(document.activeElement).toBe(select());
   });
 
   it("restores JoyClub's list when it leaves", async () => {

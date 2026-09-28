@@ -248,6 +248,75 @@ describe("V1-3 saved-search bar", () => {
     expect(root()?.textContent).toContain("No saved searches yet.");
   });
 
+  it("marks the saved search the page shows as current", async () => {
+    listAnswer = {
+      accountId: "account-a",
+      searches: [
+        summary("search:1", "Nearby", OTHER),
+        summary("search:3", "Here", PAGE),
+      ],
+    };
+    let url = PAGE;
+    bar = new SavedSearchBar(document, client, navigate, () => url);
+    bar.update();
+    await flush();
+    expect(buttonNamed("Here").getAttribute("aria-current")).toBe("true");
+    expect(buttonNamed("Nearby").hasAttribute("aria-current")).toBe(false);
+    // JoyClub changes the address in place: the mark follows.
+    url = OTHER;
+    bar.update();
+    expect(buttonNamed("Nearby").getAttribute("aria-current")).toBe("true");
+    expect(buttonNamed("Here").hasAttribute("aria-current")).toBe(false);
+  });
+
+  it("keeps keyboard focus in the bar through naming, saving, cancelling and deleting", async () => {
+    bar.update();
+    await flush();
+    buttonNamed("Save this search").focus();
+    buttonNamed("Save this search").click();
+    const input = () =>
+      document.querySelector<HTMLInputElement>(".joyfox-saved-searches__name");
+    expect(document.activeElement).toBe(input());
+    input()!.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape" }));
+    // The name box is gone; the button that opens it takes focus.
+    expect(input()).toBeNull();
+    expect(document.activeElement).toBe(buttonNamed("Save this search"));
+    buttonNamed("Save this search").click();
+    buttonNamed("Save").focus();
+    buttonNamed("Save").click();
+    // A refused save keeps focus where it was.
+    expect(status()).toBe("Type a name first. Nothing was saved.");
+    expect(document.activeElement).toBe(buttonNamed("Save"));
+    input()!.value = "Weekend";
+    input()!.dispatchEvent(new Event("input"));
+    buttonNamed("Save").click();
+    await flush();
+    expect(status()).toBe('Saved "Weekend".');
+    expect(document.activeElement).toBe(buttonNamed("Save this search"));
+    // The first ✕ asks; the list is drawn again, and ✕ keeps focus.
+    const remove = () => buttonNamed("✕");
+    remove().focus();
+    remove().click();
+    expect(status()).toBe('Click ✕ again to delete "Nearby".');
+    expect(document.activeElement).toBe(remove());
+    listAnswer = { accountId: "account-a", searches: [] };
+    remove().click();
+    await flush();
+    expect(status()).toBe('Deleted "Nearby".');
+    expect(document.activeElement).toBe(buttonNamed("Save this search"));
+  });
+
+  it("keeps one live region for its notices", async () => {
+    bar.update();
+    await flush();
+    const region = document.querySelector(".joyfox-saved-searches__status");
+    buttonNamed("✕").click();
+    expect(status()).toBe('Click ✕ again to delete "Nearby".');
+    expect(document.querySelector(".joyfox-saved-searches__status")).toBe(
+      region,
+    );
+  });
+
   it("drops the read error once a later read works", async () => {
     client.list.mockRejectedValueOnce(new Error("offline"));
     bar.update();
@@ -363,7 +432,13 @@ describe("V1-3 saved-search bar", () => {
       // The request is used once.
       expect(stored.size).toBe(0);
       expect(clicks).toEqual([]);
+      // Said at once, before the list of saved searches is read.
+      expect(status()).toBe("Running the saved search…");
+      // The list is read; JoyClub's panel appears 10 ms after the click.
+      await flush();
+      expect(status()).toBe('Running "Nearby"…');
       await vi.waitFor(() => expect(clicks).toEqual(["filter", "apply"]));
+      expect(status()).toBe('Showing "Nearby".');
       const innerClicks = vi.fn();
       inner.addEventListener("click", innerClicks);
       // JoyClub redraws; the bar is placed again but clicks nothing more.
@@ -374,7 +449,7 @@ describe("V1-3 saved-search bar", () => {
       expect(clicks).toEqual(["filter", "apply"]);
       expect(innerClicks).not.toHaveBeenCalled();
       expect(replaceState).toHaveBeenCalledTimes(1);
-      expect(status()).toBe("");
+      expect(status()).toBe('Showing "Nearby".');
     });
 
     it("clicks nothing for a marker that no click in this tab asked for", async () => {
@@ -498,6 +573,8 @@ describe("V1-3 saved-search bar", () => {
         await new Promise((resolve) => setTimeout(resolve, 250));
         expect(clicks).toEqual(["filter"]);
         expect(status()).not.toContain("could not run");
+        // The page moved on: no notice says the search still runs.
+        expect(status()).not.toContain("Running");
       }
     });
 

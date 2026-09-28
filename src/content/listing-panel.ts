@@ -19,6 +19,13 @@ import type {
 import { request, type MessageSender } from "../messaging/request";
 import { MAX_NOTE_LENGTH, MAX_TAG_LENGTH } from "../notes/limits";
 import { selectorRegistry, verifiedSelector } from "../selectors/registry";
+import {
+  FOCUS_KEY,
+  rememberFocus,
+  restoreFocus,
+  type FocusMemo,
+} from "../ui/focus";
+import { NOTES_TEXT, noteLength } from "./member-notes";
 import { button, element, UI_ATTRIBUTE } from "./triage-ui";
 
 export type ListingGetAnswer = MessageContract["listing.get"]["response"];
@@ -68,6 +75,30 @@ export const ATTENDANCE_TEXT: Record<Attendance, PlainKey> = {
 const NOTE_FIELD = "joyfox-listing__note";
 const TAG_FIELD = "joyfox-listing__tag-input";
 
+/** Where focus goes when a redraw removed the focused control. */
+function fallbacks(memo: FocusMemo | undefined): string[] {
+  return memo?.key.startsWith("remove:") ? ["tag", "summary"] : ["summary"];
+}
+
+/** "JoyFox: your notes on this event (Attending, 2 tags, a note)". */
+function summaryText(
+  kind: ListingKind,
+  listing: ListingSummary | null,
+): string {
+  const parts: string[] = [];
+  if (listing && listing.attendance !== "unknown")
+    parts.push(t(ATTENDANCE_TEXT[listing.attendance]));
+  if (listing && listing.tags.length > 0)
+    parts.push(t(message("signals.tagCount", { count: listing.tags.length })));
+  if (listing?.note) parts.push(t("listing.summary.note"));
+  const state = parts.length > 0 ? parts.join(", ") : t("listing.summary.none");
+  return t(
+    kind === "event"
+      ? message("listing.summary.event", { state })
+      : message("listing.summary.venue", { state }),
+  );
+}
+
 /** The number in the page's path, by the verified path of its page type. */
 function pathId(kind: ListingKind, pathname: string): string | undefined {
   const definition = selectorRegistry[kind];
@@ -92,9 +123,18 @@ type Saved = Extract<ListingGetAnswer, { status: "ok" }>;
  * text typed there stays across redraws until then. A save names the
  * version it was drawn from, so a change made in another tab is never
  * overwritten unseen.
+ *
+ * The box is closed while nothing is stored for the event or venue, and
+ * open once JoyFox tracks it (ADR 0010: details on demand); its summary
+ * says what is stored.
  */
 export class ListingPanel {
   #root?: HTMLElement;
+  /** The part each draw replaces; the notice below it stays. */
+  #content?: HTMLElement;
+  #statusNode?: HTMLElement;
+  /** The user opened or closed the box on this page. */
+  #open?: boolean;
   #key?: string;
   #kind?: ListingKind;
   #id?: string;
@@ -104,7 +144,7 @@ export class ListingPanel {
   #tagDraft = "";
   #status?: { text: Message; error: boolean };
   /**
-   * A save is on its way. The box's controls are disabled meanwhile, so a
+   * A save is on its way. The box's controls ignore changes meanwhile, so a
    * second change can never be dropped or overwritten by the first answer.
    */
   #busy = false;
@@ -129,12 +169,21 @@ export class ListingPanel {
       this.#key = key;
       this.#kind = kind;
       this.#id = id;
-      this.#root = element(
+      const root = element(
         this.document,
         "section",
         "joyfox-panel joyfox-listing",
       );
-      this.#root.setAttribute(UI_ATTRIBUTE, "listing");
+      root.setAttribute(UI_ATTRIBUTE, "listing");
+      const content = element(this.document, "div", "joyfox-listing__content");
+      // One live region for the box's life, so each notice is announced.
+      const status = element(this.document, "p", "joyfox-listing__status");
+      status.setAttribute("role", "status");
+      status.setAttribute("aria-live", "polite");
+      root.append(content, status);
+      this.#root = root;
+      this.#content = content;
+      this.#statusNode = status;
       this.#draw();
       void this.#load();
     }
@@ -145,6 +194,9 @@ export class ListingPanel {
     this.#session += 1;
     this.#root?.remove();
     this.#root = undefined;
+    this.#content = undefined;
+    this.#statusNode = undefined;
+    this.#open = undefined;
     this.#key = undefined;
     this.#kind = undefined;
     this.#id = undefined;
@@ -162,6 +214,7 @@ export class ListingPanel {
     this.#draft = undefined;
     this.#tagDraft = "";
     this.#status = undefined;
+    this.#open = undefined;
     this.#draw();
     void this.#load();
   }
@@ -246,63 +299,69 @@ export class ListingPanel {
 
   #draw(): void {
     const root = this.#root;
+    const content = this.#content;
     const kind = this.#kind;
-    if (!root || !kind) return;
+    if (!root || !content || !kind) return;
     const document = this.document;
-    const active = document.activeElement;
-    const focus =
-      active?.classList.contains(NOTE_FIELD) ||
-      active?.classList.contains(TAG_FIELD)
-        ? {
-            field: active.className,
-            start: (active as HTMLInputElement).selectionStart,
-            end: (active as HTMLInputElement).selectionEnd,
-          }
-        : undefined;
-    root.replaceChildren();
+    // Every draw replaces the box's controls, also for a save in another
+    // tab; the focused control is found again by its key.
+    const focus = rememberFocus(root);
     const heading = t(
       kind === "event" ? "listing.heading.event" : "listing.heading.venue",
     );
     root.setAttribute("aria-label", heading);
-    root.append(element(document, "p", "joyfox-panel__heading", heading));
+    content.replaceChildren();
     const data = this.#data;
     if (!data) {
+      content.append(element(document, "p", "joyfox-panel__heading", heading));
       if (!this.#status)
-        root.append(
+        content.append(
           element(document, "p", "joyfox-note", t("listing.loading")),
         );
-    } else if (data.status === "no-account") {
-      root.append(
+    } else content.append(this.#details(data, kind, heading));
+    this.#showStatus();
+    this.#markBusy();
+    restoreFocus(root, focus, fallbacks(focus));
+  }
+
+  #details(
+    data: ListingGetAnswer,
+    kind: ListingKind,
+    heading: string,
+  ): HTMLElement {
+    const document = this.document;
+    const stored = data.status === "ok" ? data.listing : null;
+    const details = element(document, "details", "joyfox-listing__details");
+    details.open = this.#open ?? stored !== null;
+    details.addEventListener("toggle", () => {
+      if (details.isConnected) this.#open = details.open;
+    });
+    const summary = element(
+      document,
+      "summary",
+      "joyfox-listing__summary",
+      data.status === "ok" ? summaryText(kind, stored) : heading,
+    );
+    summary.setAttribute(FOCUS_KEY, "summary");
+    details.append(summary);
+    if (data.status === "no-account") {
+      const options = button(
+        document,
+        "joyfox-button",
+        t("common.openOptions"),
+        () => void this.client.openOptions().catch(() => undefined),
+      );
+      options.setAttribute(FOCUS_KEY, "options");
+      details.append(
         element(document, "p", "joyfox-note", t("listing.noAccount")),
-        button(
-          document,
-          "joyfox-button",
-          t("common.openOptions"),
-          () => void this.client.openOptions().catch(() => undefined),
-        ),
+        options,
       );
-    } else {
-      if (kind === "event") root.append(this.#attendanceRow(data));
-      root.append(this.#noteRow(data), this.#tagRow(data));
-      root.append(element(document, "p", "joyfox-note", t("listing.privacy")));
+      return details;
     }
-    const status = element(document, "p", "joyfox-listing__status");
-    status.setAttribute("role", "status");
-    status.setAttribute("aria-live", "polite");
-    if (this.#status) {
-      status.textContent = t(this.#status.text);
-      status.classList.toggle("joyfox-error", this.#status.error);
-    }
-    root.append(status);
-    this.#disableWhileBusy();
-    if (focus) {
-      const field = root.querySelector<HTMLInputElement | HTMLTextAreaElement>(
-        `.${focus.field.split(" ")[0]}`,
-      );
-      field?.focus();
-      if (field && focus.start !== null && focus.end !== null)
-        field.setSelectionRange(focus.start, focus.end);
-    }
+    if (kind === "event") details.append(this.#attendanceRow(data));
+    details.append(this.#noteRow(data), this.#tagRow(data, kind));
+    details.append(element(document, "p", "joyfox-note", t("listing.privacy")));
+    return details;
   }
 
   #attendanceRow(data: Saved): HTMLElement {
@@ -311,14 +370,22 @@ export class ListingPanel {
     const label = element(document, "label", "", t("listing.attendanceLabel"));
     const select = element(document, "select", "joyfox-listing__attendance");
     select.id = "joyfox-listing-attendance";
+    select.setAttribute(FOCUS_KEY, "attendance");
     label.htmlFor = select.id;
     const stored = data.listing?.attendance ?? "unknown";
     for (const value of ATTENDANCE_VALUES)
       select.append(
         new Option(t(ATTENDANCE_TEXT[value]), value, false, value === stored),
       );
+    // The value being saved; a change while a save runs goes back to it.
+    let chosen = stored;
     select.addEventListener("change", () => {
-      void this.#save({ attendance: select.value as Attendance });
+      if (this.#busy) {
+        select.value = chosen;
+        return;
+      }
+      chosen = select.value as Attendance;
+      void this.#save({ attendance: chosen });
     });
     row.append(label, select);
     return row;
@@ -330,6 +397,7 @@ export class ListingPanel {
     const label = element(document, "label", "", t("listing.noteLabel"));
     const note = element(document, "textarea", NOTE_FIELD);
     note.id = "joyfox-listing-note";
+    note.setAttribute(FOCUS_KEY, "note");
     label.htmlFor = note.id;
     note.maxLength = MAX_NOTE_LENGTH;
     note.rows = 3;
@@ -339,17 +407,29 @@ export class ListingPanel {
     });
     // Keys typed here are JoyFox's: JoyClub's page shortcuts must not see them.
     note.addEventListener("keydown", (event) => event.stopPropagation());
-    row.append(
-      label,
+    const length = noteLength(
+      document,
       note,
-      button(document, "joyfox-button", t("listing.saveNote"), () => {
-        void this.#save({ note: note.value }, true);
-      }),
+      "joyfox-listing-note-length",
+      () => {
+        this.#status = { text: message(NOTES_TEXT.pasteCut), error: true };
+        this.#showStatus();
+      },
     );
+    const save = button(
+      document,
+      "joyfox-button",
+      t("listing.saveNote"),
+      () => {
+        void this.#save({ note: note.value }, true);
+      },
+    );
+    save.setAttribute(FOCUS_KEY, "save-note");
+    row.append(label, note, length, save);
     return row;
   }
 
-  #tagRow(data: Saved): HTMLElement {
+  #tagRow(data: Saved, kind: ListingKind): HTMLElement {
     const document = this.document;
     const row = element(document, "div", "joyfox-listing__row");
     row.append(
@@ -363,6 +443,7 @@ export class ListingPanel {
         const remove = button(document, "joyfox-button", "✕", () => {
           void this.#save({ tags: tags.filter((other) => other !== tag) });
         });
+        remove.setAttribute(FOCUS_KEY, `remove:${tag}`);
         const label = t(message("listing.removeTag", { tag }));
         remove.setAttribute("aria-label", label);
         remove.title = label;
@@ -372,6 +453,7 @@ export class ListingPanel {
       row.append(list);
     }
     const input = element(document, "input", TAG_FIELD);
+    input.setAttribute(FOCUS_KEY, "tag");
     input.type = "text";
     input.maxLength = MAX_TAG_LENGTH;
     input.autocomplete = "off";
@@ -379,11 +461,14 @@ export class ListingPanel {
     input.setAttribute("aria-label", t("listing.tagLabel"));
     input.placeholder = t("listing.tagLabel");
     const add = () => {
+      if (this.#busy) return;
       const tag = input.value.trim();
       if (!tag) return this.#setStatus(message("listing.emptyTag"), true);
       if (cleanTags([...tags, tag]).length > MAX_EVENT_TAGS)
         return this.#setStatus(
-          message("listing.tooManyTags", { maximum: MAX_EVENT_TAGS }),
+          kind === "event"
+            ? message("listing.tooManyTags.event", { maximum: MAX_EVENT_TAGS })
+            : message("listing.tooManyTags.venue", { maximum: MAX_EVENT_TAGS }),
           true,
         );
       void this.#save({ tags: [...tags, tag] }, false, true);
@@ -398,23 +483,40 @@ export class ListingPanel {
         add();
       }
     });
-    row.append(
-      input,
-      button(document, "joyfox-button", t("listing.addTag"), add),
+    const addButton = button(
+      document,
+      "joyfox-button",
+      t("listing.addTag"),
+      add,
     );
+    addButton.setAttribute(FOCUS_KEY, "add-tag");
+    row.append(input, addButton);
     return row;
   }
 
-  #disableWhileBusy(): void {
+  /**
+   * While a save runs, the box's controls say they are unavailable and
+   * ignore input, but keep focus, which `disabled` would drop to the page.
+   */
+  #markBusy(): void {
     for (const control of Array.from(
-      this.#root?.querySelectorAll<
-        | HTMLButtonElement
-        | HTMLInputElement
-        | HTMLSelectElement
-        | HTMLTextAreaElement
-      >("button, input, select, textarea") ?? [],
-    ))
-      control.disabled = this.#busy;
+      this.#content?.querySelectorAll<HTMLElement>(
+        "button, input, select, textarea",
+      ) ?? [],
+    )) {
+      if (this.#busy) control.setAttribute("aria-disabled", "true");
+      else control.removeAttribute("aria-disabled");
+      if (control.tagName === "INPUT" || control.tagName === "TEXTAREA")
+        (control as HTMLInputElement).readOnly = this.#busy;
+    }
+  }
+
+  /** Shown in place, so the live region stays the same node. */
+  #showStatus(): void {
+    const node = this.#statusNode;
+    if (!node) return;
+    node.textContent = this.#status ? t(this.#status.text) : "";
+    node.classList.toggle("joyfox-error", this.#status?.error === true);
   }
 
   #setStatus(text: Message, error: boolean): void {
@@ -439,7 +541,7 @@ export class ListingPanel {
     const session = this.#session;
     let answer: ListingSaveAnswer;
     this.#busy = true;
-    this.#disableWhileBusy();
+    this.#markBusy();
     try {
       answer = await this.client.save({
         accountId: data.accountId,
@@ -457,7 +559,7 @@ export class ListingPanel {
       return;
     } finally {
       this.#busy = false;
-      this.#disableWhileBusy();
+      this.#markBusy();
     }
     if (session !== this.#session) return;
     if (answer.status === "refused") {
@@ -474,10 +576,15 @@ export class ListingPanel {
     }
     if (savesNote) this.#draft = undefined;
     if (savesTag) this.#tagDraft = "";
+    // The first save of an event or venue says that JoyFox now tracks it,
+    // and the last removal that it no longer does.
+    const event = kind === "event";
     this.#setStatus(
-      message(
-        answer.status === "removed" ? "listing.removed" : "listing.saved",
-      ),
+      answer.status === "removed"
+        ? message(event ? "listing.removed.event" : "listing.removed.venue")
+        : stored
+          ? message("listing.saved")
+          : message(event ? "listing.tracked.event" : "listing.tracked.venue"),
       false,
     );
   }

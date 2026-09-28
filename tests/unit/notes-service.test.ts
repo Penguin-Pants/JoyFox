@@ -113,8 +113,12 @@ describe("M5 notes and tags", () => {
     const again = value(
       await service.addTag(ACCOUNT, identity, "  met   TWICE "),
     );
-    expect(again.id).toBe(first.id);
-    expect(again.label).toBe("Met twice");
+    expect(again.tag.id).toBe(first.tag.id);
+    expect(again.tag.label).toBe("Met twice");
+    // The second add says the tag was already there, so the editor does
+    // not report it as added.
+    expect(first.added).toBe(true);
+    expect(again.added).toBe(false);
     expect(await repositories.userTags.list(ACCOUNT)).toHaveLength(1);
   });
 

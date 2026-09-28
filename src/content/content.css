@@ -221,6 +221,17 @@
   margin: var(--joyfox-space) 0 0;
 }
 
+/* The length of a note box, shown near its limit (notes, cards, events). */
+.joyfox-note-length {
+  display: block;
+  color: var(--joyfox-muted);
+  font-size: 0.8125rem;
+}
+
+.joyfox-note-length:empty {
+  display: none;
+}
+
 .joyfox-notes__status:empty {
   margin: 0;
 }
@@ -479,6 +490,13 @@
   gap: 0.25em;
 }
 
+/* The saved search whose results the page shows; not by color alone. */
+.joyfox-saved-searches__open[aria-current="true"] {
+  border-color: currentColor;
+  font-weight: 700;
+  text-decoration: underline;
+}
+
 .joyfox-saved-searches__save {
   display: flex;
   flex-wrap: wrap;
@@ -506,6 +524,30 @@
 }
 
 /* V1-5: the user's notes on an event or venue page. */
+.joyfox-listing__summary {
+  cursor: pointer;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.joyfox-listing__details[open] > .joyfox-listing__summary {
+  margin-bottom: var(--joyfox-space);
+}
+
+.joyfox-listing__summary:focus-visible,
+.joyfox-compat__summary:focus-visible,
+.joyfox-card-editor:focus-visible {
+  outline: 2px solid var(--joyfox-focus);
+  outline-offset: 2px;
+}
+
+/* A control on hold while a save runs; it keeps focus, unlike `disabled`. */
+.joyfox-listing [aria-disabled="true"],
+.joyfox-card-editor [aria-disabled="true"] {
+  cursor: default;
+  opacity: 0.6;
+}
+
 .joyfox-listing__row {
   display: flex;
   flex-wrap: wrap;
@@ -614,6 +656,11 @@
 
 .joyfox-compat__text {
   margin: 0.25em 0;
+}
+
+.joyfox-compat__summary {
+  cursor: pointer;
+  margin: 0 0 0.25em;
 }
 
 .joyfox-compat__list {
@@ -737,6 +784,12 @@
   color: CanvasText;
 }
 
+.joyfox-card-editor__body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5em;
+}
+
 .joyfox-card-editor__tags {
   margin: 0;
   padding-inline-start: 1.25em;
@@ -798,6 +851,15 @@
   border-width: 1px;
   font-size: 11px;
   line-height: 14px;
+}
+
+/*
+ * A near miss on a small control opens the member's profile (item 126), so
+ * each control is at least 24 px wide. The line keeps its 18 px height.
+ */
+.joyfox-card-line .joyfox-button {
+  min-width: 24px;
+  text-align: center;
 }
 
 .joyfox-card-line .joyfox-signals__note[data-has-note="true"] {

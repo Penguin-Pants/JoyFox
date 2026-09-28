@@ -214,9 +214,13 @@ export interface MessageContract {
       | { status: "saved" | "conflict"; current: string | null }
       | { status: "refused" };
   };
+  /**
+   * `existed`: the member already had this tag (compared without case), so
+   * nothing was written.
+   */
   "tag.add": {
     request: { accountId: string; memberId: string; label: string };
-    response: { done: boolean };
+    response: { done: boolean; existed?: boolean };
   };
   "tag.remove": {
     request: { accountId: string; memberId: string; label: string };

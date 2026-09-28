@@ -13,6 +13,7 @@ import {
   type SignalRequest,
 } from "../signals/signals-service";
 import { verifiedSelector, type PageType } from "../selectors/registry";
+import { FOCUS_KEY, rememberFocus, restoreFocus } from "../ui/focus";
 import { CardNoteEditor } from "./card-note-editor";
 import {
   memberCards,
@@ -94,10 +95,14 @@ export function completenessText(value: Completeness): string {
   return `${t(STATE_TEXT[value.state])}: ${parts.join(", ")}`;
 }
 
+/**
+ * The trust chip's full text, in the words the member strip uses ("Local
+ * trust score: 2."); the chip itself shows a short form.
+ */
 function trustText(signals: MemberSignals): string {
   return signals.trust === "unknown"
-    ? t("signals.trustNone")
-    : t(message("signals.trust", { score: signals.trust.score }));
+    ? t("trust.score.none")
+    : t(message("trust.score.value", { score: signals.trust.score }));
 }
 
 const requestKey = (card: SignalRequest) =>
@@ -134,6 +139,8 @@ export class CardSignals {
   #accountId?: string | null;
   #rendered = "";
   readonly #editor: CardNoteEditor;
+  /** Where the editor was opened, so focus returns to a card there. */
+  #editorSurface?: Surface;
   /** `account|member|nickname` already sent from this tab. */
   readonly #namesSent = new Set<string>();
 
@@ -142,7 +149,25 @@ export class CardSignals {
     private readonly client: SignalsClient,
     notes: NotesClient,
   ) {
-    this.#editor = new CardNoteEditor(document, notes);
+    this.#editor = new CardNoteEditor(document, notes, (memberId) =>
+      this.#noteButton(memberId),
+    );
+  }
+
+  /** The member's note button now, on a card where the editor opened. */
+  #noteButton(memberId: string): HTMLElement | undefined {
+    const groups = Array.from(
+      this.document.querySelectorAll<HTMLElement>(
+        `[${UI_ATTRIBUTE}="${CARD_SIGNALS}"]`,
+      ),
+    ).filter((group) => group.getAttribute("data-member") === memberId);
+    const group =
+      groups.find(
+        (node) => node.getAttribute("data-surface") === this.#editorSurface,
+      ) ?? groups[0];
+    return (
+      group?.querySelector<HTMLElement>(".joyfox-signals__note") ?? undefined
+    );
   }
 
   update(type: PageType | undefined): void {
@@ -366,7 +391,7 @@ export class CardSignals {
         trustText(signals),
         signals.trust === "unknown"
           ? t("signals.trustNoneShort")
-          : trustText(signals),
+          : t(message("signals.trust", { score: signals.trust.score })),
       ),
     );
     // Icon-only, so a card with a note needs no more room; its label says
@@ -378,8 +403,12 @@ export class CardSignals {
       document,
       "joyfox-button joyfox-signals__note",
       "✎",
-      () => this.#editor.open(card.memberId, note, card.name),
+      () => {
+        this.#editorSurface = surface;
+        this.#editor.open(card.memberId, note, card.name);
+      },
     );
+    note.setAttribute(FOCUS_KEY, "note");
     note.title = noteText;
     note.setAttribute("aria-label", noteText);
     note.setAttribute("data-has-note", String(signals.hasNote));
@@ -392,8 +421,13 @@ export class CardSignals {
           t(message("signals.tagCount", { count: signals.tags.length })),
         ),
       );
-    if (existing) existing.replaceWith(group);
-    else card.placeSignals(group);
+    if (existing) {
+      // A save or another tab's change draws the chips again; a focused
+      // note button stays focused.
+      const focus = rememberFocus(existing);
+      existing.replaceWith(group);
+      restoreFocus(group, focus);
+    } else card.placeSignals(group);
   }
 
   #clear(surface: Surface): void {
@@ -541,6 +575,8 @@ export class CardSignals {
       "joyfox-panel joyfox-completeness",
     );
     section.setAttribute(UI_ATTRIBUTE, COMPLETENESS_SECTION);
+    // A group inside the member strip, which is the page's one JoyFox region.
+    section.setAttribute("role", "group");
     section.setAttribute("aria-label", t("signals.heading"));
     const badge = element(
       this.document,
