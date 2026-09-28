@@ -266,6 +266,42 @@ describe("M8 data panel", () => {
     expect(input().value).toBe("30");
   });
 
+  it("asks again when the armed snapshot number is typed again after a change", async () => {
+    for (let index = 0; index < 4; index += 1)
+      await repositories.profileSnapshots.put(a, {
+        id: `snap-${index}`,
+        accountId: a,
+        memberId: "1234567",
+        capturedAt: new Date(Date.UTC(2026, 0, 1, 0, 0, index)).toISOString(),
+        verification: "unknown",
+        photoCount: index,
+        profileWordCount: "unknown",
+        joinedAt: "unknown",
+        createdAt: "2026-01-01T00:00:00.000Z",
+        updatedAt: "2026-01-01T00:00:00.000Z",
+      });
+    await panel.render();
+    const input = () =>
+      root.querySelector<HTMLInputElement>("#joyfox-data-retention")!;
+    const save = () =>
+      root.querySelector<HTMLButtonElement>(".joyfox-data__retention-save")!;
+    const retype = (value: string) => {
+      input().value = value;
+      input().dispatchEvent(new Event("input"));
+    };
+    input().value = "1";
+    save().click();
+    await settle(() => save().textContent === "Save and delete");
+    // Another number disarms it; the same number again must ask again.
+    retype("2");
+    retype("1");
+    expect(save().textContent).toBe("Save");
+    save().click();
+    await settle(() => save().textContent === "Save and delete");
+    expect(status()?.textContent).toContain('Click "Save and delete"');
+    expect(await repositories.profileSnapshots.list(a)).toHaveLength(4);
+  });
+
   it("keeps expanded records open when the panel redraws", async () => {
     await showRecords("Show Message templates");
     const record = () =>

@@ -1310,6 +1310,49 @@ describe("conversation and profile panel", () => {
     ).toBeNull();
   });
 
+  it("ignores a second Log click while the panel reads the member again", async () => {
+    await rules.saveGlobalRule(ACCOUNT, knownRule());
+    setPage(
+      "/clubmail/conversation/conversation-wrapper-personal-1234567-7654321",
+      conversationHtml,
+    );
+    const client = serviceClient();
+    let hold = false;
+    let releaseRead: () => void = () => undefined;
+    const member = new MemberPanel(document, {
+      ...client,
+      // Once held, the read after the write is slow.
+      evaluate: (members) =>
+        hold
+          ? new Promise((resolve) => {
+              releaseRead = () => resolve(client.evaluate(members));
+            })
+          : client.evaluate(members),
+    });
+    member.update("conversation");
+    await vi.waitFor(() => expect(panel()).not.toBeNull());
+    hold = true;
+    buttonNamed(panel()!, "Log positive").click();
+    // The write is stored; the panel is still the one drawn while it ran.
+    await vi.waitFor(async () =>
+      expect(await repositories.trustSignals.list(ACCOUNT)).toHaveLength(1),
+    );
+    await new Promise((resolve) => setTimeout(resolve, 10));
+    const stale = buttonNamed(panel()!, "Log positive");
+    expect(stale.getAttribute("aria-disabled")).toBe("true");
+    stale.click();
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    hold = false;
+    releaseRead();
+    await vi.waitFor(() =>
+      expect(
+        buttonNamed(panel()!, "Log positive").getAttribute("aria-disabled"),
+      ).toBeNull(),
+    );
+    await new Promise((resolve) => setTimeout(resolve, 30));
+    expect(await repositories.trustSignals.list(ACCOUNT)).toHaveLength(1);
+  });
+
   it("removes one outcome for a double click on Undo", async () => {
     await rules.saveGlobalRule(ACCOUNT, knownRule());
     await trust.logOutcome(ACCOUNT, KNOWN, "positive");

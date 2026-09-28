@@ -448,6 +448,8 @@ export class CardNoteEditor {
       if (event.key !== "Enter" || event.isComposing) return;
       event.preventDefault();
       event.stopPropagation();
+      // Read-only while a write or its redraw is on its way, like the buttons.
+      if (tag.readOnly) return;
       addTag();
     });
     const add = unavailable(

@@ -777,7 +777,16 @@ export class DataPanel {
         // A lower number deletes older snapshots at once, in every account:
         // it saves only on a second click, as a delete does.
         if (isSnapshotRetention(keep) && keep < current) {
-          if (!armed || armed.keep !== keep) {
+          // Confirms only on a button drawn armed, and only while that
+          // request is still armed now: typing a number disarms it without a
+          // redraw, and typing the same number again must ask again.
+          const live = this.#pending;
+          if (
+            !armed ||
+            armed.keep !== keep ||
+            live?.kind !== "retention" ||
+            live.keep !== keep
+          ) {
             if (event.detail > 1) return;
             this.#pending = { kind: "retention", keep };
             this.#armedAt = confirmTiming.now();

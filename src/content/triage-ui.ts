@@ -83,7 +83,10 @@ export function element<K extends keyof HTMLElementTagNameMap>(
 
 /**
  * A button whose click never reaches JoyClub's own handlers, so a click on
- * JoyFox UI inside a row cannot also open the conversation.
+ * JoyFox UI inside a row cannot also open the conversation. A button marked
+ * unavailable (`aria-disabled`) does nothing: it keeps keyboard focus, as
+ * `disabled` would not, while a write or the redraw after it is on its way,
+ * so a click then can never act on data the redraw is about to replace.
  */
 export function button(
   document: Document,
@@ -96,6 +99,7 @@ export function button(
   node.addEventListener("click", (event) => {
     event.preventDefault();
     event.stopPropagation();
+    if (node.getAttribute("aria-disabled") === "true") return;
     onClick();
   });
   return node;

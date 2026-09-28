@@ -897,6 +897,54 @@ describe("V1-10 card note editor", () => {
     expect(note().maxLength).toBe(4000);
   });
 
+  it("ignores its old controls while it reads the member again after a write", async () => {
+    const answer = {
+      status: "ok",
+      accountId: "account-a",
+      note: null,
+      tags: [],
+    };
+    let reads = 0;
+    let releaseRead: () => void = () => undefined;
+    const added: string[] = [];
+    const cardEditor = new CardNoteEditor(document, {
+      getNotes: () => {
+        reads += 1;
+        if (reads === 1) return Promise.resolve(answer);
+        // The read after the write is slow.
+        return new Promise((resolve) => {
+          releaseRead = () => resolve(answer);
+        });
+      },
+      saveNote: () => Promise.reject(new Error("unused")),
+      addTag: (_account: string, _member: string, label: string) => {
+        added.push(label);
+        return Promise.resolve(true);
+      },
+      removeTag: () => Promise.resolve(true),
+    } as never);
+    cardEditor.open(FULL);
+    await flush();
+    const tag = () =>
+      editor().querySelector<HTMLInputElement>(".joyfox-card-editor__tag")!;
+    type(tag(), "Kind");
+    editorButton("Add tag").click();
+    await flush();
+    // The write is done; the read that redraws the controls is not.
+    expect(reads).toBe(2);
+    expect(editorButton("Add tag").getAttribute("aria-disabled")).toBe("true");
+    editorButton("Add tag").click();
+    tag().dispatchEvent(
+      new KeyboardEvent("keydown", { key: "Enter", bubbles: true }),
+    );
+    await flush();
+    expect(added).toEqual(["Kind"]);
+    releaseRead();
+    await flush();
+    expect(editorButton("Add tag").getAttribute("aria-disabled")).toBeNull();
+    cardEditor.close();
+  });
+
   it("drops typed text when a reload answers for another account, and clears a read error that recovered", async () => {
     const answers: unknown[] = [
       Promise.reject(new Error("offline")),
