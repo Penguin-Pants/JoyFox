@@ -406,11 +406,17 @@ export const de: Catalog = {
   "events.exception.hint":
     "Standardmäßig aus. JoyFox speichert die Gästeliste eines verfolgten Events, wenn du die Event-Seite öffnest, so weit JoyClub sie geladen hat, und löscht sie, wenn du das Event nicht mehr verfolgst. Eine Person, die du selbst verschoben hast, behält deine Wahl, und im Bereich „Warum“ kannst du die Ausnahme für eine Person abschalten.",
   "events.exception.saved": "Gespeichert.",
+  "events.exception.saveFailed":
+    "JoyFox konnte diese Einstellung nicht speichern. Versuche es noch einmal.",
   "quickSetting.heading": "Ignorieren und löschen",
   "quickSetting.label":
     "Die Schaltfläche „Ignorieren und löschen“ in ClubMail-Unterhaltungen zeigen",
   "quickSetting.hint":
-    "Experimentell und standardmäßig aus. Ein Klick schiebt die Unterhaltung in JoyClubs Papierkorb, öffnet das Profil des Mitglieds im selben Tab und ignoriert das Mitglied dort. JoyFox handelt nur, wenn du klickst, und das ActionLog unter „Deine Daten“ hält jeden Schritt fest.",
+    "Experimentell und standardmäßig aus. Ein Klick schiebt die Unterhaltung in JoyClubs Papierkorb, öffnet das Profil des Mitglieds im selben Tab und ignoriert das Mitglied dort. Das funktioniert nur, solange die ClubMail-Liste neben der Unterhaltung zu sehen ist. JoyFox handelt nur, wenn du klickst. Das „Aktionsprotokoll“ unter „Deine Daten“ hält jeden Schritt fest.",
+  "quickSetting.risk":
+    "Bemerkt JoyClub ein Werkzeug, das für dich klickt, kann dein Konto eingeschränkt oder geschlossen werden. Von allen JoyFox-Funktionen hat diese das höchste Risiko.",
+  "quickSetting.undo":
+    "Um es rückgängig zu machen, stelle die Unterhaltung aus JoyClubs Papierkorb wieder her. Öffne dann das Profil des Mitglieds und wähle im Menü „Profil nicht mehr ignorieren“.",
   "quickSetting.saved": "Gespeichert. Offene ClubMail-Tabs folgen sofort.",
   "quickSetting.saveFailed":
     "JoyFox konnte diese Einstellung nicht speichern. Versuche es noch einmal.",
@@ -434,16 +440,23 @@ export const de: Catalog = {
   "eventFilter.hasNote": "Notiz",
   "messages.heading": "Nachrichtensuche",
   "messages.hint":
-    "JoyFox speichert die ClubMail-Nachrichten, die du öffnest, gesendete und empfangene, damit du sie hier durchsuchen kannst. Es speichert nur, was eine Unterhaltung auf dem Bildschirm zeigt, und lädt nie ältere Nachrichten. Der Text bleibt in diesem Browser, und eine Exportdatei enthält ihn auch.",
+    "JoyFox speichert die ClubMail-Nachrichten, die du öffnest, gesendete und empfangene, damit du sie hier durchsuchen kannst. Es speichert nur, was eine Unterhaltung auf dem Bildschirm zeigt, und lädt nie ältere Nachrichten. Der Text bleibt in diesem Browser, und eine Exportdatei enthält ihn auch. Wenn du JoyFox in privaten Fenstern erlaubst, speichert es die Nachrichten, die du dort öffnest, genauso.",
   "messages.caching": "Die Nachrichten speichern, die ich in ClubMail öffne",
   "messages.cachingOn": "Das Speichern von Nachrichten ist an.",
   "messages.cachingOff":
-    "Das Speichern von Nachrichten ist aus. Schon gespeicherte Nachrichten bleiben, bis sie älter als die Zeit unten sind oder bis du sie unter „Deine Daten“ löschst.",
-  "messages.onHint": "Ältere Nachrichten werden automatisch gelöscht.",
+    "Das Speichern von Nachrichten ist aus. Schon gespeicherte Nachrichten bleiben, bis sie älter als die hier eingestellte Zeit sind oder bis du sie unter „Deine Daten“ löschst.",
   "messages.offHint":
     "Das Speichern ist aus: JoyFox speichert keine neuen Nachrichten. Die Suche umfasst weiter die schon gespeicherten Nachrichten.",
   "messages.retentionLabel": "Nachrichten behalten für (Monate)",
   "messages.retentionSave": "Speichern",
+  "messages.retentionHint": (p, f) =>
+    `Ältere Nachrichten werden automatisch gelöscht. Eine kleinere Zahl löscht ältere Nachrichten sofort. Standard ist ${f.number(p.default)}. Klicke zum Übernehmen auf „Speichern“.`,
+  "messages.retentionConfirm": "Speichern und löschen",
+  "messages.retentionConfirmPrompt": (p, f) =>
+    `Eine kleinere Zahl löscht die gespeicherten Nachrichten, die älter als ${f.plural(
+      p.months,
+      { one: "1 Monat", other: `${f.number(p.months)} Monate` },
+    )} sind, sofort. Klicke zum Bestätigen auf „Speichern und löschen“.`,
   "messages.retentionSaved": (p, f) =>
     p.deleted === 0
       ? "Gespeichert. Keine ältere Nachricht musste gelöscht werden."
@@ -608,6 +621,8 @@ export const de: Catalog = {
   "options.tabs.messages": "Nachrichten",
   "options.tabs.data": "Deine Daten",
   "options.importRegion": "JoyFox-Daten importieren",
+  "options.languageSaveFailed":
+    "JoyFox konnte die Sprache nicht speichern. Versuche es noch einmal.",
 
   // Options page: Get started
   "start.state.done": "Erledigt",

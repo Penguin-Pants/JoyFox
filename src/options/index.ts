@@ -6,6 +6,7 @@ import {
   localeFromSetting,
   readLocale,
 } from "../i18n/locale";
+import { message } from "../i18n/message";
 import {
   currentLocale,
   onLocaleChange,
@@ -30,6 +31,7 @@ import { GetStartedPanel } from "./get-started";
 import { QuickActionPanel } from "./quick-action-panel";
 import { QUICK_ACTION_KEY } from "../actions/quick-action-setting";
 import { RulePanel } from "./rule-panel";
+import { StatusLine } from "./status-line";
 import { OptionsTabs } from "./tabs";
 import { TemplatePanel } from "./template-panel";
 
@@ -114,12 +116,24 @@ function refreshAll(): void {
  * every other tab takes.
  */
 const language = document.querySelector<HTMLSelectElement>("#joyfox-language");
+/**
+ * Says when a choice could not be saved, in the language still shown. It
+ * goes below the title row that holds the toggle: an empty node inside that
+ * row would move the toggle, as the row spreads its items apart.
+ */
+const languageStatus = language ? new StatusLine(document) : undefined;
+if (language && languageStatus)
+  (
+    language.closest(".joyfox-options__title-row") ?? language.parentElement
+  )?.after(languageStatus.node);
 language?.addEventListener("change", () => {
   const value = language.value;
   if (!isLocale(value)) return;
+  languageStatus?.clear();
   void runtimeSettingsArea.set({ [LOCALE_KEY]: value }).catch(() => {
     // Not saved: show the language that is still in use.
     language.value = currentLocale();
+    languageStatus?.set(message("options.languageSaveFailed"), "error");
   });
 });
 
@@ -127,6 +141,8 @@ language?.addEventListener("change", () => {
 onLocaleChange((locale) => {
   applyStaticText(document);
   if (language) language.value = locale;
+  // A saved language is now in use: an earlier failure no longer applies.
+  languageStatus?.clear();
   if (accounts) void accounts.render().catch(() => undefined);
   else if (accountsFailed && accountRoot)
     accountRoot.textContent = t("accounts.readFailed");

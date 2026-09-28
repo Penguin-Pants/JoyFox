@@ -1,10 +1,12 @@
 // @vitest-environment jsdom
 import "../setup-indexeddb";
-import { beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { AccountService } from "../../src/accounts/account-service";
 import { EventTrackerService } from "../../src/events/event-service";
+import { setLocale } from "../../src/i18n/translator";
 import { EventsPanel } from "../../src/options/events-panel";
 import { repositories } from "../../src/storage/repositories";
+import { SHARED_EVENT_EXCEPTION_KEY } from "../../src/triage/shared-event";
 import { MemorySettingsArea } from "../memory-settings";
 import { freshDatabase } from "../setup-indexeddb";
 
@@ -149,5 +151,88 @@ describe("V1-5 personal event calendar", () => {
     await accounts.setActiveAccount(b.id);
     await panel.render();
     expect(root.textContent).toContain("No tracked events yet");
+  });
+});
+
+describe("the shared-event switch's status (U29, U31)", () => {
+  let settings: MemorySettingsArea;
+  const flush = async () => {
+    for (let round = 0; round < 10; round += 1)
+      await new Promise((resolve) => setTimeout(resolve, 0));
+  };
+  const toggle = () =>
+    root.querySelector<HTMLInputElement>("#joyfox-shared-event-exception")!;
+  const statusNode = () =>
+    root.querySelector<HTMLElement>(".joyfox-panel__status")!;
+  const switchOn = async () => {
+    toggle().checked = true;
+    toggle().dispatchEvent(new Event("change"));
+    await flush();
+  };
+
+  beforeEach(async () => {
+    settings = new MemorySettingsArea();
+    panel = new EventsPanel(
+      root,
+      listings,
+      accounts,
+      () => new Date(2026, 8, 26, 12),
+      settings,
+    );
+    const account = await accounts.createAccount({ joyClubAccountId: "a" });
+    await track(account.id, "1", "2026-10-01", "Masquerade", {
+      tags: ["Friends"],
+    });
+  });
+
+  afterEach(() => setLocale("en"));
+
+  it("says so as an error and reverts the switch when the setting cannot be saved", async () => {
+    await panel.render();
+    settings.set = () => Promise.reject(new Error("unavailable"));
+    await switchOn();
+    expect(toggle().checked).toBe(false);
+    expect(statusNode().textContent).toBe(
+      "JoyFox could not save this setting. Try again.",
+    );
+    expect(statusNode().dataset.kind).toBe("error");
+    expect(statusNode().getAttribute("role")).toBe("alert");
+    expect(toggle().closest(".joyfox-events__exception")).toBe(
+      statusNode().closest(".joyfox-events__exception"),
+    );
+  });
+
+  it("keeps one status node across redraws, and clears it on a filter or search", async () => {
+    await panel.render();
+    await switchOn();
+    expect(settings.items.get(SHARED_EVENT_EXCEPTION_KEY)).toBe(true);
+    const node = statusNode();
+    expect(node.textContent).toBe("Saved.");
+    expect(node.dataset.kind).toBe("info");
+    // The page's own storage.onChanged draws the panel again.
+    await panel.render();
+    expect(statusNode()).toBe(node);
+    expect(root.querySelectorAll(".joyfox-panel__status")).toHaveLength(1);
+    setLocale("de");
+    await panel.render();
+    expect(statusNode().textContent).toBe("Gespeichert.");
+    setLocale("en");
+
+    const search = root.querySelector<HTMLInputElement>(
+      "#joyfox-events-search",
+    )!;
+    search.value = "mask";
+    search.dispatchEvent(new Event("input"));
+    expect(statusNode()).toBe(node);
+    expect(node.textContent).toBe("");
+
+    await switchOn();
+    expect(node.textContent).toBe("Saved.");
+    const filter = root.querySelector<HTMLSelectElement>(
+      "#joyfox-events-filter",
+    )!;
+    filter.value = "tag:Friends";
+    filter.dispatchEvent(new Event("change"));
+    expect(node.textContent).toBe("");
   });
 });

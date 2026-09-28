@@ -302,6 +302,53 @@ describe("options page (docs/i18n-spec.md, Sections 3.7 to 3.9)", () => {
     await vi.waitFor(() => expect(document.documentElement.lang).toBe("de"));
     expect(language.value).toBe("de");
   });
+
+  it("says so, in the language shown, when the language cannot be saved", async () => {
+    await freshDatabase();
+    const browser = fakeBrowser("de-AT");
+    vi.stubGlobal("browser", browser);
+    await openOptionsPage();
+    await vi.waitFor(() =>
+      expect(document.querySelector("#joyfox-accounts h2")?.textContent).toBe(
+        "Konten",
+      ),
+    );
+    const language =
+      document.querySelector<HTMLSelectElement>("#joyfox-language")!;
+    // Below the row that holds the toggle, and empty until needed.
+    const status = document.querySelector<HTMLElement>(
+      ".joyfox-options__title-row + .joyfox-panel__status",
+    )!;
+    expect(status).not.toBeNull();
+    expect(status.textContent).toBe("");
+
+    const set = browser.storage.local.set;
+    browser.storage.local.set = () => Promise.reject(new Error("unavailable"));
+    language.value = "en";
+    language.dispatchEvent(new Event("change"));
+    await vi.waitFor(() =>
+      expect(status.textContent).toBe(
+        "JoyFox konnte die Sprache nicht speichern. Versuche es noch einmal.",
+      ),
+    );
+    expect(status.dataset.kind).toBe("error");
+    expect(status.getAttribute("role")).toBe("alert");
+    // The language still in use is shown again.
+    expect(language.value).toBe("de");
+    expect(document.documentElement.lang).toBe("de");
+
+    // A choice that is saved clears the message.
+    browser.storage.local.set = set;
+    language.value = "en";
+    language.dispatchEvent(new Event("change"));
+    await vi.waitFor(() => expect(document.documentElement.lang).toBe("en"));
+    expect(status.textContent).toBe("");
+    expect(
+      document.querySelectorAll(
+        ".joyfox-options__header .joyfox-panel__status",
+      ),
+    ).toHaveLength(1);
+  });
 });
 
 describe("content surfaces (docs/i18n-spec.md, Sections 3.7 and 6)", () => {

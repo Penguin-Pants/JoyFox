@@ -6,6 +6,7 @@ import { MessageCacheService } from "../messages/message-cache-service";
 import { nicknamesOf } from "../storage/member-directory";
 import { JoyClubMemberRepository } from "../storage/repositories";
 import {
+  DEFAULT_MESSAGE_RETENTION_MONTHS,
   isMessageRetention,
   MAX_MESSAGE_RETENTION_MONTHS,
   MESSAGE_CACHING_KEY,
@@ -17,6 +18,9 @@ import {
   runtimeSettingsArea,
   type SettingsArea,
 } from "../storage/local-settings";
+import { FOCUS_KEY, rememberFocus, restoreFocus } from "../ui/focus";
+import { confirmAllowed, confirmTiming } from "./confirm";
+import { StatusLine } from "./status-line";
 
 /** The most results drawn at once; the count still names every match. */
 export const MAX_SHOWN_RESULTS = 200;
@@ -77,7 +81,15 @@ export class MessagesPanel {
   #generation = 0;
   #accountId: string | undefined;
   #query = "";
-  #status?: { text: Message; error: boolean };
+  /** Created once and re-attached on every draw (see `StatusLine`). */
+  readonly #status: StatusLine;
+  /**
+   * A lower number of months that Save armed: it deletes stored messages at
+   * once, so it waits for a second click, like every other delete.
+   */
+  #pendingRetention: number | undefined;
+  /** When the lower number was armed, for the confirm grace period. */
+  #armedAt = 0;
 
   constructor(
     private readonly root: HTMLElement,
@@ -85,7 +97,9 @@ export class MessagesPanel {
     private readonly service = new MessageCacheService(settings),
     private readonly accounts = new AccountService(),
     private readonly members = new JoyClubMemberRepository(),
-  ) {}
+  ) {
+    this.#status = new StatusLine(root.ownerDocument);
+  }
 
   /** Nicknames by member ID, for the results of the shown account. */
   #names = new Map<string, string>();
@@ -125,7 +139,13 @@ export class MessagesPanel {
     found: CachedMessage[],
   ): void {
     const document = this.root.ownerDocument;
-    const focused = document.activeElement?.id;
+    const focus = rememberFocus(this.root);
+    // A number typed and not saved yet stays in the field.
+    const field = this.root.querySelector<HTMLInputElement>(
+      "#joyfox-messages-retention",
+    );
+    const typed =
+      field && field.value !== field.defaultValue ? field.value : undefined;
     this.root.replaceChildren();
     const heading = element(
       document,
@@ -135,26 +155,18 @@ export class MessagesPanel {
     );
     heading.id = "joyfox-messages-heading";
     this.root.setAttribute("aria-labelledby", heading.id);
+    this.#status.redraw();
     this.root.append(
       heading,
       element(document, "p", "joyfox-panel__hint", t("messages.hint")),
-      this.#settingsForm(document, current),
+      this.#settingsForm(document, current, typed),
+      this.#status.node,
     );
-    if (this.#status) {
-      const status = element(
-        document,
-        "p",
-        "joyfox-panel__status",
-        t(this.#status.text),
-      );
-      status.setAttribute("role", "status");
-      if (this.#status.error) status.dataset.kind = "error";
-      this.root.append(status);
-    }
     if (!accountId) {
       this.root.append(
         element(document, "p", "joyfox-panel__empty", t("messages.noAccount")),
       );
+      restoreFocus(this.root, focus);
       return;
     }
     this.root.append(this.#searchBox(document));
@@ -177,19 +189,26 @@ export class MessagesPanel {
         this.#results(document, found.slice(0, MAX_SHOWN_RESULTS)),
       );
     }
-    if (focused) document.getElementById(focused)?.focus();
+    restoreFocus(this.root, focus);
   }
 
-  #settingsForm(document: Document, current: MessageSettings): HTMLElement {
+  #settingsForm(
+    document: Document,
+    current: MessageSettings,
+    typed: string | undefined,
+  ): HTMLElement {
     const form = element(document, "div", "joyfox-messages__settings");
     const caching = element(document, "input", "");
     caching.type = "checkbox";
     caching.id = "joyfox-messages-caching";
+    caching.setAttribute(FOCUS_KEY, "caching");
     caching.checked = current.caching;
     const cachingLabel = element(document, "label", "joyfox-messages__switch");
     cachingLabel.htmlFor = caching.id;
     cachingLabel.append(caching, " ", t("messages.caching"));
     caching.addEventListener("change", () => {
+      // Any other action disarms a lower number, at once.
+      this.#pendingRetention = undefined;
       void this.#save(async () => {
         await this.settings.set({ [MESSAGE_CACHING_KEY]: caching.checked });
         return message(
@@ -207,30 +226,78 @@ export class MessagesPanel {
     const retention = element(document, "input", "joyfox-messages__months");
     retention.type = "number";
     retention.id = "joyfox-messages-retention";
+    retention.setAttribute(FOCUS_KEY, "retention");
     retention.min = String(MIN_MESSAGE_RETENTION_MONTHS);
     retention.max = String(MAX_MESSAGE_RETENTION_MONTHS);
-    retention.value = String(current.retentionMonths);
+    // The stored number is the default value, so a later draw can tell
+    // whether the user changed the field.
+    retention.defaultValue = String(current.retentionMonths);
+    const pending = this.#pendingRetention;
+    retention.value =
+      pending !== undefined
+        ? String(pending)
+        : (typed ?? retention.defaultValue);
     retentionLabel.htmlFor = retention.id;
+    const retentionHint = element(
+      document,
+      "p",
+      "joyfox-panel__hint",
+      t(
+        message("messages.retentionHint", {
+          default: DEFAULT_MESSAGE_RETENTION_MONTHS,
+        }),
+      ),
+    );
+    retentionHint.id = "joyfox-messages-retention-hint";
+    retention.setAttribute("aria-describedby", retentionHint.id);
+    // Whether this node was drawn armed, fixed at draw time: a click on a
+    // node drawn unarmed can only arm, never delete.
+    const armed = pending !== undefined;
     const save = element(
       document,
       "button",
       "joyfox-messages__save",
-      t("messages.retentionSave"),
+      t(armed ? "messages.retentionConfirm" : "messages.retentionSave"),
     );
     save.type = "button";
-    save.addEventListener("click", () => {
+    save.setAttribute(FOCUS_KEY, "retention-save");
+    retention.addEventListener("input", () => {
+      // Another number: the armed one no longer applies.
+      if (this.#pendingRetention === undefined) return;
+      this.#pendingRetention = undefined;
+      save.textContent = t("messages.retentionSave");
+      this.#status.clear();
+    });
+    save.addEventListener("click", (event) => {
       const months = Number(retention.value);
       if (!isMessageRetention(months)) {
-        this.#status = {
-          text: message("messages.retentionInvalid", {
+        this.#pendingRetention = undefined;
+        this.#status.set(
+          message("messages.retentionInvalid", {
             minimum: MIN_MESSAGE_RETENTION_MONTHS,
             maximum: MAX_MESSAGE_RETENTION_MONTHS,
           }),
-          error: true,
-        };
+          "error",
+        );
         void this.render();
         return;
       }
+      if (armed && this.#pendingRetention === months) {
+        if (!confirmAllowed(event, this.#armedAt)) return;
+      } else if (months < current.retentionMonths) {
+        // A lower number deletes older messages at once: arm first, and
+        // say what the second click deletes.
+        if (event.detail > 1) return;
+        this.#pendingRetention = months;
+        this.#armedAt = confirmTiming.now();
+        this.#status.set(
+          message("messages.retentionConfirmPrompt", { months }),
+          "info",
+        );
+        void this.render();
+        return;
+      }
+      this.#pendingRetention = undefined;
       void this.#save(async () =>
         message("messages.retentionSaved", {
           deleted: await this.service.setRetention(months),
@@ -239,26 +306,22 @@ export class MessagesPanel {
     });
     const switchRow = element(document, "p", "joyfox-panel__field");
     switchRow.append(cachingLabel);
+    form.append(switchRow);
+    if (!current.caching)
+      form.append(
+        element(document, "p", "joyfox-panel__hint", t("messages.offHint")),
+      );
     const row = element(document, "p", "joyfox-panel__field");
     row.append(retentionLabel, retention, save);
-    form.append(
-      switchRow,
-      row,
-      element(
-        document,
-        "p",
-        "joyfox-panel__hint",
-        t(current.caching ? "messages.onHint" : "messages.offHint"),
-      ),
-    );
+    form.append(row, retentionHint);
     return form;
   }
 
   async #save(write: () => Promise<Message>): Promise<void> {
     try {
-      this.#status = { text: await write(), error: false };
+      this.#status.set(await write(), "info");
     } catch {
-      this.#status = { text: message("common.saveFailed"), error: true };
+      this.#status.set(message("common.saveFailed"), "error");
     }
     await this.render();
   }
@@ -269,11 +332,16 @@ export class MessagesPanel {
     const input = element(document, "input", "joyfox-messages__search");
     input.type = "search";
     input.id = "joyfox-messages-search";
+    input.setAttribute(FOCUS_KEY, "search");
     label.htmlFor = input.id;
     input.value = this.#query;
     input.addEventListener("input", () => {
       // Kept as typed; the search itself ignores case and spacing.
       this.#query = input.value;
+      // A new search: the last save's result and an armed lower number no
+      // longer apply.
+      this.#pendingRetention = undefined;
+      this.#status.clear();
       const start = input.selectionStart;
       void this.render().then(() => {
         this.root
