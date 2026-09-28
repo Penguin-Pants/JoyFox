@@ -17,6 +17,7 @@ import {
 } from "../../src/actions/ignore-delete";
 import { registerActionHandlers } from "../../src/background/action-handlers";
 import {
+  HANDOFF_WAIT_MS,
   liveQuickActionDriver,
   messageQuickActionClient,
   profileUrl,
@@ -2069,8 +2070,15 @@ describe("M9 button and notice", () => {
     expect(hint().hidden).toBe(true);
   });
 
-  /** A run handed off to the profile, whose menu is not there yet. */
-  async function handedOffToProfile(driver: FakeDriver) {
+  /**
+   * A run handed off to the profile, whose menu is not there yet. Moves
+   * the page would make are kept in `visited`.
+   */
+  async function handedOffToProfile(
+    driver: FakeDriver,
+    visited: string[] = [],
+    returnWaitMs = 20,
+  ) {
     const recorder = client.recorder("account-a");
     const begun = await recorder.begin(TARGET);
     if (begun.status !== "started") throw new Error("not started");
@@ -2085,7 +2093,15 @@ describe("M9 button and notice", () => {
     onProfilePage();
     document.body.innerHTML = profileHtml;
     driver.current = () => PROFILE;
-    const quick = new QuickIgnoreDelete(document, client, () => driver);
+    const quick = new QuickIgnoreDelete(
+      document,
+      client,
+      () => driver,
+      (url) => visited.push(url),
+      () => Date.now(),
+      HANDOFF_WAIT_MS,
+      returnWaitMs,
+    );
     quick.updateProfile();
     return quick;
   }
@@ -2113,6 +2129,107 @@ describe("M9 button and notice", () => {
     );
     expect(notice()).not.toContain("Waiting for JoyClub's profile menu");
     expect(driver.clicks).toEqual(["request:ignore", "confirm:ignore"]);
+  });
+
+  const CLUBMAIL = `${window.location.origin}/clubmail/`;
+
+  it("returns to the ClubMail list once the run is finished", async () => {
+    const driver = new FakeDriver();
+    const visited: string[] = [];
+    await handedOffToProfile(driver, visited, 60);
+    await vi.waitFor(() =>
+      expect(notice()).toContain("Ignore and Delete finished."),
+    );
+    // The notice stays on screen for a moment first.
+    expect(visited).toEqual([]);
+    await vi.waitFor(() => expect(visited).toEqual([CLUBMAIL]));
+    expect(driver.clicks).toEqual(["request:ignore", "confirm:ignore"]);
+  });
+
+  it("stays on the profile when the run stops before it is finished", async () => {
+    const driver = new FakeDriver();
+    driver.verified.ignore = false;
+    const visited: string[] = [];
+    await handedOffToProfile(driver, visited);
+    await vi.waitFor(async () =>
+      expect((await logged())[0]?.at(-1)).toBe("Failed:not-verified"),
+    );
+    await new Promise((resolve) => setTimeout(resolve, 60));
+    expect(visited).toEqual([]);
+    expect(notice()).toContain("Ignore and Delete stopped.");
+  });
+
+  it("does not return once the user moved on", async () => {
+    const visited: string[] = [];
+    await handedOffToProfile(new FakeDriver(), visited, 60);
+    await vi.waitFor(() =>
+      expect(notice()).toContain("Ignore and Delete finished."),
+    );
+    // JoyClub routes to a conversation in place during the pause.
+    window.history.replaceState(
+      null,
+      "",
+      `/clubmail/conversation/conversation-wrapper-${CONVERSATION}`,
+    );
+    document.body.innerHTML = conversationHtml;
+    await new Promise((resolve) => setTimeout(resolve, 120));
+    expect(visited).toEqual([]);
+  });
+
+  it("does not return once the flag is turned off", async () => {
+    const visited: string[] = [];
+    const quick = await handedOffToProfile(new FakeDriver(), visited, 60);
+    await vi.waitFor(() =>
+      expect(notice()).toContain("Ignore and Delete finished."),
+    );
+    quick.turnOff();
+    await new Promise((resolve) => setTimeout(resolve, 120));
+    expect(visited).toEqual([]);
+  });
+
+  it("does not return once the account changes", async () => {
+    const visited: string[] = [];
+    const quick = await handedOffToProfile(new FakeDriver(), visited, 60);
+    await vi.waitFor(() =>
+      expect(notice()).toContain("Ignore and Delete finished."),
+    );
+    quick.accountChanged();
+    await new Promise((resolve) => setTimeout(resolve, 120));
+    expect(visited).toEqual([]);
+  });
+
+  it("does not return when the flag is turned off while the end is stored", async () => {
+    // Hold the last stored step, so the flag goes off before the run ends.
+    let release: () => void = () => undefined;
+    let held = false;
+    const record = client.recorder;
+    client = {
+      ...client,
+      recorder: (accountId) => {
+        const inner = record(accountId);
+        return {
+          ...inner,
+          record: async (operationId, state, failure) => {
+            if (state === "Completed") {
+              held = true;
+              await new Promise<void>((resolve) => (release = resolve));
+            }
+            return inner.record(operationId, state, failure);
+          },
+        };
+      },
+    };
+    const driver = new FakeDriver();
+    const visited: string[] = [];
+    const quick = await handedOffToProfile(driver, visited);
+    await vi.waitFor(() => expect(held).toBe(true));
+    quick.turnOff();
+    release();
+    await vi.waitFor(async () =>
+      expect((await logged())[0]?.at(-1)).toBe("Completed"),
+    );
+    await new Promise((resolve) => setTimeout(resolve, 80));
+    expect(visited).toEqual([]);
   });
 
   it("shows the continued line once while a resumed run starts", async () => {
