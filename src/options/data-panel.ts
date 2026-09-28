@@ -159,15 +159,17 @@ const SETTING_NAMES: Readonly<Record<string, PlainKey>> = {
   "joyfox.diagnostics": "data.setting.diagnostics",
 };
 
+const isNamedSetting = (key: string) => Object.hasOwn(SETTING_NAMES, key);
+
 /**
- * Settings by name, in the UI language. A setting JoyFox does not name is
- * shown by its stored key.
+ * Settings by name, in the UI language. A stored key is an internal name
+ * and is never shown: a setting JoyFox does not name is left out here and
+ * counted on a line of its own.
  */
 function settingNames(keys: readonly string[]): string {
   return keys
-    .map((key) =>
-      Object.hasOwn(SETTING_NAMES, key) ? t(SETTING_NAMES[key]!) : key,
-    )
+    .filter(isNamedSetting)
+    .map((key) => t(SETTING_NAMES[key]!))
     .join(", ");
 }
 
@@ -984,9 +986,9 @@ export class DataPanel {
     preview.append(
       rows > 0 ? table : element(document, "p", "", t("data.import.noRecords")),
     );
-    // Settings by name in the UI language; one JoyFox does not name keeps
-    // its stored key.
-    if (plan.settingsSkipped.length > 0)
+    // Settings by name in the UI language. The skipped ones JoyFox names
+    // switch features on; any other is from a version JoyFox does not know.
+    if (plan.settingsSkipped.some(isNamedSetting))
       preview.append(
         element(
           document,
@@ -996,6 +998,10 @@ export class DataPanel {
             keys: settingNames(plan.settingsSkipped),
           }),
         ),
+      );
+    if (!plan.settingsSkipped.every(isNamedSetting))
+      preview.append(
+        element(document, "p", "", t("data.import.settingsUnknown")),
       );
     if (plan.settingsAdded.length > 0)
       preview.append(

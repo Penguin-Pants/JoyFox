@@ -44,6 +44,8 @@ export const en = {
   "common.saveFailed":
     "JoyFox could not save that change. Nothing was changed. Try again. If it keeps failing, reload the page.",
   "legacy.text": (p: { text: string }) => p.text,
+  // Shown in place of a damaged or unknown text reference, never its key.
+  "common.textUnavailable": "(This text cannot be shown.)",
 
   // Triage reasons (qualification engine, contact rule, triage service)
   "triage.reason.unknownValue": (p: { field: T }) =>
@@ -183,7 +185,7 @@ export const en = {
   "action.where.before": (p: { step: T }) => `before ${p.step}`,
   "action.where.during": (p: { step: T }) => `during ${p.step}`,
   "action.failure.control-missing": (p: { step: T }) =>
-    `JoyFox could not find JoyClub's ${p.step} control.`,
+    `JoyFox could not find JoyClub's ${p.step} option on this page.`,
   "action.failure.confirmation-missing": (p: { step: T }) =>
     `JoyClub's confirmation for ${p.step} did not appear.`,
   "action.failure.not-verified": (p: { step: T }) =>
@@ -646,7 +648,7 @@ export const en = {
   "compat.sort.on":
     "Sorted by shared preferences. Members whose profile you have not opened come last.",
   "compat.sort.unavailable":
-    "JoyFox cannot sort this list: its layout does not allow it.",
+    "JoyFox cannot sort the results as JoyClub shows them now. Their order has not changed.",
 
   // Content script: saved searches (V1-3)
   "searches.heading": "JoyFox saved searches",
@@ -1150,6 +1152,8 @@ export const en = {
   "data.setting.sharedEventException": "shared-event exception",
   "data.setting.snapshotRetention": "snapshots kept per member",
   "data.setting.diagnostics": "diagnostics",
+  "data.import.settingsUnknown":
+    "The file also holds settings that this version of JoyFox does not know. They were not imported.",
   "data.import.settingsSkipped": (p: { keys: string }) =>
     `Settings in the file that are never imported (they switch features on): ${p.keys}.`,
   "data.import.settingsNotSaved": (p: { keys: string }) =>
@@ -1172,7 +1176,9 @@ export const en = {
     "JoyFox could not check that file. Nothing was imported. Choose the file again. If it still fails, reload the page, or export the file from JoyFox again.",
 
   // Errors the UI shows (ExtensionError.display). No final full stop: the
-  // panels add a suffix such as "Nothing was changed."
+  // panels add a suffix such as "Nothing was changed." An error without a
+  // display message gets the panel's own failure text instead, which says
+  // what to do next.
   "error.withSuffix.nothingChanged": (p: { error: T }) =>
     `${p.error}. Nothing was changed.`,
   "error.withSuffix.nothingImported": (p: { error: T }) =>
@@ -1183,15 +1189,6 @@ export const en = {
     `${p.error}. Nothing was exported. Try again.`,
   "error.withSuffix.settingNotChanged": (p: { error: T }) =>
     `${p.error}. The setting was not changed. Try again.`,
-  "error.code.SelectorUnavailable":
-    "JoyFox cannot find the expected element on the page",
-  "error.code.ExtractionInvalid": "The data is not valid",
-  "error.code.IdentityMismatch": "The account or member does not match",
-  "error.code.StorageError": "JoyFox could not read or write its stored data",
-  "error.code.RuleEvaluationError": "The contact rule could not be checked",
-  "error.code.ActionStepFailed": "A step on JoyClub did not complete",
-  "error.code.NavigationTimeout": "The page did not load in time",
-  "error.code.UnsupportedPage": "JoyFox does not support this page",
   "error.account.emptyIdentifier":
     "Enter your JoyClub account identifier first",
   "error.account.duplicate":
@@ -1229,24 +1226,21 @@ export const en = {
     "The file does not say if it holds one account or all data. Choose a file exported by JoyFox",
   "error.import.noAccountNamed":
     "The file is an export of one account, but it does not name the account. Choose a file exported by JoyFox",
-  "error.import.unknownType": (p: { name: string }) =>
-    `The file holds a type of data that JoyFox does not know (${p.name}). Choose a file exported by JoyFox`,
+  "error.import.unknownType":
+    "The file holds a type of data that JoyFox does not know. Choose a file exported by JoyFox",
   "error.import.notList": (p: { entity: T }) =>
     `The ${p.entity} part of the file is damaged. Choose a file exported by JoyFox`,
   "error.import.notRecord": (p: { index: number; entity: T }, f: Format) =>
     `Record ${f.number(p.index)} in ${p.entity} is damaged. Choose a file exported by JoyFox`,
   "error.import.forbiddenKey": (p: { index: number; entity: T }, f: Format) =>
     `Record ${f.number(p.index)} in ${p.entity} holds a field name that JoyFox does not allow. Choose a file exported by JoyFox`,
-  "error.import.unknownField": (
-    p: { index: number; entity: T; field: string },
-    f: Format,
-  ) =>
-    `Record ${f.number(p.index)} in ${p.entity} holds a field that JoyFox does not know (${p.field}). Choose a file exported by JoyFox`,
+  "error.import.unknownField": (p: { index: number; entity: T }, f: Format) =>
+    `Record ${f.number(p.index)} in ${p.entity} holds a field that JoyFox does not know. Choose a file exported by JoyFox`,
   "error.import.tooLong": (
-    p: { index: number; entity: T; field: string; maximum: number },
+    p: { index: number; entity: T; maximum: number },
     f: Format,
   ) =>
-    `Record ${f.number(p.index)} in ${p.entity} is too long: ${p.field} has more than ${f.number(p.maximum)} characters. Choose a file exported by JoyFox`,
+    `Record ${f.number(p.index)} in ${p.entity} holds a text longer than ${f.number(p.maximum)} characters. Choose a file exported by JoyFox`,
   "error.import.invalid": (p: { index: number; entity: T }, f: Format) =>
     `Record ${f.number(p.index)} in ${p.entity} is damaged. Choose a file exported by JoyFox`,
   "error.import.future": (p: { index: number; entity: T }, f: Format) =>
@@ -1265,8 +1259,8 @@ export const en = {
     "The settings in the file are damaged. Choose a file exported by JoyFox",
   "error.import.settingsForbidden":
     "The settings in the file hold a name that JoyFox does not allow. Choose a file exported by JoyFox",
-  "error.import.unknownSetting": (p: { key: string }) =>
-    `The file holds a setting that JoyFox does not use (${p.key}). Choose a file exported by JoyFox`,
+  "error.import.unknownSetting":
+    "The file holds a setting that JoyFox does not use. Choose a file exported by JoyFox",
   "error.import.orphans":
     "Some records in the file belong to an account that the file does not hold. Choose a file exported by JoyFox",
   "error.import.sameRecordTwice":

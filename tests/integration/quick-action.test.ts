@@ -253,7 +253,7 @@ describe("M9 manual test matrix, synthetic (build plan Section 24)", () => {
       expect.arrayContaining([
         "Delete: done. JoyClub moved the conversation to the trash.",
         "Ignore: not done.",
-        "JoyFox could not find JoyClub's Ignore control.",
+        "JoyFox could not find JoyClub's Ignore option on this page.",
         "JoyFox did not undo anything.",
       ]),
     );
@@ -1737,7 +1737,7 @@ describe("M9 button and notice", () => {
     runButton()!.click();
     await vi.waitFor(() =>
       expect(notice()).toContain(
-        "JoyFox could not find JoyClub's Ignore control.",
+        "JoyFox could not find JoyClub's Ignore option on this page.",
       ),
     );
     expect(notice()).toContain("Delete: done.");

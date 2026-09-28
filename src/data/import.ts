@@ -496,7 +496,7 @@ export function parseImportFile(
     if (!(ENTITY_NAMES as readonly string[]).includes(name))
       throw refuse(
         `The file holds an unknown data type (${name})`,
-        message("error.import.unknownType", { name }),
+        message("error.import.unknownType"),
       );
     const entity = entityLabel(name as EntityName);
     if (!Array.isArray(records))
@@ -525,7 +525,7 @@ export function parseImportFile(
       if (extra)
         throw refuse(
           `Record ${index} of ${name} holds an unknown field (${extra})`,
-          message("error.import.unknownField", { ...at, field: extra }),
+          message("error.import.unknownField", at),
         );
       // Files from schema versions 1 to 3 hold English reason text. It is
       // converted as the database upgrade converts it, then validated.
@@ -538,13 +538,9 @@ export function parseImportFile(
           problem.field === undefined
             ? message("error.import.invalid", at)
             : problem.maximum === undefined
-              ? message("error.import.unknownField", {
-                  ...at,
-                  field: problem.field,
-                })
+              ? message("error.import.unknownField", at)
               : message("error.import.tooLong", {
                   ...at,
-                  field: problem.field,
                   maximum: problem.maximum,
                 }),
         );
@@ -622,7 +618,7 @@ export function parseImportFile(
       if (!key.startsWith("joyfox."))
         throw refuse(
           `The file holds a setting JoyFox does not use (${key})`,
-          message("error.import.unknownSetting", { key }),
+          message("error.import.unknownSetting"),
         );
       settings[key] = value;
     }

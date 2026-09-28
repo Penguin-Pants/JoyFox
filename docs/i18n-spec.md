@@ -236,8 +236,11 @@ export function onLocaleChange(listener: (locale: Locale) => void): () => void;
 - `t()` resolves each nested `Message` param first, then calls the catalog
   function with `f` for the current locale. It passes `string` and `number`
   params unchanged, and the catalog function formats numbers through `f`.
-- A value that fails `isMessage` at render time shows its key (or "?" if it has
-  none) and logs once. It never throws.
+- A value that fails `isMessage` at render time shows "(This text cannot be
+  shown.)" (`common.textUnavailable`) and logs its key (or "?" if it has none)
+  once. It never throws. Changed on 2026-09-28 (error message review,
+  `docs/error-message-inventory.csv`): the page showed the key before, which is
+  an internal name.
 
 ### 3.7 Live switching
 
@@ -274,9 +277,12 @@ export function onLocaleChange(listener: (locale: Locale) => void): () => void;
   stays for logs.
 - Import refusals (`refuse(...)` in `src/data/import.ts`) and every error the
   options panels show get a `display` message.
-- The panels show `t(error.display)`, or a per-code fallback key
-  (`error.code.StorageError` and so on) when `display` is absent. They never
-  show `error.message`.
+- The panels show `t(error.display)`. When `display` is absent, they show their
+  own failure text for the action (for example `common.saveFailed` or
+  `data.exportFailed`), which says what to do next. They never show
+  `error.message`. Changed on 2026-09-28 (error message review): the per-code
+  fallback keys (`error.code.StorageError` and so on) gave a generic line with
+  no next step and were removed.
 - Suffixes such as ". Nothing was imported." become catalog keys.
 
 ## 4. Data changes

@@ -402,7 +402,9 @@ describe("V1-2 compatibility on cards", () => {
     expect(order()).toEqual([]);
     expect(
       document.querySelector(".joyfox-compat-sort")?.textContent,
-    ).toContain("JoyFox cannot sort this list");
+    ).toContain(
+      "JoyFox cannot sort the results as JoyClub shows them now. Their order has not changed.",
+    );
   });
 
   it("badges inbox rows and event guest list entries", async () => {

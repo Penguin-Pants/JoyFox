@@ -583,6 +583,32 @@ describe("M8 data panel", () => {
     ).toBeTruthy();
   });
 
+  it("never shows the stored key of a setting JoyFox does not know", async () => {
+    root.querySelector<HTMLButtonElement>(".joyfox-data__export-all")!.click();
+    await settle(() => saved.length === 1);
+    const file = JSON.parse(saved[0]!.text) as {
+      settings: Record<string, unknown>;
+    };
+    // A later version's setting, and a feature switch that is never imported.
+    file.settings["joyfox.fromLaterVersion"] = true;
+    file.settings["joyfox.quickIgnoreDelete"] = true;
+    const input = root.querySelector<HTMLInputElement>("#joyfox-data-import")!;
+    Object.defineProperty(input, "files", {
+      value: [new File([JSON.stringify(file)], "export.json")],
+    });
+    input.dispatchEvent(new Event("change"));
+    await settle(
+      () => importIdle() && text().includes("this version of JoyFox"),
+    );
+    expect(text()).toContain(
+      "The file also holds settings that this version of JoyFox does not know. They were not imported.",
+    );
+    expect(text()).toContain(
+      "Settings in the file that are never imported (they switch features on): Ignore and Delete button.",
+    );
+    expect(text()).not.toContain("joyfox.");
+  });
+
   it("checks even a file that changes nothing under the data lock", async () => {
     root.querySelector<HTMLButtonElement>(".joyfox-data__export-all")!.click();
     await settle(() => saved.length === 1);

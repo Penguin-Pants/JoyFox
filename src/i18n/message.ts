@@ -274,19 +274,13 @@ export const MESSAGE_PARAMS: {
   "error.template.nameTooLong": { maximum: "number" },
   "error.template.folderTooLong": { maximum: "number" },
   "error.template.tooLong": { maximum: "number" },
-  "error.import.unknownType": { name: "string" },
   "error.import.notList": { entity: "message" },
   "error.import.notRecord": { index: "number", entity: "message" },
   "error.import.forbiddenKey": { index: "number", entity: "message" },
-  "error.import.unknownField": {
-    index: "number",
-    entity: "message",
-    field: "string",
-  },
+  "error.import.unknownField": { index: "number", entity: "message" },
   "error.import.tooLong": {
     index: "number",
     entity: "message",
-    field: "string",
     maximum: "number",
   },
   "error.import.invalid": { index: "number", entity: "message" },
@@ -294,7 +288,6 @@ export const MESSAGE_PARAMS: {
   "error.import.otherAccount": { index: "number", entity: "message" },
   "error.import.notOwnScope": { index: "number" },
   "error.import.twice": { index: "number", entity: "message" },
-  "error.import.unknownSetting": { key: "string" },
 };
 
 /** Whether a string names a catalog key. */

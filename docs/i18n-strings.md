@@ -64,6 +64,12 @@ stay as they are.
 | --- | --- | --- |
 | `legacy.text` | {text} | {text} |
 
+## common
+
+| Key | English | Deutsch |
+| --- | --- | --- |
+| `common.textUnavailable` | (This text cannot be shown.) | (Dieser Text kann nicht angezeigt werden.) |
+
 ## triage
 
 | Key | English | Deutsch |
@@ -134,7 +140,7 @@ stay as they are.
 | `action.step.delete` | Delete | In den Papierkorb schieben |
 | `action.where.before` | before {step} | vor „{step}“ |
 | `action.where.during` | during {step} | während „{step}“ |
-| `action.failure.control-missing` | JoyFox could not find JoyClub's {step} control. | JoyFox hat JoyClubs Menüpunkt „{step}“ nicht gefunden. |
+| `action.failure.control-missing` | JoyFox could not find JoyClub's {step} option on this page. | JoyFox hat auf dieser Seite JoyClubs Option „{step}“ nicht gefunden. |
 | `action.failure.confirmation-missing` | JoyClub's confirmation for {step} did not appear. | JoyClubs Bestätigung für „{step}“ ist nicht erschienen. |
 | `action.failure.not-verified` | JoyClub did not show that {step} succeeded. | JoyClub hat nicht angezeigt, dass „{step}“ geklappt hat. |
 | `action.failure.unverifiable` | JoyFox cannot see JoyClub's result for {step} on this page, so it stopped {where}. | JoyFox kann JoyClubs Ergebnis für „{step}“ auf dieser Seite nicht sehen und hat deshalb {where} angehalten. |
@@ -491,7 +497,7 @@ stay as they are.
 | `compat.badgeLabel` | JoyFox: 1 shared preference / {count} shared preferences | JoyFox: 1 gemeinsame Vorliebe / {count} gemeinsame Vorlieben |
 | `compat.sort.button` | Sort by shared preferences | Nach gemeinsamen Vorlieben sortieren |
 | `compat.sort.on` | Sorted by shared preferences. Members whose profile you have not opened come last. | Nach gemeinsamen Vorlieben sortiert. Mitglieder, deren Profil du noch nicht geöffnet hast, stehen am Ende. |
-| `compat.sort.unavailable` | JoyFox cannot sort this list: its layout does not allow it. | JoyFox kann diese Liste nicht sortieren, weil ihr Aufbau das nicht zulässt. |
+| `compat.sort.unavailable` | JoyFox cannot sort the results as JoyClub shows them now. Their order has not changed. | JoyFox kann die Ergebnisse so, wie JoyClub sie gerade zeigt, nicht sortieren. Ihre Reihenfolge ist unverändert. |
 
 ## searches
 
@@ -860,6 +866,7 @@ stay as they are.
 | `data.setting.sharedEventException` | shared-event exception | Ausnahme für gemeinsame Events |
 | `data.setting.snapshotRetention` | snapshots kept per member | Momentaufnahmen je Mitglied |
 | `data.setting.diagnostics` | diagnostics | Diagnose |
+| `data.import.settingsUnknown` | The file also holds settings that this version of JoyFox does not know. They were not imported. | Die Datei enthält außerdem Einstellungen, die diese JoyFox-Version nicht kennt. Sie wurden nicht importiert. |
 | `data.import.settingsSkipped` | Settings in the file that are never imported (they switch features on): {keys}. | Einstellungen in der Datei, die nie importiert werden (sie schalten Funktionen ein): {keys}. |
 | `data.import.settingsNotSaved` | Settings that could not be saved: {keys}. | Einstellungen, die nicht gespeichert werden konnten: {keys}. |
 | `data.import.settingsAdded` | Settings added (only those not set here): {keys}. | Hinzugefügte Einstellungen (nur solche, die hier nicht gesetzt waren): {keys}. |
@@ -879,14 +886,6 @@ stay as they are.
 | `error.withSuffix.nothingDeleted` | {error}. Nothing was deleted. | {error}. Es wurde nichts gelöscht. |
 | `error.withSuffix.nothingExported` | {error}. Nothing was exported. Try again. | {error}. Es wurde nichts exportiert. Versuche es noch einmal. |
 | `error.withSuffix.settingNotChanged` | {error}. The setting was not changed. Try again. | {error}. Die Einstellung wurde nicht geändert. Versuche es noch einmal. |
-| `error.code.SelectorUnavailable` | JoyFox cannot find the expected element on the page | JoyFox findet das erwartete Element auf der Seite nicht |
-| `error.code.ExtractionInvalid` | The data is not valid | Die Daten sind ungültig |
-| `error.code.IdentityMismatch` | The account or member does not match | Konto oder Mitglied passen nicht zusammen |
-| `error.code.StorageError` | JoyFox could not read or write its stored data | JoyFox konnte seine gespeicherten Daten nicht lesen oder schreiben |
-| `error.code.RuleEvaluationError` | The contact rule could not be checked | Die Kontaktregel konnte nicht geprüft werden |
-| `error.code.ActionStepFailed` | A step on JoyClub did not complete | Ein Schritt auf JoyClub wurde nicht abgeschlossen |
-| `error.code.NavigationTimeout` | The page did not load in time | Die Seite hat nicht rechtzeitig geladen |
-| `error.code.UnsupportedPage` | JoyFox does not support this page | JoyFox unterstützt diese Seite nicht |
 | `error.account.emptyIdentifier` | Enter your JoyClub account identifier first | Gib zuerst die Kennung deines JoyClub-Kontos ein |
 | `error.account.duplicate` | An account with this identifier is already in the list. Use that account, or enter another identifier | Ein Konto mit dieser Kennung ist schon in der Liste. Verwende dieses Konto oder gib eine andere Kennung ein |
 | `error.account.notRegistered` | That account is no longer in the list, for example because it was removed in another tab | Dieses Konto ist nicht mehr in der Liste, zum Beispiel weil es in einem anderen Tab entfernt wurde |
@@ -908,12 +907,12 @@ stay as they are.
 | `error.import.newerVersion` | The file comes from a newer JoyFox version. Update JoyFox first | Die Datei stammt aus einer neueren JoyFox-Version. Aktualisiere zuerst JoyFox |
 | `error.import.noScope` | The file does not say if it holds one account or all data. Choose a file exported by JoyFox | Die Datei sagt nicht, ob sie ein Konto oder alle Daten enthält. Wähle eine Datei, die JoyFox exportiert hat |
 | `error.import.noAccountNamed` | The file is an export of one account, but it does not name the account. Choose a file exported by JoyFox | Die Datei ist der Export eines Kontos, nennt das Konto aber nicht. Wähle eine Datei, die JoyFox exportiert hat |
-| `error.import.unknownType` | The file holds a type of data that JoyFox does not know ({name}). Choose a file exported by JoyFox | Die Datei enthält eine Art von Daten, die JoyFox nicht kennt ({name}). Wähle eine Datei, die JoyFox exportiert hat |
+| `error.import.unknownType` | The file holds a type of data that JoyFox does not know. Choose a file exported by JoyFox | Die Datei enthält eine Art von Daten, die JoyFox nicht kennt. Wähle eine Datei, die JoyFox exportiert hat |
 | `error.import.notList` | The {entity} part of the file is damaged. Choose a file exported by JoyFox | Der Teil „{entity}“ der Datei ist beschädigt. Wähle eine Datei, die JoyFox exportiert hat |
 | `error.import.notRecord` | Record {index} in {entity} is damaged. Choose a file exported by JoyFox | Eintrag {index} in „{entity}“ ist beschädigt. Wähle eine Datei, die JoyFox exportiert hat |
 | `error.import.forbiddenKey` | Record {index} in {entity} holds a field name that JoyFox does not allow. Choose a file exported by JoyFox | Eintrag {index} in „{entity}“ enthält einen Feldnamen, den JoyFox nicht erlaubt. Wähle eine Datei, die JoyFox exportiert hat |
-| `error.import.unknownField` | Record {index} in {entity} holds a field that JoyFox does not know ({field}). Choose a file exported by JoyFox | Eintrag {index} in „{entity}“ enthält ein Feld, das JoyFox nicht kennt ({field}). Wähle eine Datei, die JoyFox exportiert hat |
-| `error.import.tooLong` | Record {index} in {entity} is too long: {field} has more than {maximum} characters. Choose a file exported by JoyFox | Eintrag {index} in „{entity}“ ist zu lang: {field} hat mehr als {maximum} Zeichen. Wähle eine Datei, die JoyFox exportiert hat |
+| `error.import.unknownField` | Record {index} in {entity} holds a field that JoyFox does not know. Choose a file exported by JoyFox | Eintrag {index} in „{entity}“ enthält ein Feld, das JoyFox nicht kennt. Wähle eine Datei, die JoyFox exportiert hat |
+| `error.import.tooLong` | Record {index} in {entity} holds a text longer than {maximum} characters. Choose a file exported by JoyFox | Eintrag {index} in „{entity}“ enthält einen Text mit mehr als {maximum} Zeichen. Wähle eine Datei, die JoyFox exportiert hat |
 | `error.import.invalid` | Record {index} in {entity} is damaged. Choose a file exported by JoyFox | Eintrag {index} in „{entity}“ ist beschädigt. Wähle eine Datei, die JoyFox exportiert hat |
 | `error.import.future` | Record {index} in {entity} has a date in the future. Check the clock of the computer that made the file | Eintrag {index} in „{entity}“ hat ein Datum in der Zukunft. Prüfe die Uhr des Computers, der die Datei erstellt hat |
 | `error.import.otherAccount` | Record {index} in {entity} belongs to another account. Choose a file exported by JoyFox | Eintrag {index} in „{entity}“ gehört zu einem anderen Konto. Wähle eine Datei, die JoyFox exportiert hat |
@@ -923,6 +922,6 @@ stay as they are.
 | `error.import.noAccountRecord` | The file is an export of one account, but it does not hold that account. Choose a file exported by JoyFox | Die Datei ist der Export eines Kontos, enthält dieses Konto aber nicht. Wähle eine Datei, die JoyFox exportiert hat |
 | `error.import.settingsInvalid` | The settings in the file are damaged. Choose a file exported by JoyFox | Die Einstellungen in der Datei sind beschädigt. Wähle eine Datei, die JoyFox exportiert hat |
 | `error.import.settingsForbidden` | The settings in the file hold a name that JoyFox does not allow. Choose a file exported by JoyFox | Die Einstellungen in der Datei enthalten einen Namen, den JoyFox nicht erlaubt. Wähle eine Datei, die JoyFox exportiert hat |
-| `error.import.unknownSetting` | The file holds a setting that JoyFox does not use ({key}). Choose a file exported by JoyFox | Die Datei enthält eine Einstellung, die JoyFox nicht verwendet ({key}). Wähle eine Datei, die JoyFox exportiert hat |
+| `error.import.unknownSetting` | The file holds a setting that JoyFox does not use. Choose a file exported by JoyFox | Die Datei enthält eine Einstellung, die JoyFox nicht verwendet. Wähle eine Datei, die JoyFox exportiert hat |
 | `error.import.orphans` | Some records in the file belong to an account that the file does not hold. Choose a file exported by JoyFox | Einige Datensätze in der Datei gehören zu einem Konto, das die Datei nicht enthält. Wähle eine Datei, die JoyFox exportiert hat |
 | `error.import.sameRecordTwice` | Two records in the file would become the same record here. Choose a file exported by JoyFox | Zwei Datensätze in der Datei würden hier zum selben Datensatz. Wähle eine Datei, die JoyFox exportiert hat |

@@ -33,6 +33,7 @@ export const de: Catalog = {
   "common.saveFailed":
     "JoyFox konnte diese Änderung nicht speichern. Es wurde nichts geändert. Versuche es noch einmal. Wenn es weiter nicht klappt, lade die Seite neu.",
   "legacy.text": (p) => p.text,
+  "common.textUnavailable": "(Dieser Text kann nicht angezeigt werden.)",
 
   // Triage reasons
   "triage.reason.unknownValue": (p) =>
@@ -152,7 +153,7 @@ export const de: Catalog = {
   "action.where.before": (p) => `vor „${p.step}“`,
   "action.where.during": (p) => `während „${p.step}“`,
   "action.failure.control-missing": (p) =>
-    `JoyFox hat JoyClubs Menüpunkt „${p.step}“ nicht gefunden.`,
+    `JoyFox hat auf dieser Seite JoyClubs Option „${p.step}“ nicht gefunden.`,
   "action.failure.confirmation-missing": (p) =>
     `JoyClubs Bestätigung für „${p.step}“ ist nicht erschienen.`,
   "action.failure.not-verified": (p) =>
@@ -595,7 +596,7 @@ export const de: Catalog = {
   "compat.sort.on":
     "Nach gemeinsamen Vorlieben sortiert. Mitglieder, deren Profil du noch nicht geöffnet hast, stehen am Ende.",
   "compat.sort.unavailable":
-    "JoyFox kann diese Liste nicht sortieren, weil ihr Aufbau das nicht zulässt.",
+    "JoyFox kann die Ergebnisse so, wie JoyClub sie gerade zeigt, nicht sortieren. Ihre Reihenfolge ist unverändert.",
   "searches.heading": "Gespeicherte JoyFox-Suchen",
   "searches.loading": "Gespeicherte Suchen werden geladen …",
   "searches.readFailed":
@@ -1064,6 +1065,8 @@ export const de: Catalog = {
   "data.setting.sharedEventException": "Ausnahme für gemeinsame Events",
   "data.setting.snapshotRetention": "Momentaufnahmen je Mitglied",
   "data.setting.diagnostics": "Diagnose",
+  "data.import.settingsUnknown":
+    "Die Datei enthält außerdem Einstellungen, die diese JoyFox-Version nicht kennt. Sie wurden nicht importiert.",
   "data.import.settingsSkipped": (p) =>
     `Einstellungen in der Datei, die nie importiert werden (sie schalten Funktionen ein): ${p.keys}.`,
   "data.import.settingsNotSaved": (p) =>
@@ -1093,18 +1096,6 @@ export const de: Catalog = {
     `${p.error}. Es wurde nichts exportiert. Versuche es noch einmal.`,
   "error.withSuffix.settingNotChanged": (p) =>
     `${p.error}. Die Einstellung wurde nicht geändert. Versuche es noch einmal.`,
-  "error.code.SelectorUnavailable":
-    "JoyFox findet das erwartete Element auf der Seite nicht",
-  "error.code.ExtractionInvalid": "Die Daten sind ungültig",
-  "error.code.IdentityMismatch": "Konto oder Mitglied passen nicht zusammen",
-  "error.code.StorageError":
-    "JoyFox konnte seine gespeicherten Daten nicht lesen oder schreiben",
-  "error.code.RuleEvaluationError":
-    "Die Kontaktregel konnte nicht geprüft werden",
-  "error.code.ActionStepFailed":
-    "Ein Schritt auf JoyClub wurde nicht abgeschlossen",
-  "error.code.NavigationTimeout": "Die Seite hat nicht rechtzeitig geladen",
-  "error.code.UnsupportedPage": "JoyFox unterstützt diese Seite nicht",
   "error.account.emptyIdentifier":
     "Gib zuerst die Kennung deines JoyClub-Kontos ein",
   "error.account.duplicate":
@@ -1141,8 +1132,8 @@ export const de: Catalog = {
     "Die Datei sagt nicht, ob sie ein Konto oder alle Daten enthält. Wähle eine Datei, die JoyFox exportiert hat",
   "error.import.noAccountNamed":
     "Die Datei ist der Export eines Kontos, nennt das Konto aber nicht. Wähle eine Datei, die JoyFox exportiert hat",
-  "error.import.unknownType": (p) =>
-    `Die Datei enthält eine Art von Daten, die JoyFox nicht kennt (${p.name}). Wähle eine Datei, die JoyFox exportiert hat`,
+  "error.import.unknownType":
+    "Die Datei enthält eine Art von Daten, die JoyFox nicht kennt. Wähle eine Datei, die JoyFox exportiert hat",
   "error.import.notList": (p) =>
     `Der Teil „${p.entity}“ der Datei ist beschädigt. Wähle eine Datei, die JoyFox exportiert hat`,
   "error.import.notRecord": (p, f) =>
@@ -1150,9 +1141,9 @@ export const de: Catalog = {
   "error.import.forbiddenKey": (p, f) =>
     `Eintrag ${f.number(p.index)} in „${p.entity}“ enthält einen Feldnamen, den JoyFox nicht erlaubt. Wähle eine Datei, die JoyFox exportiert hat`,
   "error.import.unknownField": (p, f) =>
-    `Eintrag ${f.number(p.index)} in „${p.entity}“ enthält ein Feld, das JoyFox nicht kennt (${p.field}). Wähle eine Datei, die JoyFox exportiert hat`,
+    `Eintrag ${f.number(p.index)} in „${p.entity}“ enthält ein Feld, das JoyFox nicht kennt. Wähle eine Datei, die JoyFox exportiert hat`,
   "error.import.tooLong": (p, f) =>
-    `Eintrag ${f.number(p.index)} in „${p.entity}“ ist zu lang: ${p.field} hat mehr als ${f.number(p.maximum)} Zeichen. Wähle eine Datei, die JoyFox exportiert hat`,
+    `Eintrag ${f.number(p.index)} in „${p.entity}“ enthält einen Text mit mehr als ${f.number(p.maximum)} Zeichen. Wähle eine Datei, die JoyFox exportiert hat`,
   "error.import.invalid": (p, f) =>
     `Eintrag ${f.number(p.index)} in „${p.entity}“ ist beschädigt. Wähle eine Datei, die JoyFox exportiert hat`,
   "error.import.future": (p, f) =>
@@ -1171,8 +1162,8 @@ export const de: Catalog = {
     "Die Einstellungen in der Datei sind beschädigt. Wähle eine Datei, die JoyFox exportiert hat",
   "error.import.settingsForbidden":
     "Die Einstellungen in der Datei enthalten einen Namen, den JoyFox nicht erlaubt. Wähle eine Datei, die JoyFox exportiert hat",
-  "error.import.unknownSetting": (p) =>
-    `Die Datei enthält eine Einstellung, die JoyFox nicht verwendet (${p.key}). Wähle eine Datei, die JoyFox exportiert hat`,
+  "error.import.unknownSetting":
+    "Die Datei enthält eine Einstellung, die JoyFox nicht verwendet. Wähle eine Datei, die JoyFox exportiert hat",
   "error.import.orphans":
     "Einige Datensätze in der Datei gehören zu einem Konto, das die Datei nicht enthält. Wähle eine Datei, die JoyFox exportiert hat",
   "error.import.sameRecordTwice":

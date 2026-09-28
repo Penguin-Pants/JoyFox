@@ -134,7 +134,7 @@ describe("M9 report", () => {
     });
     expect(texts(result.lines)).toEqual([
       "Ignore and Delete stopped.",
-      "JoyFox could not find JoyClub's Delete control.",
+      "JoyFox could not find JoyClub's Delete option on this page.",
       "Delete: not done.",
       "Ignore: not done.",
       "Nothing was changed on JoyClub.",
@@ -153,7 +153,7 @@ describe("M9 report", () => {
     );
     expect(result).toMatchObject({ delete: "done", ignore: "not-done" });
     expect(texts(result.lines)).toContain(
-      "JoyFox could not find JoyClub's Ignore control.",
+      "JoyFox could not find JoyClub's Ignore option on this page.",
     );
     expect(texts(result.lines)).toContain("JoyFox did not undo anything.");
     expect(texts(result.lines).join(" ")).not.toMatch(/move it there yourself/);
