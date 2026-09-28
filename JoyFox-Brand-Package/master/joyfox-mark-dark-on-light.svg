@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="JoyFox Angular JF Monogram">
+<title>JoyFox Angular JF Monogram</title>
+
+<g>
+<path d="M188 118 L188 286 C188 346 154 380 94 389" fill="none" stroke="#0A0A0B" stroke-width="70" stroke-linecap="butt" stroke-linejoin="miter"/>
+<path d="M153 83 H225 V153 H153 Z" fill="#0A0A0B"/>
+<path d="M213 145 L213 286 C213 338 177 370 110 384" fill="none" stroke="#EA1C2C" stroke-width="38" stroke-linecap="butt" stroke-linejoin="miter"/>
+<path d="M205 83 H356 L304 153 H205 Z" fill="#EA1C2C"/>
+<path d="M205 191 H316 L286 250 H205 Z" fill="#EA1C2C"/>
+<path d="M188 153 H205 V286 C205 330 176 356 131 369 L120 345 C154 334 171 314 171 284 V153 Z" fill="#0A0A0B"/>
+<path d="M205 156 H223 V284 C223 331 186 365 121 383 L112 365 C166 349 188 324 188 283 V156 Z" fill="#EA1C2C"/>
+</g>
+</svg>
