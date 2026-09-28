@@ -428,7 +428,11 @@ export function memberBar(
 ): HTMLElement[] {
   const { result, trust, actions } = input;
   const bar = element(document, "div", "joyfox-bar");
-  bar.append(element(document, "strong", "joyfox-bar__brand", "JoyFox"));
+  // The wordmark: "Joy" in the text color, "Fox" in the brand color. A brand
+  // name: the same in every language.
+  const brand = element(document, "strong", "joyfox-bar__brand", "Joy");
+  brand.append(element(document, "span", "joyfox-bar__brand-accent", "Fox"));
+  bar.append(brand);
   if (result) {
     const pill = element(document, "span", "joyfox-pill");
     pill.dataset.placement = result.placement;

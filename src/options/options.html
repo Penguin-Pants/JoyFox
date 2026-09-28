@@ -5,12 +5,31 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="color-scheme" content="light dark" />
     <title data-i18n="options.title">JoyFox options</title>
+    <link rel="icon" href="icons/icon-16.png" sizes="16x16" />
+    <link rel="icon" href="icons/icon-32.png" sizes="32x32" />
     <link rel="stylesheet" href="options.css" />
   </head>
   <body class="joyfox-options">
     <header class="joyfox-options__header">
       <div class="joyfox-options__title-row">
-        <h1>JoyFox</h1>
+        <!-- The mark and the wordmark (docs/branding.md). The mark is
+             decoration: the heading's name is the word "JoyFox". -->
+        <h1 class="joyfox-wordmark">
+          <picture>
+            <source
+              srcset="brand/joyfox-mark-light-on-dark.svg"
+              media="(prefers-color-scheme: dark)"
+            />
+            <img
+              class="joyfox-wordmark__mark"
+              src="brand/joyfox-mark-dark-on-light.svg"
+              alt=""
+              width="48"
+              height="48"
+            />
+          </picture>
+          <span>Joy<span class="joyfox-wordmark__accent">Fox</span></span>
+        </h1>
         <!-- Bilingual and never translated, so a user who cannot read the
              current language can still find it (docs/i18n-spec.md, 3.9). -->
         <p class="joyfox-options__language">

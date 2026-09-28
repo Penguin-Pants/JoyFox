@@ -859,6 +859,21 @@ describe("conversation and profile panel", () => {
     expect(bar!.querySelector("[aria-expanded]")).toBeNull();
   });
 
+  it("starts the bar with the wordmark, read as one word", () => {
+    const [bar] = memberBar(document, {
+      ruleOff: { key: "panel.ruleOff.no-rule" },
+      actions: {},
+      drawerOpen: false,
+      onToggle: () => undefined,
+    });
+    const brand = bar!.firstElementChild!;
+    expect(brand.className).toBe("joyfox-bar__brand");
+    expect(brand.textContent).toBe("JoyFox");
+    expect(brand.querySelector(".joyfox-bar__brand-accent")?.textContent).toBe(
+      "Fox",
+    );
+  });
+
   it("keeps the member strip when the inbox is torn down", async () => {
     await rules.saveGlobalRule(ACCOUNT, knownRule());
     setPage(CONVERSATION, conversationHtml);

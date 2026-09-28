@@ -8,6 +8,9 @@
   --joyfox-surface: Canvas;
   --joyfox-text: CanvasText;
   --joyfox-accent: Highlight;
+  /* JoyFox Red (assets/brand/tokens): the identity and the selected tab only.
+     Never a warning: errors and removals use --joyfox-danger. */
+  --joyfox-brand: #ea1c2c;
   --joyfox-danger: #a3282d;
 }
 
@@ -443,6 +446,30 @@
   margin-bottom: var(--joyfox-space-1);
 }
 
+/*
+ * The wordmark (assets/brand/BRAND-GUIDE.md): "Joy" in the text color, "Fox"
+ * in JoyFox Red, in the brand face where the system has it. The heading is
+ * large text, and a logotype, so the red keeps its exact value.
+ */
+.joyfox-wordmark {
+  display: flex;
+  align-items: center;
+  gap: var(--joyfox-space-2);
+  font-family: "Inter Display", Inter, Arial, sans-serif;
+  font-weight: 700;
+  letter-spacing: -0.04em;
+}
+
+.joyfox-wordmark__mark {
+  flex: none;
+  width: 3rem;
+  height: 3rem;
+}
+
+.joyfox-wordmark__accent {
+  color: var(--joyfox-brand);
+}
+
 /* The language choice sits beside the title and wraps below it when narrow. */
 .joyfox-options__title-row {
   display: flex;
@@ -486,7 +513,7 @@
 .joyfox-tabs [role="tab"][aria-selected="true"] {
   border-color: var(--joyfox-border);
   background: var(--joyfox-surface);
-  box-shadow: inset 0 3px 0 var(--joyfox-accent);
+  box-shadow: inset 0 3px 0 var(--joyfox-brand);
 }
 
 .joyfox-tabpanel[hidden] {

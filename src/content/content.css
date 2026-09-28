@@ -22,7 +22,8 @@
   --joyfox-surface-strong: color-mix(in srgb, currentColor 12%, transparent);
   --joyfox-field: color-mix(in srgb, currentColor 4%, transparent);
   --joyfox-line: color-mix(in srgb, currentColor 28%, transparent);
-  --joyfox-brand: #e38b3f;
+  /* JoyFox Red (assets/brand/tokens), for the "Fox" of the bar's name only. */
+  --joyfox-brand: #ea1c2c;
   --joyfox-focus: #4d90fe;
   --joyfox-qualified: #2ea663;
   --joyfox-review: #d49b1f;
@@ -363,9 +364,17 @@ button.joyfox-badge {
   gap: 0.4em 0.6em;
 }
 
+/*
+ * The wordmark: "Joy" in the page's text color, "Fox" in JoyFox Red. The red
+ * is mixed half with the text color, so it reaches 4.5:1 on JoyClub's light
+ * and dark pages as the placement colors do.
+ */
 .joyfox-bar__brand {
-  color: color-mix(in srgb, var(--joyfox-brand) 60%, currentColor);
   font-weight: 800;
+}
+
+.joyfox-bar__brand-accent {
+  color: color-mix(in srgb, var(--joyfox-brand) 50%, currentColor);
 }
 
 .joyfox-bar__trust {

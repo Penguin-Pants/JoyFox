@@ -7,3 +7,5 @@ docs/Test Strategy.md
 dist/
 node_modules/
 docs/i18n-strings.md
+# The approved brand package, kept byte for byte as delivered.
+assets/brand/
