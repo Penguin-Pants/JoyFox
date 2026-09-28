@@ -1,3 +1,4 @@
+import { isOwnProfile } from "../extraction/preferences";
 import type { PlainKey } from "../i18n/catalog/en";
 import { t } from "../i18n/translator";
 import type {
@@ -18,6 +19,12 @@ export const MEMBER_NOTES = "member-notes";
 export type SaveNoteAnswer = MessageContract["note.save"]["response"];
 
 /**
+ * `true`: the tag was added; `"exists"`: the member already had it, so
+ * nothing changed; `false`: refused, the account is no longer active.
+ */
+export type AddTagAnswer = boolean | "exists";
+
+/**
  * What the note editor asks of the background. Content scripts run in the
  * page's origin, so notes are reachable only through messages. Tests supply
  * their own implementation.
@@ -30,7 +37,11 @@ export interface NotesClient {
     body: string,
     expectedBody: string | null,
   ): Promise<SaveNoteAnswer>;
-  addTag(accountId: string, memberId: string, label: string): Promise<boolean>;
+  addTag(
+    accountId: string,
+    memberId: string,
+    label: string,
+  ): Promise<AddTagAnswer>;
   removeTag(
     accountId: string,
     memberId: string,
@@ -48,8 +59,14 @@ export function messageNotesClient(sender: MessageSender): NotesClient {
         body,
         expectedBody,
       }),
-    addTag: async (accountId, memberId, label) =>
-      (await request(sender, "tag.add", { accountId, memberId, label })).done,
+    addTag: async (accountId, memberId, label) => {
+      const answer = await request(sender, "tag.add", {
+        accountId,
+        memberId,
+        label,
+      });
+      return answer.done && answer.existed ? "exists" : answer.done;
+    },
     removeTag: async (accountId, memberId, label) =>
       (await request(sender, "tag.remove", { accountId, memberId, label }))
         .done,
@@ -98,7 +115,9 @@ export const NOTES_TEXT = {
   emptyTag: "notes.emptyTag",
   emptyNote: "notes.emptyNote",
   tagAdded: "notes.tagAdded",
+  tagExists: "notes.tagExists",
   tagRemoved: "notes.tagRemoved",
+  pasteCut: "notes.pasteCut",
 } as const satisfies Record<string, PlainKey>;
 
 type NotesStatus = { text: PlainKey; error: boolean };
@@ -146,7 +165,8 @@ export class MemberNotes {
   update(page: MemberPage): void {
     this.#page = page;
     const member = pageMember(this.document, page);
-    if (!member) {
+    // The user's own profile shows no editor: notes are about other members.
+    if (!member || (page === "profile" && isOwnProfile(this.document))) {
       this.teardown();
       return;
     }
@@ -299,6 +319,8 @@ export class MemberNotes {
     const section = element(document, "section", "joyfox-panel joyfox-notes");
     section.setAttribute(UI_ATTRIBUTE, MEMBER_NOTES);
     section.setAttribute("data-member", target.memberId);
+    // A group inside the member strip, which is the page's one JoyFox region.
+    section.setAttribute("role", "group");
     section.setAttribute("aria-label", t("notes.region"));
     const details = element(document, "details", "joyfox-notes__details");
     // Closed until opened (owner decision, 2026-09-24: details on demand).
@@ -359,7 +381,10 @@ export class MemberNotes {
     save.setAttribute(CONTROL, "save-note");
     const noteActions = element(document, "div", "joyfox-actions");
     noteActions.append(save, discard);
-    details.append(noteLabel, note, noteActions);
+    const length = noteLength(document, note, "joyfox-note-length", () =>
+      this.#setStatus({ text: NOTES_TEXT.pasteCut, error: true }),
+    );
+    details.append(noteLabel, note, length, noteActions);
 
     details.append(
       element(document, "h3", "joyfox-notes__heading", t("notes.tags")),
@@ -486,7 +511,10 @@ export class MemberNotes {
         return;
       }
       if (this.#tagDraft === typed) this.#tagDraft = "";
-      this.#setStatus({ text: NOTES_TEXT.tagAdded, error: false });
+      this.#setStatus({
+        text: done === "exists" ? NOTES_TEXT.tagExists : NOTES_TEXT.tagAdded,
+        error: false,
+      });
     });
   }
 
@@ -585,6 +613,47 @@ export class MemberNotes {
         focus.end ?? focus.start,
       );
   }
+}
+
+/** From this share of the limit on, a note box shows its length. */
+const LENGTH_SHOWN_FROM = 0.9;
+
+/**
+ * The length of a note box, shown once the text is near `MAX_NOTE_LENGTH`
+ * and read with the box. The browser cuts a paste at the box's `maxLength`
+ * without a word, so `onCut` is called when a paste does not fit, for the
+ * editor to say so. Returns the element that shows the length.
+ */
+export function noteLength(
+  document: Document,
+  field: HTMLTextAreaElement,
+  id: string,
+  onCut: () => void,
+): HTMLElement {
+  const shown = element(document, "span", "joyfox-note-length");
+  shown.id = id;
+  field.setAttribute("aria-describedby", id);
+  const show = () => {
+    const count = field.value.length;
+    shown.textContent =
+      count >= MAX_NOTE_LENGTH * LENGTH_SHOWN_FROM
+        ? t("notes.length", { count, maximum: MAX_NOTE_LENGTH })
+        : "";
+  };
+  field.addEventListener("input", show);
+  field.addEventListener("paste", (event) => {
+    // A text box stores each line break as one character.
+    const pasted = (event.clipboardData?.getData("text/plain") ?? "").replace(
+      /\r\n?/gu,
+      "\n",
+    );
+    const start = field.selectionStart ?? field.value.length;
+    const end = field.selectionEnd ?? start;
+    const room = MAX_NOTE_LENGTH - (field.value.length - (end - start));
+    if (pasted.length > room) onCut();
+  });
+  show();
+  return shown;
 }
 
 function summaryText(data: NotesData): string {

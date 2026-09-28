@@ -117,6 +117,22 @@ describe("M5 note and tag messages", () => {
     });
   });
 
+  it("says when the member already has a tag, and marks no change", async () => {
+    const write = { accountId: "account-a", memberId: MEMBER };
+    expect(await send("tag.add", { ...write, label: "Met twice" })).toEqual({
+      ok: true,
+      requestId: "r1",
+      payload: { done: true },
+    });
+    const revision = settings.items.get(NOTES_REVISION_KEY);
+    expect(
+      await send("tag.add", { ...write, label: "  met   TWICE " }),
+    ).toMatchObject({ ok: true, payload: { done: true, existed: true } });
+    // Nothing was written, so other tabs need not read the note again.
+    expect(settings.items.get(NOTES_REVISION_KEY)).toBe(revision);
+    expect(await get()).toMatchObject({ payload: { tags: ["Met twice"] } });
+  });
+
   it("removes a tag", async () => {
     await send("tag.add", {
       accountId: "account-a",

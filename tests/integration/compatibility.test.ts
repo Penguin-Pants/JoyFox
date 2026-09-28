@@ -236,6 +236,9 @@ describe("V1-2 compatibility on the profile page", () => {
     expect(
       Array.from(section()!.querySelectorAll("li"), (item) => item.textContent),
     ).toEqual(["A", "B"]);
+    // A labelled group in the strip, which is the page's one JoyFox region.
+    expect(section()?.getAttribute("role")).toBe("group");
+    expect(section()?.getAttribute("aria-label")).toBe("Shared preferences");
     const marked = Array.from(
       document.querySelectorAll(`[${SHARED_ATTRIBUTE}="yes"]`),
       (tag) => [
@@ -251,6 +254,36 @@ describe("V1-2 compatibility on the profile page", () => {
     expect(
       marked.every(([, level]) => !level?.includes("Geht gar nicht")),
     ).toBe(true);
+  });
+
+  it("keeps the count in view and the list closed until opened, across redraws", async () => {
+    await capture(OWN, ["A", "B", "C"], true);
+    profilePage("2222222", [{ Unbedingt: ["A", "B", "E"] }]);
+    overlay.update("profile");
+    await flush();
+    const details = () =>
+      section()!.querySelector<HTMLDetailsElement>(".joyfox-compat__details")!;
+    const summary = () => details().querySelector<HTMLElement>("summary")!;
+    // The count sentence stays outside the closed list.
+    expect(details().open).toBe(false);
+    expect(section()!.querySelector(".joyfox-compat__text")?.textContent).toBe(
+      "You share 2 preferences with this member:",
+    );
+    expect(
+      details().contains(section()!.querySelector(".joyfox-compat__text")),
+    ).toBe(false);
+    expect(summary().textContent).toBe("Show the shared preferences");
+    summary().focus();
+    summary().click();
+    await flush();
+    expect(details().open).toBe(true);
+    // A language switch draws the section again: the list stays open, and
+    // the summary keeps focus.
+    setLocale("de");
+    overlay.localeChanged();
+    expect(details().open).toBe(true);
+    expect(summary().textContent).toBe("Gemeinsame Vorlieben anzeigen");
+    expect(document.activeElement).toBe(summary());
   });
 
   it("shows on a search card the count the member's profile page showed", async () => {
@@ -322,7 +355,11 @@ describe("V1-2 compatibility on cards", () => {
       "JoyFox: 2 shared preferences",
     );
     expect(button().getAttribute("aria-pressed")).toBe("false");
+    button().focus();
     button().click();
+    // The bar was drawn again; the button kept focus.
+    expect(document.activeElement).toBe(button());
+    expect(button().getAttribute("aria-pressed")).toBe("true");
     expect(order()).toEqual([
       ["2222222", "1"],
       ["3333333", "2"],

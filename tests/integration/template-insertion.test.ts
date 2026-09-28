@@ -7,6 +7,7 @@ import {
   type TemplateClient,
 } from "../../src/content/template-picker";
 import type { TemplateSummary } from "../../src/messaging/protocol";
+import { setLocale } from "../../src/i18n/translator";
 import { insertAtCursor } from "../../src/templates/insertion";
 import conversationHtml from "../fixtures/joyclub/conversation.html?raw";
 
@@ -97,12 +98,18 @@ describe("M10 insertion into a compose field", () => {
     field.setSelectionRange(5, 5);
     const onInput = vi.fn();
     field.addEventListener("input", onInput);
+    field.blur();
+    // The numbers say how much to cut: 5 + 6 characters in a field of 10.
     expect(insertAtCursor(field, "678901")).toEqual({
       status: "refused",
       reason: "too-long",
+      limit: 10,
+      over: 1,
     });
     expect(field.value).toBe("12345");
     expect(onInput).not.toHaveBeenCalled();
+    // The user shortens the text next, so the field has focus.
+    expect(document.activeElement).toBe(field);
     expect(insertAtCursor(field, "67890")).toEqual({ status: "inserted" });
     expect(field.value).toBe("1234567890");
   });
@@ -182,6 +189,51 @@ describe("M10 composer template picker", () => {
     expect(onSend).not.toHaveBeenCalled();
     expect(items()).toHaveLength(0);
     expect(toggle().getAttribute("aria-expanded")).toBe("false");
+  });
+
+  it("says how much to cut when a template does not fit, and focuses the composer", async () => {
+    const view = new TemplatePicker(
+      document,
+      client({
+        accountId: "account-a",
+        templates: [
+          { id: "template:6", name: "Long", folder: "", body: "x".repeat(30) },
+        ],
+      }),
+    );
+    view.update();
+    const field = composer();
+    field.maxLength = 20;
+    field.value = "Hallo";
+    field.setSelectionRange(5, 5);
+    toggle().click();
+    await settle(() => items().length === 1);
+    items()[0]!.focus();
+    items()[0]!.click();
+    expect(field.value).toBe("Hallo");
+    expect(status()).toBe(
+      "The template is 15 characters too long for the message field, which takes at most 20 characters. Nothing was inserted. Shorten your text or the template.",
+    );
+    // The list closed; focus is in the composer, not on the page.
+    expect(document.activeElement).toBe(field);
+    setLocale("de");
+    view.localeChanged();
+    expect(status()).toBe(
+      "Die Vorlage ist 15 Zeichen zu lang für das Nachrichtenfeld, das höchstens 20 Zeichen fasst. Es wurde nichts eingefügt. Kürze deinen Text oder die Vorlage.",
+    );
+    setLocale("en");
+  });
+
+  it("gives focus to its own button when the composer cannot take it", async () => {
+    const view = new TemplatePicker(document, client());
+    view.update();
+    toggle().click();
+    await settle(() => items().length === 2);
+    composer().disabled = true;
+    items()[0]!.focus();
+    items()[0]!.click();
+    expect(status()).toContain("cannot be edited right now");
+    expect(document.activeElement).toBe(toggle());
   });
 
   it("merges a folder named General with templates without one, in name order", async () => {

@@ -367,8 +367,14 @@ export const en = {
   "notes.emptyTag": "Type a tag first. Nothing was added.",
   "notes.emptyNote": "Type a note first. Nothing was saved.",
   "notes.tagAdded": "Tag added.",
+  "notes.tagExists": "Already tagged.",
   "notes.tagRemoved": "Tag removed.",
   "notes.privateNote": "Private note",
+  // Shown under a note box once the text is near its limit.
+  "notes.length": (p: { count: number; maximum: number }, f: Format) =>
+    `${f.number(p.count)} of ${f.number(p.maximum)} characters`,
+  "notes.pasteCut":
+    "Only part of the pasted text fit. The rest was not pasted.",
   "notes.discard": "Discard my changes",
   "notes.save": "Save note",
   "notes.tags": "Tags",
@@ -391,33 +397,47 @@ export const en = {
     })})`,
 
   // Content script: event and venue notes (V1-5)
-  "listing.heading.event": "JoyFox: my notes on this event",
-  "listing.heading.venue": "JoyFox: my notes on this venue",
+  "listing.heading.event": "JoyFox: your notes on this event",
+  "listing.heading.venue": "JoyFox: your notes on this venue",
+  // The box's summary: what is stored, for example "Attending, 2 tags, a note".
+  "listing.summary.event": (p: { state: string }) =>
+    `JoyFox: your notes on this event (${p.state})`,
+  "listing.summary.venue": (p: { state: string }) =>
+    `JoyFox: your notes on this venue (${p.state})`,
+  "listing.summary.none": "none yet",
+  "listing.summary.note": "a note",
   "listing.loading": "Loading your notes…",
   "listing.readFailed":
     "JoyFox could not read your notes on this page. Reload the page to try again.",
   "listing.noAccount":
     "Select or add an account in the JoyFox options to keep notes on events.",
-  "listing.attendanceLabel": "My attendance",
+  "listing.attendanceLabel": "Your attendance",
   "listing.attendance.unknown": "No status",
   "listing.attendance.interested": "Interested",
   "listing.attendance.attending": "Attending",
   "listing.attendance.not-attending": "Not attending",
   "listing.attendance.attended": "Attended",
-  "listing.noteLabel": "My note",
+  "listing.noteLabel": "Your note",
   "listing.saveNote": "Save note",
-  "listing.tagsLabel": "My tags",
+  "listing.tagsLabel": "Your tags",
   "listing.tagLabel": "New tag",
   "listing.addTag": "Add tag",
   "listing.removeTag": (p: { tag: string }) => `Remove tag ${p.tag}`,
   "listing.emptyTag": "Type a tag first. Nothing was added.",
-  "listing.tooManyTags": (p: { maximum: number }, f: Format) =>
-    `A listing can have at most ${f.number(p.maximum)} tags. Remove one first.`,
+  "listing.tooManyTags.event": (p: { maximum: number }, f: Format) =>
+    `You can add at most ${f.number(p.maximum)} tags to an event. Remove one first.`,
+  "listing.tooManyTags.venue": (p: { maximum: number }, f: Format) =>
+    `You can add at most ${f.number(p.maximum)} tags to a venue. Remove one first.`,
   "listing.privacy":
     "Private: stored only in this browser. JoyClub sees nothing, and your sign-up on JoyClub does not change.",
   "listing.saved": "Saved.",
-  "listing.removed":
-    "Nothing is left on this listing, so JoyFox no longer tracks it.",
+  // The first save of an event or venue.
+  "listing.tracked.event": "Saved. JoyFox now tracks this event.",
+  "listing.tracked.venue": "Saved. JoyFox now tracks this venue.",
+  "listing.removed.event":
+    "No note, tag or attendance is left, so JoyFox no longer tracks this event.",
+  "listing.removed.venue":
+    "No note or tag is left, so JoyFox no longer tracks this venue.",
   "listing.conflict":
     "These notes changed in another tab, so JoyFox did not save. The stored notes are shown now; your typed note is still in the box.",
   "listing.refused": "The active JoyFox account changed, so nothing was saved.",
@@ -473,11 +493,12 @@ export const en = {
   // Content script: event list filter (V1-5)
   "eventFilter.label": "JoyFox: show",
   "eventFilter.all": "All loaded events and dates",
-  "eventFilter.tracked": "Only my tracked events",
-  "eventFilter.note": "Only events with my note",
-  "eventFilter.attending": "Only events I attend",
-  "eventFilter.interested": "Only events I am interested in",
-  "eventFilter.tag": (p: { tag: string }) => `Only my tag: ${p.tag}`,
+  "eventFilter.tracked": "Only events JoyFox tracks",
+  "eventFilter.note": "Only events with your note",
+  "eventFilter.attending": "Only events you attend",
+  "eventFilter.interested": "Only events you are interested in",
+  "eventFilter.tag": (p: { tag: string }) =>
+    `Only events with your tag: ${p.tag}`,
   "eventFilter.count": (p: { shown: number; loaded: number }, f: Format) =>
     `${f.number(p.shown)} of ${f.number(p.loaded)} loaded events shown. Events loaded later are checked too.`,
   "eventFilter.readFailed":
@@ -565,11 +586,10 @@ export const en = {
   "signals.heading": "Profile completeness",
   "signals.trust": (p: { score: number }, f: Format) =>
     `Trust ${p.score > 0 ? "+" : ""}${f.number(p.score)}`,
-  "signals.trustNone": "No trust history",
   "signals.trustNoneShort": "Trust –",
   "signals.noteAdd": "Add note",
   "signals.noteEdit": "Note",
-  "signals.tagsLabel": "My tags",
+  "signals.tagsLabel": "Your tags",
   "signals.tagCount": (p: { count: number }, f: Format) =>
     f.plural(p.count, {
       one: "1 tag",
@@ -597,6 +617,7 @@ export const en = {
       other: `${f.number(p.count)} preferences`,
     })} with this member:`,
   "compat.none": "You share no preferences with this member.",
+  "compat.listToggle": "Show the shared preferences",
   "compat.own": (p: { count: number }, f: Format) =>
     `This is your profile. JoyFox compares other profiles with your ${f.plural(
       p.count,
@@ -650,6 +671,10 @@ export const en = {
   "searches.saved": (p: { name: string }) => `Saved "${p.name}".`,
   "searches.noMatch": (p: { name: string }) =>
     `"${p.name}" no longer matches JoyClub's search address, so JoyFox did not open it. Run the search again and save it again.`,
+  "searches.running": (p: { name: string }) => `Running "${p.name}"…`,
+  "searches.runningUnnamed": "Running the saved search…",
+  "searches.shown": (p: { name: string }) => `Showing "${p.name}".`,
+  "searches.shownUnnamed": "Showing the saved search.",
   "searches.runFailed":
     'JoyFox could not run the saved search. Open JoyClub\'s filter and click "Anwenden".',
   "searches.deleteLabel": (p: { name: string }) =>
@@ -670,8 +695,11 @@ export const en = {
     "Template inserted. Check the text, then click JoyClub's Send button yourself.",
   "picker.result.not-editable":
     "The message field cannot be edited right now. Nothing was inserted.",
-  "picker.result.too-long":
-    "The template does not fit in the message field. Nothing was inserted; the template was not shortened.",
+  "picker.result.too-long": (p: { over: number; limit: number }, f: Format) =>
+    `The template is ${f.plural(p.over, {
+      one: "1 character",
+      other: `${f.number(p.over)} characters`,
+    })} too long for the message field, which takes at most ${f.number(p.limit)} characters. Nothing was inserted. Shorten your text or the template.`,
   "picker.result.altered":
     "JoyClub changed the text after insertion. Check the message field before you send.",
   "templates.folder.general": "General",

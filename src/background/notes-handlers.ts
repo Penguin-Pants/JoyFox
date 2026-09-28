@@ -97,16 +97,20 @@ export function registerNotesHandlers(
   router.register("tag.add", async (payload) => {
     const identity = identityOf(payload?.memberId);
     const label = tagLabel(payload?.label);
-    const answer = await lockedWrite<{ done: boolean }>(
+    const answer = await lockedWrite<{ done: boolean; existed?: boolean }>(
       deps,
       payload?.accountId,
       { done: false },
-      async (accountId) => ({
-        done:
-          (await deps.notes.addTag(accountId, identity, label)).status === "ok",
-      }),
+      async (accountId) => {
+        const outcome = await deps.notes.addTag(accountId, identity, label);
+        if (outcome.status !== "ok") return { done: false };
+        return outcome.value.added
+          ? { done: true }
+          : { done: true, existed: true };
+      },
     );
-    if (answer.done) await changed();
+    // A tag the member already had wrote nothing, so nothing is marked.
+    if (answer.done && !answer.existed) await changed();
     return answer;
   });
   router.register("tag.remove", async (payload) => {

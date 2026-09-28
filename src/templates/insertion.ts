@@ -2,13 +2,16 @@
  * Why an insertion did not happen. In every case the composer is unchanged.
  * - `not-editable`: the field is disabled, read-only or no longer on the page.
  * - `too-long`: the result would pass the field's `maxlength`. JoyFox never
- *   shortens a template to fit (PRD Section 21.2: no truncation).
+ *   shortens a template to fit (PRD Section 21.2: no truncation). `limit` is
+ *   the field's `maxlength`, `over` how many characters the result has too
+ *   many, so the user knows how much to cut.
  */
 export type InsertionRefusal = "not-editable" | "too-long";
 
 export type InsertionResult =
   | { status: "inserted" }
-  | { status: "refused"; reason: InsertionRefusal }
+  | { status: "refused"; reason: "not-editable" }
+  | { status: "refused"; reason: "too-long"; limit: number; over: number }
   /** The page changed the text after insertion, so it is not exact. */
   | { status: "altered" };
 
@@ -41,8 +44,16 @@ export function insertAtCursor(
   const expected = current.slice(0, start) + text + current.slice(end);
   // `maxLength` is -1 when the attribute is absent. A programmatic change is
   // not held to it, so the check is made here instead of by the browser.
-  if (field.maxLength >= 0 && expected.length > field.maxLength)
-    return { status: "refused", reason: "too-long" };
+  if (field.maxLength >= 0 && expected.length > field.maxLength) {
+    // The user shortens the text next, in the field.
+    field.focus();
+    return {
+      status: "refused",
+      reason: "too-long",
+      limit: field.maxLength,
+      over: expected.length - field.maxLength,
+    };
+  }
   field.focus();
   field.setRangeText(text, start, end, "end");
   const view = field.ownerDocument.defaultView;

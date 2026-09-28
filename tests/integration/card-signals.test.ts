@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import "../setup-indexeddb";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { registerNotesHandlers } from "../../src/background/notes-handlers";
 import { registerSignalsHandlers } from "../../src/background/signals-handlers";
 import {
@@ -11,8 +11,12 @@ import {
   type MemberName,
 } from "../../src/content/card-signals";
 import { CardNoteEditor } from "../../src/content/card-note-editor";
-import { messageNotesClient } from "../../src/content/member-notes";
-import { setLocale } from "../../src/i18n/translator";
+import {
+  messageNotesClient,
+  NOTES_TEXT,
+  type NotesClient,
+} from "../../src/content/member-notes";
+import { setLocale, t } from "../../src/i18n/translator";
 import { MessageRouter } from "../../src/messaging/router";
 import { NotesService } from "../../src/notes/notes-service";
 import { completeness } from "../../src/signals/completeness";
@@ -23,6 +27,7 @@ import { registerMemberHandlers } from "../../src/background/member-handlers";
 import { repositories } from "../../src/storage/repositories";
 import { MemorySettingsArea } from "../memory-settings";
 import { freshDatabase } from "../setup-indexeddb";
+import contentCss from "../../src/content/content.css?raw";
 
 // Shapes from docs/live-evidence (03-profile.md, 11-search.md, 01-inbox.md,
 // 14-events.md); every value is invented.
@@ -156,7 +161,7 @@ const shown = (member: string) => ({
   // The tags chip shows a count; its full text names them.
   tags:
     full(group(member)?.querySelector(".joyfox-signals__tags"))
-      ?.replace(/^My tags: /u, "")
+      ?.replace(/^Your tags: /u, "")
       .split(", ") ?? [],
 });
 const editor = () =>
@@ -201,9 +206,17 @@ describe("V1-10 signals on every card", () => {
       '[data-joyfox-ui="completeness"]',
     )?.textContent;
     expect(profile).toBe("Complete: 5 photos, 120 words, verified");
+    // A group in the member strip, which is the page's one JoyFox region.
+    expect(
+      document
+        .querySelector('[data-joyfox-ui="completeness"]')
+        ?.getAttribute("role"),
+    ).toBe("group");
+    // The chip shows "Trust +2"; its tooltip and screen-reader text use the
+    // member strip's words.
     const expected = {
       completeness: profile,
-      trust: "Trust +2",
+      trust: "Local trust score: 2.",
       tags: ["Met at party"],
     };
     for (const [page, type] of [
@@ -271,6 +284,25 @@ describe("V1-10 signals on every card", () => {
     expect((chips[2] as HTMLElement).getAttribute("aria-label")).toBe(
       "Add note",
     );
+  });
+
+  it("gives each control on the card line at least 24 px, within its 18 px line", async () => {
+    // Owner's live check, item 126: a near miss on "✎" opened the profile.
+    const style = document.createElement("style");
+    style.textContent = contentCss;
+    document.head.append(style);
+    try {
+      inboxPage([FULL]);
+      signals.update("inbox");
+      await flush();
+      const note = group(FULL)!.querySelector(".joyfox-signals__note")!;
+      const line = group(FULL)!.parentElement!;
+      expect(getComputedStyle(note).minWidth).toBe("24px");
+      expect(getComputedStyle(note).textAlign).toBe("center");
+      expect(getComputedStyle(line).height).toBe("18px");
+    } finally {
+      style.remove();
+    }
   });
 
   it("keeps an inbox row's note button icon-only when a note exists", async () => {
@@ -361,18 +393,61 @@ describe("V1-10 signals on every card", () => {
     await flush();
     const marked = shown(FULL).trust;
     // The mark counts: the two positive outcomes alone give +2.
-    expect(marked).not.toBe("Trust +2");
+    expect(marked).not.toBe("Local trust score: 2.");
     expect(await guest()).toBe(marked);
     // A card whose shield code JoyFox does not know stays unknown: only a
     // card with no shield at all takes the stored mark.
     signals.invalidate();
     card(2);
     await flush();
-    expect(shown(FULL).trust).toBe("Trust +2");
+    expect(shown(FULL).trust).toBe("Local trust score: 2.");
     // The mark is removed on JoyClub: the next profile read shows no shield,
     // and the guest entry follows.
     await triage.captureSnapshot("account-a", FULL, { photoCount: 5 });
-    expect(await guest()).toBe("Trust +2");
+    expect(await guest()).toBe("Local trust score: 2.");
+  });
+
+  it("words the trust chip's full text as the member strip does, in both languages", async () => {
+    searchPage([FULL, NEW]);
+    signals.update("search");
+    await flush();
+    const chip = (member: string) =>
+      group(member)!.querySelector<HTMLElement>(".joyfox-signals__trust")!;
+    const short = (member: string) =>
+      chip(member).querySelector('[aria-hidden="true"]')?.textContent;
+    // The line has room for the short text only; the tooltip says it fully.
+    expect(short(FULL)).toBe("Trust +2");
+    expect(chip(FULL).title).toBe("Local trust score: 2.");
+    expect(short(NEW)).toBe("Trust –");
+    expect(chip(NEW).title).toBe("Local trust score: no history yet.");
+    setLocale("de");
+    signals.localeChanged();
+    expect(short(FULL)).toBe("Vertrauen +2");
+    expect(chip(FULL).title).toBe("Lokaler Vertrauenswert: 2.");
+    expect(full(chip(NEW))).toBe(
+      "Lokaler Vertrauenswert: noch keine Einträge.",
+    );
+  });
+
+  it("keeps focus on a note button when its chips are drawn again", async () => {
+    searchPage([FULL]);
+    signals.update("search");
+    await flush();
+    const noteButton = () =>
+      group(FULL)!.querySelector<HTMLButtonElement>(".joyfox-signals__note")!;
+    const first = noteButton();
+    first.focus();
+    // Another tab adds a tag: the chips are drawn again.
+    await new NotesService().addTag(
+      "account-a",
+      { status: "resolved", memberId: FULL, source: "test" },
+      "New",
+    );
+    signals.invalidate();
+    await flush();
+    expect(shown(FULL).tags).toEqual(["New"]);
+    expect(noteButton()).not.toBe(first);
+    expect(document.activeElement).toBe(noteButton());
   });
 
   it("marks an unknown member unknown, never incomplete", async () => {
@@ -383,7 +458,7 @@ describe("V1-10 signals on every card", () => {
       completeness:
         // The card's own shield says verified (11-search.md).
         "Completeness unknown: photos unknown, words unknown, verified",
-      trust: "No trust history",
+      trust: "Local trust score: no history yet.",
       tags: [],
     });
   });
@@ -621,6 +696,207 @@ describe("V1-10 signals on every card", () => {
 });
 
 describe("V1-10 card note editor", () => {
+  const note = () =>
+    editor().querySelector<HTMLTextAreaElement>(".joyfox-card-editor__note")!;
+  const tag = () =>
+    editor().querySelector<HTMLInputElement>(".joyfox-card-editor__tag")!;
+  const status = () =>
+    editor().querySelector(".joyfox-card-editor__status")?.textContent ?? "";
+  const noteButton = (member: string) =>
+    group(member)!.querySelector<HTMLButtonElement>(".joyfox-signals__note")!;
+  const openFor = async (member: string) => {
+    noteButton(member).focus();
+    noteButton(member).click();
+    await flush();
+  };
+
+  it("takes focus when it opens, adds a tag with Enter, and gives focus back to the member's note button", async () => {
+    searchPage([FULL]);
+    signals.update("search");
+    await flush();
+    const first = noteButton(FULL);
+    first.focus();
+    first.click();
+    // The panel is at the end of the page: focus moves into it at once.
+    expect(editor().contains(document.activeElement)).toBe(true);
+    await flush();
+    expect(document.activeElement).toBe(note());
+    tag().focus();
+    type(tag(), "Kind");
+    const pageKeys = vi.fn();
+    document.body.addEventListener("keydown", pageKeys);
+    tag().dispatchEvent(
+      new KeyboardEvent("keydown", { key: "Enter", bubbles: true }),
+    );
+    await flush();
+    document.body.removeEventListener("keydown", pageKeys);
+    expect(status()).toBe("Tag added.");
+    expect(pageKeys).not.toHaveBeenCalled();
+    expect(tag().value).toBe("");
+    // The editor drew itself again; the tag box kept focus.
+    expect(document.activeElement).toBe(tag());
+    // The saved tag reaches this tab, and the card draws its chips again:
+    // the button the editor opened from is gone.
+    signals.invalidate();
+    await flush();
+    expect(first.isConnected).toBe(false);
+    tag().dispatchEvent(
+      new KeyboardEvent("keydown", { key: "Escape", bubbles: true }),
+    );
+    expect(document.querySelector('[data-joyfox-ui="card-editor"]')).toBeNull();
+    expect(document.activeElement).toBe(noteButton(FULL));
+  });
+
+  it("keeps focus on its control when another tab changes the member and while a write runs", async () => {
+    guestPage([THIN]);
+    signals.update("event");
+    await flush();
+    await openFor(THIN);
+    note().focus();
+    type(note(), "Typed here");
+    note().setSelectionRange(2, 2);
+    await new NotesService().addTag(
+      "account-a",
+      { status: "resolved", memberId: THIN, source: "test" },
+      "Other",
+    );
+    signals.invalidate();
+    await flush();
+    expect(editor().textContent).toContain("Other");
+    expect(document.activeElement).toBe(note());
+    expect(note().selectionStart).toBe(2);
+    expect(note().value).toBe("Typed here");
+    const remove = editor().querySelector<HTMLButtonElement>(
+      'button[aria-label="Remove tag Other"]',
+    )!;
+    remove.focus();
+    remove.click();
+    // While the write runs, the button keeps focus and says it is not
+    // available; the note box keeps its text but takes no input.
+    expect(document.activeElement?.getAttribute("aria-label")).toBe(
+      "Remove tag Other",
+    );
+    expect(document.activeElement?.getAttribute("aria-disabled")).toBe("true");
+    expect(note().readOnly).toBe(true);
+    await flush();
+    expect(status()).toBe("Tag removed.");
+    // The removed tag's button is gone; the tag box takes focus.
+    expect(document.activeElement).toBe(tag());
+    expect(note().readOnly).toBe(false);
+    expect(note().value).toBe("Typed here");
+  });
+
+  it("shows the privacy note, discards typed text, and after a conflict shows the stored note", async () => {
+    searchPage([FULL]);
+    signals.update("search");
+    await flush();
+    await openFor(FULL);
+    expect(editor().textContent).toContain(t(NOTES_TEXT.scope));
+    const discard = () => editorButton("Discard my changes");
+    expect(discard().disabled).toBe(true);
+    type(note(), "Mine");
+    expect(discard().disabled).toBe(false);
+    // Another tab saves a note meanwhile.
+    await new NotesService().saveNote(
+      "account-a",
+      { status: "resolved", memberId: FULL, source: "test" },
+      "Theirs",
+    );
+    signals.invalidate();
+    await flush();
+    editorButton("Save note").click();
+    await flush();
+    // The notice points to "Discard my changes", which now exists here.
+    expect(status()).toBe(t(NOTES_TEXT.conflict));
+    expect(note().value).toBe("Mine");
+    discard().focus();
+    discard().click();
+    expect(note().value).toBe("Theirs");
+    expect(status()).toBe("");
+    expect(discard().disabled).toBe(true);
+    // The disabled button cannot keep focus; the note box takes it.
+    expect(document.activeElement).toBe(note());
+    expect((await repositories.userNotes.list("account-a"))[0]?.body).toBe(
+      "Theirs",
+    );
+  });
+
+  it("sends the note as typed, as the profile page's editor does", async () => {
+    const sent: string[] = [];
+    const client: NotesClient = {
+      getNotes: () =>
+        Promise.resolve({
+          status: "ok",
+          accountId: "account-a",
+          note: null,
+          tags: [],
+        }),
+      saveNote: (_account, _member, body) => {
+        sent.push(body);
+        return Promise.resolve({ status: "saved", current: body.trim() });
+      },
+      addTag: () => Promise.resolve(true),
+      removeTag: () => Promise.resolve(true),
+    };
+    const cardEditor = new CardNoteEditor(document, client);
+    cardEditor.open(FULL);
+    await flush();
+    type(note(), "  Spaced note \n");
+    editorButton("Save note").click();
+    await flush();
+    expect(sent).toEqual(["  Spaced note \n"]);
+    expect(status()).toBe("Note saved.");
+    cardEditor.close();
+  });
+
+  it("says so when the member already has the tag", async () => {
+    await new NotesService().addTag(
+      "account-a",
+      { status: "resolved", memberId: FULL, source: "test" },
+      "Met twice",
+    );
+    searchPage([FULL]);
+    signals.update("search");
+    await flush();
+    await openFor(FULL);
+    type(tag(), "  met   TWICE ");
+    editorButton("Add tag").click();
+    await flush();
+    expect(status()).toBe("Already tagged.");
+    expect(tag().value).toBe("");
+    expect(await repositories.userTags.list("account-a")).toHaveLength(1);
+  });
+
+  it("shows the note's length near the limit and says when a paste was cut", async () => {
+    searchPage([FULL]);
+    signals.update("search");
+    await flush();
+    await openFor(FULL);
+    const length = () => editor().querySelector(".joyfox-note-length")!;
+    const paste = (text: string) => {
+      const event = new Event("paste", { bubbles: true, cancelable: true });
+      Object.defineProperty(event, "clipboardData", {
+        value: { getData: () => text },
+      });
+      note().dispatchEvent(event);
+    };
+    type(note(), "x".repeat(3599));
+    expect(length().textContent).toBe("");
+    type(note(), "x".repeat(3600));
+    expect(length().textContent).toBe("3,600 of 4,000 characters");
+    expect(note().getAttribute("aria-describedby")).toBe(length().id);
+    note().setSelectionRange(3600, 3600);
+    // A paste that fits says nothing; one that does not is cut by the
+    // browser at the box's maxlength, and the editor says so.
+    paste("y".repeat(400));
+    expect(status()).toBe("");
+    paste("y".repeat(401));
+    expect(status()).toBe(
+      "Only part of the pasted text fit. The rest was not pasted.",
+    );
+    expect(note().maxLength).toBe(4000);
+  });
+
   it("drops typed text when a reload answers for another account, and clears a read error that recovered", async () => {
     const answers: unknown[] = [
       Promise.reject(new Error("offline")),
