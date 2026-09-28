@@ -640,7 +640,7 @@ export const de: Catalog = {
   "picker.result.inserted":
     "Vorlage eingefügt. Prüfe den Text und klicke dann selbst auf JoyClubs „Senden“.",
   "picker.result.not-editable":
-    "Das Nachrichtenfeld kann gerade nicht bearbeitet werden. Es wurde nichts eingefügt.",
+    "Das Nachrichtenfeld kann gerade nicht bearbeitet werden. Es wurde nichts eingefügt. Warte, bis du in das Nachrichtenfeld tippen kannst, und versuche es dann noch einmal.",
   "picker.result.too-long": (p, f) =>
     `Mit der Vorlage wäre die Nachricht ${f.plural(p.over, {
       one: "1 Zeichen",
@@ -1105,8 +1105,10 @@ export const de: Catalog = {
     "Ein Schritt auf JoyClub wurde nicht abgeschlossen",
   "error.code.NavigationTimeout": "Die Seite hat nicht rechtzeitig geladen",
   "error.code.UnsupportedPage": "JoyFox unterstützt diese Seite nicht",
-  "error.account.emptyIdentifier": "Ein Konto braucht eine Kennung",
-  "error.account.duplicate": "Diese Kontokennung ist schon gespeichert",
+  "error.account.emptyIdentifier":
+    "Gib zuerst die Kennung deines JoyClub-Kontos ein",
+  "error.account.duplicate":
+    "Ein Konto mit dieser Kennung ist schon in der Liste. Verwende dieses Konto oder gib eine andere Kennung ein",
   "error.account.notRegistered":
     "Dieses Konto ist nicht mehr in der Liste, zum Beispiel weil es in einem anderen Tab entfernt wurde",
   "error.account.gone": "Dieses Konto gibt es nicht mehr",

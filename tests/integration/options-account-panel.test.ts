@@ -188,8 +188,9 @@ describe("M7 options account switcher", () => {
     expect(items()).toHaveLength(1);
     expect(failed()).toBe(true);
     expect(status()?.getAttribute("role")).toBe("alert");
-    expect(status()?.textContent).toContain("already registered");
-    expect(status()?.textContent).toContain("Nothing was changed.");
+    expect(status()?.textContent).toBe(
+      "An account with this identifier is already in the list. Use that account, or enter another identifier. Nothing was changed.",
+    );
     expect(await service.listAccounts()).toHaveLength(1);
   });
 
@@ -207,6 +208,16 @@ describe("M7 options account switcher", () => {
       "That account is no longer in the list, for example because it was removed in another tab. Nothing was changed.",
     );
     expect((await service.getActiveAccount())?.label).toBe("Account A");
+  });
+
+  it("asks for the identifier when only spaces were typed", async () => {
+    await mountAccountPanel(root, service);
+    await addAccount("   ");
+    expect(failed()).toBe(true);
+    expect(status()?.textContent).toBe(
+      "Enter your JoyClub account identifier first. Nothing was changed.",
+    );
+    expect(await service.listAccounts()).toHaveLength(0);
   });
 
   it("gives a next step when a change cannot be stored", async () => {

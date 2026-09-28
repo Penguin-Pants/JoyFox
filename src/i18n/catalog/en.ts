@@ -695,7 +695,7 @@ export const en = {
   "picker.result.inserted":
     "Template inserted. Check the text, then click JoyClub's Send button yourself.",
   "picker.result.not-editable":
-    "The message field cannot be edited right now. Nothing was inserted.",
+    "The message field cannot be edited right now. Nothing was inserted. Wait until you can type in the message field, then try again.",
   "picker.result.too-long": (p: { over: number; limit: number }, f: Format) =>
     `With the template, the message would be ${f.plural(p.over, {
       one: "1 character",
@@ -1192,8 +1192,10 @@ export const en = {
   "error.code.ActionStepFailed": "A step on JoyClub did not complete",
   "error.code.NavigationTimeout": "The page did not load in time",
   "error.code.UnsupportedPage": "JoyFox does not support this page",
-  "error.account.emptyIdentifier": "An account needs a non-empty identifier",
-  "error.account.duplicate": "That account identifier is already registered",
+  "error.account.emptyIdentifier":
+    "Enter your JoyClub account identifier first",
+  "error.account.duplicate":
+    "An account with this identifier is already in the list. Use that account, or enter another identifier",
   "error.account.notRegistered":
     "That account is no longer in the list, for example because it was removed in another tab",
   "error.account.gone": "That account no longer exists",

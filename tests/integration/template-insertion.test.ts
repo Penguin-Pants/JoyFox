@@ -232,8 +232,16 @@ describe("M10 composer template picker", () => {
     composer().disabled = true;
     items()[0]!.focus();
     items()[0]!.click();
-    expect(status()).toContain("cannot be edited right now");
+    expect(status()).toBe(
+      "The message field cannot be edited right now. Nothing was inserted. Wait until you can type in the message field, then try again.",
+    );
     expect(document.activeElement).toBe(toggle());
+    // The next step works: once the field takes text, the insert goes in.
+    composer().disabled = false;
+    toggle().click();
+    await settle(() => items().length === 2);
+    items()[0]!.click();
+    expect(status()).toContain("Template inserted.");
   });
 
   it("merges a folder named General with templates without one, in name order", async () => {

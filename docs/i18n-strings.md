@@ -532,7 +532,7 @@ stay as they are.
 | `picker.empty` | No templates yet. Add them on the JoyFox options page. | Noch keine Vorlagen. Lege sie in den JoyFox-Einstellungen an. |
 | `picker.noAccount` | No JoyFox account is active. Choose one on the JoyFox options page. | Kein JoyFox-Konto ist aktiv. Wähle eines in den JoyFox-Einstellungen. |
 | `picker.result.inserted` | Template inserted. Check the text, then click JoyClub's Send button yourself. | Vorlage eingefügt. Prüfe den Text und klicke dann selbst auf JoyClubs „Senden“. |
-| `picker.result.not-editable` | The message field cannot be edited right now. Nothing was inserted. | Das Nachrichtenfeld kann gerade nicht bearbeitet werden. Es wurde nichts eingefügt. |
+| `picker.result.not-editable` | The message field cannot be edited right now. Nothing was inserted. Wait until you can type in the message field, then try again. | Das Nachrichtenfeld kann gerade nicht bearbeitet werden. Es wurde nichts eingefügt. Warte, bis du in das Nachrichtenfeld tippen kannst, und versuche es dann noch einmal. |
 | `picker.result.too-long` | With the template, the message would be 1 character / {over} characters too long. The message field takes at most {limit} characters. Nothing was inserted. Shorten your text or the template. | Mit der Vorlage wäre die Nachricht 1 Zeichen / {over} Zeichen zu lang. Das Nachrichtenfeld fasst höchstens {limit} Zeichen. Es wurde nichts eingefügt. Kürze deinen Text oder die Vorlage. |
 | `picker.result.altered` | JoyClub changed the text after insertion. Check the message field before you send. | JoyClub hat den Text nach dem Einfügen geändert. Prüfe das Nachrichtenfeld, bevor du sendest. |
 
@@ -887,8 +887,8 @@ stay as they are.
 | `error.code.ActionStepFailed` | A step on JoyClub did not complete | Ein Schritt auf JoyClub wurde nicht abgeschlossen |
 | `error.code.NavigationTimeout` | The page did not load in time | Die Seite hat nicht rechtzeitig geladen |
 | `error.code.UnsupportedPage` | JoyFox does not support this page | JoyFox unterstützt diese Seite nicht |
-| `error.account.emptyIdentifier` | An account needs a non-empty identifier | Ein Konto braucht eine Kennung |
-| `error.account.duplicate` | That account identifier is already registered | Diese Kontokennung ist schon gespeichert |
+| `error.account.emptyIdentifier` | Enter your JoyClub account identifier first | Gib zuerst die Kennung deines JoyClub-Kontos ein |
+| `error.account.duplicate` | An account with this identifier is already in the list. Use that account, or enter another identifier | Ein Konto mit dieser Kennung ist schon in der Liste. Verwende dieses Konto oder gib eine andere Kennung ein |
 | `error.account.notRegistered` | That account is no longer in the list, for example because it was removed in another tab | Dieses Konto ist nicht mehr in der Liste, zum Beispiel weil es in einem anderen Tab entfernt wurde |
 | `error.account.gone` | That account no longer exists | Dieses Konto gibt es nicht mehr |
 | `error.account.changed` | The active account changed | Das aktive Konto hat sich geändert |
