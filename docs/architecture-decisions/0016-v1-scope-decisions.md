@@ -270,3 +270,19 @@ release and logged it for later.
 2. F1 and M10 stay "Partial" until the composer is captured and checked live.
 3. The steps to close it are in `Task Backlog.md`, "Deferred: event ClubMail
    composer".
+
+## Amendment: first release version and reviewer account (project owner, 2026-09-28)
+
+1. **Version.** The first public release is 1.0.0. Every later release has a
+   higher version (`release.md`, "Rules").
+2. **Reviewer account.** Mozilla's Add-on Policies require test credentials when
+   any part of an add-on needs an account, and every JoyFox feature needs a
+   JoyClub account. The owner chose not to give Mozilla's reviewers an account
+   for now, and accepts the risk: if AMO picks a version for manual review, the
+   review can be delayed or rejected, or the add-on blocked. The README tells
+   reviewers that no account is provided. The owner can add one to any later
+   submission.
+3. **Release workflow.** A manual GitHub Actions workflow builds, checks, signs
+   and drafts each release (`.github/workflows/release.yml`). The AMO keys are
+   repository secrets. It builds on Ubuntu 24.04 with Node.js 22, the
+   environment the README names for reviewers.

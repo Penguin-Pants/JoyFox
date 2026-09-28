@@ -152,3 +152,14 @@ of "Your data". It is never an identity (the member ID is), never logged, and
 never leaves the browser except in an export file the user saves. It is
 exported, imported and deleted with the other records. When JoyFox has never
 seen a member's nickname, its texts show "Member" and the number.
+
+## Update check (V1-9, ADR 0016)
+
+The manifest's `update_url` makes Firefox itself, not JoyFox, fetch
+`updates.json` from raw.githubusercontent.com about once a day. GitHub receives
+what any web request carries, such as the IP address and Firefox's user agent.
+The request holds no JoyFox data: no account, member, note or setting. The
+address has no placeholders, so Firefox adds nothing to it. The update file and
+the `.xpi` come from the public repository, and the `.xpi` is checked against
+`update_hash`. JoyFox's own code still sends no network request (network
+isolation test).

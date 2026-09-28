@@ -1,6 +1,6 @@
 {
   "name": "joyfox",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "license": "GPL-3.0-or-later",
   "private": true,
   "type": "module",
@@ -8,10 +8,11 @@
     "build:firefox": "node scripts/build-firefox.mjs",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "lint": "eslint . && node scripts/check-permissions.mjs",
+    "lint": "eslint . && node scripts/check-permissions.mjs && node scripts/check-release.mjs",
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
-    "lint:amo": "web-ext lint --source-dir dist/firefox --self-hosted"
+    "lint:amo": "web-ext lint --source-dir dist/firefox --self-hosted",
+    "package:source": "node scripts/package-source.mjs"
   },
   "devDependencies": {
     "@eslint/js": "9.36.0",

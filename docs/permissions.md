@@ -19,6 +19,10 @@ The manifest declares
 `docs/distribution.md`). Review this value before any feature sends data off the
 device, for example sync (V1-6).
 
+The manifest's `browser_specific_settings.gecko.update_url` is the only remote
+address in it. It is not a permission: Firefox uses it to check for updates
+(V1-9, `privacy-model.md`, "Update check").
+
 The UI language (ADR 0014) calls `browser.i18n.getUILanguage()` only to pick the
 default language. The `i18n` API needs no permission, so the allowlist does not
 change.
