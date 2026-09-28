@@ -1,0 +1,66 @@
+name: Release
+# Signs the version in package.json with Mozilla (unlisted) and drafts its
+# GitHub release. Run by hand from the Actions tab (docs/release.md).
+on:
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  sign:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run format:check
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run build:firefox
+      - run: npm run lint:amo
+      - name: Refuse a version that already has a release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          version=$(node -p "require('./package.json').version")
+          if gh release view "v$version" > /dev/null 2>&1; then
+            echo "v$version already has a release. Raise the version first."
+            exit 1
+          fi
+          test -f "docs/release-notes/$version.md"
+          echo "VERSION=$version" >> "$GITHUB_ENV"
+      - run: npm run package:source
+      - name: Sign with Mozilla (unlisted)
+        env:
+          WEB_EXT_API_KEY: ${{ secrets.AMO_JWT_ISSUER }}
+          WEB_EXT_API_SECRET: ${{ secrets.AMO_JWT_SECRET }}
+        run: >
+          npx web-ext sign --source-dir dist/firefox --artifacts-dir dist/signed
+          --channel=unlisted --upload-source-code
+          "dist/joyfox-$VERSION-source.zip"
+      - name: Check that the signed file holds exactly the build
+        run: |
+          mkdir dist/unpacked
+          unzip -q dist/signed/*.xpi -d dist/unpacked
+          diff -r --exclude=META-INF dist/unpacked dist/firefox
+      - name: Draft the GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          xpi="dist/joyfox-$VERSION.xpi"
+          mv dist/signed/*.xpi "$xpi"
+          hash=$(sha256sum "$xpi" | cut -d " " -f 1)
+          gh release create "v$VERSION" --draft --target "$GITHUB_SHA" \
+            --title "JoyFox $VERSION" \
+            --notes-file "docs/release-notes/$VERSION.md" \
+            "$xpi" "dist/joyfox-$VERSION-source.zip"
+          {
+            echo "## JoyFox $VERSION: draft release ready"
+            echo
+            echo "- update_link: https://github.com/${GITHUB_REPOSITORY}/releases/download/v$VERSION/joyfox-$VERSION.xpi"
+            echo "- update_hash: sha256:$hash"
+          } >> "$GITHUB_STEP_SUMMARY"

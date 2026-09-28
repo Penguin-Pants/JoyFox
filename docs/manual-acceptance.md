@@ -793,3 +793,29 @@ second run the same day.
 
 **Result (2026-09-27): passed.** The project owner confirmed item 134 and the
 German texts.
+
+## Public release (V1-9, 2026-09-28)
+
+Do these after the one-time setup in `release.md`.
+
+135. Run the "Release" workflow (Actions > Release > Run workflow, on `main`).
+     Confirm it ends green, and that its summary shows an `update_link` and an
+     `update_hash`. Confirm a draft release `v1.0.0` exists with
+     `joyfox-1.0.0.xpi`, `joyfox-1.0.0-source.zip` and notes whose "Disclaimer"
+     matches the README's. If signing times out, follow `release.md`, step 3,
+     and note it here.
+136. First export your data under "Your data" in the JoyFox options. On release
+     Firefox (not Developer Edition or Nightly), remove the temporary
+     development build, then install `joyfox-1.0.0.xpi` from the draft
+     (`about:addons` > gear menu > "Install Add-on From File"). Confirm Firefox
+     accepts it without a signature warning, the options page opens, and
+     `about:addons` shows JoyFox 1.0.0. Open a JoyClub inbox and confirm the
+     JoyFox badges appear. If your records are missing, import the export.
+137. On a computer with Node.js 22 or 24: download the source package from the
+     draft, unpack it, run `npm ci` and `npm run build:firefox`, unpack the
+     `.xpi` and run `diff -r --exclude=META-INF <unpacked xpi> dist/firefox`
+     (README, "Verify a release"). Confirm there is no output.
+138. Publish the release. Confirm the repository is public and that the release
+     page and its files open in a private window (not signed in to GitHub). Then
+     send the `update_link` and `update_hash` so the `updates.json` PR can add
+     1.0.0.

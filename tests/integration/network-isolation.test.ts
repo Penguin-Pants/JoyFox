@@ -83,6 +83,14 @@ describe("network isolation (build plan Section 23)", () => {
     );
   });
 
+  it("the manifest names one remote address: Firefox's own update check", () => {
+    // Firefox, not JoyFox, fetches `update_url` (ADR 0016, privacy model).
+    const addresses = manifestText.match(/https?:\/\/[^"]+/g) ?? [];
+    expect(addresses).toEqual([
+      "https://raw.githubusercontent.com/Penguin-Pants/JoyFox/main/updates.json",
+    ]);
+  });
+
   describe("at runtime", () => {
     const requests: string[] = [];
     let settings: MemorySettingsArea;

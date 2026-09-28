@@ -226,24 +226,25 @@ unsigned build.
 
 ## Open for V1-9
 
+Built in V1-9 (2026-09-28); the procedure is `release.md`.
+
 - **Redirects.** A GitHub release download link redirects to another HTTPS host.
   No Mozilla page says whether Firefox follows that redirect for an
-  `update_link`. V1-9 tests one real update before the release: install a signed
-  older version, publish a newer one, set `extensions.update.interval` to `120`
-  and see Firefox update. If it fails, the `update_link` must point to an
-  address that does not redirect.
-- **Source README.** Write the reviewer's README described under "Source code",
-  and make the source package from it for every version.
-- **Reviewer account and testing notes.** A release input, not something to wait
-  for AMO to ask: a JoyClub account made only for Mozilla's reviewers (never the
-  owner's own), its credentials, and testing instructions (which pages to open,
-  and which features need data first). The owner provides the account. `web-ext`
-  10.7.0 passes the `version` object of an `--amo-metadata` JSON file into the
-  submitted version (`lib/util/submit-addon.js`); the AMO API field for reviewer
-  notes is still to be checked, or the notes go in on the version's AMO edit
-  page. Keep the credentials out of the repository.
-- **Signing wait.** See step 7 of "Steps for an unlisted signed build": after a
-  timeout, the signed `.xpi` comes from the AMO edit address.
+  `update_link`. It is checked with the first update after 1.0.0 (`release.md`,
+  "First update: the redirect check"). If it fails, only `updates.json` changes:
+  the `update_link` then points to an address without a redirect.
+- **Source README.** Done: README, "Build from source (for Mozilla's
+  reviewers)". `npm run package:source` makes the source package from the
+  committed tree. A clean archive built with Node.js 24.14.0 and npm 11.9.0 gave
+  files identical to the Node.js 22 build (x86-64; ARM64 not tested).
+- **Reviewer account and testing notes.** The policy requires test credentials
+  when a feature needs an account. The owner decided on 2026-09-28 not to give a
+  reviewer account for now and accepts the risk: a manual review can be delayed
+  or rejected, or the add-on blocked (ADR 0016). The README tells reviewers that
+  every feature needs a JoyClub account and that none is provided.
+- **Signing wait.** The Release workflow uses `web-ext`'s 15-minute wait. After
+  a timeout, the signed `.xpi` comes from the AMO edit address (`release.md`,
+  step 3).
 - **Web download.** A web server that offers the `.xpi` for a click to install
   must send `Content-Type: application/x-xpinstall` ("Distributing an add-on
   yourself"). JoyFox's install instructions open the downloaded file from
