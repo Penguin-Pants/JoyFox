@@ -25,6 +25,7 @@ release.
 | `background`                | `scripts` (event page)     | `service_worker` |
 | `browser_specific_settings` | Gecko ID, update URL, data | Not present      |
 | `minimum_chrome_version`    | Not present                | `148`            |
+| `icons`, `action` icons     | Firefox set, theme icons   | Chrome set       |
 
 Permissions, host permissions and content script matches are the same.
 `npm run lint` checks both manifests against `config/permissions.json`, and
@@ -59,8 +60,10 @@ Chromium 141 fails with `browser is not defined`, as expected.
 
 ## Open
 
-- **Icons.** Neither manifest has `icons`. The Store listing needs a 128×128
-  icon.
+- **Store listing images.** The manifest icons are done (`branding.md`). The
+  Store listing takes `store/chrome/chrome-web-store-icon-128.png`, the small
+  promo tile and the marquee from `assets/brand/`. Its screenshots must be real
+  JoyFox screens, not the template.
 - **Check in Chrome 148 or later:** the inbox, conversation and profile pages on
   www.joyclub.de; the dropdown colors in `content.css` (a fix for Firefox); and
   a restart of the service worker from `chrome://extensions`.

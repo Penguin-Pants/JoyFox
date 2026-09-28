@@ -31,6 +31,17 @@ beforeEach(() => {
   document.body.innerHTML = "";
 });
 
+describe("options header", () => {
+  it("names the page JoyFox, with the mark as decoration", () => {
+    mount();
+    const heading = document.querySelector("h1")!;
+    expect(heading.textContent!.replace(/\s+/g, "")).toBe("JoyFox");
+    const marks = heading.querySelectorAll("img");
+    expect(marks).toHaveLength(1);
+    expect(marks[0]!.getAttribute("alt")).toBe("");
+  });
+});
+
 describe("options tabs", () => {
   it("has one tab and one panel per section, each panel holding its section", () => {
     mount();

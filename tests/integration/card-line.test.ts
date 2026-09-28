@@ -147,7 +147,10 @@ describe("JoyFox's page styles", () => {
       pill("needs-review"),
       pill("quarantined"),
       { what: "error", value: declared(".joyfox-error", "color") },
-      { what: "brand", value: declared(".joyfox-bar__brand", "color") },
+      {
+        what: "brand",
+        value: declared(".joyfox-bar__brand-accent", "color"),
+      },
     ];
     // The page's text and background, and JoyFox's surfaces on them (up to
     // 12% of the text color).

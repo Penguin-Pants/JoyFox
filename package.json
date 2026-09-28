@@ -9,7 +9,7 @@
     "build:chrome": "node scripts/build-chrome.mjs",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "lint": "eslint . && node scripts/check-permissions.mjs && node scripts/check-release.mjs",
+    "lint": "eslint . && node scripts/check-permissions.mjs && node scripts/check-release.mjs && node scripts/check-icons.mjs",
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
     "lint:amo": "web-ext lint --source-dir dist/firefox --self-hosted",

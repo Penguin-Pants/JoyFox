@@ -22,6 +22,10 @@ Requires Node.js 22 and npm.
   `npm run package:chrome` also zips it for the Chrome Web Store
   (`docs/chrome.md`).
 
+The logo, icons, colors and store images come from the approved brand package in
+`assets/brand/`. `docs/branding.md` says which files go into a build and how the
+UI uses them.
+
 ## Install
 
 - **Firefox, for development:** run `npm run build:firefox`, then load
