@@ -285,6 +285,11 @@ member and conversation. The first attempt had stopped before any click with
 "could not find JoyClub's Delete control"; Delete moved to the conversation's
 three-dot menu (`live-evidence/10-ignore.md`, eighth report).
 
+**Result, item 43, return to ClubMail (2026-09-28): passed.** After PR 90, the
+project owner ran Ignore and Delete live. The profile showed "Ignore and Delete
+finished.", then the tab returned to the ClubMail list (ADR 0011, "Return to the
+ClubMail list").
+
 **Result, items 44 to 54 (2026-09-25): accepted.** The project owner ran the
 matrix by hand:
 
