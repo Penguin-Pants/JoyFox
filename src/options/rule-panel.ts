@@ -44,6 +44,8 @@ import {
 } from "../rules/presets";
 import { RuleService } from "../rules/rule-service";
 import { withAccountLock } from "../storage/account-lock";
+import { FOCUS_KEY, rememberFocus, restoreFocus } from "../ui/focus";
+import { confirmAllowed, confirmTiming } from "./confirm";
 import { StatusLine } from "./status-line";
 
 type BoxName = "all" | "any";
@@ -95,6 +97,19 @@ const noteText = (saved: boolean) =>
 /** A condition's name, as a param of another message. */
 const conditionName = (kind: ConditionKind) => message(CONDITION_TEXT[kind]);
 
+/** The smallest number a condition takes. */
+const numberMinimum = (kind: ConditionKind) =>
+  kind === "minimumTrustScore" ? RULE_LIMITS.minTrustValue : 0;
+
+/** The fields that hold a condition's number or text, in both editors. */
+const VALUE_FIELDS = "input[type=number], input.joyfox-rule__text";
+
+/**
+ * An Advanced condition row. A status line in a group carries `data-kind`
+ * too (its state), so the class keeps it out.
+ */
+const CONDITION_ROW = ".joyfox-rule__condition[data-kind]";
+
 function element<K extends keyof HTMLElementTagNameMap>(
   document: Document,
   tag: K,
@@ -114,6 +129,30 @@ interface ConditionControls {
   unknown: HTMLSelectElement;
 }
 
+/**
+ * A Simple row's fields follow its box: an unticked condition does not
+ * count, so nothing can be typed or chosen for it.
+ */
+function followBox(controls: ConditionControls): void {
+  for (const field of [controls.value, controls.text, controls.unknown])
+    if (field) field.disabled = !controls.on.checked;
+}
+
+/**
+ * JoyFox does not check messages for templates yet (`rule.spamHint`), so
+ * "Not flagged as template spam" is always unknown. The row says so.
+ */
+function spamNote(document: Document, id: string): HTMLSpanElement {
+  const note = element(
+    document,
+    "span",
+    "joyfox-rule__condition-note",
+    t("rule.spamNote"),
+  );
+  note.id = id;
+  return note;
+}
+
 function numberInput(
   document: Document,
   kind: ConditionKind,
@@ -127,6 +166,7 @@ function numberInput(
   );
   input.max = String(RULE_LIMITS.maxValue);
   input.value = String(value ?? "");
+  input.dataset.condition = kind;
   input.setAttribute(
     "aria-label",
     t("rule.valueLabel", { condition: conditionName(kind) }),
@@ -148,6 +188,7 @@ function textInput(
   input.autocomplete = "off";
   input.spellcheck = false;
   input.value = text ?? "";
+  input.dataset.condition = kind;
   input.setAttribute(
     "aria-label",
     t("rule.textLabel", { condition: conditionName(kind) }),
@@ -192,7 +233,7 @@ function readNumber(
   kind: ConditionKind,
 ): number | Message {
   const raw = input.value.trim();
-  const minimum = kind === "minimumTrustScore" ? RULE_LIMITS.minTrustValue : 0;
+  const minimum = numberMinimum(kind);
   const value = Number(raw);
   if (
     raw === "" ||
@@ -234,7 +275,10 @@ function readText(
   return { text };
 }
 
-/** A default threshold for a condition just added in the advanced editor. */
+/**
+ * A default threshold for a condition just added in the advanced editor, or
+ * ticked with an empty field in the simple one.
+ */
 const NEW_VALUE: Partial<Record<ConditionKind, number>> = {
   minimumPhotos: 3,
   minimumProfileWords: 50,
@@ -279,6 +323,21 @@ function presetNotice(id: RulePresetId): Message {
  */
 export class RulePanel {
   readonly #status: StatusLine;
+  /**
+   * The prompt and failures of "Delete whole contact rule", right under the
+   * button at the end of the form, where the user is when they click it.
+   */
+  readonly #deleteLine: StatusLine;
+  /**
+   * The button that waits for its second click (a preset that replaces
+   * conditions, removing a group, deleting the whole rule), when it was
+   * armed, and how to put it back. Any other click or change disarms it.
+   */
+  #armed?: { button: HTMLButtonElement; at: number; disarm: () => void };
+  /** Each number or text field's note: why a save refuses it, or a hint. */
+  #notes = new WeakMap<HTMLInputElement, HTMLElement>();
+  /** Makes each note's ID unique, for `aria-describedby`. */
+  #noteCount = 0;
   #controls = new Map<string, ConditionControls>();
   /** The editor this panel shows, once the owner picked one. */
   #view?: EditorView;
@@ -294,9 +353,7 @@ export class RulePanel {
   /** The line saying whether a rule is saved, updated after an autosave. */
   #note?: HTMLParagraphElement;
   #form?: HTMLFormElement;
-  /** Puts the preset button back from "Replace conditions" to "Apply". */
-  #disarmPreset: () => void = () => undefined;
-  /** The account the form was drawn for, and whether a rule is saved. */
+  /** The account the panel was drawn for, and whether a rule is saved. */
   #accountId?: string;
   #saved = false;
   /**
@@ -323,6 +380,15 @@ export class RulePanel {
     private readonly accounts = new AccountService(),
   ) {
     this.#status = new StatusLine(root.ownerDocument);
+    this.#deleteLine = new StatusLine(root.ownerDocument);
+    this.#deleteLine.node.classList.add("joyfox-rule__prompt");
+    // Any other action disarms a button that waits for its second click,
+    // so that click can never act on what the user saw before.
+    root.addEventListener("click", (event) => {
+      if (this.#armed && !this.#armed.button.contains(event.target as Node))
+        this.#disarm();
+    });
+    root.addEventListener("change", () => this.#disarm());
   }
 
   async render(): Promise<void> {
@@ -344,6 +410,13 @@ export class RulePanel {
       return;
     }
     if (generation !== this.#generation) return;
+    // Another account's status (a save, a refusal) must never carry over:
+    // it would contradict the note drawn for this account.
+    if (account?.id !== this.#accountId) {
+      this.#status.clear();
+      this.#deleteLine.clear();
+    }
+    this.#accountId = account?.id;
     this.#drawnStamp = stored?.updatedAt ?? "none";
     this.#saved = stored !== undefined;
     if (!account) {
@@ -362,8 +435,9 @@ export class RulePanel {
       this.#drawShell(document);
       this.root.append(
         element(document, "p", "joyfox-panel__empty", t("rule.newer")),
-        this.#removeButton(document, account.id),
         this.#status.node,
+        this.#removeButton(document, account.id),
+        this.#deleteLine.node,
       );
       return;
     }
@@ -399,18 +473,20 @@ export class RulePanel {
       : { view: "simple", form: this.#readSimple(numberOrNone) };
     // Number and phrase fields, as typed: a value that is not valid yet, or
     // one in a condition that is not ticked, is not in the form read above.
-    const fields = "input[type=number], input.joyfox-rule__text";
-    const typed = Array.from(
-      this.#form.querySelectorAll<HTMLInputElement>(fields),
-      (input) => input.value,
+    const fields = Array.from(
+      this.#form.querySelectorAll<HTMLInputElement>(VALUE_FIELDS),
     );
+    const typed = fields.map((input) => input.value);
+    const noted = fields.map((input) => this.#notes.has(input));
     const focused = document.activeElement?.id;
     this.#drawForm(document, accountId, shown);
     // The same form gives the same fields in the same order.
     this.#form
-      .querySelectorAll<HTMLInputElement>(fields)
+      .querySelectorAll<HTMLInputElement>(VALUE_FIELDS)
       .forEach((input, index) => {
         input.value = typed[index] ?? input.value;
+        // A field's note shows again, in the new language.
+        if (noted[index]) this.#checkField(input);
       });
     this.#updateSimpleReason();
     if (focused) document.getElementById(focused)?.focus();
@@ -418,11 +494,14 @@ export class RulePanel {
 
   /** The heading and hint every state of the panel starts with. */
   #drawShell(document: Document): void {
+    // Every button is drawn again, unarmed.
+    this.#disarm();
     this.root.replaceChildren();
     this.#controls = new Map();
     this.#form = undefined;
     this.#rules = undefined;
     this.#status.redraw();
+    this.#deleteLine.redraw();
     const heading = element(
       document,
       "h2",
@@ -448,7 +527,9 @@ export class RulePanel {
     this.#accountId = accountId;
     this.#note = element(document, "p", "", noteText(this.#saved));
     this.#form = this.#renderForm(document, accountId, shown, this.#saved);
-    this.root.append(this.#note, this.#form, this.#status.node);
+    // The status sits under the note, where the form starts: after the
+    // form's last field it would be out of view for most changes.
+    this.root.append(this.#note, this.#status.node, this.#form);
   }
 
   #renderForm(
@@ -468,6 +549,7 @@ export class RulePanel {
     enabled.type = "checkbox";
     enabled.checked = form.enabled;
     enabled.id = "joyfox-rule-enabled";
+    enabled.setAttribute(FOCUS_KEY, "rule:enabled");
     enabledLabel.append(
       enabled,
       document.createTextNode(` ${t("rule.enabled")}`),
@@ -498,6 +580,8 @@ export class RulePanel {
 
     this.#editor = element(document, "div", "joyfox-rule__editor");
     node.append(
+      // How saving works, before the first field.
+      element(document, "p", "joyfox-panel__hint", t("rule.autosaveHint")),
       enabledLabel,
       placementWrapper,
       this.#renderPresets(document, accountId),
@@ -506,18 +590,22 @@ export class RulePanel {
       element(document, "p", "joyfox-panel__hint", t("rule.spamHint")),
       element(document, "p", "joyfox-panel__hint", t("rule.firstMessageHint")),
     );
-    node.append(
-      element(document, "p", "joyfox-panel__hint", t("rule.autosaveHint")),
-    );
-    if (saved) node.append(this.#removeButton(document, accountId));
+    if (saved)
+      node.append(
+        this.#removeButton(document, accountId),
+        this.#deleteLine.node,
+      );
     // Autosave: checkboxes and choices report `change` at once, a number
     // field when it loses focus or on Enter. Submitting (Enter) saves too.
     this.#autosave = () => {
       // Read the form now, at change time, then queue the write.
       const form = this.#readForm();
+      this.#checkFields();
       const version = this.#version();
       void this.#serial(() => this.#save(accountId, form, version));
     };
+    // A preset confirmation covers the conditions as they were: the
+    // panel's own `change` listener disarms it (see the constructor).
     node.addEventListener("change", (event) => {
       // Adding a condition and choosing a preset are changes of their own,
       // handled by their selects.
@@ -527,10 +615,17 @@ export class RulePanel {
         )
       )
         return;
-      // A preset confirmation covers the conditions as they were.
-      this.#disarmPreset();
       this.#updateSimpleReason();
+      // A ticked text condition waits for its text: nothing is saved yet,
+      // so no error shows, only the field's hint.
+      if (this.#boxChanged(event.target)) return this.#checkFields();
       this.#autosave();
+    });
+    // A field with a note is checked again as the user types, so an error
+    // goes as soon as the value is valid.
+    node.addEventListener("input", (event) => {
+      const field = event.target as HTMLInputElement;
+      if (this.#notes.has(field)) this.#checkField(field);
     });
     node.addEventListener("submit", (event) => {
       event.preventDefault();
@@ -578,27 +673,27 @@ export class RulePanel {
     );
     description.id = "joyfox-rule-preset-description";
     choice.setAttribute("aria-describedby", description.id);
-    let armed = false;
-    this.#disarmPreset = () => {
-      armed = false;
-      apply.textContent = t("rule.preset.apply");
-    };
+    // Another choice disarms the button: the panel's `change` listener.
     const show = () => {
-      this.#disarmPreset();
       const id = choice.value;
       apply.disabled = !isRulePresetId(id);
       description.textContent = isRulePresetId(id) ? presetDescription(id) : "";
     };
     choice.addEventListener("change", show);
-    apply.addEventListener("click", () => {
+    apply.addEventListener("click", (event) => {
       const id = choice.value;
       if (!isRulePresetId(id)) return;
-      if (!armed && this.#shownConditionCount() > 0) {
-        armed = true;
-        apply.textContent = t("rule.preset.confirm");
-        this.#setStatus(message("rule.preset.confirmPrompt"), "info");
+      if (
+        this.#shownConditionCount() > 0 &&
+        !this.#secondClick(apply, event, () => {
+          apply.textContent = t("rule.preset.confirm");
+          this.#setStatus(message("rule.preset.confirmPrompt"), "info");
+          return () => {
+            apply.textContent = t("rule.preset.apply");
+          };
+        })
+      )
         return;
-      }
       // Focus stays on the choice, as the button turns disabled.
       choice.focus();
       choice.value = "";
@@ -678,14 +773,22 @@ export class RulePanel {
     const current = this.#rules ? "advanced" : "simple";
     if (view === current) return;
     if (view === "advanced") {
-      const form = this.#readSimple();
-      if (failed(form)) return this.#setStatus(form, "error");
+      // A ticked text condition without text comes along: the Advanced
+      // editor shows it as a condition that waits for its text.
+      const form = this.#readSimple(undefined, true);
+      if (failed(form)) {
+        this.#checkFields();
+        return this.#setStatus(form, "error");
+      }
       this.#view = "advanced";
       this.#showAdvanced(document, builderToAdvanced(form));
       return;
     }
     const advanced = this.#readAdvanced();
-    if (failed(advanced)) return this.#setStatus(advanced, "error");
+    if (failed(advanced)) {
+      this.#checkFields();
+      return this.#setStatus(advanced, "error");
+    }
     const form = advancedToBuilder(advanced);
     if (isProblem(form)) return this.#setStatus(form, "error");
     this.#view = "simple";
@@ -781,10 +884,42 @@ export class RulePanel {
       t("rule.removeRule"),
     );
     remove.type = "button";
-    remove.addEventListener("click", () => {
+    // The group's own prompt line, next to its button.
+    const prompt = new StatusLine(document);
+    prompt.node.classList.add("joyfox-rule__prompt");
+    remove.addEventListener("click", (event) => {
+      // A group with conditions goes only on a second click. The text
+      // changes in place, so keyboard focus stays on the button.
+      if (
+        fieldset.querySelector(CONDITION_ROW) &&
+        !this.#secondClick(remove, event, () => {
+          const number = this.#groupNumber(fieldset);
+          remove.textContent = t("rule.confirmRemoveGroup");
+          remove.setAttribute(
+            "aria-label",
+            t("rule.confirmRemoveGroupLabel", { number }),
+          );
+          prompt.set(message("rule.removeGroupPrompt", { number }), "info");
+          return () => {
+            remove.textContent = t("rule.removeRule");
+            remove.setAttribute(
+              "aria-label",
+              t("rule.removeRuleLabel", {
+                number: this.#groupNumber(fieldset),
+              }),
+            );
+            prompt.clear();
+          };
+        })
+      )
+        return;
       fieldset.remove();
       this.#renumber();
       this.#autosave();
+      // The button is gone: focus moves to adding a group, under the list.
+      this.#editor
+        ?.querySelector<HTMLButtonElement>(".joyfox-rule__add-rule")
+        ?.focus();
     });
     head.append(
       title,
@@ -826,8 +961,14 @@ export class RulePanel {
       row.querySelector<HTMLElement>("input[type=number], select")?.focus();
       this.#autosave();
     });
-    fieldset.append(head, list, empty, add);
+    fieldset.append(head, prompt.node, list, empty, add);
     return fieldset;
+  }
+
+  /** A group's number, as the Advanced editor shows it. */
+  #groupNumber(fieldset: HTMLElement): number {
+    const groups = this.#rules?.querySelectorAll(":scope > [data-rule]");
+    return Array.from(groups ?? []).indexOf(fieldset) + 1;
   }
 
   #renderCondition(
@@ -873,11 +1014,13 @@ export class RulePanel {
       notLabel.classList.toggle("joyfox-rule__not--on", not.checked);
     not.addEventListener("change", mark);
     mark();
-    row.append(
-      remove,
-      notLabel,
-      element(document, "span", "joyfox-rule__name", t(CONDITION_TEXT[kind])),
+    const name = element(
+      document,
+      "span",
+      "joyfox-rule__name",
+      t(CONDITION_TEXT[kind]),
     );
+    row.append(remove, notLabel, name);
     if (NUMERIC_CONDITION_KINDS.has(kind))
       row.append(numberInput(document, kind, entry.value));
     else row.append(element(document, "span", "joyfox-rule__no-value"));
@@ -888,6 +1031,11 @@ export class RulePanel {
     const unknown = unknownSelect(document, entry.whenUnknown);
     unknown.className = "joyfox-rule__unknown";
     unknown.setAttribute("aria-label", t("rule.unknownLabel", { condition }));
+    if (kind === "notTemplateSpam") {
+      const note = spamNote(document, this.#noteId());
+      name.append(" ", note);
+      unknown.setAttribute("aria-describedby", note.id);
+    }
     row.append(
       element(
         document,
@@ -935,7 +1083,7 @@ export class RulePanel {
       remove.setAttribute("aria-label", t("rule.removeRuleLabel", { number }));
       const used = new Set(
         Array.from(
-          fieldset.querySelectorAll<HTMLElement>("[data-kind]"),
+          fieldset.querySelectorAll<HTMLElement>(CONDITION_ROW),
           (row) => row.dataset.kind,
         ),
       );
@@ -993,6 +1141,12 @@ export class RulePanel {
         on,
         unknown: document.createElement("select"),
       };
+      if (kind === "notTemplateSpam") {
+        // In the label, so the box's name says it too.
+        const note = spamNote(document, `${id}-note`);
+        label.append(" ", note);
+        controls.unknown.setAttribute("aria-describedby", note.id);
+      }
       if (NUMERIC_CONDITION_KINDS.has(kind)) {
         const value = document.createElement("input");
         value.type = "number";
@@ -1003,6 +1157,7 @@ export class RulePanel {
         value.max = String(RULE_LIMITS.maxValue);
         value.id = `${id}-value`;
         value.value = String(entry?.value ?? "");
+        value.dataset.condition = kind;
         value.setAttribute(
           "aria-label",
           t("rule.valueLabel", { condition: conditionName(kind) }),
@@ -1041,10 +1196,110 @@ export class RulePanel {
           ),
         );
       row.append(unknownLabel, controls.unknown);
+      followBox(controls);
       this.#controls.set(`${box}:${kind}`, controls);
       fieldset.append(row);
     }
     return fieldset;
+  }
+
+  /**
+   * A Simple row's box was ticked or cleared, and its fields follow it. A
+   * ticked number without a value gets the Advanced editor's default, so
+   * the tick saves at once. Returns true when a ticked text condition waits
+   * for its text: focus moves there, and nothing is saved yet.
+   */
+  #boxChanged(target: EventTarget | null): boolean {
+    for (const [key, controls] of this.#controls) {
+      if (controls.on !== target) continue;
+      followBox(controls);
+      if (!controls.on.checked) return false;
+      const kind = key.slice(key.indexOf(":") + 1) as ConditionKind;
+      const { value, text } = controls;
+      if (value && value.value.trim() === "") {
+        value.value = String(NEW_VALUE[kind] ?? "");
+        value.focus();
+      }
+      if (text && text.value.trim() === "") {
+        text.focus();
+        return true;
+      }
+      return false;
+    }
+    return false;
+  }
+
+  /**
+   * Mark each number and text field in use whose value a save refuses, and
+   * clear the others. A ticked Simple text condition without text shows a
+   * hint instead: a save leaves it out until text is typed.
+   */
+  #checkFields(): void {
+    this.#form
+      ?.querySelectorAll<HTMLInputElement>(VALUE_FIELDS)
+      .forEach((field) => this.#checkField(field));
+  }
+
+  #checkField(field: HTMLInputElement): void {
+    const kind = field.dataset.condition as ConditionKind;
+    // An unticked Simple row: its condition does not count.
+    if (field.disabled) return this.#fieldNote(field, undefined);
+    if (field.type === "number")
+      return this.#fieldNote(
+        field,
+        typeof readNumber(field, kind) === "number"
+          ? undefined
+          : message("rule.fieldNumberProblem", {
+              minimum: numberMinimum(kind),
+              maximum: RULE_LIMITS.maxValue,
+            }),
+      );
+    if (!this.#rules && field.value.trim() === "")
+      return this.#fieldNote(field, message("rule.textHint"), "hint");
+    this.#fieldNote(
+      field,
+      failed(readText(field, kind))
+        ? message("rule.fieldTextProblem", {
+            maximum: RULE_LIMITS.maxTextLength,
+          })
+        : undefined,
+    );
+  }
+
+  /**
+   * Show a note under a field's row, linked to the field, or remove it. An
+   * error also marks the field as invalid.
+   */
+  #fieldNote(
+    field: HTMLInputElement,
+    note: Message | undefined,
+    kind: "error" | "hint" = "error",
+  ): void {
+    let node = this.#notes.get(field);
+    if (!note) {
+      node?.remove();
+      this.#notes.delete(field);
+      field.removeAttribute("aria-invalid");
+      field.removeAttribute("aria-describedby");
+      return;
+    }
+    if (!node) {
+      node = element(field.ownerDocument, "span", "joyfox-rule__field-note");
+      node.id = this.#noteId();
+      // Last in the row: the grid puts it under the row's fields, so the
+      // columns stay in line.
+      field.closest(".joyfox-rule__condition")?.append(node);
+      this.#notes.set(field, node);
+    }
+    node.dataset.note = kind;
+    node.textContent = t(note);
+    field.setAttribute("aria-describedby", node.id);
+    if (kind === "error") field.setAttribute("aria-invalid", "true");
+    else field.removeAttribute("aria-invalid");
+  }
+
+  #noteId(): string {
+    return `joyfox-rule-note-${(this.#noteCount += 1)}`;
   }
 
   /** Read the shown editor, or return the first problem as a message. */
@@ -1062,25 +1317,37 @@ export class RulePanel {
     }
     const form = this.#readSimple();
     if (failed(form)) return form;
-    const vacuous =
-      Object.keys(form.all).length === 0 && Object.keys(form.any).length > 0;
+    const all = Object.keys(form.all).length;
+    const any = Object.keys(form.any).length;
+    // An empty rule is legitimate (the "Open" preset), but lets every
+    // sender through, so the status says so.
+    const notice =
+      all + any === 0
+        ? message("rule.savedNoConditions")
+        : all === 0
+          ? message("rule.savedVacuous")
+          : undefined;
     return {
       definition: fromBuilderForm(form),
-      ...(vacuous ? { notice: message("rule.savedVacuous") } : {}),
+      ...(notice ? { notice } : {}),
     };
   }
 
   /**
    * Read the simple editor. By default a field that is not valid ends the
-   * read with its problem. For a redraw, `number` decides what a number
-   * field gives, and text is read exactly as typed.
+   * read with its problem, and a ticked text condition without text is left
+   * out (`keepEmptyText` keeps it, for the Advanced editor). For a redraw,
+   * `number` decides what a number field gives, and text is read exactly as
+   * typed.
    */
   #readSimple(): BuilderForm | Message;
   #readSimple(
     number: (value: number | Message) => number | undefined,
   ): BuilderForm;
+  #readSimple(number: undefined, keepEmptyText: boolean): BuilderForm | Message;
   #readSimple(
     number?: (value: number | Message) => number | undefined,
+    keepEmptyText = false,
   ): BuilderForm | Message {
     const form: BuilderForm = {
       enabled: this.#enabled?.checked ?? true,
@@ -1106,7 +1373,12 @@ export class RulePanel {
           // A redraw (`number` given) keeps the text exactly as typed,
           // valid or not.
           if (number) entry.text = controls.text.value;
-          else {
+          else if (controls.text.value.trim() === "") {
+            // Ticked, but no text yet: a save leaves the condition out, so
+            // other changes still save. The field shows a hint meanwhile.
+            if (!keepEmptyText) continue;
+            entry.text = "";
+          } else {
             const text = readText(controls.text, kind);
             if (failed(text)) return text;
             entry.text = text.text;
@@ -1145,7 +1417,7 @@ export class RulePanel {
         conditions: {},
       };
       for (const row of Array.from(
-        fieldset.querySelectorAll<HTMLElement>("[data-kind]"),
+        fieldset.querySelectorAll<HTMLElement>(CONDITION_ROW),
       )) {
         const kind = row.dataset.kind as ConditionKind;
         const entry: AdvancedEntry = {
@@ -1221,9 +1493,16 @@ export class RulePanel {
     this.#saved = true;
     if (this.#note) this.#note.textContent = noteText(true);
     if (this.#form && !this.#form.querySelector(".joyfox-rule__delete-all"))
-      this.#form.append(this.#removeButton(this.root.ownerDocument, accountId));
+      this.#form.append(
+        this.#removeButton(this.root.ownerDocument, accountId),
+        this.#deleteLine.node,
+      );
   }
 
+  /**
+   * Deleting the whole rule stops the inbox sorting, so it takes a second
+   * click. The prompt and any failure show right under the button.
+   */
   #removeButton(document: Document, accountId: string): HTMLButtonElement {
     const button = element(
       document,
@@ -1232,7 +1511,18 @@ export class RulePanel {
       t("rule.deleteAll"),
     );
     button.type = "button";
-    button.addEventListener("click", () => {
+    button.setAttribute(FOCUS_KEY, "rule:delete-all");
+    button.addEventListener("click", (event) => {
+      // The text changes in place, so keyboard focus stays on the button.
+      const confirmed = this.#secondClick(button, event, () => {
+        button.textContent = t("rule.confirmDeleteAll");
+        this.#deleteLine.set(message("rule.deletePrompt"), "info");
+        return () => {
+          button.textContent = t("rule.deleteAll");
+          this.#deleteLine.clear();
+        };
+      });
+      if (!confirmed) return;
       const version = this.#version();
       void this.#serial(async () => {
         try {
@@ -1245,14 +1535,49 @@ export class RulePanel {
           });
           if (removed !== "removed")
             return this.#reportStale("removed", removed);
+          const focus = rememberFocus(this.root);
           await this.render();
           this.#setStatus(message("rule.removed"), "info");
+          // The button is gone: focus goes to the form's first control,
+          // under the result.
+          restoreFocus(this.root, focus, ["rule:enabled"]);
         } catch {
-          this.#setStatus(message("rule.removeFailed"), "error");
+          this.#deleteLine.set(message("rule.removeFailed"), "error");
         }
       });
     });
     return button;
+  }
+
+  /**
+   * A click on a button that acts only on its second click (`confirm.ts`).
+   * Returns true when this click confirms: the button is armed, and the
+   * click is a single one after the grace period, so a double-click can
+   * never arm and confirm in one gesture. Otherwise an unarmed button arms
+   * (`arm` shows the prompt and returns how to take it back), and an armed
+   * one waits.
+   */
+  #secondClick(
+    button: HTMLButtonElement,
+    event: MouseEvent,
+    arm: () => () => void,
+  ): boolean {
+    const armed = this.#armed;
+    if (armed?.button === button) {
+      if (!confirmAllowed(event, armed.at)) return false;
+      this.#disarm();
+      return true;
+    }
+    if (event.detail > 1) return false;
+    this.#disarm();
+    this.#armed = { button, at: confirmTiming.now(), disarm: arm() };
+    return false;
+  }
+
+  #disarm(): void {
+    const armed = this.#armed;
+    this.#armed = undefined;
+    armed?.disarm();
   }
 
   /**

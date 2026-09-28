@@ -709,7 +709,7 @@ export const en = {
   // Options page: shell and tabs
   "options.title": "JoyFox options",
   "options.intro":
-    "JoyFox stores everything locally in this browser profile. Inbox triage stays off until you save a contact rule.",
+    "JoyFox stores everything locally in this browser profile. Inbox sorting stays off until you save a contact rule.",
   "options.tabs.start": "Get started",
   "options.tabs.accounts": "Accounts",
   "options.tabs.rule": "Contact rule",
@@ -725,15 +725,31 @@ export const en = {
   "start.state.done": "Done",
   "start.state.off": "Saved, but turned off",
   "start.state.todo": "Not done yet",
+  "start.state.doneOpen": "Done: no conditions, so every sender qualifies",
   "start.ready": "JoyFox is set up. Open your JoyClub inbox to see it sorted.",
   "start.intro":
     "Three steps, a few minutes. Everything stays in this browser.",
+  "start.introAccess":
+    "Four steps, a few minutes. Everything stays in this browser.",
+  "start.readFailed":
+    "JoyFox could not read its setup. Reload the page to try again.",
+  "start.step.access":
+    "Allow JoyFox to access joyclub.de. Access is off now, so JoyFox cannot work on JoyClub.",
   "start.step.account":
     "Add your JoyClub account under [Accounts](#accounts). JoyFox makes the first one active.",
+  "start.step.chooseAccount":
+    "Choose the active account under [Accounts](#accounts).",
   "start.step.rule":
-    "Save a contact rule under [Contact rule](#rule). Inbox triage stays off until a rule is saved and turned on.",
+    "Save a contact rule under [Contact rule](#rule). Inbox sorting stays off until a rule is saved and turned on.",
   "start.step.inbox":
     "Open your JoyClub inbox (www.joyclub.de, ClubMail). JoyFox adds its tabs above the list.",
+
+  // Options page: site access (Get started)
+  "access.allow": "Allow access to joyclub.de",
+  "access.granted":
+    "Access to joyclub.de is on. JoyFox can now work on JoyClub.",
+  "access.refused":
+    "Access to joyclub.de is still off. JoyFox cannot work on JoyClub until you allow access here or in about:addons.",
 
   // Options page: accounts
   "accounts.readFailed":
@@ -788,7 +804,7 @@ export const en = {
 
   // Options page: contact rule
   "rule.readFailed":
-    "JoyFox could not read the contact rule. No rule was changed.",
+    "JoyFox could not read the contact rule. No rule was changed. Reload the page to try again.",
   "rule.hint":
     "The rule only changes how JoyFox groups your own inbox into Qualified, Needs Review and Quarantined. It never stops a message, never deletes anything, and the sender sees nothing.",
   "rule.noAccount":
@@ -863,13 +879,27 @@ export const en = {
     `${p.condition}: word, phrase or emoji`,
   "rule.textProblem": (p: { maximum: number; condition: T }, f: Format) =>
     `Enter a word, phrase or emoji of up to ${f.number(p.maximum)} characters for "${p.condition}".`,
-  "rule.combine.label": "How the rules combine",
+  "rule.fieldNumberProblem": (
+    p: { minimum: number; maximum: number },
+    f: Format,
+  ) =>
+    `Enter a whole number from ${f.number(p.minimum)} to ${f.number(p.maximum)}.`,
+  "rule.fieldTextProblem": (p: { maximum: number }, f: Format) =>
+    `Enter a word, phrase or emoji of up to ${f.number(p.maximum)} characters.`,
+  "rule.textHint": "Type a word, phrase or emoji to use this condition.",
+  "rule.spamNote": "(not checked yet: always unknown)",
+  "rule.combine.label": "How the groups combine",
   "rule.combine.prefix": "A sender is qualified if ",
-  "rule.combine.suffix": " of these rules match.",
+  "rule.combine.suffix": " of these groups match.",
   "rule.advancedHint":
-    'Each rule is met when ALL or ANY of its conditions are met, as you choose. Tick "not" to turn a condition around: "not Minimum photos 3" means fewer than 3 photos. A rule without conditions is not saved.',
-  "rule.addRule": "+ Add rule",
-  "rule.removeRule": "Remove rule",
+    'Each group is met when ALL or ANY of its conditions are met, as you choose. Tick "not" to turn a condition around: "not Minimum photos 3" means fewer than 3 photos. A group without conditions is not saved.',
+  "rule.addRule": "+ Add group",
+  "rule.removeRule": "Remove group",
+  "rule.confirmRemoveGroup": "Confirm removal",
+  "rule.confirmRemoveGroupLabel": (p: { number: number }, f: Format) =>
+    `Confirm removal of group ${f.number(p.number)}`,
+  "rule.removeGroupPrompt": (p: { number: number }, f: Format) =>
+    `Click again to remove group ${f.number(p.number)} and its conditions.`,
   "rule.ruleSuffix": " of these are met",
   "rule.noConditions": "No conditions yet. Add one below.",
   "rule.removeCondition": "Remove condition",
@@ -880,24 +910,24 @@ export const en = {
   "rule.joiner.all": "AND",
   "rule.joiner.any": "OR",
   "rule.ruleTitle": (p: { number: number }, f: Format) =>
-    `Rule ${f.number(p.number)}: met if `,
+    `Group ${f.number(p.number)}: met if `,
   "rule.ruleMatchLabel": (p: { number: number }, f: Format) =>
-    `How rule ${f.number(p.number)} combines its conditions`,
+    `How group ${f.number(p.number)} combines its conditions`,
   "rule.removeRuleLabel": (p: { number: number }, f: Format) =>
-    `Remove rule ${f.number(p.number)}`,
+    `Remove group ${f.number(p.number)}`,
   "rule.addConditionLabel": (p: { number: number }, f: Format) =>
-    `Add a condition to rule ${f.number(p.number)}`,
+    `Add a condition to group ${f.number(p.number)}`,
   "rule.addCondition": "+ Add condition…",
   "rule.ruleCount": (p: { count: number; maximum: number }, f: Format) =>
-    `${f.number(p.count)} of ${f.number(p.maximum)} rules`,
+    `${f.number(p.count)} of ${f.number(p.maximum)} groups`,
   "rule.simpleUnavailable.all":
-    "Simple view is not available: the rules combine with ALL.",
+    "Simple view is not available: the groups combine with ALL.",
   "rule.simpleUnavailable.not":
     'Simple view is not available: the rule uses "not".',
   "rule.simpleUnavailable.severalAll":
-    "Simple view is not available: more than one rule needs ALL of several conditions.",
+    "Simple view is not available: more than one group needs ALL of several conditions.",
   "rule.simpleUnavailable.duplicate":
-    "Simple view is not available: a condition appears in more than one rule.",
+    "Simple view is not available: a condition appears in more than one group.",
   "rule.savedNoConditions":
     "Rule saved. It has no conditions yet, so every sender qualifies.",
   "rule.savedVacuous":
@@ -905,19 +935,23 @@ export const en = {
   "rule.saved": "Rule saved. Open JoyClub tabs update at once.",
   "rule.notSaved": (p: { problem: T }) =>
     `${p.problem} The rule was not saved.`,
-  "rule.saveFailed": "JoyFox could not save the rule. Nothing was changed.",
+  "rule.saveFailed":
+    "JoyFox could not save the rule. Nothing was changed. Change the field again, or reload the page to see the saved rule.",
   "rule.deleteAll": "Delete whole contact rule",
+  "rule.confirmDeleteAll": "Confirm delete",
+  "rule.deletePrompt":
+    "Click again to delete the whole contact rule. JoyFox then stops sorting the inbox for this account.",
   "rule.removed":
-    "Rule removed. JoyFox no longer sorts the inbox for this account.",
-  "rule.removeFailed": "JoyFox could not remove the rule. Nothing was changed.",
+    "Contact rule deleted. JoyFox no longer sorts the inbox for this account.",
+  "rule.removeFailed": "JoyFox could not delete the rule. Nothing was changed.",
   "rule.stale.account.saved":
     "The active account changed. The rule was not saved. Check the form and try again.",
   "rule.stale.account.removed":
-    "The active account changed. The rule was not removed. Check the form and try again.",
+    "The active account changed. The rule was not deleted. Check the form and try again.",
   "rule.stale.rule.saved":
     "The rule was changed in another tab. It was not saved. The form now shows the saved rule.",
   "rule.stale.rule.removed":
-    "The rule was changed in another tab. It was not removed. The form now shows the saved rule.",
+    "The rule was changed in another tab. It was not deleted. The form now shows the saved rule.",
   "rule.changedElsewhere":
     "The rule was changed in another tab. The form now shows the saved rule.",
 
