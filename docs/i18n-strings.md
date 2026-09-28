@@ -291,8 +291,11 @@ stay as they are.
 | `notes.emptyTag` | Type a tag first. Nothing was added. | Gib zuerst einen Tag ein. Es wurde nichts hinzugefügt. |
 | `notes.emptyNote` | Type a note first. Nothing was saved. | Gib zuerst eine Notiz ein. Es wurde nichts gespeichert. |
 | `notes.tagAdded` | Tag added. | Tag hinzugefügt. |
+| `notes.tagExists` | Already tagged. | Diesen Tag hat das Mitglied schon. |
 | `notes.tagRemoved` | Tag removed. | Tag entfernt. |
 | `notes.privateNote` | Private note | Private Notiz |
+| `notes.length` | {count} of {maximum} characters | {count} von {maximum} Zeichen |
+| `notes.pasteCut` | Only part of the pasted text fit. The rest was not pasted. | Nur ein Teil des eingefügten Texts hat gepasst. Der Rest wurde nicht eingefügt. |
 | `notes.discard` | Discard my changes | Meine Änderungen verwerfen |
 | `notes.save` | Save note | Notiz speichern |
 | `notes.tags` | Tags | Tags |
@@ -310,28 +313,36 @@ stay as they are.
 
 | Key | English | Deutsch |
 | --- | --- | --- |
-| `listing.heading.event` | JoyFox: my notes on this event | JoyFox: meine Notizen zu diesem Event |
-| `listing.heading.venue` | JoyFox: my notes on this venue | JoyFox: meine Notizen zu diesem Club |
+| `listing.heading.event` | JoyFox: your notes on this event | JoyFox: deine Notizen zu diesem Event |
+| `listing.heading.venue` | JoyFox: your notes on this venue | JoyFox: deine Notizen zu diesem Club |
+| `listing.summary.event` | JoyFox: your notes on this event ({state}) | JoyFox: deine Notizen zu diesem Event ({state}) |
+| `listing.summary.venue` | JoyFox: your notes on this venue ({state}) | JoyFox: deine Notizen zu diesem Club ({state}) |
+| `listing.summary.none` | none yet | noch keine |
+| `listing.summary.note` | a note | eine Notiz |
 | `listing.loading` | Loading your notes… | Deine Notizen werden geladen … |
 | `listing.readFailed` | JoyFox could not read your notes on this page. Reload the page to try again. | JoyFox konnte deine Notizen zu dieser Seite nicht lesen. Lade die Seite neu, um es noch einmal zu versuchen. |
 | `listing.noAccount` | Select or add an account in the JoyFox options to keep notes on events. | Wähle in den JoyFox-Einstellungen ein Konto aus oder füge eines hinzu, um Notizen zu Events zu speichern. |
-| `listing.attendanceLabel` | My attendance | Meine Teilnahme |
+| `listing.attendanceLabel` | Your attendance | Deine Teilnahme |
 | `listing.attendance.unknown` | No status | Kein Status |
 | `listing.attendance.interested` | Interested | Interessiert |
 | `listing.attendance.attending` | Attending | Ich gehe hin |
 | `listing.attendance.not-attending` | Not attending | Ich gehe nicht hin |
 | `listing.attendance.attended` | Attended | Ich war dort |
-| `listing.noteLabel` | My note | Meine Notiz |
+| `listing.noteLabel` | Your note | Deine Notiz |
 | `listing.saveNote` | Save note | Notiz speichern |
-| `listing.tagsLabel` | My tags | Meine Tags |
+| `listing.tagsLabel` | Your tags | Deine Tags |
 | `listing.tagLabel` | New tag | Neuer Tag |
 | `listing.addTag` | Add tag | Tag hinzufügen |
 | `listing.removeTag` | Remove tag {tag} | Tag {tag} entfernen |
 | `listing.emptyTag` | Type a tag first. Nothing was added. | Gib zuerst einen Tag ein. Es wurde nichts hinzugefügt. |
-| `listing.tooManyTags` | A listing can have at most {maximum} tags. Remove one first. | Ein Eintrag kann höchstens {maximum} Tags haben. Entferne zuerst einen. |
+| `listing.tooManyTags.event` | You can add at most {maximum} tags to an event. Remove one first. | Du kannst einem Event höchstens {maximum} Tags geben. Entferne zuerst einen. |
+| `listing.tooManyTags.venue` | You can add at most {maximum} tags to a venue. Remove one first. | Du kannst einem Club höchstens {maximum} Tags geben. Entferne zuerst einen. |
 | `listing.privacy` | Private: stored only in this browser. JoyClub sees nothing, and your sign-up on JoyClub does not change. | Privat: nur in diesem Browser gespeichert. JoyClub sieht nichts, und deine Anmeldung bei JoyClub ändert sich nicht. |
 | `listing.saved` | Saved. | Gespeichert. |
-| `listing.removed` | Nothing is left on this listing, so JoyFox no longer tracks it. | Hier ist nichts mehr eingetragen, deshalb verfolgt JoyFox diesen Eintrag nicht mehr. |
+| `listing.tracked.event` | Saved. JoyFox now tracks this event. | Gespeichert. JoyFox verfolgt dieses Event jetzt. |
+| `listing.tracked.venue` | Saved. JoyFox now tracks this venue. | Gespeichert. JoyFox verfolgt diesen Club jetzt. |
+| `listing.removed.event` | No note, tag or attendance is left, so JoyFox no longer tracks this event. | Es ist keine Notiz, kein Tag und keine Teilnahme mehr eingetragen, deshalb verfolgt JoyFox dieses Event nicht mehr. |
+| `listing.removed.venue` | No note or tag is left, so JoyFox no longer tracks this venue. | Es ist keine Notiz und kein Tag mehr eingetragen, deshalb verfolgt JoyFox diesen Club nicht mehr. |
 | `listing.conflict` | These notes changed in another tab, so JoyFox did not save. The stored notes are shown now; your typed note is still in the box. | Diese Notizen wurden in einem anderen Tab geändert, deshalb hat JoyFox nicht gespeichert. Jetzt werden die gespeicherten Notizen angezeigt; deine eingegebene Notiz steht noch im Feld. |
 | `listing.refused` | The active JoyFox account changed, so nothing was saved. | Das aktive JoyFox-Konto hat sich geändert, deshalb wurde nichts gespeichert. |
 
@@ -384,11 +395,11 @@ stay as they are.
 | --- | --- | --- |
 | `eventFilter.label` | JoyFox: show | JoyFox: zeigen |
 | `eventFilter.all` | All loaded events and dates | Alle geladenen Events und Dates |
-| `eventFilter.tracked` | Only my tracked events | Nur meine verfolgten Events |
-| `eventFilter.note` | Only events with my note | Nur Events mit meiner Notiz |
-| `eventFilter.attending` | Only events I attend | Nur Events, zu denen ich gehe |
-| `eventFilter.interested` | Only events I am interested in | Nur Events, die mich interessieren |
-| `eventFilter.tag` | Only my tag: {tag} | Nur mein Tag: {tag} |
+| `eventFilter.tracked` | Only events JoyFox tracks | Nur Events, die JoyFox verfolgt |
+| `eventFilter.note` | Only events with your note | Nur Events mit deiner Notiz |
+| `eventFilter.attending` | Only events you attend | Nur Events, zu denen du gehst |
+| `eventFilter.interested` | Only events you are interested in | Nur Events, die dich interessieren |
+| `eventFilter.tag` | Only events with your tag: {tag} | Nur Events mit deinem Tag: {tag} |
 | `eventFilter.count` | {shown} of {loaded} loaded events shown. Events loaded later are checked too. | {shown} von {loaded} geladenen Events angezeigt. Später geladene Events werden auch geprüft. |
 | `eventFilter.readFailed` | JoyFox could not read your event notes. Reload the page to try again. | JoyFox konnte deine Event-Notizen nicht lesen. Lade die Seite neu, um es noch einmal zu versuchen. |
 | `eventFilter.noAccount` | Select or add an account in the JoyFox options to filter by your notes. | Wähle in den JoyFox-Einstellungen ein Konto aus oder füge eines hinzu, um nach deinen Notizen zu filtern. |
@@ -438,11 +449,10 @@ stay as they are.
 | `signals.verificationUnknown` | verification unknown | Verifizierung unbekannt |
 | `signals.heading` | Profile completeness | Vollständigkeit des Profils |
 | `signals.trust` | Trust {score} | Vertrauen {score} |
-| `signals.trustNone` | No trust history | Kein Vertrauensverlauf |
 | `signals.trustNoneShort` | Trust – | Vertrauen – |
 | `signals.noteAdd` | Add note | Notiz hinzufügen |
 | `signals.noteEdit` | Note | Notiz |
-| `signals.tagsLabel` | My tags | Meine Tags |
+| `signals.tagsLabel` | Your tags | Deine Tags |
 | `signals.tagCount` | 1 tag / {count} tags | 1 Tag / {count} Tags |
 | `signals.editor.label` | JoyFox: note and tags for {member} | JoyFox: Notiz und Tags für {member} |
 
@@ -459,7 +469,7 @@ stay as they are.
 | `signals.editor.loading` | Loading… | Wird geladen … |
 | `signals.editor.close` | Close | Schließen |
 | `signals.editor.noAccount` | Select or add an account in the JoyFox options to keep notes. | Wähle in den JoyFox-Einstellungen ein Konto aus oder füge eines hinzu, um Notizen zu führen. |
-| `signals.editor.readFailed` | JoyFox could not read this member's notes. Close and try again. | JoyFox konnte die Notizen zu diesem Mitglied nicht lesen. Schließe dieses Fenster und versuche es noch einmal. |
+| `signals.editor.readFailed` | JoyFox could not read this member's notes. Close and try again. | JoyFox konnte die Notizen zu diesem Mitglied nicht lesen. Schließe die Notiz und öffne sie erneut. |
 | `signals.filter.label` | JoyFox: hide incomplete profiles | JoyFox: unvollständige Profile ausblenden |
 | `signals.filter.count` | {hidden} of {loaded} loaded profiles hidden. Profiles JoyFox knows nothing about stay visible. | {hidden} von {loaded} geladenen Profilen ausgeblendet. Profile, über die JoyFox nichts weiß, bleiben sichtbar. |
 
@@ -470,6 +480,7 @@ stay as they are.
 | `compat.heading` | Shared preferences | Gemeinsame Vorlieben |
 | `compat.shared` | You share 1 preference / {count} preferences with this member: | Du teilst 1 Vorliebe / {count} Vorlieben mit diesem Mitglied: |
 | `compat.none` | You share no preferences with this member. | Du teilst keine Vorlieben mit diesem Mitglied. |
+| `compat.listToggle` | Show the shared preferences | Gemeinsame Vorlieben anzeigen |
 | `compat.own` | This is your profile. JoyFox compares other profiles with your 1 positive preference / {count} positive preferences. | Das ist dein Profil. JoyFox vergleicht andere Profile mit deiner 1 positiven Vorliebe / deinen {count} positiven Vorlieben. |
 | `compat.ownUnknown` | Open your own JoyClub profile once, so JoyFox knows your preferences. | Öffne einmal dein eigenes JoyClub-Profil, damit JoyFox deine Vorlieben kennt. |
 | `compat.unreadable` | JoyFox could not read this profile's preferences yet. | JoyFox konnte die Vorlieben dieses Profils noch nicht lesen. |
@@ -502,6 +513,10 @@ stay as they are.
 | `searches.refused` | The active JoyFox account changed, so nothing was changed. | Das aktive JoyFox-Konto hat sich geändert, deshalb wurde nichts geändert. |
 | `searches.saved` | Saved "{name}". | „{name}“ gespeichert. |
 | `searches.noMatch` | "{name}" no longer matches JoyClub's search address, so JoyFox did not open it. Run the search again and save it again. | „{name}“ passt nicht mehr zur Suchadresse von JoyClub, deshalb hat JoyFox die Suche nicht geöffnet. Führe die Suche noch einmal aus und speichere sie neu. |
+| `searches.running` | Running "{name}"… | „{name}“ wird ausgeführt … |
+| `searches.runningUnnamed` | Running the saved search… | Die gespeicherte Suche wird ausgeführt … |
+| `searches.shown` | Showing "{name}". | „{name}“ wird angezeigt. |
+| `searches.shownUnnamed` | Showing the saved search. | Die gespeicherte Suche wird angezeigt. |
 | `searches.runFailed` | JoyFox could not run the saved search. Open JoyClub's filter and click "Anwenden". | JoyFox konnte die gespeicherte Suche nicht ausführen. Öffne den Filter von JoyClub und klicke auf „Anwenden“. |
 | `searches.deleteLabel` | Delete saved search {name} | Gespeicherte Suche {name} löschen |
 | `searches.confirmDelete` | Click ✕ again to delete "{name}". | Klicke noch einmal auf ✕, um „{name}“ zu löschen. |
@@ -518,7 +533,7 @@ stay as they are.
 | `picker.noAccount` | No JoyFox account is active. Choose one on the JoyFox options page. | Kein JoyFox-Konto ist aktiv. Wähle eines in den JoyFox-Einstellungen. |
 | `picker.result.inserted` | Template inserted. Check the text, then click JoyClub's Send button yourself. | Vorlage eingefügt. Prüfe den Text und klicke dann selbst auf JoyClubs „Senden“. |
 | `picker.result.not-editable` | The message field cannot be edited right now. Nothing was inserted. | Das Nachrichtenfeld kann gerade nicht bearbeitet werden. Es wurde nichts eingefügt. |
-| `picker.result.too-long` | The template does not fit in the message field. Nothing was inserted; the template was not shortened. | Die Vorlage passt nicht in das Nachrichtenfeld. Es wurde nichts eingefügt, und die Vorlage wurde nicht gekürzt. |
+| `picker.result.too-long` | The template is 1 character / {over} characters too long for the message field, which takes at most {limit} characters. Nothing was inserted. Shorten your text or the template. | Die Vorlage ist 1 Zeichen / {over} Zeichen zu lang für das Nachrichtenfeld, das höchstens {limit} Zeichen fasst. Es wurde nichts eingefügt. Kürze deinen Text oder die Vorlage. |
 | `picker.result.altered` | JoyClub changed the text after insertion. Check the message field before you send. | JoyClub hat den Text nach dem Einfügen geändert. Prüfe das Nachrichtenfeld, bevor du sendest. |
 
 ## templates
