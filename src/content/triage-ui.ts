@@ -11,6 +11,7 @@ import {
 import type { MemberTriage } from "../triage/triage-service";
 import { TRUST_SCOPE_NOTE, type TrustScore } from "../trust/trust-score";
 import type { TrustOutcomeKind } from "../trust/trust-service";
+import { FOCUS_KEY } from "../ui/focus";
 
 /**
  * Shared DOM builders for the injected triage UI. Every class name is
@@ -31,6 +32,42 @@ const OUTCOME_TEXT: Record<EvaluatedCondition["outcome"], PlainKey> = {
 /** The text of a placement, in the current language. */
 export const placementText = (placement: TriagePlacement): string =>
   t(PLACEMENT_TEXT[placement]);
+
+/**
+ * The `FOCUS_KEY` of each control a redraw rebuilds, so a panel can put
+ * keyboard focus back on the same control (`src/ui/focus.ts`).
+ */
+export const FOCUS = {
+  toggle: "why",
+  conditions: "conditions",
+  trustDetails: "trust-details",
+  openOptions: "open-options",
+  openProfile: "open-profile",
+  sharedEventOptOut: "shared-event-opt-out",
+  useRule: "move:rule",
+  move: (placement: TriagePlacement) => `move:${placement}`,
+  trust: (kind: TrustOutcomeKind | "undo") => `trust:${kind}`,
+} as const;
+
+/** Where focus goes when its control is gone or disabled after a redraw. */
+export function focusFallbacks(key: string | undefined): string[] {
+  if (key?.startsWith("trust:")) return [FOCUS.trust("positive"), FOCUS.toggle];
+  if (key?.startsWith("move:") || key === FOCUS.sharedEventOptOut)
+    return [
+      FOCUS.useRule,
+      FOCUS.move("qualified"),
+      FOCUS.move("needs-review"),
+      FOCUS.move("quarantined"),
+      FOCUS.toggle,
+    ];
+  return [FOCUS.toggle];
+}
+
+/** `node`, marked with a `FOCUS_KEY` that stays the same across redraws. */
+export const keyed = <E extends Element>(node: E, key: string): E => {
+  node.setAttribute(FOCUS_KEY, key);
+  return node;
+};
 
 export function element<K extends keyof HTMLElementTagNameMap>(
   document: Document,
@@ -99,11 +136,14 @@ function conditionList(
 ): HTMLElement {
   const details = element(document, "details", "joyfox-explain__conditions");
   details.append(
-    element(
-      document,
-      "summary",
-      "",
-      t("triage.conditions.summary", { count: conditions.length }),
+    keyed(
+      element(
+        document,
+        "summary",
+        "",
+        t("triage.conditions.summary", { count: conditions.length }),
+      ),
+      FOCUS.conditions,
     ),
   );
   const list = element(document, "ul", "joyfox-explain__list");
@@ -145,7 +185,10 @@ export function trustSection(
   if (trust !== "unknown") {
     const details = element(document, "details", "joyfox-trust__details");
     details.append(
-      element(document, "summary", "", t("trust.details.summary")),
+      keyed(
+        element(document, "summary", "", t("trust.details.summary")),
+        FOCUS.trustDetails,
+      ),
     );
     const list = element(document, "ul", "joyfox-explain__list");
     for (const item of trust.contributions)
@@ -237,11 +280,14 @@ export function explanation(
     );
     if (actions.onSharedEventOptOut)
       root.append(
-        button(
-          document,
-          "joyfox-button",
-          t("triage.sharedEvent.optOut"),
-          actions.onSharedEventOptOut,
+        keyed(
+          button(
+            document,
+            "joyfox-button",
+            t("triage.sharedEvent.optOut"),
+            actions.onSharedEventOptOut,
+          ),
+          FOCUS.sharedEventOptOut,
         ),
       );
   }
@@ -272,21 +318,32 @@ export function explanation(
     "needs-review",
     "quarantined",
   ] as const) {
-    const control = button(
-      document,
-      "joyfox-button",
-      t("triage.move.to", { placement: message(PLACEMENT_TEXT[placement]) }),
-      () => actions.onOverride(placement),
+    const params = { placement: message(PLACEMENT_TEXT[placement]) };
+    // The placement the rule (or the shared event) chose: a click keeps the
+    // sender there as the user's own choice, so it says "Keep in".
+    const current = result.placement === placement;
+    const control = keyed(
+      button(
+        document,
+        "joyfox-button",
+        current && result.source !== "override"
+          ? t("triage.move.keep", params)
+          : t("triage.move.to", params),
+        () => actions.onOverride(placement),
+      ),
+      FOCUS.move(placement),
     );
     // Disabled rather than hidden, so the control set stays predictable.
-    control.disabled =
-      result.source === "override" && result.placement === placement;
+    control.disabled = result.source === "override" && current;
     controls.append(control);
   }
   if (result.source === "override")
     controls.append(
-      button(document, "joyfox-button", t("triage.move.useRule"), () =>
-        actions.onOverride(null),
+      keyed(
+        button(document, "joyfox-button", t("triage.move.useRule"), () =>
+          actions.onOverride(null),
+        ),
+        FOCUS.useRule,
       ),
     );
   root.append(controls);
@@ -344,6 +401,11 @@ export interface MemberBarInput {
    */
   openProfile?: { href: string; text: Message };
   actions: Partial<ExplanationActions> & { onOpenOptions?(): void };
+  /**
+   * An outcome is being logged: the Log buttons are marked unavailable
+   * (`aria-disabled`, so focus stays on them) until it is stored.
+   */
+  trustBusy?: boolean;
   drawerOpen: boolean;
   onToggle(open: boolean): void;
 }
@@ -382,11 +444,14 @@ export function memberBar(
       );
     if (input.openProfile) {
       const group = element(document, "span", "joyfox-bar__group");
-      const link = element(
-        document,
-        "a",
-        "joyfox-button joyfox-bar__profile",
-        t("bar.openProfile"),
+      const link = keyed(
+        element(
+          document,
+          "a",
+          "joyfox-button joyfox-bar__profile",
+          t("bar.openProfile"),
+        ),
+        FOCUS.openProfile,
       );
       link.href = input.openProfile.href;
       group.append(
@@ -399,11 +464,14 @@ export function memberBar(
     bar.append(element(document, "span", "joyfox-note", t(input.ruleOff)));
     if (actions.onOpenOptions)
       bar.append(
-        button(
-          document,
-          "joyfox-button",
-          t("common.openOptions"),
-          actions.onOpenOptions,
+        keyed(
+          button(
+            document,
+            "joyfox-button",
+            t("common.openOptions"),
+            actions.onOpenOptions,
+          ),
+          FOCUS.openOptions,
         ),
       );
   }
@@ -415,9 +483,22 @@ export function memberBar(
     const onTrust = actions.onTrust;
     // Short visible labels keep the bar on one line; each button's
     // accessible name stays complete.
-    const labelled = (text: string, name: string, onClick: () => void) => {
-      const node = button(document, "joyfox-button", text, onClick);
+    const labelled = (
+      text: string,
+      name: string,
+      key: TrustOutcomeKind | "undo",
+      onClick: () => void,
+    ) => {
+      const node = keyed(
+        button(document, "joyfox-button", text, onClick),
+        FOCUS.trust(key),
+      );
       node.setAttribute("aria-label", name);
+      return node;
+    };
+    const log = (text: string, name: string, kind: TrustOutcomeKind) => {
+      const node = labelled(text, name, kind, () => onTrust(kind));
+      if (input.trustBusy) node.setAttribute("aria-disabled", "true");
       return node;
     };
     const row = element(document, "span", "joyfox-bar__group");
@@ -425,19 +506,18 @@ export function memberBar(
     row.setAttribute("aria-label", t("trust.log.group"));
     row.append(
       element(document, "span", "joyfox-note", t("bar.log")),
-      labelled(t("bar.positive"), t("trust.log.positive"), () =>
-        onTrust("positive"),
-      ),
-      labelled(t("bar.neutral"), t("trust.log.neutral"), () =>
-        onTrust("neutral"),
-      ),
-      labelled(t("bar.negative"), t("trust.log.negative"), () =>
-        onTrust("negative"),
-      ),
+      log(t("bar.positive"), t("trust.log.positive"), "positive"),
+      log(t("bar.neutral"), t("trust.log.neutral"), "neutral"),
+      log(t("bar.negative"), t("trust.log.negative"), "negative"),
     );
     if (actions.onUndoTrust && trust && trust !== "unknown" && trust.logged > 0)
       row.append(
-        labelled(t("bar.undo"), t("trust.log.undo"), actions.onUndoTrust),
+        labelled(
+          t("bar.undo"),
+          t("trust.log.undo"),
+          "undo",
+          actions.onUndoTrust,
+        ),
       );
     bar.append(row);
   }
@@ -462,16 +542,19 @@ export function memberBar(
   }
   // Nothing to show: no toggle that would open an empty region.
   if (!drawer.hasChildNodes()) return [bar];
-  const toggle = button(
-    document,
-    "joyfox-button joyfox-bar__toggle",
-    t(result ? "bar.whyAndMove" : "bar.scoreDetails"),
-    () => {
-      const open = drawer.hidden;
-      drawer.hidden = !open;
-      toggle.setAttribute("aria-expanded", String(open));
-      input.onToggle(open);
-    },
+  const toggle = keyed(
+    button(
+      document,
+      "joyfox-button joyfox-bar__toggle",
+      t(result ? "bar.whyAndMove" : "bar.scoreDetails"),
+      () => {
+        const open = drawer.hidden;
+        drawer.hidden = !open;
+        toggle.setAttribute("aria-expanded", String(open));
+        input.onToggle(open);
+      },
+    ),
+    FOCUS.toggle,
   );
   toggle.setAttribute("aria-expanded", String(input.drawerOpen));
   toggle.setAttribute("aria-controls", drawer.id);

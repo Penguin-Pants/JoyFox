@@ -91,6 +91,10 @@ export function placeInStrip(
     strip = document.createElement("div");
     strip.className = "joyfox-strip";
     strip.setAttribute(UI_ATTRIBUTE, MEMBER_STRIP);
+    // The one JoyFox landmark on the page; its sections are groups inside
+    // it. A brand name: the same in every language.
+    strip.setAttribute("role", "region");
+    strip.setAttribute("aria-label", "JoyFox");
   }
   if (strip.previousElementSibling !== after) {
     // Moving a node blurs whatever is focused inside it, such as the note

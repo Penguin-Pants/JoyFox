@@ -42,7 +42,7 @@ export const en = {
   "common.close": "Close",
   "common.openOptions": "Open JoyFox options",
   "common.saveFailed":
-    "JoyFox could not save that change. Nothing was changed.",
+    "JoyFox could not save that change. Nothing was changed. Try again. If it keeps failing, reload the page.",
   "legacy.text": (p: { text: string }) => p.text,
 
   // Triage reasons (qualification engine, contact rule, triage service)
@@ -133,7 +133,7 @@ export const en = {
   "triage.headline.undecided":
     "JoyFox could not decide, because some information is unknown.",
   "triage.headline.doesNotMeet": (p: { placement: T }) =>
-    `This sender does not meet your contact rule, so it goes to ${p.placement}.`,
+    `This sender does not meet your contact rule, so JoyFox places them in ${p.placement}.`,
 
   // Trust score
   "trust.reason.positive": (p: { count: number }, f: Format) =>
@@ -223,7 +223,15 @@ export const en = {
     "Next: open the member's profile and check whether they are ignored. If not, ignore them there yourself.",
   "action.next.delete":
     "Next: open the conversation and check whether it is in the trash. If not, move it there yourself with JoyClub's trash button.",
+  "action.next.showList":
+    "Delete works only while the ClubMail list shows beside the conversation. Widen the window and try again.",
+  "action.self.ignore":
+    "You can do it yourself: open the member's profile and ignore them there.",
+  "action.self.delete":
+    "You can do it yourself: move the conversation to the trash with JoyClub's trash button.",
   "action.report.finished": "Ignore and Delete finished.",
+  "action.report.undo":
+    "To undo, restore the conversation from JoyClub's trash. Then open the member's profile and choose \"Profil nicht mehr ignorieren\" in its menu.",
   "action.report.running": "Ignore and Delete is running.",
   "action.report.stopped": "Ignore and Delete stopped.",
   "action.report.interrupted":
@@ -241,9 +249,12 @@ export const en = {
   "quick.region": "JoyFox Ignore and Delete",
   "quick.scope":
     "Experimental. One click moves this conversation to JoyClub's trash, then opens the member's profile and ignores them there. JoyFox stops at the first problem and tells you what was done. It never sends a message.",
+  "quick.needsList":
+    "Works only while the ClubMail list shows beside this conversation. Widen the window.",
   "quick.noProfile":
     "JoyFox cannot find this member's profile address, where Ignore is, so it did nothing.",
   "quick.resumed": "Ignore and Delete, continued from the conversation:",
+  "quick.waitingMenu": "Waiting for JoyClub's profile menu…",
   "quick.previous": "Your last Ignore and Delete for this member:",
   "quick.previousOther":
     "Your last Ignore and Delete for this member, in another conversation:",
@@ -258,9 +269,9 @@ export const en = {
   // Content script: triage explanation, member bar and trust controls
   "triage.outcome.met": "Met",
   "triage.outcome.not-met": "Not met",
-  "triage.outcome.needs-review": "Needs review",
+  "triage.outcome.needs-review": "Needs Review",
   "triage.conditions.summary": (p: { count: number }, f: Format) =>
-    `All conditions checked (${f.number(p.count)})`,
+    `All checked conditions (${f.number(p.count)})`,
   "triage.condition.line": (p: { outcome: T; condition: T }) =>
     `${p.outcome}: ${p.condition}. `,
   "triage.condition.lineNegated": (p: { outcome: T; condition: T }) =>
@@ -276,9 +287,10 @@ export const en = {
     `On the guest list of "${p.event}"${p.when ? ` (${p.when})` : ""}, which you marked Attended.`,
   "triage.sharedEvent.optOut": "Don't use the shared event for this sender",
   "triage.movedOn": (p: { date: string; placement: T }) =>
-    `You moved this sender on ${p.date}. Your rule alone would place it in ${p.placement}.`,
+    `You moved this sender on ${p.date}. Your rule alone would place them in ${p.placement}.`,
   "triage.move.group": "Move this sender",
   "triage.move.to": (p: { placement: T }) => `Move to ${p.placement}`,
+  "triage.move.keep": (p: { placement: T }) => `Keep in ${p.placement}`,
   "triage.move.useRule": "Use my rule again",
   "triage.profileFact.minimumPhotos": "photo count",
   "triage.profileFact.minimumProfileWords": "profile word count",
@@ -295,7 +307,7 @@ export const en = {
   "trust.details.summary": "How the score adds up",
   "trust.contribution": (p: { points: number; reason: T }, f: Format) =>
     `${p.points > 0 ? "+" : ""}${f.number(p.points)}: ${p.reason}`,
-  "trust.log.group": "Log an outcome with this member",
+  "trust.log.group": "Log how it went with this member",
   "trust.log.positive": "Log positive",
   "trust.log.neutral": "Log neutral",
   "trust.log.negative": "Log negative",
@@ -316,6 +328,8 @@ export const en = {
   "panel.ruleOff.rule-disabled":
     "Your contact rule is turned off, so JoyFox does not place this sender.",
   "panel.ruleOff.other": "JoyFox does not place this sender.",
+  "panel.ruleOff.no-account":
+    "No JoyFox account is active, so JoyFox shows nothing for this member.",
 
   // Content script: inbox triage
   "inbox.region": "JoyFox triage",
@@ -328,13 +342,17 @@ export const en = {
   "inbox.aboutText":
     "Inbox hides Quarantined rows from this view only. Nothing is deleted, and JoyFox changes nothing on JoyClub.",
   "inbox.checking": "Checking",
-  "inbox.badge": (p: { text: T }) => `JoyFox: ${p.text}. Show why.`,
-  "inbox.why": "Why this placement",
-  "inbox.whyNamed": (p: { name: string }) => `Why: ${p.name}`,
+  "inbox.badge": (p: { text: T }) => `JoyFox: ${p.text}. Why and move.`,
+  "inbox.why": "Why and move",
+  "inbox.whyNamed": (p: { name: string }) => `Why and move: ${p.name}`,
   "inbox.rowGone": "This row is no longer shown.",
   "inbox.unidentified":
     "JoyFox could not read this sender's profile number, so it could not check your rule. The row stays visible.",
   "inbox.stillChecking": "JoyFox is still checking this sender.",
+  "inbox.setup.no-account":
+    "JoyFox has no active account, so it does not sort this inbox.",
+  "inbox.setup.no-rule":
+    "No contact rule is saved, so JoyFox does not sort this inbox.",
 
   // Content script: notes and tags
   "notes.region": "JoyFox notes and tags",

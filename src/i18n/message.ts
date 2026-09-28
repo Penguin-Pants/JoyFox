@@ -112,6 +112,7 @@ export const MESSAGE_PARAMS: {
   "triage.placementLine": { placement: "message", source: "message" },
   "triage.movedOn": { date: "string", placement: "message" },
   "triage.move.to": { placement: "message" },
+  "triage.move.keep": { placement: "message" },
   "triage.unknownFacts.one": { fact: "message" },
   "triage.unknownFacts.two": { first: "message", second: "message" },
   "triage.unknownFacts.three": {

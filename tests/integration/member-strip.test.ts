@@ -41,6 +41,16 @@ describe("member strip", () => {
       expect(isPlaced(node, header)).toBe(true);
   });
 
+  it("is the page's one JoyFox region", () => {
+    const header = document.querySelector("#header")!;
+    placeInStrip(document, header, section("member-panel"));
+    placeInStrip(document, header, section("quick-action"));
+    const strips = document.querySelectorAll('[data-joyfox-ui="member-strip"]');
+    expect(strips).toHaveLength(1);
+    expect(strips[0]!.getAttribute("role")).toBe("region");
+    expect(strips[0]!.getAttribute("aria-label")).toBe("JoyFox");
+  });
+
   it("goes when its last section goes", () => {
     const header = document.querySelector("#header")!;
     const panel = section("member-panel");

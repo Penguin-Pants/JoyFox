@@ -202,6 +202,8 @@ export class SharedEvents {
       "joyfox-panel joyfox-shared-events",
     );
     section.setAttribute(UI_ATTRIBUTE, SHARED_EVENTS_SECTION);
+    // A group inside the strip's one "JoyFox" region, not a landmark.
+    section.setAttribute("role", "group");
     section.setAttribute("aria-label", t("sharedEvents.heading"));
     section.append(
       element(this.document, "strong", "", t("sharedEvents.heading")),

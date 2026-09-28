@@ -140,9 +140,11 @@ export const HANDOFF_WAIT_MS = STEP_TIMEOUT_MS;
 export const QUICK_ACTION_TEXT = {
   button: message("quick.button"),
   scope: message("quick.scope"),
+  needsList: message("quick.needsList"),
   handedOff: message("quick.progress.DeleteConfirmed"),
   noProfile: message("quick.noProfile"),
   resumed: message("quick.resumed"),
+  waitingMenu: message("quick.waitingMenu"),
   previous: message("quick.previous"),
   previousOther: message("quick.previousOther"),
   otherResult: message("quick.otherResult"),
@@ -171,9 +173,16 @@ interface Drawn {
   key: string;
   section: HTMLElement;
   button: HTMLButtonElement;
+  /** What the click does; the button's description. */
+  scope: HTMLElement;
+  /** Shown while the page cannot show Delete's result. */
+  hint: HTMLElement;
   status: HTMLElement;
   lines: string;
 }
+
+/** Makes each section's element IDs unique on the page. */
+let sectionIds = 0;
 
 /**
  * M9: the "Ignore and Delete" button and its notice on a conversation page
@@ -302,7 +311,8 @@ export class QuickIgnoreDelete {
     driver: QuickActionDriver,
   ): void {
     const key = `${answer.memberId}|${answer.conversationId}`;
-    this.#running = { key, progress: QUICK_ACTION_TEXT.resumed };
+    // Shown under the "continued" line, until the first step moves.
+    this.#running = { key, progress: PROGRESS_TEXT.Started! };
     this.#stop = undefined;
     this.#result = undefined;
     void runQuickIgnoreDelete({
@@ -356,14 +366,22 @@ export class QuickIgnoreDelete {
     }
   }
 
-  /** The profile page shows only a resumed run's progress and result. */
+  /**
+   * The profile page shows only a resumed run's progress and result, and
+   * while the run waits for JoyClub's profile menu, that it waits.
+   */
   #renderProfile(anchor: Element | undefined): void {
     this.#profileAnchor = anchor;
+    const resume = this.#resume;
+    const waiting =
+      resume?.answer.status === "ok" && !resume.started && !this.#running;
     const lines = this.#running
       ? [QUICK_ACTION_TEXT.resumed, this.#running.progress]
       : this.#result
         ? [QUICK_ACTION_TEXT.resumed, ...this.#result.lines]
-        : [];
+        : waiting
+          ? [QUICK_ACTION_TEXT.resumed, QUICK_ACTION_TEXT.waitingMenu]
+          : [];
     if (!anchor || lines.length === 0) {
       this.#removeProfileSection();
       return;
@@ -377,6 +395,8 @@ export class QuickIgnoreDelete {
       this.#removeProfileSection();
       const section = element(this.document, "section", "joyfox-panel");
       section.setAttribute(UI_ATTRIBUTE, QUICK_ACTION);
+      // A group inside the strip's one "JoyFox" region, not a landmark.
+      section.setAttribute("role", "group");
       section.setAttribute("aria-label", t("quick.region"));
       const status = element(
         this.document,
@@ -617,6 +637,24 @@ export class QuickIgnoreDelete {
     // `aria-disabled` rather than `disabled`, so keyboard focus stays on the
     // button; the click is ignored while busy.
     drawn.button.setAttribute("aria-disabled", String(this.#busy));
+    // Delete is checked in the ClubMail list beside the conversation. While
+    // the page does not show the member's row there, a line under the button
+    // says so; a click still stops safely before any change. Not while a run
+    // goes (its own Delete removes the row), nor once this conversation is
+    // in the trash.
+    const deleted =
+      latest.status === "ok" &&
+      latest.conversationId === shown.target.conversationId &&
+      latest.report.delete === "done";
+    const needsList =
+      !this.#busy && !deleted && !canVerifyDelete(this.driver());
+    if (drawn.hint.hidden === needsList) {
+      drawn.hint.hidden = !needsList;
+      drawn.button.setAttribute(
+        "aria-describedby",
+        needsList ? `${drawn.hint.id} ${drawn.scope.id}` : drawn.scope.id,
+      );
+    }
     // Updated in place, so the live region announces each change.
     const lines = this.#lines(
       shown,
@@ -660,6 +698,8 @@ export class QuickIgnoreDelete {
     const section = element(document, "section", "joyfox-panel");
     section.setAttribute(UI_ATTRIBUTE, QUICK_ACTION);
     section.setAttribute("data-member", shown.target.memberId);
+    // A group inside the strip's one "JoyFox" region, not a landmark.
+    section.setAttribute("role", "group");
     section.setAttribute("aria-label", t("quick.region"));
     const run = button(
       document,
@@ -669,15 +709,37 @@ export class QuickIgnoreDelete {
         if (!this.#busy) this.#run(shown, accountId);
       },
     );
+    const id = (sectionIds += 1);
+    const hint = element(
+      document,
+      "p",
+      "joyfox-note joyfox-quick-action__hint",
+      t(QUICK_ACTION_TEXT.needsList),
+    );
+    hint.id = `joyfox-quick-hint-${id}`;
+    hint.hidden = true;
+    const scope = element(
+      document,
+      "p",
+      "joyfox-note",
+      t(QUICK_ACTION_TEXT.scope),
+    );
+    scope.id = `joyfox-quick-scope-${id}`;
+    // The click is the confirmation, so the button carries what it does.
+    run.setAttribute("aria-describedby", scope.id);
     const status = element(document, "div", "joyfox-quick-action__status");
     status.setAttribute("role", "status");
     status.setAttribute("aria-live", "polite");
-    section.append(
-      run,
-      element(document, "p", "joyfox-note", t(QUICK_ACTION_TEXT.scope)),
+    section.append(run, hint, scope, status);
+    return {
+      key: shown.key,
+      section,
+      button: run,
+      scope,
+      hint,
       status,
-    );
-    return { key: shown.key, section, button: run, status, lines: "" };
+      lines: "",
+    };
   }
 
   #run(shown: Shown, accountId: string): void {
@@ -782,6 +844,19 @@ function safely(check: () => boolean): boolean {
     return check();
   } catch {
     return false;
+  }
+}
+
+/**
+ * Whether the page can show Delete's result, as the run checks it before
+ * Delete. A driver that cannot tell, or fails to, counts as able: the hint
+ * is only shown when the check says no.
+ */
+function canVerifyDelete(driver: QuickActionDriver | undefined): boolean {
+  try {
+    return driver?.canVerify?.("delete") ?? true;
+  } catch {
+    return true;
   }
 }
 

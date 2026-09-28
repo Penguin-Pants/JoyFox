@@ -11,6 +11,7 @@ import {
   VIEW_ATTRIBUTE,
 } from "../../src/content/inbox-triage";
 import { MemberPanel } from "../../src/content/member-panel";
+import { setLocale } from "../../src/i18n/translator";
 import {
   memberBar,
   unknownProfileFactsText,
@@ -150,6 +151,8 @@ beforeEach(async () => {
   );
   trust = new TrustService(undefined, undefined, settings);
   activeAccount = ACCOUNT;
+  // The chosen inbox view lasts for the tab (U48); each test starts fresh.
+  window.sessionStorage.clear();
   const style = document.createElement("style");
   style.textContent = contentCss;
   document.head.replaceChildren(style);
@@ -253,9 +256,12 @@ describe("M2 inbox triage", () => {
       rows()[1]?.querySelector('[data-joyfox-ui="badge"]') as HTMLElement
     ).click();
     const details = bar()!.querySelector(".joyfox-triage__details")!;
-    expect(details.textContent).toContain("Why: Synthetic Two");
+    expect(details.textContent).toContain("Why and move: Synthetic Two");
     expect(details.textContent).toContain(
       "You have not marked this member as personally known, which the rule requires.",
+    );
+    expect(details.textContent).toContain(
+      "This sender does not meet your contact rule, so JoyFox places them in Quarantined.",
     );
     buttonNamed(details, "Move to Qualified").click();
     await vi.waitFor(() =>
@@ -263,7 +269,7 @@ describe("M2 inbox triage", () => {
     );
     expect(details.textContent).toContain("your manual choice");
     expect(details.textContent).toContain(
-      "Your rule alone would place it in Quarantined.",
+      "Your rule alone would place them in Quarantined.",
     );
     buttonNamed(details, "Use my rule again").click();
     await vi.waitFor(() => expect(placements()[1]).toBe("quarantined"));
@@ -337,15 +343,8 @@ describe("M2 inbox triage", () => {
     ).toBe(true);
   });
 
-  it.each([
-    ["no account", () => (activeAccount = undefined)],
-    ["no rule", () => undefined],
-    [
-      "a disabled rule",
-      () => rules.saveGlobalRule(ACCOUNT, knownRule({ enabled: false })),
-    ],
-  ])("changes nothing with %s", async (_label, arrange) => {
-    await arrange();
+  it("changes nothing with a disabled rule", async () => {
+    await rules.saveGlobalRule(ACCOUNT, knownRule({ enabled: false }));
     setPage("/clubmail/", inboxHtml);
     const original = document.body.innerHTML;
     const client = serviceClient();
@@ -357,6 +356,109 @@ describe("M2 inbox triage", () => {
     expect(document.body.innerHTML).toBe(original);
     // Off is remembered until something changes: no request per mutation.
     expect(client.evaluations).toBe(1);
+  });
+
+  it.each([
+    [
+      "no account",
+      () => (activeAccount = undefined),
+      "JoyFox has no active account, so it does not sort this inbox.",
+    ],
+    [
+      "no rule",
+      () => undefined,
+      "No contact rule is saved, so JoyFox does not sort this inbox.",
+    ],
+  ])(
+    "says so in one line with %s, and labels or hides no row",
+    async (_label, arrange, text) => {
+      arrange();
+      setPage("/clubmail/", inboxHtml);
+      const original = document.body.innerHTML;
+      const client = serviceClient();
+      let opened = 0;
+      client.openOptions = () => {
+        opened += 1;
+        return Promise.resolve();
+      };
+      const inbox = new InboxTriage(document, client);
+      inbox.update();
+      const setup = () =>
+        document.querySelector<HTMLElement>('[data-joyfox-ui="triage-setup"]');
+      await vi.waitFor(() => expect(setup()).not.toBeNull());
+      // Where the tab bar goes, as a region like it; no tab bar, no badge.
+      expect(setup()!.nextElementSibling).toBe(list());
+      expect(setup()!.getAttribute("role")).toBe("region");
+      expect(setup()!.getAttribute("aria-label")).toBe("JoyFox triage");
+      expect(setup()!.textContent).toBe(`${text}Open JoyFox options`);
+      expect(bar()).toBeNull();
+      expect(document.querySelector('[data-joyfox-ui="badge"]')).toBeNull();
+      expect(list().hasAttribute(VIEW_ATTRIBUTE)).toBe(false);
+      expect(placements()).toEqual([null, null, null]);
+      buttonNamed(setup()!, "Open JoyFox options").click();
+      expect(opened).toBe(1);
+      // Settled: no rewrite and no request per mutation.
+      const observer = new MutationObserver(() => undefined);
+      observer.observe(document.body, {
+        subtree: true,
+        childList: true,
+        attributes: true,
+        characterData: true,
+      });
+      inbox.update();
+      inbox.update();
+      expect(observer.takeRecords()).toEqual([]);
+      observer.disconnect();
+      expect(client.evaluations).toBe(1);
+      // Only the line was added: without it the list is as JoyClub drew it.
+      setup()!.remove();
+      expect(document.body.innerHTML).toBe(original);
+    },
+  );
+
+  it("replaces the setup line with the tab bar once a rule is saved", async () => {
+    setPage("/clubmail/", inboxHtml);
+    const inbox = new InboxTriage(document, serviceClient());
+    inbox.update();
+    const setup = () =>
+      document.querySelector('[data-joyfox-ui="triage-setup"]');
+    await vi.waitFor(() => expect(setup()).not.toBeNull());
+    // Saving a rule bumps the triage revision, which invalidates the inbox.
+    await rules.saveGlobalRule(ACCOUNT, knownRule());
+    inbox.invalidate();
+    await vi.waitFor(() => expect(bar()).not.toBeNull());
+    expect(setup()).toBeNull();
+    expect(placements()).toEqual(["qualified", "quarantined", "needs-review"]);
+    // Turned off again: silent, as before (ADR 0006).
+    await rules.saveGlobalRule(ACCOUNT, knownRule({ enabled: false }));
+    inbox.invalidate();
+    await vi.waitFor(() => expect(bar()).toBeNull());
+    expect(setup()).toBeNull();
+  });
+
+  it("redraws the setup line in the new language, keeping focus on its button", async () => {
+    setPage("/clubmail/", inboxHtml);
+    const inbox = new InboxTriage(document, serviceClient());
+    inbox.update();
+    const setup = () =>
+      document.querySelector<HTMLElement>('[data-joyfox-ui="triage-setup"]');
+    await vi.waitFor(() => expect(setup()).not.toBeNull());
+    buttonNamed(setup()!, "Open JoyFox options").focus();
+    setLocale("de");
+    try {
+      inbox.localeChanged();
+      expect(
+        document.querySelectorAll('[data-joyfox-ui="triage-setup"]'),
+      ).toHaveLength(1);
+      expect(setup()!.textContent).toContain(
+        "Es ist keine Kontaktregel gespeichert",
+      );
+      expect(document.activeElement?.textContent).toBe(
+        "JoyFox-Einstellungen öffnen",
+      );
+    } finally {
+      setLocale("en");
+    }
   });
 
   it("shows the tab bar for an enabled rule on an empty inbox", async () => {
@@ -395,8 +497,12 @@ describe("M2 inbox triage", () => {
     inbox.accountChanged();
     expect(document.body.innerHTML).toBe(original);
     release();
-    // Account B has no rule, so nothing comes back.
-    await new Promise((resolve) => setTimeout(resolve, 20));
+    // Account B has no rule: only the line that says so comes back, and no
+    // row is labelled or hidden.
+    const setup = () =>
+      document.querySelector('[data-joyfox-ui="triage-setup"]');
+    await vi.waitFor(() => expect(setup()).not.toBeNull());
+    setup()!.remove();
     expect(document.body.innerHTML).toBe(original);
   });
 
@@ -485,6 +591,122 @@ describe("M2 inbox triage", () => {
     inbox.invalidate();
     await vi.waitFor(() => expect(bar()).toBeNull());
     expect(placements()).toEqual([null, null, null]);
+  });
+
+  const badgeOf = (index: number) =>
+    rows()[index]!.querySelector<HTMLButtonElement>(
+      '[data-joyfox-ui="badge"]',
+    )!;
+  const details = () =>
+    bar()!.querySelector<HTMLElement>(".joyfox-triage__details")!;
+
+  it("names the badge's action and the panel as the member bar does", async () => {
+    await rules.saveGlobalRule(ACCOUNT, knownRule());
+    setPage("/clubmail/", inboxHtml);
+    new InboxTriage(document, serviceClient()).update();
+    await vi.waitFor(() => expect(bar()).not.toBeNull());
+    expect(badgeOf(0).getAttribute("aria-label")).toBe(
+      "JoyFox: Qualified. Why and move.",
+    );
+    badgeOf(0).click();
+    expect(details().querySelector("h2")?.textContent).toBe(
+      "Why and move: Synthetic One",
+    );
+  });
+
+  it("offers to keep the sender where the rule placed them, as a choice of their own", async () => {
+    await rules.saveGlobalRule(ACCOUNT, knownRule());
+    setPage("/clubmail/", inboxHtml);
+    new InboxTriage(document, serviceClient()).update();
+    await vi.waitFor(() => expect(bar()).not.toBeNull());
+    badgeOf(1).click();
+    // The rule placed this sender in Quarantined: the button keeps them.
+    const keep = buttonNamed(details(), "Keep in Quarantined");
+    expect(keep.disabled).toBe(false);
+    expect(details().textContent).not.toContain("Move to Quarantined");
+    keep.click();
+    await vi.waitFor(() =>
+      expect(details().textContent).toContain("your manual choice"),
+    );
+    expect(placements()[1]).toBe("quarantined");
+    // Now a manual choice: the same place reads as a move, and is disabled.
+    expect(buttonNamed(details(), "Move to Quarantined").disabled).toBe(true);
+    expect(buttonNamed(details(), "Use my rule again")).toBeDefined();
+  });
+
+  it("keeps the chosen view for the tab across a reload", async () => {
+    await rules.saveGlobalRule(ACCOUNT, knownRule());
+    setPage("/clubmail/", inboxHtml);
+    const first = new InboxTriage(document, serviceClient());
+    first.update();
+    await vi.waitFor(() => expect(bar()).not.toBeNull());
+    buttonNamed(bar()!, "Quarantined").click();
+    first.leave();
+    // The page reloads in the same tab: a new content script starts.
+    setPage("/clubmail/", inboxHtml);
+    const again = new InboxTriage(document, serviceClient());
+    expect(again.view).toBe("quarantined");
+    again.update();
+    await vi.waitFor(() =>
+      expect(list().getAttribute(VIEW_ATTRIBUTE)).toBe("quarantined"),
+    );
+    expect(
+      buttonNamed(bar()!, "Quarantined").getAttribute("aria-pressed"),
+    ).toBe("true");
+    again.leave();
+  });
+
+  it("falls back to the default view when the stored one is unusable", () => {
+    window.sessionStorage.setItem("joyfox.inboxView", "everything");
+    expect(new InboxTriage(document, serviceClient()).view).toBe("default");
+    // Storage blocked for the page: reading and writing never throw.
+    const blocked = vi
+      .spyOn(window, "sessionStorage", "get")
+      .mockImplementation(() => {
+        throw new Error("SecurityError");
+      });
+    try {
+      const inbox = new InboxTriage(document, serviceClient());
+      expect(inbox.view).toBe("default");
+      inbox.setView("qualified");
+      expect(inbox.view).toBe("qualified");
+    } finally {
+      blocked.mockRestore();
+    }
+  });
+
+  it("keeps focus in the Why panel after a move, and gives it back to the row on Close", async () => {
+    await rules.saveGlobalRule(ACCOUNT, knownRule());
+    setPage("/clubmail/", inboxHtml);
+    new InboxTriage(document, serviceClient()).update();
+    await vi.waitFor(() => expect(bar()).not.toBeNull());
+    badgeOf(1).click();
+    const move = buttonNamed(details(), "Move to Qualified");
+    move.focus();
+    move.click();
+    await vi.waitFor(() => expect(placements()[1]).toBe("qualified"));
+    await vi.waitFor(() =>
+      expect(document.activeElement?.textContent).toBe("Use my rule again"),
+    );
+    expect(details().contains(document.activeElement)).toBe(true);
+    buttonNamed(details(), "Close").click();
+    expect(details().hidden).toBe(true);
+    // Back on the badge of the row the panel was about.
+    expect(document.activeElement).toBe(badgeOf(1));
+  });
+
+  it("gives focus to the current view on Close when the view hides the row", async () => {
+    await rules.saveGlobalRule(ACCOUNT, knownRule());
+    setPage("/clubmail/", inboxHtml);
+    new InboxTriage(document, serviceClient()).update();
+    await vi.waitFor(() => expect(bar()).not.toBeNull());
+    buttonNamed(bar()!, "Show all").click();
+    badgeOf(1).click();
+    // The default view hides the Quarantined row the panel is about.
+    buttonNamed(bar()!, "Inbox").click();
+    buttonNamed(details(), "Close").click();
+    expect(document.activeElement).toBe(buttonNamed(bar()!, "Inbox"));
+    expect(document.activeElement?.getAttribute("aria-pressed")).toBe("true");
   });
 });
 
@@ -1029,5 +1251,201 @@ describe("conversation and profile panel", () => {
     await vi.waitFor(() => expect(panel()).not.toBeNull());
     member.leave();
     expect(panel()).toBeNull();
+  });
+
+  it("is a group inside the strip's one JoyFox region", async () => {
+    await rules.saveGlobalRule(ACCOUNT, knownRule());
+    setPage(CONVERSATION, conversationHtml);
+    new MemberPanel(document, serviceClient()).update("conversation");
+    await vi.waitFor(() => expect(panel()).not.toBeNull());
+    expect(panel()!.getAttribute("role")).toBe("group");
+    expect(panel()!.getAttribute("aria-label")).toBe("JoyFox");
+    expect(panel()!.parentElement?.getAttribute("role")).toBe("region");
+  });
+
+  it("says no account is active, with the way to the options", async () => {
+    activeAccount = undefined;
+    setPage(CONVERSATION, conversationHtml);
+    const client = serviceClient();
+    let opened = 0;
+    client.openOptions = () => {
+      opened += 1;
+      return Promise.resolve();
+    };
+    new MemberPanel(document, client).update("conversation");
+    await vi.waitFor(() => expect(panel()).not.toBeNull());
+    const bar = panel()!.querySelector(".joyfox-bar")!;
+    expect(bar.textContent).toBe(
+      "JoyFoxNo JoyFox account is active, so JoyFox shows nothing for this member.Open JoyFox options",
+    );
+    // Nothing to log or show without an account.
+    expect(panel()!.querySelector("[aria-expanded]")).toBeNull();
+    buttonNamed(bar, "Open JoyFox options").click();
+    expect(opened).toBe(1);
+  });
+
+  it("shows no placement or trust on the viewer's own profile, and still reads it", async () => {
+    await rules.saveGlobalRule(ACCOUNT, knownRule());
+    setPage(
+      "/profile/1234567.synthetic_one.html",
+      `${profileHtml}<h2 class="profile-headline">Account</h2>`,
+    );
+    const captured: Array<object | undefined> = [];
+    const member = new MemberPanel(document, {
+      ...serviceClient(),
+      captureSnapshot: (_accountId, _memberId, _observed, extras) => {
+        captured.push(extras);
+        return Promise.resolve();
+      },
+    });
+    member.update("profile");
+    // Still read for compatibility, marked as the viewer's own.
+    await vi.waitFor(() =>
+      expect(captured).toEqual([expect.objectContaining({ ownProfile: true })]),
+    );
+    member.update("profile");
+    expect(panel()).toBeNull();
+    expect(
+      document.querySelector('[data-joyfox-ui="member-strip"]'),
+    ).toBeNull();
+  });
+
+  it("logs one outcome for a double click, and keeps focus on the button", async () => {
+    await rules.saveGlobalRule(ACCOUNT, knownRule());
+    setPage(CONVERSATION, conversationHtml);
+    const client = serviceClient();
+    let releaseLog: () => void = () => undefined;
+    const member = new MemberPanel(document, {
+      ...client,
+      logTrust: async (accountId, memberId, kind) => {
+        await new Promise<void>((resolve) => (releaseLog = resolve));
+        await client.logTrust(accountId, memberId, kind as "positive");
+      },
+    });
+    member.update("conversation");
+    await vi.waitFor(() => expect(panel()).not.toBeNull());
+    const logButtons = () =>
+      ["Log positive", "Log neutral", "Log negative"].map((name) =>
+        buttonNamed(panel()!, name),
+      );
+    expect(
+      logButtons().map((node) => node.getAttribute("aria-disabled")),
+    ).toEqual([null, null, null]);
+    const positive = buttonNamed(panel()!, "Log positive");
+    positive.focus();
+    positive.click();
+    // While it is stored, the Log buttons say they wait; focus stays.
+    expect(
+      logButtons().map((node) => node.getAttribute("aria-disabled")),
+    ).toEqual(["true", "true", "true"]);
+    expect(document.activeElement).toBe(buttonNamed(panel()!, "Log positive"));
+    buttonNamed(panel()!, "Log positive").click();
+    buttonNamed(panel()!, "Log neutral").click();
+    await new Promise((resolve) => setTimeout(resolve, 10));
+    releaseLog();
+    await vi.waitFor(() =>
+      expect(panel()?.textContent).toContain("Local trust score: 2."),
+    );
+    await new Promise((resolve) => setTimeout(resolve, 30));
+    expect(
+      (await repositories.trustSignals.list(ACCOUNT)).map(
+        (signal) => signal.kind,
+      ),
+    ).toEqual(["positive"]);
+    expect(
+      logButtons().map((node) => node.getAttribute("aria-disabled")),
+    ).toEqual([null, null, null]);
+    expect(document.activeElement).toBe(buttonNamed(panel()!, "Log positive"));
+  });
+
+  it("keeps keyboard focus on the control a redraw rebuilds, or the nearest one", async () => {
+    await rules.saveGlobalRule(ACCOUNT, knownRule());
+    setPage(CONVERSATION, conversationHtml);
+    new MemberPanel(document, serviceClient()).update("conversation");
+    await vi.waitFor(() => expect(panel()).not.toBeNull());
+    const press = (name: string) => {
+      const node = buttonNamed(panel()!, name);
+      node.focus();
+      node.click();
+    };
+    const focused = () =>
+      document.activeElement?.getAttribute("aria-label") ??
+      document.activeElement?.textContent;
+    press("Log positive");
+    await vi.waitFor(() =>
+      expect(panel()?.textContent).toContain("Local trust score: 2."),
+    );
+    expect(panel()!.contains(document.activeElement)).toBe(true);
+    expect(focused()).toBe("Log positive");
+    press("Undo last outcome");
+    await vi.waitFor(() =>
+      expect(panel()?.textContent).toContain("Local trust score: 1."),
+    );
+    // Undo is gone with nothing left to undo: the first Log button.
+    expect(focused()).toBe("Log positive");
+    press("Why and move");
+    expect(focused()).toBe("Why and move");
+    press("Move to Needs Review");
+    await vi.waitFor(() =>
+      expect(panel()?.textContent).toContain("Placement: Needs Review"),
+    );
+    // The chosen place is now disabled: the next control in the group.
+    expect(focused()).toBe("Use my rule again");
+    press("Use my rule again");
+    await vi.waitFor(() =>
+      expect(panel()?.textContent).toContain("Placement: Qualified"),
+    );
+    expect(focused()).toBe("Keep in Qualified");
+    expect(panel()!.querySelector<HTMLElement>(".joyfox-drawer")!.hidden).toBe(
+      false,
+    );
+  });
+
+  it("shows a failed save only on the member it failed for", async () => {
+    await rules.saveGlobalRule(ACCOUNT, knownRule());
+    setPage(CONVERSATION, conversationHtml);
+    const member = new MemberPanel(document, {
+      ...serviceClient(),
+      setOverride: () => Promise.reject(new Error("synthetic failure")),
+    });
+    member.update("conversation");
+    await vi.waitFor(() => expect(panel()).not.toBeNull());
+    buttonNamed(panel()!, "Why and move").click();
+    buttonNamed(panel()!, "Move to Needs Review").click();
+    const error = () => panel()?.querySelector(".joyfox-error")?.textContent;
+    await vi.waitFor(() =>
+      expect(error()).toBe(
+        "JoyFox could not save that change. Nothing was changed. Try again. If it keeps failing, reload the page.",
+      ),
+    );
+    // A client-side route to another member: not their failure.
+    window.history.replaceState(
+      null,
+      "",
+      "/clubmail/conversation/conversation-wrapper-personal-5550001-7654321",
+    );
+    document
+      .querySelector(".cm-conversation-header")!
+      .setAttribute("href", "/profile/5550001.synthetic_four.html");
+    member.update("conversation");
+    await vi.waitFor(() =>
+      expect(panel()?.getAttribute("data-member")).toBe("5550001"),
+    );
+    expect(error()).toBeUndefined();
+    // Back on the first member after leaving the page: gone too.
+    member.leave();
+    setPage(CONVERSATION, conversationHtml);
+    member.update("conversation");
+    await vi.waitFor(() =>
+      expect(panel()?.getAttribute("data-member")).toBe(KNOWN),
+    );
+    expect(error()).toBeUndefined();
+    // And after an account switch.
+    buttonNamed(panel()!, "Why and move").click();
+    buttonNamed(panel()!, "Move to Needs Review").click();
+    await vi.waitFor(() => expect(error()).toBeDefined());
+    member.accountChanged();
+    await vi.waitFor(() => expect(panel()).not.toBeNull());
+    expect(error()).toBeUndefined();
   });
 });
