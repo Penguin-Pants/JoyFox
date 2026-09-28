@@ -549,7 +549,7 @@ stay as they are.
 | Key | English | Deutsch |
 | --- | --- | --- |
 | `options.title` | JoyFox options | JoyFox-Einstellungen |
-| `options.intro` | JoyFox stores everything locally in this browser profile. Inbox triage stays off until you save a contact rule. | JoyFox speichert alles lokal in diesem Browserprofil. Die Sortierung des Posteingangs bleibt aus, bis du eine Kontaktregel speicherst. |
+| `options.intro` | JoyFox stores everything locally in this browser profile. Inbox sorting stays off until you save a contact rule. | JoyFox speichert alles lokal in diesem Browserprofil. Die Sortierung des Posteingangs bleibt aus, bis du eine Kontaktregel speicherst. |
 | `options.tabs.start` | Get started | Erste Schritte |
 | `options.tabs.accounts` | Accounts | Konten |
 | `options.tabs.rule` | Contact rule | Kontaktregel |
@@ -567,11 +567,24 @@ stay as they are.
 | `start.state.done` | Done | Erledigt |
 | `start.state.off` | Saved, but turned off | Gespeichert, aber ausgeschaltet |
 | `start.state.todo` | Not done yet | Noch nicht erledigt |
+| `start.state.doneOpen` | Done: no conditions, so every sender qualifies | Erledigt: keine Bedingungen, deshalb ist jede Person qualifiziert |
 | `start.ready` | JoyFox is set up. Open your JoyClub inbox to see it sorted. | JoyFox ist eingerichtet. Öffne deinen JoyClub-Posteingang, um ihn sortiert zu sehen. |
 | `start.intro` | Three steps, a few minutes. Everything stays in this browser. | Drei Schritte, ein paar Minuten. Alles bleibt in diesem Browser. |
+| `start.introAccess` | Four steps, a few minutes. Everything stays in this browser. | Vier Schritte, ein paar Minuten. Alles bleibt in diesem Browser. |
+| `start.readFailed` | JoyFox could not read its setup. Reload the page to try again. | JoyFox konnte seine Einrichtung nicht lesen. Lade die Seite neu, um es noch einmal zu versuchen. |
+| `start.step.access` | Allow JoyFox to access joyclub.de. Access is off now, so JoyFox cannot work on JoyClub. | Erlaube JoyFox den Zugriff auf joyclub.de. Der Zugriff ist gerade aus, deshalb kann JoyFox auf JoyClub nicht arbeiten. |
 | `start.step.account` | Add your JoyClub account under [Accounts](#accounts). JoyFox makes the first one active. | Füge dein JoyClub-Konto unter [Konten](#accounts) hinzu. JoyFox macht das erste Konto aktiv. |
-| `start.step.rule` | Save a contact rule under [Contact rule](#rule). Inbox triage stays off until a rule is saved and turned on. | Speichere eine Kontaktregel unter [Kontaktregel](#rule). Die Sortierung des Posteingangs bleibt aus, bis eine Regel gespeichert und eingeschaltet ist. |
+| `start.step.chooseAccount` | Choose the active account under [Accounts](#accounts). | Wähle das aktive Konto unter [Konten](#accounts) aus. |
+| `start.step.rule` | Save a contact rule under [Contact rule](#rule). Inbox sorting stays off until a rule is saved and turned on. | Speichere eine Kontaktregel unter [Kontaktregel](#rule). Die Sortierung des Posteingangs bleibt aus, bis eine Regel gespeichert und eingeschaltet ist. |
 | `start.step.inbox` | Open your JoyClub inbox (www.joyclub.de, ClubMail). JoyFox adds its tabs above the list. | Öffne deinen JoyClub-Posteingang (www.joyclub.de, ClubMail). JoyFox zeigt seine Tabs über der Liste. |
+
+## access
+
+| Key | English | Deutsch |
+| --- | --- | --- |
+| `access.allow` | Allow access to joyclub.de | Zugriff auf joyclub.de erlauben |
+| `access.granted` | Access to joyclub.de is on. JoyFox can now work on JoyClub. | Der Zugriff auf joyclub.de ist an. JoyFox kann jetzt auf JoyClub arbeiten. |
+| `access.refused` | Access to joyclub.de is still off. JoyFox cannot work on JoyClub until you allow access here or in about:addons. | Der Zugriff auf joyclub.de ist weiterhin aus. JoyFox kann auf JoyClub erst arbeiten, wenn du den Zugriff hier oder unter about:addons erlaubst. |
 
 ## accounts
 
@@ -616,7 +629,7 @@ stay as they are.
 
 | Key | English | Deutsch |
 | --- | --- | --- |
-| `rule.readFailed` | JoyFox could not read the contact rule. No rule was changed. | JoyFox konnte die Kontaktregel nicht lesen. Es wurde keine Regel geändert. |
+| `rule.readFailed` | JoyFox could not read the contact rule. No rule was changed. Reload the page to try again. | JoyFox konnte die Kontaktregel nicht lesen. Es wurde keine Regel geändert. Lade die Seite neu, um es noch einmal zu versuchen. |
 | `rule.hint` | The rule only changes how JoyFox groups your own inbox into Qualified, Needs Review and Quarantined. It never stops a message, never deletes anything, and the sender sees nothing. | Die Regel ändert nur, wie JoyFox deinen eigenen Posteingang in „Qualifiziert“, „Zu prüfen“ und „Quarantäne“ gruppiert. Sie hält keine Nachricht auf, löscht nichts, und die sendende Person sieht nichts davon. |
 | `rule.noAccount` | Select or add an account first. Each account has its own rule. | Wähle zuerst ein Konto aus oder füge eines hinzu. Jedes Konto hat seine eigene Regel. |
 | `rule.newer` | This rule was made in a newer version of JoyFox and cannot be edited here. Delete it to start a new one. | Diese Regel wurde mit einer neueren JoyFox-Version erstellt und kann hier nicht bearbeitet werden. Lösche sie, um eine neue anzulegen. |
@@ -663,12 +676,19 @@ stay as they are.
 | `rule.textPlaceholder` | Word, phrase or emoji | Wort, Formulierung oder Emoji |
 | `rule.textLabel` | {condition}: word, phrase or emoji | {condition}: Wort, Formulierung oder Emoji |
 | `rule.textProblem` | Enter a word, phrase or emoji of up to {maximum} characters for "{condition}". | Gib für „{condition}“ ein Wort, eine Formulierung oder ein Emoji mit höchstens {maximum} Zeichen ein. |
-| `rule.combine.label` | How the rules combine | Wie die Regeln verknüpft werden |
+| `rule.fieldNumberProblem` | Enter a whole number from {minimum} to {maximum}. | Gib eine ganze Zahl von {minimum} bis {maximum} ein. |
+| `rule.fieldTextProblem` | Enter a word, phrase or emoji of up to {maximum} characters. | Gib ein Wort, eine Formulierung oder ein Emoji mit höchstens {maximum} Zeichen ein. |
+| `rule.textHint` | Type a word, phrase or emoji to use this condition. | Gib ein Wort, eine Formulierung oder ein Emoji ein, um diese Bedingung zu verwenden. |
+| `rule.spamNote` | (not checked yet: always unknown) | (noch nicht geprüft: immer unbekannt) |
+| `rule.combine.label` | How the groups combine | Wie die Gruppen verknüpft werden |
 | `rule.combine.prefix` | A sender is qualified if | Eine Person ist qualifiziert bei |
-| `rule.combine.suffix` | of these rules match. | dieser Regeln. |
-| `rule.advancedHint` | Each rule is met when ALL or ANY of its conditions are met, as you choose. Tick "not" to turn a condition around: "not Minimum photos 3" means fewer than 3 photos. A rule without conditions is not saved. | Jede Regel ist erfüllt bei ALLEN oder MINDESTENS EINER ihrer Bedingungen, wie du es wählst. Setze ein Häkchen bei „nicht“, um eine Bedingung umzukehren: „nicht Mindestanzahl Fotos 3“ bedeutet weniger als 3 Fotos. Eine Regel ohne Bedingungen wird nicht gespeichert. |
-| `rule.addRule` | + Add rule | + Regel hinzufügen |
-| `rule.removeRule` | Remove rule | Regel entfernen |
+| `rule.combine.suffix` | of these groups match. | dieser Gruppen. |
+| `rule.advancedHint` | Each group is met when ALL or ANY of its conditions are met, as you choose. Tick "not" to turn a condition around: "not Minimum photos 3" means fewer than 3 photos. A group without conditions is not saved. | Jede Gruppe ist erfüllt bei ALLEN oder MINDESTENS EINER ihrer Bedingungen, wie du es wählst. Setze ein Häkchen bei „nicht“, um eine Bedingung umzukehren: „nicht Mindestanzahl Fotos 3“ bedeutet weniger als 3 Fotos. Eine Gruppe ohne Bedingungen wird nicht gespeichert. |
+| `rule.addRule` | + Add group | + Gruppe hinzufügen |
+| `rule.removeRule` | Remove group | Gruppe entfernen |
+| `rule.confirmRemoveGroup` | Confirm removal | Entfernen bestätigen |
+| `rule.confirmRemoveGroupLabel` | Confirm removal of group {number} | Entfernen von Gruppe {number} bestätigen |
+| `rule.removeGroupPrompt` | Click again to remove group {number} and its conditions. | Klicke noch einmal, um Gruppe {number} und ihre Bedingungen zu entfernen. |
 | `rule.ruleSuffix` | of these are met | dieser Bedingungen |
 | `rule.noConditions` | No conditions yet. Add one below. | Noch keine Bedingungen. Füge unten eine hinzu. |
 | `rule.removeCondition` | Remove condition | Bedingung entfernen |
@@ -678,28 +698,30 @@ stay as they are.
 | `rule.notLabel` | not: turn "{condition}" around | nicht: „{condition}“ umkehren |
 | `rule.joiner.all` | AND | UND |
 | `rule.joiner.any` | OR | ODER |
-| `rule.ruleTitle` | Rule {number}: met if | Regel {number}: erfüllt bei |
-| `rule.ruleMatchLabel` | How rule {number} combines its conditions | Wie Regel {number} ihre Bedingungen verknüpft |
-| `rule.removeRuleLabel` | Remove rule {number} | Regel {number} entfernen |
-| `rule.addConditionLabel` | Add a condition to rule {number} | Bedingung zu Regel {number} hinzufügen |
+| `rule.ruleTitle` | Group {number}: met if | Gruppe {number}: erfüllt bei |
+| `rule.ruleMatchLabel` | How group {number} combines its conditions | Wie Gruppe {number} ihre Bedingungen verknüpft |
+| `rule.removeRuleLabel` | Remove group {number} | Gruppe {number} entfernen |
+| `rule.addConditionLabel` | Add a condition to group {number} | Bedingung zu Gruppe {number} hinzufügen |
 | `rule.addCondition` | + Add condition… | + Bedingung hinzufügen … |
-| `rule.ruleCount` | {count} of {maximum} rules | {count} von {maximum} Regeln |
-| `rule.simpleUnavailable.all` | Simple view is not available: the rules combine with ALL. | Die einfache Ansicht ist nicht verfügbar: Die Regeln sind mit ALLEN verknüpft. |
+| `rule.ruleCount` | {count} of {maximum} groups | {count} von {maximum} Gruppen |
+| `rule.simpleUnavailable.all` | Simple view is not available: the groups combine with ALL. | Die einfache Ansicht ist nicht verfügbar: Die Gruppen sind mit ALLEN verknüpft. |
 | `rule.simpleUnavailable.not` | Simple view is not available: the rule uses "not". | Die einfache Ansicht ist nicht verfügbar: Die Regel verwendet „nicht“. |
-| `rule.simpleUnavailable.severalAll` | Simple view is not available: more than one rule needs ALL of several conditions. | Die einfache Ansicht ist nicht verfügbar: Mehr als eine Regel verlangt ALLE von mehreren Bedingungen. |
-| `rule.simpleUnavailable.duplicate` | Simple view is not available: a condition appears in more than one rule. | Die einfache Ansicht ist nicht verfügbar: Eine Bedingung steht in mehr als einer Regel. |
+| `rule.simpleUnavailable.severalAll` | Simple view is not available: more than one group needs ALL of several conditions. | Die einfache Ansicht ist nicht verfügbar: Mehr als eine Gruppe verlangt ALLE von mehreren Bedingungen. |
+| `rule.simpleUnavailable.duplicate` | Simple view is not available: a condition appears in more than one group. | Die einfache Ansicht ist nicht verfügbar: Eine Bedingung steht in mehr als einer Gruppe. |
 | `rule.savedNoConditions` | Rule saved. It has no conditions yet, so every sender qualifies. | Regel gespeichert. Sie hat noch keine Bedingungen, deshalb ist jede Person qualifiziert. |
 | `rule.savedVacuous` | Rule saved. With nothing in the ALL box, every sender qualifies, so the ANY box has no effect. | Regel gespeichert. Ohne Einträge im ALLE-Kasten ist jede Person qualifiziert, deshalb wirkt der MINDESTENS-EINE-Kasten nicht. |
 | `rule.saved` | Rule saved. Open JoyClub tabs update at once. | Regel gespeichert. Offene JoyClub-Tabs werden sofort aktualisiert. |
 | `rule.notSaved` | {problem} The rule was not saved. | {problem} Die Regel wurde nicht gespeichert. |
-| `rule.saveFailed` | JoyFox could not save the rule. Nothing was changed. | JoyFox konnte die Regel nicht speichern. Es wurde nichts geändert. |
+| `rule.saveFailed` | JoyFox could not save the rule. Nothing was changed. Change the field again, or reload the page to see the saved rule. | JoyFox konnte die Regel nicht speichern. Es wurde nichts geändert. Ändere das Feld noch einmal, oder lade die Seite neu, um die gespeicherte Regel zu sehen. |
 | `rule.deleteAll` | Delete whole contact rule | Ganze Kontaktregel löschen |
-| `rule.removed` | Rule removed. JoyFox no longer sorts the inbox for this account. | Regel entfernt. JoyFox sortiert den Posteingang für dieses Konto nicht mehr. |
-| `rule.removeFailed` | JoyFox could not remove the rule. Nothing was changed. | JoyFox konnte die Regel nicht entfernen. Es wurde nichts geändert. |
+| `rule.confirmDeleteAll` | Confirm delete | Löschen bestätigen |
+| `rule.deletePrompt` | Click again to delete the whole contact rule. JoyFox then stops sorting the inbox for this account. | Klicke noch einmal, um die ganze Kontaktregel zu löschen. JoyFox sortiert den Posteingang für dieses Konto dann nicht mehr. |
+| `rule.removed` | Contact rule deleted. JoyFox no longer sorts the inbox for this account. | Kontaktregel gelöscht. JoyFox sortiert den Posteingang für dieses Konto nicht mehr. |
+| `rule.removeFailed` | JoyFox could not delete the rule. Nothing was changed. | JoyFox konnte die Regel nicht löschen. Es wurde nichts geändert. |
 | `rule.stale.account.saved` | The active account changed. The rule was not saved. Check the form and try again. | Das aktive Konto hat sich geändert. Die Regel wurde nicht gespeichert. Prüfe das Formular und versuche es noch einmal. |
-| `rule.stale.account.removed` | The active account changed. The rule was not removed. Check the form and try again. | Das aktive Konto hat sich geändert. Die Regel wurde nicht entfernt. Prüfe das Formular und versuche es noch einmal. |
+| `rule.stale.account.removed` | The active account changed. The rule was not deleted. Check the form and try again. | Das aktive Konto hat sich geändert. Die Regel wurde nicht gelöscht. Prüfe das Formular und versuche es noch einmal. |
 | `rule.stale.rule.saved` | The rule was changed in another tab. It was not saved. The form now shows the saved rule. | Die Regel wurde in einem anderen Tab geändert. Sie wurde nicht gespeichert. Das Formular zeigt jetzt die gespeicherte Regel. |
-| `rule.stale.rule.removed` | The rule was changed in another tab. It was not removed. The form now shows the saved rule. | Die Regel wurde in einem anderen Tab geändert. Sie wurde nicht entfernt. Das Formular zeigt jetzt die gespeicherte Regel. |
+| `rule.stale.rule.removed` | The rule was changed in another tab. It was not deleted. The form now shows the saved rule. | Die Regel wurde in einem anderen Tab geändert. Sie wurde nicht gelöscht. Das Formular zeigt jetzt die gespeicherte Regel. |
 | `rule.changedElsewhere` | The rule was changed in another tab. The form now shows the saved rule. | Die Regel wurde in einem anderen Tab geändert. Das Formular zeigt jetzt die gespeicherte Regel. |
 
 ## templates
