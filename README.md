@@ -1,8 +1,8 @@
 # JoyFox
 
-JoyFox is a local-first Firefox extension that enhances pages a user opens on
-JoyClub. It does not fetch profiles or call undocumented APIs. It works on the
-inbox, conversation, profile, member search, event and venue pages of
+JoyFox is a local-first Firefox and Chrome extension that enhances pages a user
+opens on JoyClub. It does not fetch profiles or call undocumented APIs. It works
+on the inbox, conversation, profile, member search, event and venue pages of
 www.joyclub.de, whose selectors are verified from live evidence
 (`docs/selector-map.md`). JOYCE is not verified yet, and JoyFox stays inactive
 there.
@@ -18,12 +18,18 @@ Requires Node.js 22 and npm.
 - `npm run typecheck` checks TypeScript.
 - `npm run build:firefox` creates the deterministic unpacked build in
   `dist/firefox`.
+- `npm run build:chrome` creates the unpacked Chrome build in `dist/chrome`.
+  `npm run package:chrome` also zips it for the Chrome Web Store
+  (`docs/chrome.md`).
 
 ## Install
 
-- **For development:** run `npm run build:firefox`, then load
+- **Firefox, for development:** run `npm run build:firefox`, then load
   `dist/firefox/manifest.json` from `about:debugging` > "This Firefox" > "Load
   Temporary Add-on". Firefox removes it when it closes.
+- **Chrome 148 or later, for development:** run `npm run build:chrome`, then
+  load `dist/chrome` from `chrome://extensions` ("Developer mode" > "Load
+  unpacked").
 - **A signed release:** download the `.xpi` from the GitHub release and open it
   in Firefox (`about:addons` > gear menu > "Install Add-on From File"). Release
   Firefox installs only signed builds; `docs/distribution.md` describes how a
