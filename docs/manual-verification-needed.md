@@ -58,8 +58,9 @@ preferences, events, venues and navigation. Still open:
   this (ADR 0011).
 - **Item 9:** inbox → search and inbox → events are done (`16-navigation.md`).
   Still open: search → profile, and profile → Back.
-- **Item 6 (event ClubMail composer) and item 10:** not started. Item 10's
-  channel is chosen (ADR 0016); its verification checklist is open.
+- **Item 6 (event ClubMail composer):** not started. The owner accepted it as a
+  known limitation for the release on 2026-09-27 (ADR 0016).
+- **Item 10:** done on 2026-09-28 (see item 10 below).
 
 Do not include another member's real name, profile text, preferences, messages,
 or images. Replace personal values with invented placeholders. For DOM fields,

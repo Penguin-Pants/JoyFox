@@ -38,6 +38,10 @@ The owner chose the channel: unlisted, with automatic updates (ADR 0016).
   in its manifest, Firefox installs any updates with a higher version number
   available on that URL" (Extension Workshop, "Distributing an add-on
   yourself"). Verified 2026-09-28.
+- **Every release has a higher version than all earlier ones.** Firefox installs
+  only an update with a higher version number, so a reused or lower version
+  never reaches a copy that already runs a newer one. A fix for a bad release is
+  a new, higher version, never a rollback to an older number.
 - PRD Section 20 puts a self-distributed public release in V1 and AMO submission
   in "Later". So the unlisted channel matches the roadmap.
 
@@ -60,11 +64,18 @@ The owner chose the channel: unlisted, with automatic updates (ADR 0016).
    a password manager or a protected prompt, never typed on the command line.
    Then run
    `npx web-ext sign --source-dir dist/firefox --channel=unlisted --upload-source-code <source package>`.
-   The signed `.xpi` is downloaded when signing finishes. Verified in `web-ext`
-   10.7.0 (`web-ext sign --help` and its source): every option also reads a
-   `WEB_EXT_` environment variable (`lib/program.js`), `--channel` is required,
-   and `--upload-source-code` attaches the source archive. Because the manifest
-   sets an ID, `web-ext` submits a version to that ID with the upload's channel
+   The signed `.xpi` is downloaded when signing finishes. `web-ext` waits for
+   approval for 15 minutes by default (`approvalCheckTimeout` 900000 ms in
+   `lib/util/submit-addon.js`), and a manual review can take much longer. When
+   the wait runs out, the command stops with "Approval: timeout exceeded" and
+   prints the version's AMO edit address; the submission stays with AMO.
+   Download the signed `.xpi` from that address once it is approved, and do not
+   sign the same version again. `--approval-timeout 0` skips the wait and prints
+   the same address at once. Verified in `web-ext` 10.7.0 (`web-ext sign --help`
+   and its source): every option also reads a `WEB_EXT_` environment variable
+   (`lib/program.js`), `--channel` is required, and `--upload-source-code`
+   attaches the source archive. Because the manifest sets an ID, `web-ext`
+   submits a version to that ID with the upload's channel
    (`lib/util/submit-addon.js`); with `unlisted` it sends no listing metadata.
    What AMO does on the server side was not checked.
 8. Publish the signed `.xpi` on the GitHub release (V1-9).
@@ -149,13 +160,15 @@ rebuild match the submitted file.
 - Personal data may be collected only after explicit consent. The user must get
   a clear way to control data transmission, through the add-on's own consent or
   Firefox's built-in one ("Add-on Policies" 6.2). JoyFox sends no data. The
-  policies also ask for testing information and, when part of the add-on needs
-  an account, test credentials ("Add-on Policies" 3); AMO decides whether it
-  asks for these during a manual review. No Mozilla policy text found in this
-  pass addresses an extension that clicks a site's own controls for the user
-  (M9). That risk stays the one the PRD names: JoyClub's terms (PRD Sections
-  18.3 and 18.4), not Mozilla policy. The owner chose no ToS review; the release
-  carries a disclaimer instead (D4, ADR 0016).
+  policies require testing information and, when any part of the add-on needs an
+  account, test credentials ("Add-on Policies" 3). Every JoyFox feature runs on
+  JoyClub pages, which need a signed-in account, so each submission must carry
+  testing instructions and credentials for a JoyClub account made for reviewers
+  (see "Open for V1-9"). No Mozilla policy text found in this pass addresses an
+  extension that clicks a site's own controls for the user (M9). That risk stays
+  the one the PRD names: JoyClub's terms (PRD Sections 18.3 and 18.4), not
+  Mozilla policy. The owner chose no ToS review; the release carries a
+  disclaimer instead (D4, ADR 0016).
 
 ## Owner decisions
 
@@ -221,6 +234,16 @@ unsigned build.
   address that does not redirect.
 - **Source README.** Write the reviewer's README described under "Source code",
   and make the source package from it for every version.
+- **Reviewer account and testing notes.** A release input, not something to wait
+  for AMO to ask: a JoyClub account made only for Mozilla's reviewers (never the
+  owner's own), its credentials, and testing instructions (which pages to open,
+  and which features need data first). The owner provides the account. `web-ext`
+  10.7.0 passes the `version` object of an `--amo-metadata` JSON file into the
+  submitted version (`lib/util/submit-addon.js`); the AMO API field for reviewer
+  notes is still to be checked, or the notes go in on the version's AMO edit
+  page. Keep the credentials out of the repository.
+- **Signing wait.** See step 7 of "Steps for an unlisted signed build": after a
+  timeout, the signed `.xpi` comes from the AMO edit address.
 - **Web download.** A web server that offers the `.xpi` for a click to install
   must send `Content-Type: application/x-xpinstall` ("Distributing an add-on
   yourself"). JoyFox's install instructions open the downloaded file from
@@ -253,27 +276,27 @@ items 1, 5 and 6 on 2026-09-28 from the Mozilla web pages (below).
 The owner had a browser assistant read the pages and quote them; the report
 gives each claim a verdict, a quote and the page.
 
-| Claim                                                                           | Verdict                                                                 | Source                                                                |
-| ------------------------------------------------------------------------------- | ----------------------------------------------------------------------- | --------------------------------------------------------------------- |
-| Unlisted add-ons are signed through AMO but cannot be viewed or installed there | Confirmed                                                               | Signing and distribution overview                                     |
-| All add-ons pass automated validation before signing                            | Confirmed                                                               | Signing and distribution overview                                     |
-| Any add-on can be reviewed by hand at any time after submission                 | Confirmed                                                               | Signing and distribution overview                                     |
-| Signing takes up to 24 hours, or longer for a manual review                     | Confirmed                                                               | Signing and distribution overview                                     |
-| Only Nightly, Developer Edition and unbranded builds can turn off signing       | Different: ESR can too                                                  | Add-on signing in Firefox (2026-01-07)                                |
-| `web-ext sign --channel=unlisted` creates no listing                            | Confirmed                                                               | `web-ext` command reference (2026-07-18)                              |
-| An unlisted add-on can use its own `update_url`                                 | Confirmed                                                               | Distributing an add-on yourself                                       |
-| Each version must be higher than all earlier ones                               | Not found as a general rule; only for a rollback on AMO                 | Version rollback (2025-09-16)                                         |
-| Bundled code needs the original source and build steps                          | Confirmed                                                               | Source code submission; Add-on Policies (2026-04-30)                  |
-| Obfuscated code is never allowed                                                | Confirmed                                                               | Source code submission; Add-on Policies                               |
-| The source rules apply to unlisted add-ons                                      | Confirmed                                                               | Add-on Policies                                                       |
-| What the build README must hold                                                 | Found; see "Source code"                                                | Source code submission                                                |
-| What the source upload holds                                                    | Partly: lockfile required, 200 MB limit; no format, no exclusions named | Source code submission                                                |
-| Add-ons must not load remote code                                               | Confirmed                                                               | Add-on Policies                                                       |
-| `addons` → extension ID → `updates` → `version`, `update_link`                  | Confirmed                                                               | Updating your extension                                               |
-| `update_link` must be HTTPS or have `update_hash`                               | Confirmed; redirects not mentioned                                      | Updating your extension                                               |
-| `update_hash` format                                                            | Optional over HTTPS; `sha256:` or `sha512:` plus hex                    | Updating your extension                                               |
-| Minimum version field in an update item                                         | `applications.gecko.strict_min_version`                                 | Updating your extension                                               |
-| `updates.json` must be served over HTTPS                                        | Confirmed; no content type named                                        | Updating your extension; MDN `browser_specific_settings` (2026-04-20) |
+| Claim                                                                           | Verdict                                                                                             | Source                                                                |
+| ------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------- |
+| Unlisted add-ons are signed through AMO but cannot be viewed or installed there | Confirmed                                                                                           | Signing and distribution overview                                     |
+| All add-ons pass automated validation before signing                            | Confirmed                                                                                           | Signing and distribution overview                                     |
+| Any add-on can be reviewed by hand at any time after submission                 | Confirmed                                                                                           | Signing and distribution overview                                     |
+| Signing takes up to 24 hours, or longer for a manual review                     | Confirmed                                                                                           | Signing and distribution overview                                     |
+| Only Nightly, Developer Edition and unbranded builds can turn off signing       | Different: ESR can too                                                                              | Add-on signing in Firefox (2026-01-07)                                |
+| `web-ext sign --channel=unlisted` creates no listing                            | Confirmed                                                                                           | `web-ext` command reference (2026-07-18)                              |
+| An unlisted add-on can use its own `update_url`                                 | Confirmed                                                                                           | Distributing an add-on yourself                                       |
+| Each version must be higher than all earlier ones                               | Not found as an AMO rule (only for a rollback on AMO); required by the update check, see "Channels" | Version rollback (2025-09-16)                                         |
+| Bundled code needs the original source and build steps                          | Confirmed                                                                                           | Source code submission; Add-on Policies (2026-04-30)                  |
+| Obfuscated code is never allowed                                                | Confirmed                                                                                           | Source code submission; Add-on Policies                               |
+| The source rules apply to unlisted add-ons                                      | Confirmed                                                                                           | Add-on Policies                                                       |
+| What the build README must hold                                                 | Found; see "Source code"                                                                            | Source code submission                                                |
+| What the source upload holds                                                    | Partly: lockfile required, 200 MB limit; no format, no exclusions named                             | Source code submission                                                |
+| Add-ons must not load remote code                                               | Confirmed                                                                                           | Add-on Policies                                                       |
+| `addons` → extension ID → `updates` → `version`, `update_link`                  | Confirmed                                                                                           | Updating your extension                                               |
+| `update_link` must be HTTPS or have `update_hash`                               | Confirmed; redirects not mentioned                                                                  | Updating your extension                                               |
+| `update_hash` format                                                            | Optional over HTTPS; `sha256:` or `sha512:` plus hex                                                | Updating your extension                                               |
+| Minimum version field in an update item                                         | `applications.gecko.strict_min_version`                                                             | Updating your extension                                               |
+| `updates.json` must be served over HTTPS                                        | Confirmed; no content type named                                                                    | Updating your extension; MDN `browser_specific_settings` (2026-04-20) |
 
 Other findings the report quoted:
 
