@@ -2,16 +2,16 @@
 
 ## Status
 
-Research draft, 2026-09-25. Partly verified on 2026-09-26 against Mozilla's own
-tools, which npm serves: `web-ext` 10.7.0 and the `addons-linter` 10.13.0 it
-runs (the validator AMO uses), plus `@mdn/browser-compat-data`. The Mozilla web
-pages are still out of reach from these sessions, so items 1, 5 and 6 of the
-"Verification checklist" stay open. Claims still marked **Verify** come from
-web-search summaries.
+Verified. Research draft from 2026-09-25; items 2 to 4 of the "Verification
+checklist" verified on 2026-09-26 with Mozilla's own tools (`web-ext` 10.7.0,
+`addons-linter` 10.13.0, `@mdn/browser-compat-data`); items 1, 5 and 6 verified
+on 2026-09-28 against the Mozilla web pages, read in a browser for the owner
+(see "Checklist results, 2026-09-28"). F8's acceptance criterion ("documented
+steps to produce a signed, installable build outside AMO") is met. One question
+has no answer on any Mozilla page: whether Firefox follows a redirect from an
+`update_link`. V1-9 tests it (see "Open for V1-9").
 
-F8's acceptance criterion ("documented steps to produce a signed, installable
-build outside AMO") is met only as a draft until that check is done. The owner
-chose the channel: unlisted, with automatic updates (ADR 0016).
+The owner chose the channel: unlisted, with automatic updates (ADR 0016).
 
 ## Channels
 
@@ -21,17 +21,23 @@ chose the channel: unlisted, with automatic updates (ADR 0016).
 | Unlisted (self-distributed)           | Yes               | Release and Beta Firefox, from a file the owner hosts | Self-hosted `update_url`, or by hand |
 | Listed on AMO                         | Yes, after review | Everyone, from addons.mozilla.org                     | AMO                                  |
 
-- Release and Beta Firefox install only signed extensions. Nightly, Developer
-  Edition and unbranded builds can turn this off with the preference
-  `xpinstall.signatures.required` set to `false` in `about:config`. **Verify**
-  (Mozilla Support, "Add-on signing in Firefox"; Mozilla Wiki,
-  "Add-ons/Extension Signing").
+- Release and Beta Firefox install only signed extensions. ESR, Developer
+  Edition, Nightly and unbranded builds can turn this off with the preference
+  `xpinstall.signatures.required` set to `false` in `about:config`; the
+  extension still needs an ID (Mozilla Support, "Add-on signing in Firefox",
+  updated 2026-01-07; Extension Workshop, "Signing and distribution overview").
+  Verified 2026-09-28. The draft had left out ESR.
 - "Unlisted" add-ons are signed by Mozilla but cannot be found or installed from
   AMO. All add-ons pass automated validation before signing, and any add-on,
   unlisted ones included, can be reviewed by hand at any time after submission.
   Signing can take up to 24 hours, or longer when a submission is picked for
-  manual review. **Verify** (Extension Workshop, "Signing and distribution
-  overview", "Distributing an add-on yourself").
+  manual review. A manual review can reject current or earlier versions, or
+  block the add-on (Extension Workshop, "Signing and distribution overview").
+  Verified 2026-09-28.
+- An unlisted add-on can update itself: "If the extension includes an update_url
+  in its manifest, Firefox installs any updates with a higher version number
+  available on that URL" (Extension Workshop, "Distributing an add-on
+  yourself"). Verified 2026-09-28.
 - PRD Section 20 puts a self-distributed public release in V1 and AMO submission
   in "Later". So the unlisted channel matches the roadmap.
 
@@ -95,23 +101,42 @@ chose the channel: unlisted, with automatic updates (ADR 0016).
   `browser_specific_settings.gecko.update_url` points to an `updates.json` that
   must be served over HTTPS. It is keyed by the extension ID and lists each
   version with its `update_link` (MDN, "Updates"; Extension Workshop, "Updating
-  your extension"). **Verify** the `updates.json` field names. Verified with
-  `addons-linter` 10.13.0: a manifest with `update_url` passes as a self-hosted
-  add-on and fails with `MANIFEST_UPDATE_URL` as an AMO-listed one, so the
-  unlisted channel is the one that allows it.
+  your extension"). The field names are verified (2026-09-28); see "The
+  `updates.json` file". Verified with `addons-linter` 10.13.0: a manifest with
+  `update_url` passes as a self-hosted add-on and fails with
+  `MANIFEST_UPDATE_URL` as an AMO-listed one, so the unlisted channel is the one
+  that allows it.
 - `strict_min_version` is `121.0`, which the PRD requires (Section 14.1).
 
 ## Source code
 
 AMO reviewers must be able to read the code. Bundled, transpiled or minified
 code is allowed only with a copy of the original source and instructions to
-reproduce the build; obfuscated code is not allowed at all (Extension Workshop,
-"Source code submission"; "Add-on Policies"). The build bundles TypeScript with
-esbuild (`scripts/build-firefox.mjs`), so a submission needs:
+reproduce the build; obfuscated code is not allowed at all, however the add-on
+is distributed (Extension Workshop, "Source code submission"; "Add-on Policies",
+updated 2026-04-30). The policies apply to every add-on, "regardless of how they
+are distributed", so to unlisted ones too. The source must be attached to
+**every** version, and the upload may be at most 200 MB. Verified 2026-09-28.
 
-- the source tree without `node_modules` and `dist`;
-- build instructions: the Node.js version (22, per the README), `npm ci`, then
-  `npm run build:firefox`.
+The build bundles TypeScript with esbuild (`scripts/build-firefox.mjs`), so
+every submission needs a source package with:
+
+- the source tree, including `package-lock.json` (the page asks for the
+  lockfile, and `npm ci` needs it). The page does not say to leave out
+  `node_modules` or build output; JoyFox leaves them out, because `npm ci` and
+  the build recreate them. Dependencies may come only from the package in the
+  upload or from the official package manager during the build, which `npm ci`
+  does. The page names no archive format.
+- a README for the reviewer that lists: the operating system used for the build;
+  the exact Node.js and npm versions, with links to download and install them;
+  every command to build (`npm ci`, then `npm run build:firefox`); and where the
+  output goes (`dist/firefox`). Build tools must be open source and must not be
+  web-based.
+
+Mozilla's reviewers build on Ubuntu 24.04.4 LTS (ARM64) with Node 24.14.0 and
+npm 11.9.0. The README must say where JoyFox's environment differs: CI builds
+with Node.js 22 on x86-64 Linux. The lockfile holds esbuild's ARM64 package
+(`@esbuild/linux-arm64`), so `npm ci` works on the reviewers' machine.
 
 The build is already deterministic (`README.md`), which makes a reviewer's
 rebuild match the submitted file.
@@ -119,13 +144,18 @@ rebuild match the submitted file.
 ## Policy notes
 
 - Add-ons must be self-contained and must not load remote code (Extension
-  Workshop, "Add-on Policies"). JoyFox bundles all its code and has no network
-  client (`docs/permissions.md`).
-- Personal data may be collected only after explicit consent. No Mozilla policy
-  text found in this pass addresses an extension that clicks a site's own
-  controls for the user (M9). That risk stays the one the PRD names: JoyClub's
-  terms (PRD Sections 18.3 and 18.4), not Mozilla policy. The owner chose no ToS
-  review; the release carries a disclaimer instead (D4, ADR 0016).
+  Workshop, "Add-on Policies"; verified 2026-09-28). JoyFox bundles all its code
+  and has no network client (`docs/permissions.md`).
+- Personal data may be collected only after explicit consent. The user must get
+  a clear way to control data transmission, through the add-on's own consent or
+  Firefox's built-in one ("Add-on Policies" 6.2). JoyFox sends no data. The
+  policies also ask for testing information and, when part of the add-on needs
+  an account, test credentials ("Add-on Policies" 3); AMO decides whether it
+  asks for these during a manual review. No Mozilla policy text found in this
+  pass addresses an extension that clicks a site's own controls for the user
+  (M9). That risk stays the one the PRD names: JoyClub's terms (PRD Sections
+  18.3 and 18.4), not Mozilla policy. The owner chose no ToS review; the release
+  carries a disclaimer instead (D4, ADR 0016).
 
 ## Owner decisions
 
@@ -137,13 +167,69 @@ rebuild match the submitted file.
   `update_url` and an `updates.json` served over HTTPS from GitHub. The address
   is `https://raw.githubusercontent.com/Penguin-Pants/JoyFox/main/updates.json`
   (owner, 2026-09-26): a file in the repository, updated by each release PR.
-  V1-9 adds the file and the manifest key.
+  V1-9 adds the file and the manifest key. This address can never change for
+  installed copies: "existing installations cannot discover a new update_url on
+  their own" (Extension Workshop, "Updating your extension").
+
+## The `updates.json` file
+
+Verified 2026-09-28 (Extension Workshop, "Updating your extension"):
+
+- The top-level key is `addons`, with one entry per extension ID. Each entry
+  holds an `updates` list; each item has `version` and `update_link`.
+- `update_link` must be an HTTPS address, or `update_hash` must be given.
+  `update_hash` is otherwise optional; when present it is `sha256:` or `sha512:`
+  followed by the hex hash of the linked file.
+- The minimum Firefox version inside an update item is
+  `applications.gecko.strict_min_version`. The page names no
+  `browser_specific_settings` form there, although the manifest itself uses
+  `browser_specific_settings`.
+- The file must be served over HTTPS. The page names no content type.
+- Firefox checks for updates every 24 hours. For a test, set
+  `extensions.update.interval` to `120` in `about:config`.
+
+JoyFox's file, one item per release (V1-9):
+
+```json
+{
+  "addons": {
+    "joyfox@drclaw": {
+      "updates": [
+        {
+          "version": "<version>",
+          "update_link": "<HTTPS address of the signed .xpi>",
+          "update_hash": "sha256:<hex hash of the signed .xpi>",
+          "applications": { "gecko": { "strict_min_version": "121.0" } }
+        }
+      ]
+    }
+  }
+}
+```
+
+JoyFox gives `update_hash` although the link is HTTPS: it makes Firefox check
+the file it downloads. It must be the hash of the signed `.xpi`, not of the
+unsigned build.
+
+## Open for V1-9
+
+- **Redirects.** A GitHub release download link redirects to another HTTPS host.
+  No Mozilla page says whether Firefox follows that redirect for an
+  `update_link`. V1-9 tests one real update before the release: install a signed
+  older version, publish a newer one, set `extensions.update.interval` to `120`
+  and see Firefox update. If it fails, the `update_link` must point to an
+  address that does not redirect.
+- **Source README.** Write the reviewer's README described under "Source code",
+  and make the source package from it for every version.
+- **Web download.** A web server that offers the `.xpi` for a click to install
+  must send `Content-Type: application/x-xpinstall` ("Distributing an add-on
+  yourself"). JoyFox's install instructions open the downloaded file from
+  `about:addons`, which does not depend on it.
 
 ## Verification checklist
 
-Do this with network access to the Mozilla hosts, or by hand. Status on
-2026-09-26: items 2, 3 and 4 are verified with Mozilla's own tools (see above).
-Items 1, 5 and 6 need the Mozilla web pages.
+Done. Items 2, 3 and 4 were verified on 2026-09-26 with Mozilla's own tools;
+items 1, 5 and 6 on 2026-09-28 from the Mozilla web pages (below).
 
 1. Extension Workshop, "Signing and distribution overview" and "Distributing an
    add-on yourself": the unlisted flow, review and timing.
@@ -159,4 +245,44 @@ Items 1, 5 and 6 need the Mozilla web pages.
    ID stops with "An extension ID must be specified in the manifest.json file".
    The linter accepts `joyfox@drclaw`.
 5. Extension Workshop, "Source code submission": what to upload.
-6. MDN, "Updates": the `updates.json` field names.
+6. Extension Workshop, "Updating your extension": the `updates.json` field
+   names.
+
+## Checklist results, 2026-09-28
+
+The owner had a browser assistant read the pages and quote them; the report
+gives each claim a verdict, a quote and the page.
+
+| Claim                                                                           | Verdict                                                                 | Source                                                                |
+| ------------------------------------------------------------------------------- | ----------------------------------------------------------------------- | --------------------------------------------------------------------- |
+| Unlisted add-ons are signed through AMO but cannot be viewed or installed there | Confirmed                                                               | Signing and distribution overview                                     |
+| All add-ons pass automated validation before signing                            | Confirmed                                                               | Signing and distribution overview                                     |
+| Any add-on can be reviewed by hand at any time after submission                 | Confirmed                                                               | Signing and distribution overview                                     |
+| Signing takes up to 24 hours, or longer for a manual review                     | Confirmed                                                               | Signing and distribution overview                                     |
+| Only Nightly, Developer Edition and unbranded builds can turn off signing       | Different: ESR can too                                                  | Add-on signing in Firefox (2026-01-07)                                |
+| `web-ext sign --channel=unlisted` creates no listing                            | Confirmed                                                               | `web-ext` command reference (2026-07-18)                              |
+| An unlisted add-on can use its own `update_url`                                 | Confirmed                                                               | Distributing an add-on yourself                                       |
+| Each version must be higher than all earlier ones                               | Not found as a general rule; only for a rollback on AMO                 | Version rollback (2025-09-16)                                         |
+| Bundled code needs the original source and build steps                          | Confirmed                                                               | Source code submission; Add-on Policies (2026-04-30)                  |
+| Obfuscated code is never allowed                                                | Confirmed                                                               | Source code submission; Add-on Policies                               |
+| The source rules apply to unlisted add-ons                                      | Confirmed                                                               | Add-on Policies                                                       |
+| What the build README must hold                                                 | Found; see "Source code"                                                | Source code submission                                                |
+| What the source upload holds                                                    | Partly: lockfile required, 200 MB limit; no format, no exclusions named | Source code submission                                                |
+| Add-ons must not load remote code                                               | Confirmed                                                               | Add-on Policies                                                       |
+| `addons` → extension ID → `updates` → `version`, `update_link`                  | Confirmed                                                               | Updating your extension                                               |
+| `update_link` must be HTTPS or have `update_hash`                               | Confirmed; redirects not mentioned                                      | Updating your extension                                               |
+| `update_hash` format                                                            | Optional over HTTPS; `sha256:` or `sha512:` plus hex                    | Updating your extension                                               |
+| Minimum version field in an update item                                         | `applications.gecko.strict_min_version`                                 | Updating your extension                                               |
+| `updates.json` must be served over HTTPS                                        | Confirmed; no content type named                                        | Updating your extension; MDN `browser_specific_settings` (2026-04-20) |
+
+Other findings the report quoted:
+
+- `data_collection_permissions` takes the form `{"required": ["none"]}`, and all
+  new extensions need it since 2025-11-03 (Extension Workshop, "Firefox built-in
+  consent", updated 2026-03-12). JoyFox's manifest already has exactly this form
+  (see "Manifest gaps").
+- A Manifest V3 extension needs an ID for signing, listed or self-distributed
+  (MDN, `browser_specific_settings`).
+- `web-ext` 8 and later require `--channel`; `--approval-timeout` defaults to 15
+  minutes (`web-ext` command reference).
+- An add-on package may be at most 200 MB ("Submitting an add-on").

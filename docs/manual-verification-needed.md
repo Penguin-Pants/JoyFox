@@ -119,16 +119,13 @@ what it matches, or a screenshot with DOM inspection notes.
    and documents reload, History API navigation occurs, and content changes
    dynamically. This decides which coordinator signals are necessary. Send a
    short observation per transition.
-10. **F8 — Firefox distribution:** The channel is chosen: unlisted
+10. **F8 — Firefox distribution:** Done. The channel is chosen: unlisted
     self-distribution with automatic updates (owner, 2026-09-26, ADR 0016).
-    Current Mozilla signing requirements then need verification against official
-    documentation before release packaging is claimed. A research draft with the
-    steps and a verification checklist is in `docs/distribution.md`. On
-    2026-09-26, checklist items 2 to 4 were verified with Mozilla's own tools
-    and the manifest gap (`data_collection_permissions`) is fixed. Items 1, 5
-    and 6 need someone who can open the Mozilla pages: the unlisted flow and its
-    review timing, what to upload as source code, and the `updates.json` field
-    names.
+    Checklist items 2 to 4 were verified on 2026-09-26 with Mozilla's own tools;
+    items 1, 5 and 6 on 2026-09-28 from the Mozilla pages
+    (`docs/distribution.md`, "Checklist results, 2026-09-28"). One live check
+    moves to V1-9: that Firefox follows the GitHub redirect from an
+    `update_link`.
 
 ## Phase gate
 
