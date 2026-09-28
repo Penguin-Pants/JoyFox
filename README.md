@@ -80,13 +80,14 @@ open JoyClub tabs switch at once (ADR 0014, `docs/manual-acceptance.md`, items
 91 to 97).
 
 On a fresh install the options page opens once, and "Get started" at its top
-lists the three steps to a triaged inbox. The options page holds the account
-switcher. JoyFox cannot detect which JoyClub login a tab uses, so the active
-account is the one selected there, and every stored note, tag and rule belongs
-to it. A private note and tags can be kept for a member on their profile page
-and in a conversation with them, below the JoyFox panel. They are stored only
-for a verified member ID, never a display name. See `docs/manual-acceptance.md`,
-items 36 to 42.
+lists the three steps to a triaged inbox. The JoyFox button in the Firefox
+toolbar (or in the Extensions menu, until you pin it) opens the options page at
+any time. The options page holds the account switcher. JoyFox cannot detect
+which JoyClub login a tab uses, so the active account is the one selected there,
+and every stored note, tag and rule belongs to it. A private note and tags can
+be kept for a member on their profile page and in a conversation with them,
+below the JoyFox panel. They are stored only for a verified member ID, never a
+display name. See `docs/manual-acceptance.md`, items 36 to 42.
 
 The contact rule is built on the options page in plain language, in a Simple or
 an Advanced editor, and saves on each change. "Start from a preset" fills it
@@ -134,6 +135,12 @@ default and can be turned off there; messages older than 12 months (you choose 1
 to 120) are deleted automatically, and each message can be deleted under "Your
 data". It stores only what a conversation shows on screen (V1-4,
 `docs/manual-acceptance.md`, items 121 to 124).
+
+Firefox runs JoyFox in private windows only if you allow it (about:addons >
+JoyFox > "Run in Private Windows"); the default is off. If you allow it, JoyFox
+stores what it reads in a private window like in a normal window: messages,
+profile facts and nicknames stay after the private window closes. Delete them
+under "Your data".
 
 The options page also holds message templates and "Your data", where every
 stored record can be inspected field by field, exported as JSON and deleted, per

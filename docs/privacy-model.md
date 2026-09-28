@@ -153,6 +153,19 @@ never leaves the browser except in an export file the user saves. It is
 exported, imported and deleted with the other records. When JoyFox has never
 seen a member's nickname, its texts show "Member" and the number.
 
+## Private windows (owner decision, 2026-09-28)
+
+Firefox runs an extension in private windows only when the user allows it, and
+the default is off. The manifest has no `incognito` key, so once allowed JoyFox
+runs there in Firefox's default "spanning" mode. It then stores what it reads in
+a private window exactly as in a normal window: message text while message
+storing is on, profile facts, nicknames and guest lists. These records go to the
+same local database and stay after the private window closes. By the owner's
+decision (UX audit, 2026-09-28) this is documented rather than changed: the
+README and the options page's "Messages" tab say so, and every such record can
+be deleted under "Your data". Notes and tags the user types are stored in both
+cases, as the user asked for them.
+
 ## Update check (V1-9, ADR 0016)
 
 The manifest's `update_url` makes Firefox itself, not JoyFox, fetch
