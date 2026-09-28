@@ -136,6 +136,16 @@ export const RESUME_WAIT_MS = 10_000;
  */
 export const HANDOFF_WAIT_MS = STEP_TIMEOUT_MS;
 
+/**
+ * How long the profile page shows a finished run's notice before it returns
+ * to the ClubMail list, so the user can read it and the live region can
+ * announce it.
+ */
+export const RETURN_WAIT_MS = 2_000;
+
+/** The ClubMail list (`01-inbox.md`), where a finished run returns to. */
+export const CLUBMAIL_PATH = "/clubmail/";
+
 /** The notice's own lines, as catalog messages translated when shown. */
 export const QUICK_ACTION_TEXT = {
   button: message("quick.button"),
@@ -221,6 +231,8 @@ export class QuickIgnoreDelete {
   #pendingFailures = 0;
   #profileDrawn?: { section: HTMLElement; status: HTMLElement; lines: string };
   #profileAnchor?: Element;
+  /** Set while a finished run waits to return to the ClubMail list. */
+  #returnTimer?: ReturnType<typeof setTimeout>;
 
   constructor(
     private readonly document: Document,
@@ -230,6 +242,7 @@ export class QuickIgnoreDelete {
       document.defaultView?.location.assign(url),
     private readonly clock: () => number = () => Date.now(),
     private readonly handOffWaitMs: number = HANDOFF_WAIT_MS,
+    private readonly returnWaitMs: number = RETURN_WAIT_MS,
   ) {}
 
   /**
@@ -337,6 +350,10 @@ export class QuickIgnoreDelete {
     })
       .then((result) => {
         this.#result = { key, lines: result.report.lines };
+        // Both steps are done: back to the ClubMail list. A run that stopped
+        // stays on the profile, where its notice names the next manual step.
+        if (result.report.status === "completed")
+          this.#returnToClubMail(answer.memberId);
       })
       .catch(() => {
         this.#result = { key, lines: [QUICK_ACTION_TEXT.unexpected] };
@@ -347,6 +364,20 @@ export class QuickIgnoreDelete {
         // Only while no conversation is shown: never tear down its button.
         if (!this.#shown) this.updateProfile();
       });
+  }
+
+  /**
+   * After `returnWaitMs`, go to the ClubMail list, but only while the page
+   * still shows the run's member's profile and the flag is on: a user who
+   * moved on in the meantime is not taken back.
+   */
+  #returnToClubMail(memberId: string): void {
+    clearTimeout(this.#returnTimer);
+    this.#returnTimer = setTimeout(() => {
+      this.#returnTimer = undefined;
+      if (pageMember(this.document, "profile")?.memberId !== memberId) return;
+      this.navigate(new URL(CLUBMAIL_PATH, this.document.URL).href);
+    }, this.returnWaitMs);
   }
 
   /**
@@ -505,6 +536,8 @@ export class QuickIgnoreDelete {
   turnOff(): void {
     if (this.#running) this.#stop = "turned-off";
     this.#result = undefined;
+    clearTimeout(this.#returnTimer);
+    this.#returnTimer = undefined;
     this.#discardHandOff();
     this.leave();
   }

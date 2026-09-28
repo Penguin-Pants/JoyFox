@@ -177,3 +177,19 @@ names, so it cannot be told apart from the hand-off itself.
 
 The cost is one message per JoyClub page load while the flag is on. No
 permission, schema version or UI string changed.
+
+## Return to the ClubMail list (2026-09-28)
+
+Owner request: after a finished run, JoyFox stayed on the ignored member's
+profile. The owner wants it to go back to the ClubMail list.
+
+- When a resumed run ends `Completed`, the profile page shows "Ignore and Delete
+  finished." for `RETURN_WAIT_MS` (2 seconds), then goes to `/clubmail/`
+  (`01-inbox.md`). The pause lets the user read the notice and the live region
+  announce it.
+- A run that stops (`Failed`) stays on the profile. Its notice names the next
+  manual step, and Ignore is done there (owner decision, 2026-09-28).
+- The move happens only if the page still shows the run's member's profile and
+  the flag is still on. A user who moved on during the pause is not taken back.
+
+No permission, schema version or UI string changed.
