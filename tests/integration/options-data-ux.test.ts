@@ -357,6 +357,65 @@ describe("Your data", () => {
     expect(text()).not.toContain("Nothing was deleted");
   });
 
+  it("says a failed delete may have stopped part-way, and what to do", async () => {
+    class Failing extends DataService {
+      override deleteEverything(): never {
+        throw new Error("write refused");
+      }
+    }
+    await mount(new Failing(accounts, settings));
+    press(byLabel("Delete all JoyFox data in this browser"));
+    await settle(
+      () => byLabel("Confirm: Delete all JoyFox data in this browser") !== null,
+    );
+    press(byLabel("Confirm: Delete all JoyFox data in this browser"));
+    await settle(() => status()?.getAttribute("data-kind") === "error");
+    expect(status()?.textContent).toBe(
+      "JoyFox could not finish the delete. Some records may be deleted already: the counts shown now are what is still stored. Try again.",
+    );
+  });
+
+  it("gives a next step when a file cannot be checked or imported", async () => {
+    const importRoot = document.createElement("section");
+    document.body.append(importRoot);
+    const choose = (service: DataService) => async () => {
+      await mount(service, importRoot);
+      const input = importRoot.querySelector<HTMLInputElement>(
+        "#joyfox-data-import",
+      )!;
+      Object.defineProperty(input, "files", {
+        value: [new File(["{}"], "export.json")],
+      });
+      input.dispatchEvent(new Event("change"));
+      await settle(
+        () =>
+          importRoot
+            .querySelector(".joyfox-panel__status")
+            ?.getAttribute("data-kind") === "error",
+      );
+      return importRoot.querySelector(".joyfox-panel__status")?.textContent;
+    };
+    class Unchecked extends DataService {
+      override previewImport(): never {
+        throw new Error("read failed");
+      }
+    }
+    expect(await choose(new Unchecked(accounts, settings))()).toBe(
+      "JoyFox could not check that file. Nothing was imported. Choose the file again. If it still fails, reload the page, or export the file from JoyFox again.",
+    );
+    class Unfinished extends DataService {
+      override async previewImport() {
+        return { signature: "x" } as never;
+      }
+      override applyImport(): never {
+        throw new Error("write failed");
+      }
+    }
+    expect(await choose(new Unfinished(accounts, settings))()).toBe(
+      "JoyFox could not finish the import. Choose the file again to try again: records already stored are not added twice.",
+    );
+  });
+
   it("says a failed snapshot setting was not changed (U36)", async () => {
     let refuse = false;
     class Failing extends DataService {

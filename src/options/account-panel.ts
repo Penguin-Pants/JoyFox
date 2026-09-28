@@ -571,7 +571,7 @@ export class AccountPanel {
       this.#setStatus(
         display
           ? message("error.withSuffix.nothingChanged", { error: display })
-          : message("accounts.saveFailed"),
+          : message("common.saveFailed"),
         "error",
       );
     }

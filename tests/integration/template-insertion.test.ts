@@ -323,16 +323,28 @@ describe("M10 composer template picker", () => {
   });
 
   it("reports a failed read without touching the composer", async () => {
+    let offline = true;
     const api: TemplateClient = {
-      listTemplates: () => Promise.reject(new Error("offline")),
+      listTemplates: () =>
+        offline
+          ? Promise.reject(new Error("offline"))
+          : Promise.resolve({ accountId: "a", templates: [] }),
       openOptions: () => Promise.resolve(),
     };
     const view = new TemplatePicker(document, api);
     view.update();
     composer().value = "Draft";
     toggle().click();
-    await settle(() => status().includes("could not read"));
+    await settle(() => status().includes("could not load"));
+    expect(status()).toBe(
+      'JoyFox could not load your templates. Nothing was inserted. Click "JoyFox templates" again to try again.',
+    );
     expect(composer().value).toBe("Draft");
+    // The next step works: a second click reads again.
+    offline = false;
+    toggle().click();
+    await settle(() => !status().includes("could not load"));
+    expect(picker()?.textContent).toContain("No templates yet.");
   });
 
   it("survives inbox teardown, so it is not remounted in a loop", () => {

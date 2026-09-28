@@ -1417,7 +1417,7 @@ describe("rule form feedback (UX audit)", () => {
     deleteAll().click();
     await settle(() => deleteLine()?.getAttribute("role") === "alert");
     expect(deleteLine()?.textContent).toBe(
-      "JoyFox could not delete the rule. Nothing was changed.",
+      "JoyFox could not delete the rule. Nothing was changed. Try again. If it keeps failing, reload the page.",
     );
     expect(deleteAll().textContent).toBe("Delete whole contact rule");
     expect(await rules.getGlobalRule(account.id)).toBeDefined();

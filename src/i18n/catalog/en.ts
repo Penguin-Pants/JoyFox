@@ -252,7 +252,7 @@ export const en = {
   "quick.needsList":
     "Works only while this conversation shows in the ClubMail list beside it. Widen the window, or scroll the list until the conversation shows.",
   "quick.noProfile":
-    "JoyFox cannot find this member's profile address, where Ignore is, so it did nothing.",
+    "JoyFox cannot find the link to this member's profile, where Ignore is, so it did nothing. You can do it yourself: move the conversation to the trash with JoyClub's trash button, then open the member's profile and ignore them there.",
   "quick.resumed": "Ignore and Delete, continued from the conversation:",
   "quick.waitingMenu": "Waiting for JoyClub's profile menu…",
   "quick.previous": "Your last Ignore and Delete for this member:",
@@ -327,7 +327,8 @@ export const en = {
     "No contact rule is set, so JoyFox does not place this sender.",
   "panel.ruleOff.rule-disabled":
     "Your contact rule is turned off, so JoyFox does not place this sender.",
-  "panel.ruleOff.other": "JoyFox does not place this sender.",
+  "panel.ruleOff.other":
+    "JoyFox cannot place this sender right now. Reload the page to try again.",
   "panel.ruleOff.no-account":
     "No JoyFox account is active, so JoyFox shows nothing for this member.",
 
@@ -687,7 +688,7 @@ export const en = {
   "picker.toggle": "JoyFox templates",
   "picker.loading": "Loading templates…",
   "picker.readFailed":
-    "JoyFox could not read your templates. Nothing was inserted.",
+    'JoyFox could not load your templates. Nothing was inserted. Click "JoyFox templates" again to try again.',
   "picker.empty": "No templates yet. Add them on the JoyFox options page.",
   "picker.noAccount":
     "No JoyFox account is active. Choose one on the JoyFox options page.",
@@ -800,7 +801,6 @@ export const en = {
     "Only JoyFox shows this label. If you leave it empty, JoyFox shows the identifier.",
   "accounts.add": "Add account",
   "accounts.added": (p: { name: string }) => `Added ${p.name}.`,
-  "accounts.saveFailed": "That change could not be saved. Nothing was changed.",
 
   // Options page: contact rule
   "rule.readFailed":
@@ -943,7 +943,8 @@ export const en = {
     "Click again to delete the whole contact rule. JoyFox then stops sorting the inbox for this account.",
   "rule.removed":
     "Contact rule deleted. JoyFox no longer sorts the inbox for this account.",
-  "rule.removeFailed": "JoyFox could not delete the rule. Nothing was changed.",
+  "rule.removeFailed":
+    "JoyFox could not delete the rule. Nothing was changed. Try again. If it keeps failing, reload the page.",
   "rule.stale.account.saved":
     "The active account changed, so the rule was not saved. Check the active account on the Accounts tab before you change the rule again.",
   "rule.stale.account.removed":
@@ -1115,7 +1116,7 @@ export const en = {
   "data.confirm": "Confirm",
   "data.confirmLabel": (p: { label: T }) => `Confirm: ${p.label}`,
   "data.actionFailed":
-    "That action could not be completed. The counts shown now are what is stored.",
+    "JoyFox could not finish the delete. Some records may be deleted already: the counts shown now are what is still stored. Try again.",
   "data.exportFailed":
     "JoyFox could not create the export. Nothing was exported. Try again.",
   "data.import.title": "Import",
@@ -1164,11 +1165,11 @@ export const en = {
     p: { added: number; replaced: number },
     f: Format,
   ) =>
-    `Import complete: ${f.number(p.added)} record(s) added, ${f.number(p.replaced)} replaced by a newer version. Some settings could not be saved; check the active account.`,
+    `Import complete: ${f.number(p.added)} record(s) added, ${f.number(p.replaced)} replaced by a newer version. Some settings could not be saved (listed above). Set them again yourself.`,
   "data.import.incomplete":
-    "The import could not be completed. The counts shown now are what is stored.",
+    "JoyFox could not finish the import. Choose the file again to try again: records already stored are not added twice.",
   "data.import.unreadable":
-    "JoyFox could not read that file. Nothing was imported.",
+    "JoyFox could not check that file. Nothing was imported. Choose the file again. If it still fails, reload the page, or export the file from JoyFox again.",
 
   // Errors the UI shows (ExtensionError.display). No final full stop: the
   // panels add a suffix such as "Nothing was changed."

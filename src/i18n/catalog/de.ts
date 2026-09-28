@@ -225,7 +225,7 @@ export const de: Catalog = {
   "quick.needsList":
     "Klappt nur, während diese Unterhaltung in der ClubMail-Liste daneben zu sehen ist. Mach das Fenster breiter oder scrolle die Liste, bis die Unterhaltung erscheint.",
   "quick.noProfile":
-    "JoyFox findet die Profiladresse dieses Mitglieds nicht. Dort ist „Profil ignorieren“. JoyFox hat deshalb nichts getan.",
+    "JoyFox findet den Link zum Profil dieses Mitglieds nicht. Dort ist „Profil ignorieren“. JoyFox hat deshalb nichts getan. Du kannst es selbst tun: Verschiebe die Unterhaltung mit „In den Papierkorb schieben“ in den Papierkorb. Öffne dann das Profil des Mitglieds und ignoriere es dort mit „Profil ignorieren“.",
   "quick.resumed":
     "„Ignorieren und löschen“, fortgesetzt aus der Unterhaltung:",
   "quick.waitingMenu": "JoyFox wartet auf JoyClubs Profilmenü …",
@@ -301,7 +301,8 @@ export const de: Catalog = {
     "Es ist keine Kontaktregel gespeichert, deshalb ordnet JoyFox diese Person nicht ein.",
   "panel.ruleOff.rule-disabled":
     "Deine Kontaktregel ist ausgeschaltet, deshalb ordnet JoyFox diese Person nicht ein.",
-  "panel.ruleOff.other": "JoyFox ordnet diese Person nicht ein.",
+  "panel.ruleOff.other":
+    "JoyFox kann diese Person gerade nicht einordnen. Lade die Seite neu, um es noch einmal zu versuchen.",
   "panel.ruleOff.no-account":
     "Es ist kein JoyFox-Konto aktiv, deshalb zeigt JoyFox zu diesem Mitglied nichts an.",
 
@@ -631,7 +632,7 @@ export const de: Catalog = {
   "picker.toggle": "JoyFox-Vorlagen",
   "picker.loading": "Vorlagen werden geladen …",
   "picker.readFailed":
-    "JoyFox konnte deine Vorlagen nicht lesen. Es wurde nichts eingefügt.",
+    "JoyFox konnte deine Vorlagen nicht laden. Es wurde nichts eingefügt. Klicke noch einmal auf „JoyFox-Vorlagen“, um es erneut zu versuchen.",
   "picker.empty":
     "Noch keine Vorlagen. Lege sie in den JoyFox-Einstellungen an.",
   "picker.noAccount":
@@ -743,8 +744,6 @@ export const de: Catalog = {
     "Nur JoyFox zeigt diesen Namen. Wenn du ihn leer lässt, zeigt JoyFox die Kennung.",
   "accounts.add": "Konto hinzufügen",
   "accounts.added": (p) => `${p.name} wurde hinzugefügt.`,
-  "accounts.saveFailed":
-    "Diese Änderung konnte nicht gespeichert werden. Es wurde nichts geändert.",
 
   // Options page: contact rule
   "rule.readFailed":
@@ -879,7 +878,7 @@ export const de: Catalog = {
   "rule.removed":
     "Kontaktregel gelöscht. JoyFox sortiert den Posteingang für dieses Konto nicht mehr.",
   "rule.removeFailed":
-    "JoyFox konnte die Regel nicht löschen. Es wurde nichts geändert.",
+    "JoyFox konnte die Regel nicht löschen. Es wurde nichts geändert. Versuche es noch einmal. Wenn es weiter nicht klappt, lade die Seite neu.",
   "rule.stale.account.saved":
     "Das aktive Konto hat sich geändert, deshalb wurde die Regel nicht gespeichert. Prüfe im Tab „Konten“ das aktive Konto, bevor du die Regel noch einmal änderst.",
   "rule.stale.account.removed":
@@ -1033,7 +1032,7 @@ export const de: Catalog = {
   "data.confirm": "Bestätigen",
   "data.confirmLabel": (p) => `Bestätigen: ${p.label}`,
   "data.actionFailed":
-    "Diese Aktion konnte nicht abgeschlossen werden. Die angezeigten Zahlen zeigen, was jetzt gespeichert ist.",
+    "JoyFox konnte das Löschen nicht abschließen. Einige Datensätze sind vielleicht schon gelöscht: Die angezeigten Zahlen zeigen, was noch gespeichert ist. Versuche es noch einmal.",
   "data.exportFailed":
     "JoyFox konnte den Export nicht erstellen. Es wurde nichts exportiert. Versuche es noch einmal.",
   "data.import.title": "Importieren",
@@ -1077,11 +1076,11 @@ export const de: Catalog = {
   "data.import.complete": (p, f) =>
     `Import abgeschlossen: ${f.number(p.added)} Datensätze hinzugefügt, ${f.number(p.replaced)} durch eine neuere Version ersetzt.`,
   "data.import.completeSettingsFailed": (p, f) =>
-    `Import abgeschlossen: ${f.number(p.added)} Datensätze hinzugefügt, ${f.number(p.replaced)} durch eine neuere Version ersetzt. Einige Einstellungen konnten nicht gespeichert werden. Prüfe das aktive Konto.`,
+    `Import abgeschlossen: ${f.number(p.added)} Datensätze hinzugefügt, ${f.number(p.replaced)} durch eine neuere Version ersetzt. Einige Einstellungen konnten nicht gespeichert werden (siehe oben). Stelle sie selbst noch einmal ein.`,
   "data.import.incomplete":
-    "Der Import konnte nicht abgeschlossen werden. Die angezeigten Zahlen zeigen, was jetzt gespeichert ist.",
+    "JoyFox konnte den Import nicht abschließen. Wähle die Datei noch einmal, um es erneut zu versuchen: Bereits gespeicherte Datensätze werden nicht doppelt hinzugefügt.",
   "data.import.unreadable":
-    "JoyFox konnte diese Datei nicht lesen. Es wurde nichts importiert.",
+    "JoyFox konnte diese Datei nicht prüfen. Es wurde nichts importiert. Wähle die Datei noch einmal. Wenn es weiter nicht klappt, lade die Seite neu oder exportiere die Datei noch einmal aus JoyFox.",
 
   // Errors the UI shows
   "error.withSuffix.nothingChanged": (p) =>

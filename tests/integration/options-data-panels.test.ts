@@ -570,6 +570,17 @@ describe("M8 data panel", () => {
       () => importIdle() && text().includes("Settings that could not be saved"),
     );
     expect(text()).not.toContain("Settings added");
+    // The status points at the list above it and says what to do.
+    expect(text()).toContain(
+      "Some settings could not be saved (listed above). Set them again yourself.",
+    );
+    const result = root.querySelector(".joyfox-data__import-result")!;
+    const line = Array.from(
+      root.querySelectorAll(".joyfox-panel__status"),
+    ).find((node) => node.textContent?.includes("Import complete"))!;
+    expect(
+      result.compareDocumentPosition(line) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
   });
 
   it("checks even a file that changes nothing under the data lock", async () => {

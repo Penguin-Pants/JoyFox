@@ -209,6 +209,23 @@ describe("M7 options account switcher", () => {
     expect((await service.getActiveAccount())?.label).toBe("Account A");
   });
 
+  it("gives a next step when a change cannot be stored", async () => {
+    class Failing extends AccountService {
+      override createAccount(): never {
+        throw new Error("write refused");
+      }
+    }
+    await mountAccountPanel(
+      root,
+      new Failing(repositories.extensionAccounts, new MemorySettingsArea()),
+    );
+    await addAccount("synthetic-a");
+    expect(failed()).toBe(true);
+    expect(status()?.textContent).toBe(
+      "JoyFox could not save that change. Nothing was changed. Try again. If it keeps failing, reload the page.",
+    );
+  });
+
   it("renders a label as text rather than markup", async () => {
     await mountAccountPanel(root, service);
     await addAccount("synthetic-a", "<img src=x onerror=alert(1)>");

@@ -1531,6 +1531,10 @@ describe("M9 button and notice", () => {
     await vi.waitFor(() =>
       expect(notice()).toContain(t(QUICK_ACTION_TEXT.noProfile)),
     );
+    // No technical term, and a way to do it by hand.
+    expect(notice()).toContain(
+      "JoyFox cannot find the link to this member's profile, where Ignore is, so it did nothing. You can do it yourself: move the conversation to the trash with JoyClub's trash button, then open the member's profile and ignore them there.",
+    );
     expect(driver.clicks).toEqual([]);
     expect(await logged()).toEqual([]);
   });

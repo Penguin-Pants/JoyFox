@@ -780,6 +780,22 @@ describe("conversation and profile panel", () => {
     expect(header.nextElementSibling).toBe(panel()?.parentElement);
   });
 
+  it("says to reload when the answer holds no result for this member", async () => {
+    await rules.saveGlobalRule(ACCOUNT, knownRule());
+    setPage(CONVERSATION, conversationHtml);
+    const client = serviceClient();
+    client.evaluate = async () => ({
+      status: "ok" as const,
+      accountId: ACCOUNT,
+      results: [],
+    });
+    new MemberPanel(document, client).update("conversation");
+    await vi.waitFor(() => expect(panel()).not.toBeNull());
+    expect(panel()!.textContent).toContain(
+      "JoyFox cannot place this sender right now. Reload the page to try again.",
+    );
+  });
+
   it("shows one slim bar with the details closed until asked for", async () => {
     await rules.saveGlobalRule(ACCOUNT, knownRule());
     setPage(CONVERSATION, conversationHtml);

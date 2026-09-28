@@ -179,7 +179,7 @@ stay as they are.
 | `quick.region` | JoyFox Ignore and Delete | JoyFox: Ignorieren und löschen |
 | `quick.scope` | Experimental. One click moves this conversation to JoyClub's trash, then opens the member's profile and ignores them there. JoyFox stops at the first problem and tells you what was done. It never sends a message. | Experimentell. Ein Klick verschiebt diese Unterhaltung in JoyClubs Papierkorb, öffnet dann das Profil des Mitglieds und ignoriert es dort. JoyFox hält beim ersten Problem an und sagt dir, was erledigt wurde. JoyFox sendet nie eine Nachricht. |
 | `quick.needsList` | Works only while this conversation shows in the ClubMail list beside it. Widen the window, or scroll the list until the conversation shows. | Klappt nur, während diese Unterhaltung in der ClubMail-Liste daneben zu sehen ist. Mach das Fenster breiter oder scrolle die Liste, bis die Unterhaltung erscheint. |
-| `quick.noProfile` | JoyFox cannot find this member's profile address, where Ignore is, so it did nothing. | JoyFox findet die Profiladresse dieses Mitglieds nicht. Dort ist „Profil ignorieren“. JoyFox hat deshalb nichts getan. |
+| `quick.noProfile` | JoyFox cannot find the link to this member's profile, where Ignore is, so it did nothing. You can do it yourself: move the conversation to the trash with JoyClub's trash button, then open the member's profile and ignore them there. | JoyFox findet den Link zum Profil dieses Mitglieds nicht. Dort ist „Profil ignorieren“. JoyFox hat deshalb nichts getan. Du kannst es selbst tun: Verschiebe die Unterhaltung mit „In den Papierkorb schieben“ in den Papierkorb. Öffne dann das Profil des Mitglieds und ignoriere es dort mit „Profil ignorieren“. |
 | `quick.resumed` | Ignore and Delete, continued from the conversation: | „Ignorieren und löschen“, fortgesetzt aus der Unterhaltung: |
 | `quick.waitingMenu` | Waiting for JoyClub's profile menu… | JoyFox wartet auf JoyClubs Profilmenü … |
 | `quick.previous` | Your last Ignore and Delete for this member: | Dein letztes „Ignorieren und löschen“ für dieses Mitglied: |
@@ -254,7 +254,7 @@ stay as they are.
 | --- | --- | --- |
 | `panel.ruleOff.no-rule` | No contact rule is set, so JoyFox does not place this sender. | Es ist keine Kontaktregel gespeichert, deshalb ordnet JoyFox diese Person nicht ein. |
 | `panel.ruleOff.rule-disabled` | Your contact rule is turned off, so JoyFox does not place this sender. | Deine Kontaktregel ist ausgeschaltet, deshalb ordnet JoyFox diese Person nicht ein. |
-| `panel.ruleOff.other` | JoyFox does not place this sender. | JoyFox ordnet diese Person nicht ein. |
+| `panel.ruleOff.other` | JoyFox cannot place this sender right now. Reload the page to try again. | JoyFox kann diese Person gerade nicht einordnen. Lade die Seite neu, um es noch einmal zu versuchen. |
 | `panel.ruleOff.no-account` | No JoyFox account is active, so JoyFox shows nothing for this member. | Es ist kein JoyFox-Konto aktiv, deshalb zeigt JoyFox zu diesem Mitglied nichts an. |
 
 ## inbox
@@ -528,7 +528,7 @@ stay as they are.
 | --- | --- | --- |
 | `picker.toggle` | JoyFox templates | JoyFox-Vorlagen |
 | `picker.loading` | Loading templates… | Vorlagen werden geladen … |
-| `picker.readFailed` | JoyFox could not read your templates. Nothing was inserted. | JoyFox konnte deine Vorlagen nicht lesen. Es wurde nichts eingefügt. |
+| `picker.readFailed` | JoyFox could not load your templates. Nothing was inserted. Click "JoyFox templates" again to try again. | JoyFox konnte deine Vorlagen nicht laden. Es wurde nichts eingefügt. Klicke noch einmal auf „JoyFox-Vorlagen“, um es erneut zu versuchen. |
 | `picker.empty` | No templates yet. Add them on the JoyFox options page. | Noch keine Vorlagen. Lege sie in den JoyFox-Einstellungen an. |
 | `picker.noAccount` | No JoyFox account is active. Choose one on the JoyFox options page. | Kein JoyFox-Konto ist aktiv. Wähle eines in den JoyFox-Einstellungen. |
 | `picker.result.inserted` | Template inserted. Check the text, then click JoyClub's Send button yourself. | Vorlage eingefügt. Prüfe den Text und klicke dann selbst auf JoyClubs „Senden“. |
@@ -623,7 +623,6 @@ stay as they are.
 | `accounts.labelHint` | Only JoyFox shows this label. If you leave it empty, JoyFox shows the identifier. | Nur JoyFox zeigt diesen Namen. Wenn du ihn leer lässt, zeigt JoyFox die Kennung. |
 | `accounts.add` | Add account | Konto hinzufügen |
 | `accounts.added` | Added {name}. | {name} wurde hinzugefügt. |
-| `accounts.saveFailed` | That change could not be saved. Nothing was changed. | Diese Änderung konnte nicht gespeichert werden. Es wurde nichts geändert. |
 
 ## rule
 
@@ -717,7 +716,7 @@ stay as they are.
 | `rule.confirmDeleteAll` | Confirm delete | Löschen bestätigen |
 | `rule.deletePrompt` | Click again to delete the whole contact rule. JoyFox then stops sorting the inbox for this account. | Klicke noch einmal, um die ganze Kontaktregel zu löschen. JoyFox sortiert den Posteingang für dieses Konto dann nicht mehr. |
 | `rule.removed` | Contact rule deleted. JoyFox no longer sorts the inbox for this account. | Kontaktregel gelöscht. JoyFox sortiert den Posteingang für dieses Konto nicht mehr. |
-| `rule.removeFailed` | JoyFox could not delete the rule. Nothing was changed. | JoyFox konnte die Regel nicht löschen. Es wurde nichts geändert. |
+| `rule.removeFailed` | JoyFox could not delete the rule. Nothing was changed. Try again. If it keeps failing, reload the page. | JoyFox konnte die Regel nicht löschen. Es wurde nichts geändert. Versuche es noch einmal. Wenn es weiter nicht klappt, lade die Seite neu. |
 | `rule.stale.account.saved` | The active account changed, so the rule was not saved. Check the active account on the Accounts tab before you change the rule again. | Das aktive Konto hat sich geändert, deshalb wurde die Regel nicht gespeichert. Prüfe im Tab „Konten“ das aktive Konto, bevor du die Regel noch einmal änderst. |
 | `rule.stale.account.removed` | The active account changed, so the rule was not deleted. Check the active account on the Accounts tab before you delete a rule again. | Das aktive Konto hat sich geändert, deshalb wurde die Regel nicht gelöscht. Prüfe im Tab „Konten“ das aktive Konto, bevor du noch einmal eine Regel löschst. |
 | `rule.stale.rule.saved` | The rule was changed in another tab. It was not saved. The form now shows the saved rule. | Die Regel wurde in einem anderen Tab geändert. Sie wurde nicht gespeichert. Das Formular zeigt jetzt die gespeicherte Regel. |
@@ -839,7 +838,7 @@ stay as they are.
 | `data.deletedEverything` | Deleted all JoyFox data in this browser. | Alle JoyFox-Daten in diesem Browser wurden gelöscht. |
 | `data.confirm` | Confirm | Bestätigen |
 | `data.confirmLabel` | Confirm: {label} | Bestätigen: {label} |
-| `data.actionFailed` | That action could not be completed. The counts shown now are what is stored. | Diese Aktion konnte nicht abgeschlossen werden. Die angezeigten Zahlen zeigen, was jetzt gespeichert ist. |
+| `data.actionFailed` | JoyFox could not finish the delete. Some records may be deleted already: the counts shown now are what is still stored. Try again. | JoyFox konnte das Löschen nicht abschließen. Einige Datensätze sind vielleicht schon gelöscht: Die angezeigten Zahlen zeigen, was noch gespeichert ist. Versuche es noch einmal. |
 | `data.exportFailed` | JoyFox could not create the export. Nothing was exported. Try again. | JoyFox konnte den Export nicht erstellen. Es wurde nichts exportiert. Versuche es noch einmal. |
 | `data.import.title` | Import | Importieren |
 | `data.import.hint` | Import a JoyFox export file: everything, or one account. It is merged into what is stored here. An account with the same JoyClub identifier is merged into the existing one. For the same note, rule or placement the newer version wins; existing tags and corrections are kept. The import starts when you choose the file, and you then see what changed. | Importiere eine JoyFox-Exportdatei: alles oder ein Konto. Sie wird mit dem zusammengeführt, was hier gespeichert ist. Ein Konto mit derselben JoyClub-Kennung wird mit dem vorhandenen Konto zusammengeführt. Bei derselben Notiz, Regel oder Einordnung gewinnt die neuere Version. Vorhandene Tags und Korrekturen bleiben erhalten. Der Import beginnt, sobald du die Datei wählst, und danach siehst du, was sich geändert hat. |
@@ -867,9 +866,9 @@ stay as they are.
 | `data.import.running` | Importing the file. | Die Datei wird importiert. |
 | `data.import.nothing` | Everything in this file is already stored. Nothing was changed. | Alles in dieser Datei ist schon gespeichert. Es wurde nichts geändert. |
 | `data.import.complete` | Import complete: {added} record(s) added, {replaced} replaced by a newer version. | Import abgeschlossen: {added} Datensätze hinzugefügt, {replaced} durch eine neuere Version ersetzt. |
-| `data.import.completeSettingsFailed` | Import complete: {added} record(s) added, {replaced} replaced by a newer version. Some settings could not be saved; check the active account. | Import abgeschlossen: {added} Datensätze hinzugefügt, {replaced} durch eine neuere Version ersetzt. Einige Einstellungen konnten nicht gespeichert werden. Prüfe das aktive Konto. |
-| `data.import.incomplete` | The import could not be completed. The counts shown now are what is stored. | Der Import konnte nicht abgeschlossen werden. Die angezeigten Zahlen zeigen, was jetzt gespeichert ist. |
-| `data.import.unreadable` | JoyFox could not read that file. Nothing was imported. | JoyFox konnte diese Datei nicht lesen. Es wurde nichts importiert. |
+| `data.import.completeSettingsFailed` | Import complete: {added} record(s) added, {replaced} replaced by a newer version. Some settings could not be saved (listed above). Set them again yourself. | Import abgeschlossen: {added} Datensätze hinzugefügt, {replaced} durch eine neuere Version ersetzt. Einige Einstellungen konnten nicht gespeichert werden (siehe oben). Stelle sie selbst noch einmal ein. |
+| `data.import.incomplete` | JoyFox could not finish the import. Choose the file again to try again: records already stored are not added twice. | JoyFox konnte den Import nicht abschließen. Wähle die Datei noch einmal, um es erneut zu versuchen: Bereits gespeicherte Datensätze werden nicht doppelt hinzugefügt. |
+| `data.import.unreadable` | JoyFox could not check that file. Nothing was imported. Choose the file again. If it still fails, reload the page, or export the file from JoyFox again. | JoyFox konnte diese Datei nicht prüfen. Es wurde nichts importiert. Wähle die Datei noch einmal. Wenn es weiter nicht klappt, lade die Seite neu oder exportiere die Datei noch einmal aus JoyFox. |
 
 ## error
 
