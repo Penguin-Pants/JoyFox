@@ -76,13 +76,27 @@ fields keep their system look.
 
 ## Store assets
 
-Store images are in `assets/brand/store/` and never go into a build.
+Store images never go into a build. The brand package's icons, promo tiles and
+screenshot templates are in `assets/brand/store/`. The screenshots are in
+`assets/store/screenshots/`.
 
 - **Firefox Add-ons:** `store/firefox/` (icons, screenshot template). JoyFox is
   unlisted for now (`distribution.md`), so AMO shows none of them yet.
 - **Chrome Web Store:** `store/chrome/` (the 128 px store icon, the small promo
   tile, the marquee, a screenshot template). See `chrome.md`.
-- Replace a screenshot template with real JoyFox screens before you upload it.
+- **Screenshots:** five 1280×800 PNGs (24-bit, no alpha) for both stores: inbox
+  sorting, a profile's notes and shared preferences, the contact rule, the
+  events calendar and "Your data". Each shows the real JoyFox UI with invented
+  data and says so in its caption. JoyClub's pages are plain stand-ins, without
+  any JoyClub logo or asset.
+- **Make them again** after a UI change: `npm run screenshots:store`
+  (`scripts/store-screenshots/capture.mjs`). It builds the Chrome version and
+  runs it in Chromium with a stand-in for the extension API (`shim.ts`) and the
+  demo data (`seed.ts`). The stand-in pages are in `pages.mjs`. Every request to
+  a real site is refused. It needs Playwright with its Chromium, which is not a
+  project dependency (`npm install -g playwright`, then
+  `npx playwright install chromium`). The committed images use the Inter font as
+  the system font; without it, the text uses the system's own font.
 - `assets/brand/social/` holds a GitHub avatar and a social preview. They are
   uploaded in GitHub's settings (the account's avatar, the repository's social
   preview), not read from the repository.
