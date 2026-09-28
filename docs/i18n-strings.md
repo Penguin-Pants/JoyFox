@@ -718,8 +718,8 @@ stay as they are.
 | `rule.deletePrompt` | Click again to delete the whole contact rule. JoyFox then stops sorting the inbox for this account. | Klicke noch einmal, um die ganze Kontaktregel zu löschen. JoyFox sortiert den Posteingang für dieses Konto dann nicht mehr. |
 | `rule.removed` | Contact rule deleted. JoyFox no longer sorts the inbox for this account. | Kontaktregel gelöscht. JoyFox sortiert den Posteingang für dieses Konto nicht mehr. |
 | `rule.removeFailed` | JoyFox could not delete the rule. Nothing was changed. | JoyFox konnte die Regel nicht löschen. Es wurde nichts geändert. |
-| `rule.stale.account.saved` | The active account changed. The rule was not saved. Check the form and try again. | Das aktive Konto hat sich geändert. Die Regel wurde nicht gespeichert. Prüfe das Formular und versuche es noch einmal. |
-| `rule.stale.account.removed` | The active account changed. The rule was not deleted. Check the form and try again. | Das aktive Konto hat sich geändert. Die Regel wurde nicht gelöscht. Prüfe das Formular und versuche es noch einmal. |
+| `rule.stale.account.saved` | The active account changed, so the rule was not saved. Check the active account on the Accounts tab before you change the rule again. | Das aktive Konto hat sich geändert, deshalb wurde die Regel nicht gespeichert. Prüfe im Tab „Konten“ das aktive Konto, bevor du die Regel noch einmal änderst. |
+| `rule.stale.account.removed` | The active account changed, so the rule was not deleted. Check the active account on the Accounts tab before you delete a rule again. | Das aktive Konto hat sich geändert, deshalb wurde die Regel nicht gelöscht. Prüfe im Tab „Konten“ das aktive Konto, bevor du noch einmal eine Regel löschst. |
 | `rule.stale.rule.saved` | The rule was changed in another tab. It was not saved. The form now shows the saved rule. | Die Regel wurde in einem anderen Tab geändert. Sie wurde nicht gespeichert. Das Formular zeigt jetzt die gespeicherte Regel. |
 | `rule.stale.rule.removed` | The rule was changed in another tab. It was not deleted. The form now shows the saved rule. | Die Regel wurde in einem anderen Tab geändert. Sie wurde nicht gelöscht. Das Formular zeigt jetzt die gespeicherte Regel. |
 | `rule.changedElsewhere` | The rule was changed in another tab. The form now shows the saved rule. | Die Regel wurde in einem anderen Tab geändert. Das Formular zeigt jetzt die gespeicherte Regel. |
@@ -752,7 +752,7 @@ stay as they are.
 | `templates.cancel` | Cancel editing | Bearbeiten abbrechen |
 | `templates.saved` | Saved {name}. | {name} wurde gespeichert. |
 | `templates.added` | Added {name}. | {name} wurde hinzugefügt. |
-| `templates.accountChanged` | The active account changed. Nothing was changed. | Das aktive Konto hat sich geändert. Es wurde nichts geändert. |
+| `templates.accountChanged` | The active account changed, so nothing was changed. Check the active account on the Accounts tab before you try again. | Das aktive Konto hat sich geändert, deshalb wurde nichts geändert. Prüfe im Tab „Konten“ das aktive Konto, bevor du es noch einmal versuchst. |
 
 ## entity
 
@@ -890,7 +890,7 @@ stay as they are.
 | `error.code.UnsupportedPage` | JoyFox does not support this page | JoyFox unterstützt diese Seite nicht |
 | `error.account.emptyIdentifier` | An account needs a non-empty identifier | Ein Konto braucht eine Kennung |
 | `error.account.duplicate` | That account identifier is already registered | Diese Kontokennung ist schon gespeichert |
-| `error.account.notRegistered` | Cannot activate an account that is not registered | Ein Konto, das nicht gespeichert ist, kann nicht aktiv werden |
+| `error.account.notRegistered` | That account is no longer in the list, for example because it was removed in another tab | Dieses Konto ist nicht mehr in der Liste, zum Beispiel weil es in einem anderen Tab entfernt wurde |
 | `error.account.gone` | That account no longer exists | Dieses Konto gibt es nicht mehr |
 | `error.account.changed` | The active account changed | Das aktive Konto hat sich geändert |
 | `error.template.noName` | A template needs a name | Eine Vorlage braucht einen Namen |

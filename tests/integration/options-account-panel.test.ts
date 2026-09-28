@@ -193,6 +193,22 @@ describe("M7 options account switcher", () => {
     expect(await service.listAccounts()).toHaveLength(1);
   });
 
+  it("says in plain words when the account to use was removed elsewhere", async () => {
+    await mountAccountPanel(root, service);
+    await addAccount("synthetic-a", "Account A");
+    await addAccount("synthetic-b", "Account B");
+    const other = (await service.listAccounts()).find(
+      (account) => account.label === "Account B",
+    )!;
+    // Another tab removes B; this tab has not redrawn yet.
+    await service.deleteAccount(other.id);
+    await click(button(".joyfox-panel__activate")!, failed);
+    expect(status()?.textContent).toBe(
+      "That account is no longer in the list, for example because it was removed in another tab. Nothing was changed.",
+    );
+    expect((await service.getActiveAccount())?.label).toBe("Account A");
+  });
+
   it("renders a label as text rather than markup", async () => {
     await mountAccountPanel(root, service);
     await addAccount("synthetic-a", "<img src=x onerror=alert(1)>");

@@ -881,9 +881,9 @@ export const de: Catalog = {
   "rule.removeFailed":
     "JoyFox konnte die Regel nicht löschen. Es wurde nichts geändert.",
   "rule.stale.account.saved":
-    "Das aktive Konto hat sich geändert. Die Regel wurde nicht gespeichert. Prüfe das Formular und versuche es noch einmal.",
+    "Das aktive Konto hat sich geändert, deshalb wurde die Regel nicht gespeichert. Prüfe im Tab „Konten“ das aktive Konto, bevor du die Regel noch einmal änderst.",
   "rule.stale.account.removed":
-    "Das aktive Konto hat sich geändert. Die Regel wurde nicht gelöscht. Prüfe das Formular und versuche es noch einmal.",
+    "Das aktive Konto hat sich geändert, deshalb wurde die Regel nicht gelöscht. Prüfe im Tab „Konten“ das aktive Konto, bevor du noch einmal eine Regel löschst.",
   "rule.stale.rule.saved":
     "Die Regel wurde in einem anderen Tab geändert. Sie wurde nicht gespeichert. Das Formular zeigt jetzt die gespeicherte Regel.",
   "rule.stale.rule.removed":
@@ -922,7 +922,7 @@ export const de: Catalog = {
   "templates.saved": (p) => `${p.name} wurde gespeichert.`,
   "templates.added": (p) => `${p.name} wurde hinzugefügt.`,
   "templates.accountChanged":
-    "Das aktive Konto hat sich geändert. Es wurde nichts geändert.",
+    "Das aktive Konto hat sich geändert, deshalb wurde nichts geändert. Prüfe im Tab „Konten“ das aktive Konto, bevor du es noch einmal versuchst.",
 
   // Options page: your data
   "entity.extensionAccounts": "Kontodatensatz",
@@ -1109,7 +1109,7 @@ export const de: Catalog = {
   "error.account.emptyIdentifier": "Ein Konto braucht eine Kennung",
   "error.account.duplicate": "Diese Kontokennung ist schon gespeichert",
   "error.account.notRegistered":
-    "Ein Konto, das nicht gespeichert ist, kann nicht aktiv werden",
+    "Dieses Konto ist nicht mehr in der Liste, zum Beispiel weil es in einem anderen Tab entfernt wurde",
   "error.account.gone": "Dieses Konto gibt es nicht mehr",
   "error.account.changed": "Das aktive Konto hat sich geändert",
   "error.template.noName": "Eine Vorlage braucht einen Namen",

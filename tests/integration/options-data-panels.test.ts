@@ -807,6 +807,9 @@ describe("M10 template panel", () => {
     await accounts.setActiveAccount(b);
     await submit("Late", "Text");
     await settle(() => text().includes("The active account changed"));
+    expect(text()).toContain(
+      "The active account changed, so nothing was changed. Check the active account on the Accounts tab before you try again.",
+    );
     expect(await templates.list(a)).toEqual([]);
     expect(await templates.list(b)).toEqual([]);
   });

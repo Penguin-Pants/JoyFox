@@ -945,9 +945,9 @@ export const en = {
     "Contact rule deleted. JoyFox no longer sorts the inbox for this account.",
   "rule.removeFailed": "JoyFox could not delete the rule. Nothing was changed.",
   "rule.stale.account.saved":
-    "The active account changed. The rule was not saved. Check the form and try again.",
+    "The active account changed, so the rule was not saved. Check the active account on the Accounts tab before you change the rule again.",
   "rule.stale.account.removed":
-    "The active account changed. The rule was not deleted. Check the form and try again.",
+    "The active account changed, so the rule was not deleted. Check the active account on the Accounts tab before you delete a rule again.",
   "rule.stale.rule.saved":
     "The rule was changed in another tab. It was not saved. The form now shows the saved rule.",
   "rule.stale.rule.removed":
@@ -987,7 +987,7 @@ export const en = {
   "templates.saved": (p: { name: string }) => `Saved ${p.name}.`,
   "templates.added": (p: { name: string }) => `Added ${p.name}.`,
   "templates.accountChanged":
-    "The active account changed. Nothing was changed.",
+    "The active account changed, so nothing was changed. Check the active account on the Accounts tab before you try again.",
 
   // Options page: your data
   "entity.extensionAccounts": "Account record",
@@ -1194,7 +1194,7 @@ export const en = {
   "error.account.emptyIdentifier": "An account needs a non-empty identifier",
   "error.account.duplicate": "That account identifier is already registered",
   "error.account.notRegistered":
-    "Cannot activate an account that is not registered",
+    "That account is no longer in the list, for example because it was removed in another tab",
   "error.account.gone": "That account no longer exists",
   "error.account.changed": "The active account changed",
   "error.template.noName": "A template needs a name",

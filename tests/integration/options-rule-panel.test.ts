@@ -356,7 +356,11 @@ describe("M4 rule builder panel", () => {
     input("joyfox-rule-all-verified-on").checked = true;
     submit();
     await settle(() => status()?.getAttribute("data-kind") === "error");
-    expect(status()?.textContent).toContain("The active account changed");
+    // The form now belongs to another account (or none): "try again"
+    // alone would change the wrong account's rule.
+    expect(status()?.textContent).toBe(
+      "The active account changed, so the rule was not saved. Check the active account on the Accounts tab before you change the rule again.",
+    );
     expect(await rules.getGlobalRule(a.id)).toBeUndefined();
     expect(await rules.getGlobalRule(b.id)).toBeUndefined();
   });
@@ -376,7 +380,9 @@ describe("M4 rule builder panel", () => {
     deleteAll().click();
     deleteAll().click();
     await settle(() => status()?.getAttribute("data-kind") === "error");
-    expect(status()?.textContent).toContain("The rule was not deleted");
+    expect(status()?.textContent).toBe(
+      "The active account changed, so the rule was not deleted. Check the active account on the Accounts tab before you delete a rule again.",
+    );
     expect(await rules.getGlobalRule(a.id)).toBeDefined();
   });
 
