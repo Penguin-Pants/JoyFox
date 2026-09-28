@@ -382,6 +382,12 @@ export class QuickIgnoreDelete {
     }, this.returnWaitMs);
   }
 
+  /** A return still waiting is dropped: the flag is off or the account changed. */
+  #cancelReturn(): void {
+    clearTimeout(this.#returnTimer);
+    this.#returnTimer = undefined;
+  }
+
   /**
    * The language changed: the button, its note and the notice are drawn
    * again. A run in progress is not touched.
@@ -500,6 +506,7 @@ export class QuickIgnoreDelete {
     // still going reports what it did on this page when it stops.
     if (this.#running) this.#stop = "account-changed";
     else this.#result = undefined;
+    this.#cancelReturn();
     this.teardown();
     this.invalidate();
   }
@@ -538,8 +545,7 @@ export class QuickIgnoreDelete {
   turnOff(): void {
     if (this.#running) this.#stop = "turned-off";
     this.#result = undefined;
-    clearTimeout(this.#returnTimer);
-    this.#returnTimer = undefined;
+    this.#cancelReturn();
     this.#discardHandOff();
     this.leave();
   }

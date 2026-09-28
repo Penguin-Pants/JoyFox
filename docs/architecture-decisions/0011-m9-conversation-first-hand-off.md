@@ -189,7 +189,8 @@ profile. The owner wants it to go back to the ClubMail list.
   announce it.
 - A run that stops (`Failed`) stays on the profile. Its notice names the next
   manual step, and Ignore is done there (owner decision, 2026-09-28).
-- The move happens only if the page still shows the run's member's profile and
-  the flag is still on. A user who moved on during the pause is not taken back.
+- The move happens only if the page still shows the run's member's profile, the
+  flag is still on and the active account did not change. A user who moved on
+  during the pause is not taken back.
 
 No permission, schema version or UI string changed.

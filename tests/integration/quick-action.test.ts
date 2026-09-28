@@ -2187,6 +2187,17 @@ describe("M9 button and notice", () => {
     expect(visited).toEqual([]);
   });
 
+  it("does not return once the account changes", async () => {
+    const visited: string[] = [];
+    const quick = await handedOffToProfile(new FakeDriver(), visited, 60);
+    await vi.waitFor(() =>
+      expect(notice()).toContain("Ignore and Delete finished."),
+    );
+    quick.accountChanged();
+    await new Promise((resolve) => setTimeout(resolve, 120));
+    expect(visited).toEqual([]);
+  });
+
   it("does not return when the flag is turned off while the end is stored", async () => {
     // Hold the last stored step, so the flag goes off before the run ends.
     let release: () => void = () => undefined;
