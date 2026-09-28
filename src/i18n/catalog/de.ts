@@ -33,6 +33,7 @@ export const de: Catalog = {
   "common.saveFailed":
     "JoyFox konnte diese Änderung nicht speichern. Es wurde nichts geändert. Versuche es noch einmal. Wenn es weiter nicht klappt, lade die Seite neu.",
   "legacy.text": (p) => p.text,
+  "common.textUnavailable": "(Dieser Text kann nicht angezeigt werden.)",
 
   // Triage reasons
   "triage.reason.unknownValue": (p) =>
@@ -152,7 +153,7 @@ export const de: Catalog = {
   "action.where.before": (p) => `vor „${p.step}“`,
   "action.where.during": (p) => `während „${p.step}“`,
   "action.failure.control-missing": (p) =>
-    `JoyFox hat JoyClubs Menüpunkt „${p.step}“ nicht gefunden.`,
+    `JoyFox hat auf dieser Seite JoyClubs Option „${p.step}“ nicht gefunden.`,
   "action.failure.confirmation-missing": (p) =>
     `JoyClubs Bestätigung für „${p.step}“ ist nicht erschienen.`,
   "action.failure.not-verified": (p) =>
@@ -225,7 +226,7 @@ export const de: Catalog = {
   "quick.needsList":
     "Klappt nur, während diese Unterhaltung in der ClubMail-Liste daneben zu sehen ist. Mach das Fenster breiter oder scrolle die Liste, bis die Unterhaltung erscheint.",
   "quick.noProfile":
-    "JoyFox findet die Profiladresse dieses Mitglieds nicht. Dort ist „Profil ignorieren“. JoyFox hat deshalb nichts getan.",
+    "JoyFox findet den Link zum Profil dieses Mitglieds nicht. Dort ist „Profil ignorieren“. JoyFox hat deshalb nichts getan. Du kannst es selbst tun: Verschiebe die Unterhaltung mit „In den Papierkorb schieben“ in den Papierkorb. Öffne dann das Profil des Mitglieds und ignoriere es dort mit „Profil ignorieren“.",
   "quick.resumed":
     "„Ignorieren und löschen“, fortgesetzt aus der Unterhaltung:",
   "quick.waitingMenu": "JoyFox wartet auf JoyClubs Profilmenü …",
@@ -301,7 +302,8 @@ export const de: Catalog = {
     "Es ist keine Kontaktregel gespeichert, deshalb ordnet JoyFox diese Person nicht ein.",
   "panel.ruleOff.rule-disabled":
     "Deine Kontaktregel ist ausgeschaltet, deshalb ordnet JoyFox diese Person nicht ein.",
-  "panel.ruleOff.other": "JoyFox ordnet diese Person nicht ein.",
+  "panel.ruleOff.other":
+    "JoyFox kann diese Person gerade nicht einordnen. Lade die Seite neu, um es noch einmal zu versuchen.",
   "panel.ruleOff.no-account":
     "Es ist kein JoyFox-Konto aktiv, deshalb zeigt JoyFox zu diesem Mitglied nichts an.",
 
@@ -594,7 +596,7 @@ export const de: Catalog = {
   "compat.sort.on":
     "Nach gemeinsamen Vorlieben sortiert. Mitglieder, deren Profil du noch nicht geöffnet hast, stehen am Ende.",
   "compat.sort.unavailable":
-    "JoyFox kann diese Liste nicht sortieren, weil ihr Aufbau das nicht zulässt.",
+    "JoyFox kann die Ergebnisse so, wie JoyClub sie gerade zeigt, nicht sortieren. Ihre Reihenfolge ist unverändert.",
   "searches.heading": "Gespeicherte JoyFox-Suchen",
   "searches.loading": "Gespeicherte Suchen werden geladen …",
   "searches.readFailed":
@@ -631,7 +633,7 @@ export const de: Catalog = {
   "picker.toggle": "JoyFox-Vorlagen",
   "picker.loading": "Vorlagen werden geladen …",
   "picker.readFailed":
-    "JoyFox konnte deine Vorlagen nicht lesen. Es wurde nichts eingefügt.",
+    "JoyFox konnte deine Vorlagen nicht laden. Es wurde nichts eingefügt. Klicke noch einmal auf „JoyFox-Vorlagen“, um es erneut zu versuchen.",
   "picker.empty":
     "Noch keine Vorlagen. Lege sie in den JoyFox-Einstellungen an.",
   "picker.noAccount":
@@ -639,7 +641,7 @@ export const de: Catalog = {
   "picker.result.inserted":
     "Vorlage eingefügt. Prüfe den Text und klicke dann selbst auf JoyClubs „Senden“.",
   "picker.result.not-editable":
-    "Das Nachrichtenfeld kann gerade nicht bearbeitet werden. Es wurde nichts eingefügt.",
+    "Das Nachrichtenfeld kann gerade nicht bearbeitet werden. Es wurde nichts eingefügt. Warte, bis du in das Nachrichtenfeld tippen kannst, und versuche es dann noch einmal.",
   "picker.result.too-long": (p, f) =>
     `Mit der Vorlage wäre die Nachricht ${f.plural(p.over, {
       one: "1 Zeichen",
@@ -743,8 +745,6 @@ export const de: Catalog = {
     "Nur JoyFox zeigt diesen Namen. Wenn du ihn leer lässt, zeigt JoyFox die Kennung.",
   "accounts.add": "Konto hinzufügen",
   "accounts.added": (p) => `${p.name} wurde hinzugefügt.`,
-  "accounts.saveFailed":
-    "Diese Änderung konnte nicht gespeichert werden. Es wurde nichts geändert.",
 
   // Options page: contact rule
   "rule.readFailed":
@@ -879,11 +879,11 @@ export const de: Catalog = {
   "rule.removed":
     "Kontaktregel gelöscht. JoyFox sortiert den Posteingang für dieses Konto nicht mehr.",
   "rule.removeFailed":
-    "JoyFox konnte die Regel nicht löschen. Es wurde nichts geändert.",
+    "JoyFox konnte die Regel nicht löschen. Es wurde nichts geändert. Versuche es noch einmal. Wenn es weiter nicht klappt, lade die Seite neu.",
   "rule.stale.account.saved":
-    "Das aktive Konto hat sich geändert. Die Regel wurde nicht gespeichert. Prüfe das Formular und versuche es noch einmal.",
+    "Das aktive Konto hat sich geändert, deshalb wurde die Regel nicht gespeichert. Prüfe im Tab „Konten“ das aktive Konto, bevor du die Regel noch einmal änderst.",
   "rule.stale.account.removed":
-    "Das aktive Konto hat sich geändert. Die Regel wurde nicht gelöscht. Prüfe das Formular und versuche es noch einmal.",
+    "Das aktive Konto hat sich geändert, deshalb wurde die Regel nicht gelöscht. Prüfe im Tab „Konten“ das aktive Konto, bevor du noch einmal eine Regel löschst.",
   "rule.stale.rule.saved":
     "Die Regel wurde in einem anderen Tab geändert. Sie wurde nicht gespeichert. Das Formular zeigt jetzt die gespeicherte Regel.",
   "rule.stale.rule.removed":
@@ -922,7 +922,7 @@ export const de: Catalog = {
   "templates.saved": (p) => `${p.name} wurde gespeichert.`,
   "templates.added": (p) => `${p.name} wurde hinzugefügt.`,
   "templates.accountChanged":
-    "Das aktive Konto hat sich geändert. Es wurde nichts geändert.",
+    "Das aktive Konto hat sich geändert, deshalb wurde nichts geändert. Prüfe im Tab „Konten“ das aktive Konto, bevor du es noch einmal versuchst.",
 
   // Options page: your data
   "entity.extensionAccounts": "Kontodatensatz",
@@ -1033,7 +1033,7 @@ export const de: Catalog = {
   "data.confirm": "Bestätigen",
   "data.confirmLabel": (p) => `Bestätigen: ${p.label}`,
   "data.actionFailed":
-    "Diese Aktion konnte nicht abgeschlossen werden. Die angezeigten Zahlen zeigen, was jetzt gespeichert ist.",
+    "JoyFox konnte das Löschen nicht abschließen. Einige Datensätze sind vielleicht schon gelöscht: Die angezeigten Zahlen zeigen, was noch gespeichert ist. Versuche es noch einmal.",
   "data.exportFailed":
     "JoyFox konnte den Export nicht erstellen. Es wurde nichts exportiert. Versuche es noch einmal.",
   "data.import.title": "Importieren",
@@ -1065,6 +1065,8 @@ export const de: Catalog = {
   "data.setting.sharedEventException": "Ausnahme für gemeinsame Events",
   "data.setting.snapshotRetention": "Momentaufnahmen je Mitglied",
   "data.setting.diagnostics": "Diagnose",
+  "data.import.settingsUnknown":
+    "Die Datei enthält außerdem Einstellungen, die diese JoyFox-Version nicht kennt. Sie wurden nicht importiert.",
   "data.import.settingsSkipped": (p) =>
     `Einstellungen in der Datei, die nie importiert werden (sie schalten Funktionen ein): ${p.keys}.`,
   "data.import.settingsNotSaved": (p) =>
@@ -1077,11 +1079,11 @@ export const de: Catalog = {
   "data.import.complete": (p, f) =>
     `Import abgeschlossen: ${f.number(p.added)} Datensätze hinzugefügt, ${f.number(p.replaced)} durch eine neuere Version ersetzt.`,
   "data.import.completeSettingsFailed": (p, f) =>
-    `Import abgeschlossen: ${f.number(p.added)} Datensätze hinzugefügt, ${f.number(p.replaced)} durch eine neuere Version ersetzt. Einige Einstellungen konnten nicht gespeichert werden. Prüfe das aktive Konto.`,
+    `Import abgeschlossen: ${f.number(p.added)} Datensätze hinzugefügt, ${f.number(p.replaced)} durch eine neuere Version ersetzt. Einige Einstellungen konnten nicht gespeichert werden (siehe oben). Stelle sie selbst noch einmal ein.`,
   "data.import.incomplete":
-    "Der Import konnte nicht abgeschlossen werden. Die angezeigten Zahlen zeigen, was jetzt gespeichert ist.",
+    "JoyFox konnte den Import nicht abschließen. Wähle die Datei noch einmal, um es erneut zu versuchen: Bereits gespeicherte Datensätze werden nicht doppelt hinzugefügt.",
   "data.import.unreadable":
-    "JoyFox konnte diese Datei nicht lesen. Es wurde nichts importiert.",
+    "JoyFox konnte diese Datei nicht prüfen. Es wurde nichts importiert. Wähle die Datei noch einmal. Wenn es weiter nicht klappt, lade die Seite neu oder exportiere die Datei noch einmal aus JoyFox.",
 
   // Errors the UI shows
   "error.withSuffix.nothingChanged": (p) =>
@@ -1094,22 +1096,12 @@ export const de: Catalog = {
     `${p.error}. Es wurde nichts exportiert. Versuche es noch einmal.`,
   "error.withSuffix.settingNotChanged": (p) =>
     `${p.error}. Die Einstellung wurde nicht geändert. Versuche es noch einmal.`,
-  "error.code.SelectorUnavailable":
-    "JoyFox findet das erwartete Element auf der Seite nicht",
-  "error.code.ExtractionInvalid": "Die Daten sind ungültig",
-  "error.code.IdentityMismatch": "Konto oder Mitglied passen nicht zusammen",
-  "error.code.StorageError":
-    "JoyFox konnte seine gespeicherten Daten nicht lesen oder schreiben",
-  "error.code.RuleEvaluationError":
-    "Die Kontaktregel konnte nicht geprüft werden",
-  "error.code.ActionStepFailed":
-    "Ein Schritt auf JoyClub wurde nicht abgeschlossen",
-  "error.code.NavigationTimeout": "Die Seite hat nicht rechtzeitig geladen",
-  "error.code.UnsupportedPage": "JoyFox unterstützt diese Seite nicht",
-  "error.account.emptyIdentifier": "Ein Konto braucht eine Kennung",
-  "error.account.duplicate": "Diese Kontokennung ist schon gespeichert",
+  "error.account.emptyIdentifier":
+    "Gib zuerst die Kennung deines JoyClub-Kontos ein",
+  "error.account.duplicate":
+    "Ein Konto mit dieser Kennung ist schon in der Liste. Verwende dieses Konto oder gib eine andere Kennung ein",
   "error.account.notRegistered":
-    "Ein Konto, das nicht gespeichert ist, kann nicht aktiv werden",
+    "Dieses Konto ist nicht mehr in der Liste, zum Beispiel weil es in einem anderen Tab entfernt wurde",
   "error.account.gone": "Dieses Konto gibt es nicht mehr",
   "error.account.changed": "Das aktive Konto hat sich geändert",
   "error.template.noName": "Eine Vorlage braucht einen Namen",
@@ -1140,8 +1132,8 @@ export const de: Catalog = {
     "Die Datei sagt nicht, ob sie ein Konto oder alle Daten enthält. Wähle eine Datei, die JoyFox exportiert hat",
   "error.import.noAccountNamed":
     "Die Datei ist der Export eines Kontos, nennt das Konto aber nicht. Wähle eine Datei, die JoyFox exportiert hat",
-  "error.import.unknownType": (p) =>
-    `Die Datei enthält eine Art von Daten, die JoyFox nicht kennt (${p.name}). Wähle eine Datei, die JoyFox exportiert hat`,
+  "error.import.unknownType":
+    "Die Datei enthält eine Art von Daten, die JoyFox nicht kennt. Wähle eine Datei, die JoyFox exportiert hat",
   "error.import.notList": (p) =>
     `Der Teil „${p.entity}“ der Datei ist beschädigt. Wähle eine Datei, die JoyFox exportiert hat`,
   "error.import.notRecord": (p, f) =>
@@ -1149,9 +1141,9 @@ export const de: Catalog = {
   "error.import.forbiddenKey": (p, f) =>
     `Eintrag ${f.number(p.index)} in „${p.entity}“ enthält einen Feldnamen, den JoyFox nicht erlaubt. Wähle eine Datei, die JoyFox exportiert hat`,
   "error.import.unknownField": (p, f) =>
-    `Eintrag ${f.number(p.index)} in „${p.entity}“ enthält ein Feld, das JoyFox nicht kennt (${p.field}). Wähle eine Datei, die JoyFox exportiert hat`,
+    `Eintrag ${f.number(p.index)} in „${p.entity}“ enthält ein Feld, das JoyFox nicht kennt. Wähle eine Datei, die JoyFox exportiert hat`,
   "error.import.tooLong": (p, f) =>
-    `Eintrag ${f.number(p.index)} in „${p.entity}“ ist zu lang: ${p.field} hat mehr als ${f.number(p.maximum)} Zeichen. Wähle eine Datei, die JoyFox exportiert hat`,
+    `Eintrag ${f.number(p.index)} in „${p.entity}“ enthält einen Text mit mehr als ${f.number(p.maximum)} Zeichen. Wähle eine Datei, die JoyFox exportiert hat`,
   "error.import.invalid": (p, f) =>
     `Eintrag ${f.number(p.index)} in „${p.entity}“ ist beschädigt. Wähle eine Datei, die JoyFox exportiert hat`,
   "error.import.future": (p, f) =>
@@ -1170,8 +1162,8 @@ export const de: Catalog = {
     "Die Einstellungen in der Datei sind beschädigt. Wähle eine Datei, die JoyFox exportiert hat",
   "error.import.settingsForbidden":
     "Die Einstellungen in der Datei enthalten einen Namen, den JoyFox nicht erlaubt. Wähle eine Datei, die JoyFox exportiert hat",
-  "error.import.unknownSetting": (p) =>
-    `Die Datei enthält eine Einstellung, die JoyFox nicht verwendet (${p.key}). Wähle eine Datei, die JoyFox exportiert hat`,
+  "error.import.unknownSetting":
+    "Die Datei enthält eine Einstellung, die JoyFox nicht verwendet. Wähle eine Datei, die JoyFox exportiert hat",
   "error.import.orphans":
     "Einige Datensätze in der Datei gehören zu einem Konto, das die Datei nicht enthält. Wähle eine Datei, die JoyFox exportiert hat",
   "error.import.sameRecordTwice":

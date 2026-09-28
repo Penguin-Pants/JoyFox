@@ -232,8 +232,16 @@ describe("M10 composer template picker", () => {
     composer().disabled = true;
     items()[0]!.focus();
     items()[0]!.click();
-    expect(status()).toContain("cannot be edited right now");
+    expect(status()).toBe(
+      "The message field cannot be edited right now. Nothing was inserted. Wait until you can type in the message field, then try again.",
+    );
     expect(document.activeElement).toBe(toggle());
+    // The next step works: once the field takes text, the insert goes in.
+    composer().disabled = false;
+    toggle().click();
+    await settle(() => items().length === 2);
+    items()[0]!.click();
+    expect(status()).toContain("Template inserted.");
   });
 
   it("merges a folder named General with templates without one, in name order", async () => {
@@ -323,16 +331,28 @@ describe("M10 composer template picker", () => {
   });
 
   it("reports a failed read without touching the composer", async () => {
+    let offline = true;
     const api: TemplateClient = {
-      listTemplates: () => Promise.reject(new Error("offline")),
+      listTemplates: () =>
+        offline
+          ? Promise.reject(new Error("offline"))
+          : Promise.resolve({ accountId: "a", templates: [] }),
       openOptions: () => Promise.resolve(),
     };
     const view = new TemplatePicker(document, api);
     view.update();
     composer().value = "Draft";
     toggle().click();
-    await settle(() => status().includes("could not read"));
+    await settle(() => status().includes("could not load"));
+    expect(status()).toBe(
+      'JoyFox could not load your templates. Nothing was inserted. Click "JoyFox templates" again to try again.',
+    );
     expect(composer().value).toBe("Draft");
+    // The next step works: a second click reads again.
+    offline = false;
+    toggle().click();
+    await settle(() => !status().includes("could not load"));
+    expect(picker()?.textContent).toContain("No templates yet.");
   });
 
   it("survives inbox teardown, so it is not remounted in a loop", () => {

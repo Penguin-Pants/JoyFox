@@ -1,4 +1,4 @@
-import { isExtensionError, type ExtensionErrorCode } from "../errors";
+import { isExtensionError } from "../errors";
 import { de } from "./catalog/de";
 import {
   en,
@@ -195,7 +195,8 @@ function fallback(value: unknown): string {
     reported.add(key);
     console.warn(`JoyFox: cannot show message "${key}"`);
   }
-  return key;
+  // The key is an internal name: it goes to the log, never to the page.
+  return CATALOGS[locale]["common.textUnavailable"];
 }
 
 function render(message: Message): string {
@@ -217,7 +218,8 @@ function render(message: Message): string {
 /**
  * The text of a message, or of a key and its params, in the current
  * language. A value that is not a valid message (an old or damaged record)
- * shows its key, or "?" if it has none, and is logged once. It never throws.
+ * shows "(This text cannot be shown.)" and logs its key, or "?" if it has
+ * none, once. It never throws.
  */
 export function t(message: Message): string;
 export function t<K extends MessageKey>(
@@ -235,26 +237,14 @@ export function t(first: Message | MessageKey, ...rest: unknown[]): string {
   return render(value);
 }
 
-/** The per-code text for an error that carries no display message. */
-export const ERROR_CODE_KEY: Record<ExtensionErrorCode, MessageKey> = {
-  SelectorUnavailable: "error.code.SelectorUnavailable",
-  ExtractionInvalid: "error.code.ExtractionInvalid",
-  IdentityMismatch: "error.code.IdentityMismatch",
-  StorageError: "error.code.StorageError",
-  RuleEvaluationError: "error.code.RuleEvaluationError",
-  ActionStepFailed: "error.code.ActionStepFailed",
-  NavigationTimeout: "error.code.NavigationTimeout",
-  UnsupportedPage: "error.code.UnsupportedPage",
-};
-
 /**
- * What the UI shows for an `ExtensionError`: its display message, or the
- * fallback for its code. Never its English `message`, which is for logs.
- * `undefined` for any other value.
+ * What the UI shows for an `ExtensionError`: its display message. Never its
+ * English `message`, which is for logs. `undefined` for an error without a
+ * display message and for any other value: the panel then shows its own
+ * failure text, which says what to do next.
  */
 export function errorDisplay(error: unknown): Message | undefined {
-  if (!isExtensionError(error)) return undefined;
-  return error.display ?? ({ key: ERROR_CODE_KEY[error.code] } as Message);
+  return isExtensionError(error) ? error.display : undefined;
 }
 
 export { build as message };

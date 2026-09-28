@@ -257,7 +257,7 @@ describe("Your data", () => {
     );
   });
 
-  it("names settings in the import result in words, and keeps unknown keys (U68)", async () => {
+  it("names settings in the import result in words, and never shows a stored key (U68)", async () => {
     const importRoot = document.createElement("section");
     document.body.append(importRoot);
     await mount(undefined, importRoot);
@@ -288,12 +288,20 @@ describe("Your data", () => {
       "Settings added (only those not set here): language, snapshots kept per member.",
     );
     expect(result()).toContain(
-      "they switch features on): Ignore and Delete button, joyfox.somethingNew.",
+      "they switch features on): Ignore and Delete button.",
     );
-    expect(result()).not.toContain("joyfox.locale");
+    // A setting JoyFox does not know is counted, not named by its key.
+    expect(result()).toContain(
+      "The file also holds settings that this version of JoyFox does not know. They were not imported.",
+    );
+    expect(result()).not.toContain("joyfox.");
     setLocale("de");
     await panel.render();
     expect(result()).toContain("Sprache, Momentaufnahmen je Mitglied");
+    expect(result()).toContain(
+      "Die Datei enthält außerdem Einstellungen, die diese JoyFox-Version nicht kennt.",
+    );
+    expect(result()).not.toContain("joyfox.");
   });
 
   it("shows an Ignore and Delete run in plain words above its stored fields (U37)", async () => {
@@ -343,8 +351,8 @@ describe("Your data", () => {
 
     class Refusing extends DataService {
       override exportAll(): never {
-        throw new ExtensionError("StorageError", "refused", {
-          display: message("error.code.StorageError"),
+        throw new ExtensionError("IdentityMismatch", "refused", {
+          display: message("error.account.gone"),
         });
       }
     }
@@ -352,9 +360,82 @@ describe("Your data", () => {
     press(root.querySelector<HTMLButtonElement>(".joyfox-data__export-all"));
     await settle(() => status()?.getAttribute("data-kind") === "error");
     expect(status()?.textContent).toBe(
-      "JoyFox could not read or write its stored data. Nothing was exported. Try again.",
+      "That account no longer exists. Nothing was exported. Try again.",
     );
     expect(text()).not.toContain("Nothing was deleted");
+
+    // An error without its own text gets the panel's failure text, never
+    // a generic line for its code.
+    class Plain extends DataService {
+      override exportAll(): never {
+        throw new ExtensionError("StorageError", "storage.local unavailable");
+      }
+    }
+    await mount(new Plain(accounts, settings));
+    press(root.querySelector<HTMLButtonElement>(".joyfox-data__export-all"));
+    await settle(() => status()?.getAttribute("data-kind") === "error");
+    expect(status()?.textContent).toBe(
+      "JoyFox could not create the export. Nothing was exported. Try again.",
+    );
+  });
+
+  it("says a failed delete may have stopped part-way, and what to do", async () => {
+    class Failing extends DataService {
+      override deleteEverything(): never {
+        throw new Error("write refused");
+      }
+    }
+    await mount(new Failing(accounts, settings));
+    press(byLabel("Delete all JoyFox data in this browser"));
+    await settle(
+      () => byLabel("Confirm: Delete all JoyFox data in this browser") !== null,
+    );
+    press(byLabel("Confirm: Delete all JoyFox data in this browser"));
+    await settle(() => status()?.getAttribute("data-kind") === "error");
+    expect(status()?.textContent).toBe(
+      "JoyFox could not finish the delete. Some records may be deleted already: the counts shown now are what is still stored. Try again.",
+    );
+  });
+
+  it("gives a next step when a file cannot be checked or imported", async () => {
+    const importRoot = document.createElement("section");
+    document.body.append(importRoot);
+    const choose = (service: DataService) => async () => {
+      await mount(service, importRoot);
+      const input = importRoot.querySelector<HTMLInputElement>(
+        "#joyfox-data-import",
+      )!;
+      Object.defineProperty(input, "files", {
+        value: [new File(["{}"], "export.json")],
+      });
+      input.dispatchEvent(new Event("change"));
+      await settle(
+        () =>
+          importRoot
+            .querySelector(".joyfox-panel__status")
+            ?.getAttribute("data-kind") === "error",
+      );
+      return importRoot.querySelector(".joyfox-panel__status")?.textContent;
+    };
+    class Unchecked extends DataService {
+      override previewImport(): never {
+        throw new Error("read failed");
+      }
+    }
+    expect(await choose(new Unchecked(accounts, settings))()).toBe(
+      "JoyFox could not check that file. Nothing was imported. Choose the file again. If it still fails, reload the page, or export the file from JoyFox again.",
+    );
+    class Unfinished extends DataService {
+      override async previewImport() {
+        return { signature: "x" } as never;
+      }
+      override applyImport(): never {
+        throw new Error("write failed");
+      }
+    }
+    expect(await choose(new Unfinished(accounts, settings))()).toBe(
+      "JoyFox could not finish the import. Choose the file again to try again: records already stored are not added twice.",
+    );
   });
 
   it("says a failed snapshot setting was not changed (U36)", async () => {
@@ -362,10 +443,10 @@ describe("Your data", () => {
     class Failing extends DataService {
       override async setSnapshotRetention(keep: number): Promise<number> {
         if (refuse)
-          throw new ExtensionError("StorageError", "refused", {
-            display: message("error.code.StorageError"),
+          throw new ExtensionError("IdentityMismatch", "refused", {
+            display: message("error.account.gone"),
           });
-        throw new Error(`cannot store ${keep}`);
+        throw new ExtensionError("StorageError", `cannot store ${keep}`);
       }
     }
     await mount(new Failing(accounts, settings));
@@ -394,7 +475,7 @@ describe("Your data", () => {
         status()?.textContent?.includes("The setting was not changed") ?? false,
     );
     expect(status()?.textContent).toBe(
-      "JoyFox could not read or write its stored data. The setting was not changed. Try again.",
+      "That account no longer exists. The setting was not changed. Try again.",
     );
   });
 

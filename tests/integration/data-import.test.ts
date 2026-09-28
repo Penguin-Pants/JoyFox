@@ -1046,7 +1046,27 @@ describe("M8 import: language and schema version 4", () => {
     expect(
       shown(fullFile({ userNotes: [{ ...note("a", "x", t0), html: "<b>" }] })),
     ).toBe(
-      "Record 1 in Notes holds a field that JoyFox does not know (html). Choose a file exported by JoyFox",
+      "Record 1 in Notes holds a field that JoyFox does not know. Choose a file exported by JoyFox",
+    );
+    // No internal name from the file (a data type, field or setting key).
+    expect(
+      shown(
+        JSON.stringify({
+          schemaVersion: DATABASE_VERSION,
+          scope: "all",
+          entities: { secrets: [] },
+        }),
+      ),
+    ).toBe(
+      "The file holds a type of data that JoyFox does not know. Choose a file exported by JoyFox",
+    );
+    expect(shown(fullFile({}, { "internal.setting": 1 }))).toBe(
+      "The file holds a setting that JoyFox does not use. Choose a file exported by JoyFox",
+    );
+    expect(
+      shown(fullFile({ userNotes: [note("a", "x".repeat(4001), t0)] })),
+    ).toBe(
+      "Record 1 in Notes holds a text longer than 4,000 characters. Choose a file exported by JoyFox",
     );
     // An account record that is not its own scope, without the jargon.
     expect(

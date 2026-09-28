@@ -134,7 +134,7 @@ describe("M9 report", () => {
     });
     expect(texts(result.lines)).toEqual([
       "Ignore and Delete stopped.",
-      "JoyFox could not find JoyClub's Delete control.",
+      "JoyFox could not find JoyClub's Delete option on this page.",
       "Delete: not done.",
       "Ignore: not done.",
       "Nothing was changed on JoyClub.",
@@ -142,6 +142,54 @@ describe("M9 report", () => {
       "You can do it yourself: move the conversation to the trash with JoyClub's trash button.",
       "You can do it yourself: open the member's profile and ignore them there.",
     ]);
+  });
+
+  it.each([
+    [
+      "conversation-mismatch",
+      "The page showed another conversation, so JoyFox stopped before Delete.",
+    ],
+    [
+      "identity-unavailable",
+      "JoyFox could not confirm which member or conversation the page shows, so it stopped before Delete.",
+    ],
+    [
+      "turned-off",
+      "Ignore and Delete was turned off, so JoyFox stopped before Delete.",
+    ],
+    ["timeout", "JoyClub did not respond in time during Delete."],
+    ["step-error", "An unexpected error stopped JoyFox before Delete."],
+  ])(
+    "names a %s stop in plain words, then how to do it by hand",
+    (failure, line) => {
+      const lines = texts(report(steps("Started", ["Failed", failure])).lines);
+      expect(lines).toContain(line);
+      // No state name or error code in the words.
+      expect(lines.join(" ")).not.toContain(failure);
+      expect(lines.at(-1)).toBe(
+        "You can do it yourself: open the member's profile and ignore them there.",
+      );
+    },
+  );
+
+  it("says how to check an Ignore that JoyClub did not confirm", () => {
+    const lines = texts(
+      report(
+        steps(
+          "Started",
+          "DeleteRequested",
+          "DeleteConfirmed",
+          "IgnoreRequested",
+          ["Failed", "confirmation-missing"],
+        ),
+      ).lines,
+    );
+    expect(lines).toContain(
+      "Ignore: not confirmed. JoyFox started it but did not see JoyClub confirm it.",
+    );
+    expect(lines).toContain(
+      "Next: open the member's profile and check whether they are ignored. If not, ignore them there yourself.",
+    );
   });
 
   it("keeps a done Delete and names Ignore as the failed step", () => {
@@ -153,7 +201,7 @@ describe("M9 report", () => {
     );
     expect(result).toMatchObject({ delete: "done", ignore: "not-done" });
     expect(texts(result.lines)).toContain(
-      "JoyFox could not find JoyClub's Ignore control.",
+      "JoyFox could not find JoyClub's Ignore option on this page.",
     );
     expect(texts(result.lines)).toContain("JoyFox did not undo anything.");
     expect(texts(result.lines).join(" ")).not.toMatch(/move it there yourself/);

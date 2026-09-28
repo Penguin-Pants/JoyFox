@@ -570,6 +570,43 @@ describe("M8 data panel", () => {
       () => importIdle() && text().includes("Settings that could not be saved"),
     );
     expect(text()).not.toContain("Settings added");
+    // The status points at the list above it and says what to do.
+    expect(text()).toContain(
+      "Some settings could not be saved (listed above). Set them again yourself.",
+    );
+    const result = root.querySelector(".joyfox-data__import-result")!;
+    const line = Array.from(
+      root.querySelectorAll(".joyfox-panel__status"),
+    ).find((node) => node.textContent?.includes("Import complete"))!;
+    expect(
+      result.compareDocumentPosition(line) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+  });
+
+  it("never shows the stored key of a setting JoyFox does not know", async () => {
+    root.querySelector<HTMLButtonElement>(".joyfox-data__export-all")!.click();
+    await settle(() => saved.length === 1);
+    const file = JSON.parse(saved[0]!.text) as {
+      settings: Record<string, unknown>;
+    };
+    // A later version's setting, and a feature switch that is never imported.
+    file.settings["joyfox.fromLaterVersion"] = true;
+    file.settings["joyfox.quickIgnoreDelete"] = true;
+    const input = root.querySelector<HTMLInputElement>("#joyfox-data-import")!;
+    Object.defineProperty(input, "files", {
+      value: [new File([JSON.stringify(file)], "export.json")],
+    });
+    input.dispatchEvent(new Event("change"));
+    await settle(
+      () => importIdle() && text().includes("this version of JoyFox"),
+    );
+    expect(text()).toContain(
+      "The file also holds settings that this version of JoyFox does not know. They were not imported.",
+    );
+    expect(text()).toContain(
+      "Settings in the file that are never imported (they switch features on): Ignore and Delete button.",
+    );
+    expect(text()).not.toContain("joyfox.");
   });
 
   it("checks even a file that changes nothing under the data lock", async () => {
@@ -807,6 +844,9 @@ describe("M10 template panel", () => {
     await accounts.setActiveAccount(b);
     await submit("Late", "Text");
     await settle(() => text().includes("The active account changed"));
+    expect(text()).toContain(
+      "The active account changed, so nothing was changed. Check the active account on the Accounts tab before you try again.",
+    );
     expect(await templates.list(a)).toEqual([]);
     expect(await templates.list(b)).toEqual([]);
   });

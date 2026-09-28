@@ -897,6 +897,21 @@ describe("V1-10 card note editor", () => {
     expect(note().maxLength).toBe(4000);
   });
 
+  it("says to choose an account when no JoyFox account is active", async () => {
+    const cardEditor = new CardNoteEditor(document, {
+      getNotes: () => Promise.resolve({ status: "no-account" }),
+      saveNote: () => Promise.reject(new Error("unused")),
+      addTag: () => Promise.reject(new Error("unused")),
+      removeTag: () => Promise.reject(new Error("unused")),
+    } as never);
+    cardEditor.open(FULL);
+    await flush();
+    expect(editor().textContent).toContain(
+      "Select or add an account in the JoyFox options to keep notes.",
+    );
+    cardEditor.close();
+  });
+
   it("ignores its old controls while it reads the member again after a write", async () => {
     const answer = {
       status: "ok",

@@ -356,7 +356,11 @@ describe("M4 rule builder panel", () => {
     input("joyfox-rule-all-verified-on").checked = true;
     submit();
     await settle(() => status()?.getAttribute("data-kind") === "error");
-    expect(status()?.textContent).toContain("The active account changed");
+    // The form now belongs to another account (or none): "try again"
+    // alone would change the wrong account's rule.
+    expect(status()?.textContent).toBe(
+      "The active account changed, so the rule was not saved. Check the active account on the Accounts tab before you change the rule again.",
+    );
     expect(await rules.getGlobalRule(a.id)).toBeUndefined();
     expect(await rules.getGlobalRule(b.id)).toBeUndefined();
   });
@@ -376,7 +380,9 @@ describe("M4 rule builder panel", () => {
     deleteAll().click();
     deleteAll().click();
     await settle(() => status()?.getAttribute("data-kind") === "error");
-    expect(status()?.textContent).toContain("The rule was not deleted");
+    expect(status()?.textContent).toBe(
+      "The active account changed, so the rule was not deleted. Check the active account on the Accounts tab before you delete a rule again.",
+    );
     expect(await rules.getGlobalRule(a.id)).toBeDefined();
   });
 
@@ -399,6 +405,28 @@ describe("M4 rule builder panel", () => {
     // Give any stray write time to land.
     await new Promise((resolve) => setTimeout(resolve, 50));
     expect(await rules.getGlobalRule(a.id)).toBeUndefined();
+  });
+
+  it("does not delete a rule that another tab changed meanwhile", async () => {
+    const a = await accounts.createAccount({ joyClubAccountId: "a" });
+    const stored = {
+      schemaVersion: 1 as const,
+      audience: "all" as const,
+      enabled: true,
+      defaultPlacement: "quarantined" as const,
+      root: { type: "group" as const, match: "all" as const, children: [] },
+    };
+    await rules.saveGlobalRule(a.id, stored);
+    await panel.render();
+    // Another tab saves a change; this tab has not redrawn.
+    await rules.saveGlobalRule(a.id, { ...stored, enabled: false });
+    deleteAll().click();
+    deleteAll().click();
+    await settle(() => status()?.getAttribute("data-kind") === "error");
+    expect(status()?.textContent).toBe(
+      "The rule was changed in another tab. It was not deleted. The form now shows the saved rule.",
+    );
+    expect(await rules.getGlobalRule(a.id)).toBeDefined();
   });
 
   it("does not let a stale second tab recreate a removed rule", async () => {
@@ -1411,7 +1439,7 @@ describe("rule form feedback (UX audit)", () => {
     deleteAll().click();
     await settle(() => deleteLine()?.getAttribute("role") === "alert");
     expect(deleteLine()?.textContent).toBe(
-      "JoyFox could not delete the rule. Nothing was changed.",
+      "JoyFox could not delete the rule. Nothing was changed. Try again. If it keeps failing, reload the page.",
     );
     expect(deleteAll().textContent).toBe("Delete whole contact rule");
     expect(await rules.getGlobalRule(account.id)).toBeDefined();

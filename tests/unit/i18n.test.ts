@@ -259,16 +259,23 @@ describe("translator", () => {
     );
   });
 
-  it("shows the key of an invalid value, logs once and never throws", () => {
+  it("shows a placeholder for an invalid value, logs its key once and never throws", () => {
     const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
     const bad = { key: "triage.reason.userMoved", params: {} } as never;
-    expect(t(bad)).toBe("triage.reason.userMoved");
-    expect(t(bad)).toBe("triage.reason.userMoved");
-    expect(t("Unknown text" as never)).toBe("Unknown text");
-    expect(t(null as never)).toBe("?");
-    expect(t({ params: {} } as never)).toBe("?");
-    // Once per key: "?" was logged for the first value without one.
+    const placeholder = "(This text cannot be shown.)";
+    expect(t(bad)).toBe(placeholder);
+    expect(t(bad)).toBe(placeholder);
+    expect(t("Unknown text" as never)).toBe(placeholder);
+    expect(t(null as never)).toBe(placeholder);
+    expect(t({ params: {} } as never)).toBe(placeholder);
+    // The internal key goes to the log only, once per key ("?" once for
+    // the values without one).
     expect(warn).toHaveBeenCalledTimes(3);
+    expect(warn).toHaveBeenCalledWith(
+      'JoyFox: cannot show message "triage.reason.userMoved"',
+    );
+    setLocale("de");
+    expect(t(bad)).toBe("(Dieser Text kann nicht angezeigt werden.)");
     warn.mockRestore();
   });
 
