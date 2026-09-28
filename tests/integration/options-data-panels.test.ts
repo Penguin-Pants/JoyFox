@@ -290,11 +290,12 @@ describe("M8 data panel", () => {
     await settle(() => root.querySelector(".joyfox-data__record") !== null);
     const id = root.querySelector<HTMLElement>(".joyfox-data__record")!.dataset
       .recordId!;
-    byLabel(`Delete record ${id}`).click();
-    await settle(() => byLabel(`Confirm: Delete record ${id}`) !== null);
-    expect(status()?.textContent).toContain(`delete record ${id}`);
+    // The template's name first, its ID beside it.
+    byLabel(`Delete record Hi (${id})`).click();
+    await settle(() => byLabel(`Confirm: Delete record Hi (${id})`) !== null);
+    expect(status()?.textContent).toContain(`delete record Hi (${id})`);
     expect(await templates.list(a)).toHaveLength(1);
-    byLabel(`Confirm: Delete record ${id}`).click();
+    byLabel(`Confirm: Delete record Hi (${id})`).click();
     await settle(() => count("messageTemplates") === "0");
     expect(await templates.list(a)).toEqual([]);
     expect(await templates.list(b)).toHaveLength(1);
@@ -377,11 +378,12 @@ describe("M8 data panel", () => {
   });
 
   it("clears one account's data and keeps the account", async () => {
-    byLabel("Delete all data of this account").click();
+    byLabel("Delete this account's data (every record)").click();
     await settle(
-      () => byLabel("Confirm: Delete all data of this account") !== null,
+      () =>
+        byLabel("Confirm: Delete this account's data (every record)") !== null,
     );
-    byLabel("Confirm: Delete all data of this account").click();
+    byLabel("Confirm: Delete this account's data (every record)").click();
     await settle(() => count("messageTemplates") === "0");
     expect(count("extensionAccounts")).toBe("1");
     expect(await templates.list(b)).toHaveLength(1);
@@ -705,11 +707,11 @@ describe("M10 template panel", () => {
     await settle(() => byLabel("Delete template One") !== null);
     field<HTMLTextAreaElement>("joyfox-template-body").value = "Draft";
     byLabel("Delete template One").click();
-    await settle(() => byLabel("Confirm deleting template One") !== null);
+    await settle(() => byLabel("Confirm delete: template One") !== null);
     expect(field<HTMLTextAreaElement>("joyfox-template-body").value).toBe(
       "Draft",
     );
-    byLabel("Confirm deleting template One").click();
+    byLabel("Confirm delete: template One").click();
     await settle(() => text().includes("No templates yet."));
     expect(text()).toContain("Deleted One.");
     expect(await templates.list(a)).toEqual([]);

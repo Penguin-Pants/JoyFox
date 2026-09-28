@@ -626,31 +626,47 @@ export const de: Catalog = {
 
   // Options page: accounts
   "accounts.readFailed":
-    "JoyFox konnte die gespeicherten Konten nicht lesen. Es wurde kein Konto geändert.",
+    "JoyFox konnte die gespeicherten Konten nicht lesen. Es wurde kein Konto geändert. Lade die Seite neu, um es noch einmal zu versuchen.",
   "accounts.hint":
-    "JoyFox kann nicht lesen, mit welchem JoyClub-Login ein Tab arbeitet. Aktiv ist das Konto, das du hier auswählst. Alle Notizen, Tags und Regeln werden darunter gespeichert.",
+    "JoyFox kann nicht lesen, mit welchem JoyClub-Login ein Tab arbeitet. Aktiv ist das Konto, das du hier auswählst. JoyFox speichert deine Notizen, Tags, Regeln, Vorlagen und andere Daten unter diesem Konto.",
   "accounts.activeLabel": "Aktives Konto:",
   "accounts.noneSelected": "Keines ausgewählt",
   "accounts.empty":
-    "Noch keine Konten. Füge unten ein Konto hinzu, um Notizen und Tags zu speichern.",
+    "Noch keine Konten. Füge unten ein Konto hinzu, um JoyFox zu verwenden.",
   "accounts.list": "Gespeicherte Konten",
+  "accounts.nameWithIdentifier": (p) => `${p.label} (${p.identifier})`,
   "accounts.active": "Aktiv",
   "accounts.inactive": "Nicht aktiv",
   "accounts.use": "Dieses Konto verwenden",
-  "accounts.useLabel": (p) => `Konto ${p.name} verwenden`,
+  "accounts.useLabel": (p) => `Dieses Konto verwenden: ${p.name}`,
   "accounts.nowActive": (p) => `Aktives Konto ist jetzt ${p.name}.`,
+  "accounts.rename": "Umbenennen",
+  "accounts.renameLabel": (p) => `Umbenennen: Konto ${p.name}`,
+  "accounts.renameField": (p) => `Neuer Anzeigename für ${p.identifier}`,
+  "accounts.renameSave": "Speichern",
+  "accounts.renameCancel": "Abbrechen",
+  "accounts.renamed": (p) =>
+    `Anzeigename gespeichert. JoyFox zeigt dieses Konto jetzt als ${p.name}.`,
   "accounts.remove": "Entfernen",
   "accounts.confirmRemove": "Entfernen bestätigen",
-  "accounts.removeLabel": (p) => `Konto ${p.name} entfernen`,
+  "accounts.removeLabel": (p) => `Entfernen: Konto ${p.name}`,
   "accounts.confirmRemoveLabel": (p) =>
-    `Entfernen von Konto ${p.name} und allen seinen Daten bestätigen`,
+    `Entfernen bestätigen: Konto ${p.name} und alle seine Daten`,
   "accounts.removePrompt": (p) =>
-    `Wenn du ${p.name} entfernst, löscht JoyFox auch die Notizen, Tags und Regeln dieses Kontos. Klicke zum Bestätigen noch einmal.`,
+    `Wenn du ${p.name} entfernst, löscht JoyFox alles, was es für dieses Konto gespeichert hat, zum Beispiel Notizen, Tags, Regeln, Vorlagen, Nachrichten, Event-Notizen und gespeicherte Suchen. Klicke zum Bestätigen noch einmal.`,
   "accounts.removed": (p) =>
     `${p.name} und die gespeicherten Daten wurden entfernt.`,
+  "accounts.removedNoneActive": (p) =>
+    `${p.name} und die gespeicherten Daten wurden entfernt. Jetzt ist kein Konto aktiv. Wähle eines mit „Dieses Konto verwenden“.`,
+  "accounts.removedNoneLeft": (p) =>
+    `${p.name} und die gespeicherten Daten wurden entfernt. Es gibt keine Konten mehr. Füge ein Konto hinzu, um JoyFox zu verwenden.`,
   "accounts.addForm": "Konto hinzufügen",
   "accounts.identifier": "JoyClub-Kontokennung",
+  "accounts.identifierHint":
+    "Dein JoyClub-Nickname eignet sich gut. JoyFox verwendet ihn nur, um deine Konten zu unterscheiden und Importe zuzuordnen. JoyFox prüft ihn nicht. Du kannst ihn später nicht ändern.",
   "accounts.label": "Anzeigename (optional)",
+  "accounts.labelHint":
+    "Nur JoyFox zeigt diesen Namen. Wenn du ihn leer lässt, zeigt JoyFox die Kennung.",
   "accounts.add": "Konto hinzufügen",
   "accounts.added": (p) => `${p.name} wurde hinzugefügt.`,
   "accounts.saveFailed":
@@ -787,22 +803,22 @@ export const de: Catalog = {
 
   // Options page: templates
   "templates.readFailed":
-    "JoyFox konnte deine Vorlagen nicht lesen. Es wurde keine Vorlage geändert.",
+    "JoyFox konnte deine Vorlagen nicht lesen. Es wurde keine Vorlage geändert. Lade die Seite neu, um es noch einmal zu versuchen.",
   "templates.heading": "Nachrichtenvorlagen",
   "templates.hint":
     "In einer JoyClub-Unterhaltung fügt die Schaltfläche „JoyFox-Vorlagen“ unter dem Nachrichtenfeld eine Vorlage an der Cursorposition ein. Du kannst den Text danach noch ändern, und du klickst JoyClubs „Senden“ immer selbst. JoyFox sendet nie eine Nachricht.",
   "templates.noAccount":
-    "Wähle unter „Konten“ ein aktives Konto, um Vorlagen zu speichern.",
+    "Wähle unter [Konten](#accounts) ein aktives Konto, um Vorlagen zu speichern.",
   "templates.empty": "Noch keine Vorlagen. Füge unten eine hinzu.",
   "templates.inFolder": (p) => `Vorlagen in ${p.folder}`,
   "templates.edit": "Bearbeiten",
-  "templates.editLabel": (p) => `Vorlage ${p.name} bearbeiten`,
+  "templates.editLabel": (p) => `Bearbeiten: Vorlage ${p.name}`,
   "templates.editing": (p) => `Du bearbeitest ${p.name}.`,
   "templates.delete": "Löschen",
   "templates.confirmDelete": "Löschen bestätigen",
-  "templates.deleteLabel": (p) => `Vorlage ${p.name} löschen`,
+  "templates.deleteLabel": (p) => `Löschen: Vorlage ${p.name}`,
   "templates.confirmDeleteLabel": (p) =>
-    `Löschen der Vorlage ${p.name} bestätigen`,
+    `Löschen bestätigen: Vorlage ${p.name}`,
   "templates.deletePrompt": (p) =>
     `Klicke auf „Löschen bestätigen“, um ${p.name} zu löschen.`,
   "templates.deleted": (p) => `${p.name} wurde gelöscht.`,
@@ -841,31 +857,33 @@ export const de: Catalog = {
   "entity.messagePhraseMatches": "Gefundene Formulierungen in Nachrichten",
   "entity.cachedMessages": "Gespeicherte Nachrichten (für die Suche)",
   "data.readFailed":
-    "JoyFox konnte die gespeicherten Daten nicht lesen. Es wurde nichts geändert.",
+    "JoyFox konnte die gespeicherten Daten nicht lesen. Es wurde nichts geändert. Lade die Seite neu, um es noch einmal zu versuchen.",
   "data.hint":
     "Alles, was JoyFox speichert, bleibt in diesem Browserprofil. Hier kannst du es ansehen, als JSON-Datei speichern und löschen. Löschen hier ändert nie etwas auf JoyClub.",
+  "data.importPointer": "Eine Datei importierst du unter [Konten](#accounts).",
   "data.noAccounts": "Noch keine Konten.",
-  "data.accountPicker": "Angezeigtes Konto",
+  "data.accountPicker": "Konto ansehen (ändert nicht das aktive Konto)",
   "data.caption": "Gespeicherte Datensätze dieses Kontos",
   "data.col.type": "Datentyp",
   "data.col.records": "Datensätze",
   "data.col.actions": "Aktionen",
   "data.show": "Zeigen",
   "data.hide": "Ausblenden",
-  "data.showLabel": (p) => `${p.label} zeigen`,
-  "data.hideLabel": (p) => `${p.label} ausblenden`,
+  "data.showLabel": (p) => `Zeigen: ${p.label}`,
+  "data.hideLabel": (p) => `Ausblenden: ${p.label}`,
   "data.deleteAll": "Alle löschen",
-  "data.deleteAllLabel": (p) => `Alle Datensätze „${p.label}“ löschen`,
+  "data.deleteAllLabel": (p) => `Alle löschen: ${p.label}`,
   "data.deleteAllPrompt": (p, f) =>
     `Klicke auf „Bestätigen“, um alle ${f.number(p.count)} Datensätze „${p.label}“ dieses Kontos zu löschen.`,
   "data.deletedAll": (p) =>
     `Alle Datensätze „${p.label}“ dieses Kontos wurden gelöscht.`,
   "data.recordsTitle": (p, f) => `${p.label} (${f.number(p.count)})`,
   "data.accountRecordHint":
-    "Der Kontodatensatz wird nur mit dem ganzen Konto entfernt, unter „Konten“.",
+    "Der Kontodatensatz wird nur mit dem ganzen Konto entfernt, unter [Konten](#accounts).",
   "data.recordSummary": (p) => `${p.id} (geändert: ${p.updated})`,
   "data.recordSummaryNamed": (p) =>
     `${p.name}: ${p.id} (geändert: ${p.updated})`,
+  "data.recordNamed": (p) => `${p.name} (${p.id})`,
   "data.valueYes": "ja",
   "data.valueNo": "nein",
   "data.valueEmpty": "(leer)",
@@ -875,15 +893,16 @@ export const de: Catalog = {
   "data.moreValues": (p, f) =>
     `…und ${f.number(p.count)} weitere (siehe „Gespeichertes JSON“)`,
   "data.delete": "Löschen",
-  "data.deleteRecordLabel": (p) => `Datensatz ${p.id} löschen`,
+  "data.deleteRecordLabel": (p) => `Löschen: Datensatz ${p.record}`,
   "data.deleteRecordPrompt": (p) =>
-    `Klicke auf „Bestätigen“, um den Datensatz ${p.id} zu löschen.`,
-  "data.deletedRecord": (p) => `Datensatz ${p.id} wurde gelöscht.`,
+    `Klicke auf „Bestätigen“, um den Datensatz ${p.record} zu löschen.`,
+  "data.deletedRecord": (p) => `Datensatz ${p.record} wurde gelöscht.`,
   "data.showMore": (p, f) => `${f.number(p.count)} weitere zeigen`,
   "data.exportAccount": "Dieses Konto exportieren (JSON)",
   "data.exportedAccount": "Der Export dieses Kontos wurde erstellt.",
   "data.deleteAccountData": "Daten dieses Kontos löschen",
-  "data.deleteAccountDataLabel": "Alle Daten dieses Kontos löschen",
+  "data.deleteAccountDataLabel":
+    "Daten dieses Kontos löschen (alle Datensätze)",
   "data.deleteAccountDataPrompt":
     "Klicke auf „Bestätigen“, um alle Datensätze dieses Kontos zu löschen. Das Konto selbst bleibt unter „Konten“.",
   "data.deletedAccountData":
@@ -891,7 +910,7 @@ export const de: Catalog = {
   "data.allAccounts": "Alle Konten",
   "data.retentionLabel": "Gespeicherte Profil-Momentaufnahmen je Mitglied",
   "data.retentionHint": (p, f) =>
-    `JoyFox behält die neuesten Momentaufnahmen der Profilangaben jedes Mitglieds, immer mindestens die letzte. Eine kleinere Zahl löscht ältere Momentaufnahmen sofort, in allen Konten. Von ${f.number(p.minimum)} bis ${f.number(p.maximum)}; Standard ist ${f.number(p.default)}.`,
+    `JoyFox behält die neuesten Momentaufnahmen der Profilangaben jedes Mitglieds, immer mindestens die letzte. Eine kleinere Zahl löscht ältere Momentaufnahmen sofort, in allen Konten. Von ${f.number(p.minimum)} bis ${f.number(p.maximum)}; Standard ist ${f.number(p.default)}. Klicke auf „Speichern“, um die Zahl zu übernehmen.`,
   "data.retentionSave": "Speichern",
   "data.retentionSaved": (p, f) =>
     p.deleted === 0
@@ -902,10 +921,12 @@ export const de: Catalog = {
         })} gelöscht.`,
   "data.retentionInvalid": (p, f) =>
     `Gib eine ganze Zahl von ${f.number(p.minimum)} bis ${f.number(p.maximum)} ein. Es wurde nichts geändert.`,
+  "data.retentionFailed":
+    "JoyFox konnte die Einstellung nicht speichern. Das Feld zeigt die Zahl, die jetzt gilt. Versuche es noch einmal.",
   "data.exportAll": "Alle JoyFox-Daten exportieren (JSON)",
   "data.exportedAll": "Der Export aller JoyFox-Daten wurde erstellt.",
   "data.deleteEverything": "Alle JoyFox-Daten löschen",
-  "data.deleteEverythingLabel": "Alle JoyFox-Daten in diesem Browser löschen",
+  "data.deleteEverythingLabel": "Alle JoyFox-Daten löschen (in diesem Browser)",
   "data.deleteEverythingPrompt":
     "Klicke auf „Bestätigen“, um alle Konten, alle Datensätze und alle JoyFox-Einstellungen in diesem Browser zu löschen. Das kann nicht rückgängig gemacht werden.",
   "data.deletedEverything":
@@ -914,6 +935,8 @@ export const de: Catalog = {
   "data.confirmLabel": (p) => `Bestätigen: ${p.label}`,
   "data.actionFailed":
     "Diese Aktion konnte nicht abgeschlossen werden. Die angezeigten Zahlen zeigen, was jetzt gespeichert ist.",
+  "data.exportFailed":
+    "JoyFox konnte den Export nicht erstellen. Es wurde nichts exportiert. Versuche es noch einmal.",
   "data.import.title": "Importieren",
   "data.import.hint":
     "Importiere eine JoyFox-Exportdatei: alles oder ein Konto. Sie wird mit dem zusammengeführt, was hier gespeichert ist. Ein Konto mit derselben JoyClub-Kennung wird mit dem vorhandenen Konto zusammengeführt. Bei derselben Notiz, Regel oder Einordnung gewinnt die neuere Version. Vorhandene Tags und Korrekturen bleiben erhalten. Der Import beginnt, sobald du die Datei wählst, und danach siehst du, was sich geändert hat.",
@@ -934,6 +957,15 @@ export const de: Catalog = {
   "data.import.col.kept": "Behalten",
   "data.import.col.duplicates": "Übersprungene Duplikate",
   "data.import.noRecords": "Die Datei enthält keine Datensätze.",
+  "data.setting.activeAccount": "aktives Konto",
+  "data.setting.language": "Sprache",
+  "data.setting.messageCaching": "Nachrichten speichern",
+  "data.setting.messageRetention": "Nachrichten behalten für",
+  "data.setting.quickIgnoreDelete": "Schaltfläche „Ignorieren und löschen“",
+  "data.setting.templatePicker": "Vorlagenauswahl",
+  "data.setting.sharedEventException": "Ausnahme für gemeinsame Events",
+  "data.setting.snapshotRetention": "Momentaufnahmen je Mitglied",
+  "data.setting.diagnostics": "Diagnose",
   "data.import.settingsSkipped": (p) =>
     `Einstellungen in der Datei, die nie importiert werden (sie schalten Funktionen ein): ${p.keys}.`,
   "data.import.settingsNotSaved": (p) =>
@@ -959,6 +991,10 @@ export const de: Catalog = {
     `${p.error}. Es wurde nichts importiert.`,
   "error.withSuffix.nothingDeleted": (p) =>
     `${p.error}. Es wurde nichts gelöscht.`,
+  "error.withSuffix.nothingExported": (p) =>
+    `${p.error}. Es wurde nichts exportiert. Versuche es noch einmal.`,
+  "error.withSuffix.settingNotChanged": (p) =>
+    `${p.error}. Die Einstellung wurde nicht geändert. Versuche es noch einmal.`,
   "error.code.SelectorUnavailable":
     "JoyFox findet das erwartete Element auf der Seite nicht",
   "error.code.ExtractionInvalid": "Die Daten sind ungültig",
@@ -991,48 +1027,54 @@ export const de: Catalog = {
   "error.data.unknownType": "Unbekannter Datentyp",
   "error.data.accountRecord":
     "Der Kontodatensatz wird nur mit dem ganzen Konto entfernt",
-  "error.import.tooLarge": "Die Datei ist zu groß für einen JoyFox-Export",
+  "error.import.tooLarge":
+    "Die Datei ist zu groß für einen JoyFox-Export. Wähle eine Datei, die JoyFox exportiert hat",
   "error.import.notJson":
-    "Die Datei ist kein JoyFox-Export (kein gültiges JSON)",
-  "error.import.notExport": "Die Datei ist kein JoyFox-Export",
-  "error.import.noVersion": "Die Datei hat keine gültige Schemaversion",
+    "Die Datei ist kein JoyFox-Export. Wähle eine Datei, die JoyFox exportiert hat",
+  "error.import.notExport":
+    "Die Datei ist kein JoyFox-Export. Wähle eine Datei, die JoyFox exportiert hat",
+  "error.import.noVersion":
+    "Die Datei sagt nicht, welche JoyFox-Version sie erstellt hat. Wähle eine Datei, die JoyFox exportiert hat",
   "error.import.newerVersion":
     "Die Datei stammt aus einer neueren JoyFox-Version. Aktualisiere zuerst JoyFox",
-  "error.import.noScope": "Die Datei hat keinen gültigen Exportumfang",
-  "error.import.noAccountNamed": "Der Kontoexport nennt kein Konto",
+  "error.import.noScope":
+    "Die Datei sagt nicht, ob sie ein Konto oder alle Daten enthält. Wähle eine Datei, die JoyFox exportiert hat",
+  "error.import.noAccountNamed":
+    "Die Datei ist der Export eines Kontos, nennt das Konto aber nicht. Wähle eine Datei, die JoyFox exportiert hat",
   "error.import.unknownType": (p) =>
-    `Die Datei enthält einen unbekannten Datentyp (${p.name})`,
-  "error.import.notList": (p) => `„${p.entity}“ ist in der Datei keine Liste`,
+    `Die Datei enthält eine Art von Daten, die JoyFox nicht kennt (${p.name}). Wähle eine Datei, die JoyFox exportiert hat`,
+  "error.import.notList": (p) =>
+    `Der Teil „${p.entity}“ der Datei ist beschädigt. Wähle eine Datei, die JoyFox exportiert hat`,
   "error.import.notRecord": (p, f) =>
-    `Eintrag ${f.number(p.index)} in „${p.entity}“ ist kein Datensatz`,
+    `Eintrag ${f.number(p.index)} in „${p.entity}“ ist beschädigt. Wähle eine Datei, die JoyFox exportiert hat`,
   "error.import.forbiddenKey": (p, f) =>
-    `Eintrag ${f.number(p.index)} in „${p.entity}“ enthält einen verbotenen Schlüssel`,
+    `Eintrag ${f.number(p.index)} in „${p.entity}“ enthält einen Feldnamen, den JoyFox nicht erlaubt. Wähle eine Datei, die JoyFox exportiert hat`,
   "error.import.unknownField": (p, f) =>
-    `Eintrag ${f.number(p.index)} in „${p.entity}“ enthält ein unbekanntes Feld (${p.field})`,
+    `Eintrag ${f.number(p.index)} in „${p.entity}“ enthält ein Feld, das JoyFox nicht kennt (${p.field}). Wähle eine Datei, die JoyFox exportiert hat`,
   "error.import.tooLong": (p, f) =>
-    `Eintrag ${f.number(p.index)} in „${p.entity}“ ist ungültig: ${p.field} hat mehr als ${f.number(p.maximum)} Zeichen`,
+    `Eintrag ${f.number(p.index)} in „${p.entity}“ ist zu lang: ${p.field} hat mehr als ${f.number(p.maximum)} Zeichen. Wähle eine Datei, die JoyFox exportiert hat`,
   "error.import.invalid": (p, f) =>
-    `Eintrag ${f.number(p.index)} in „${p.entity}“ ist ungültig`,
+    `Eintrag ${f.number(p.index)} in „${p.entity}“ ist beschädigt. Wähle eine Datei, die JoyFox exportiert hat`,
   "error.import.future": (p, f) =>
-    `Eintrag ${f.number(p.index)} in „${p.entity}“ hat ein Datum in der Zukunft`,
+    `Eintrag ${f.number(p.index)} in „${p.entity}“ hat ein Datum in der Zukunft. Prüfe die Uhr des Computers, der die Datei erstellt hat`,
   "error.import.otherAccount": (p, f) =>
-    `Eintrag ${f.number(p.index)} in „${p.entity}“ gehört zu einem anderen Konto`,
+    `Eintrag ${f.number(p.index)} in „${p.entity}“ gehört zu einem anderen Konto. Wähle eine Datei, die JoyFox exportiert hat`,
   "error.import.notOwnScope": (p, f) =>
-    `Kontodatensatz ${f.number(p.index)} gehört nicht zu sich selbst`,
+    `Kontodatensatz ${f.number(p.index)} ist beschädigt. Wähle eine Datei, die JoyFox exportiert hat`,
   "error.import.twice": (p, f) =>
-    `Eintrag ${f.number(p.index)} in „${p.entity}“ kommt zweimal vor`,
+    `Eintrag ${f.number(p.index)} in „${p.entity}“ kommt in der Datei zweimal vor. Wähle eine Datei, die JoyFox exportiert hat`,
   "error.import.sameIdentifier":
-    "Zwei Konten in der Datei haben dieselbe Kennung",
+    "Zwei Konten in der Datei haben dieselbe Kennung. Wähle eine Datei, die JoyFox exportiert hat",
   "error.import.noAccountRecord":
-    "Der Kontoexport enthält keinen Kontodatensatz",
+    "Die Datei ist der Export eines Kontos, enthält dieses Konto aber nicht. Wähle eine Datei, die JoyFox exportiert hat",
   "error.import.settingsInvalid":
-    "Die Einstellungen in der Datei sind ungültig",
+    "Die Einstellungen in der Datei sind beschädigt. Wähle eine Datei, die JoyFox exportiert hat",
   "error.import.settingsForbidden":
-    "Die Einstellungen in der Datei enthalten einen verbotenen Schlüssel",
+    "Die Einstellungen in der Datei enthalten einen Namen, den JoyFox nicht erlaubt. Wähle eine Datei, die JoyFox exportiert hat",
   "error.import.unknownSetting": (p) =>
-    `Die Datei enthält eine Einstellung, die JoyFox nicht verwendet (${p.key})`,
+    `Die Datei enthält eine Einstellung, die JoyFox nicht verwendet (${p.key}). Wähle eine Datei, die JoyFox exportiert hat`,
   "error.import.orphans":
-    "Einige Datensätze in der Datei gehören zu einem Konto, das die Datei nicht enthält",
+    "Einige Datensätze in der Datei gehören zu einem Konto, das die Datei nicht enthält. Wähle eine Datei, die JoyFox exportiert hat",
   "error.import.sameRecordTwice":
-    "Die Datei enthält nach dem Zusammenführen der Konten denselben Datensatz zweimal",
+    "Zwei Datensätze in der Datei würden hier zum selben Datensatz. Wähle eine Datei, die JoyFox exportiert hat",
 };

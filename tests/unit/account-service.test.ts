@@ -157,6 +157,15 @@ describe("M7 explicit active account", () => {
     expect((await service.getActiveAccount())?.id).toBe(active.id);
   });
 
+  it("says whether the removed account was the active one", async () => {
+    const active = await service.createAccount({ joyClubAccountId: "a" });
+    const other = await service.createAccount({ joyClubAccountId: "b" });
+    expect(await service.deleteAccount(other.id)).toBe(false);
+    expect(await service.deleteAccount(active.id)).toBe(true);
+    // No other account is made active on its own.
+    expect(settings.items.has(ACTIVE_ACCOUNT_SETTING_KEY)).toBe(false);
+  });
+
   it("lists accounts oldest first", async () => {
     let tick = 0;
     const ordered = new AccountService(
@@ -169,5 +178,77 @@ describe("M7 explicit active account", () => {
     expect(
       (await ordered.listAccounts()).map((a) => a.joyClubAccountId),
     ).toEqual(["synthetic-a", "synthetic-b"]);
+  });
+});
+
+describe("renaming an account", () => {
+  it("changes only the label, trimmed, and never the identifier", async () => {
+    let tick = 0;
+    const timed = new AccountService(
+      repositories.extensionAccounts,
+      settings,
+      () => new Date(Date.UTC(2026, 8, 22, 0, 0, ++tick)).toISOString(),
+    );
+    const account = await timed.createAccount({
+      joyClubAccountId: "drclaw",
+      label: "Old",
+    });
+    const renamed = await timed.renameAccount(account.id, "  Me  ");
+    expect(renamed).toMatchObject({
+      id: account.id,
+      accountId: account.id,
+      joyClubAccountId: "drclaw",
+      label: "Me",
+      createdAt: account.createdAt,
+    });
+    expect(renamed.updatedAt > account.updatedAt).toBe(true);
+    expect(
+      await repositories.extensionAccounts.get(account.id, account.id),
+    ).toEqual(renamed);
+  });
+
+  it("drops an empty label, as on create, so the identifier shows", async () => {
+    const account = await service.createAccount({
+      joyClubAccountId: "drclaw",
+      label: "Me",
+    });
+    const renamed = await service.renameAccount(account.id, "   ");
+    expect("label" in renamed).toBe(false);
+    expect(
+      await repositories.extensionAccounts.get(account.id, account.id),
+    ).not.toHaveProperty("label");
+  });
+
+  it("refuses an account that is not stored, and writes nothing", async () => {
+    await expect(service.renameAccount("gone", "Me")).rejects.toThrow(
+      /no longer exists/,
+    );
+    expect(await service.listAccounts()).toEqual([]);
+  });
+
+  it("can never bring back an account removed at the same time", async () => {
+    const account = await service.createAccount({ joyClubAccountId: "a" });
+    const [removed, renamed] = await Promise.allSettled([
+      service.deleteAccount(account.id),
+      service.renameAccount(account.id, "Late"),
+    ]);
+    expect(removed.status).toBe("fulfilled");
+    expect(renamed.status).toBe("rejected");
+    expect(await service.listAccounts()).toEqual([]);
+  });
+
+  it("waits for a write to the account that holds its lock", async () => {
+    const account = await service.createAccount({ joyClubAccountId: "a" });
+    let release!: () => void;
+    const writing = withAccountLock(
+      account.id,
+      () => new Promise<void>((resolve) => (release = resolve)),
+    );
+    const renaming = service.renameAccount(account.id, "New");
+    await new Promise((resolve) => setTimeout(resolve, 10));
+    expect((await service.listAccounts())[0]).not.toHaveProperty("label");
+    release();
+    await Promise.all([writing, renaming]);
+    expect((await service.listAccounts())[0]?.label).toBe("New");
   });
 });
