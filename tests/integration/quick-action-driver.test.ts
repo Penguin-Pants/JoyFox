@@ -382,6 +382,10 @@ describe("M9 live driver on synthetic JoyClub pages (ADR 0011)", () => {
     expect(texts(result.report.lines)).toContain(
       "Nothing was changed on JoyClub.",
     );
+    // The notice says how to bring the list back.
+    expect(texts(result.report.lines)).toContain(
+      "Delete works only while the ClubMail list shows beside the conversation. Widen the window and try again.",
+    );
     expect(pressed).toEqual([]);
     expect(await steps()).toEqual(["Started", "Failed:unverifiable"]);
   });
@@ -451,6 +455,24 @@ describe("M9 live driver on synthetic JoyClub pages (ADR 0011)", () => {
     const driver = new JoyClubQuickActionDriver(document, TIMING);
     await driver.request("ignore");
     expect(await driver.awaitConfirmation("ignore")).toBe("missing");
+  });
+
+  it("can check Delete only while the list beside shows the member's row", () => {
+    // What the button's hint follows (U21), without clicking anything.
+    const driver = new JoyClubQuickActionDriver(document, TIMING);
+    openConversation();
+    expect(driver.canVerify("delete")).toBe(true);
+    openConversation({ list: false });
+    expect(driver.canVerify("delete")).toBe(false);
+    openConversation();
+    document
+      .querySelector<HTMLElement>(".cm-conversation-list")!
+      .setAttribute("style", "display: none");
+    expect(driver.canVerify("delete")).toBe(false);
+    openConversation();
+    rowsOf(MEMBER)[0]!.closest("j-list-item")!.remove();
+    expect(driver.canVerify("delete")).toBe(false);
+    expect(pressed).toEqual([]);
   });
 
   it("reads the page it is on, and nothing else", () => {

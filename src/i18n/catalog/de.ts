@@ -31,7 +31,7 @@ export const de: Catalog = {
   "common.close": "Schließen",
   "common.openOptions": "JoyFox-Einstellungen öffnen",
   "common.saveFailed":
-    "JoyFox konnte diese Änderung nicht speichern. Es wurde nichts geändert.",
+    "JoyFox konnte diese Änderung nicht speichern. Es wurde nichts geändert. Versuche es noch einmal. Wenn es weiter nicht klappt, lade die Seite neu.",
   "legacy.text": (p) => p.text,
 
   // Triage reasons
@@ -194,7 +194,15 @@ export const de: Catalog = {
     "Nächster Schritt: Öffne das Profil des Mitglieds und prüfe, ob es ignoriert wird. Wenn nicht, ignoriere es dort selbst.",
   "action.next.delete":
     "Nächster Schritt: Öffne die Unterhaltung und prüfe, ob sie im Papierkorb ist. Wenn nicht, verschiebe sie selbst mit „In den Papierkorb schieben“.",
+  "action.next.showList":
+    "„In den Papierkorb schieben“ klappt nur, während die ClubMail-Liste neben der Unterhaltung zu sehen ist. Mach das Fenster breiter und versuche es noch einmal.",
+  "action.self.ignore":
+    "Du kannst es selbst tun: Öffne das Profil des Mitglieds und ignoriere es dort mit „Profil ignorieren“.",
+  "action.self.delete":
+    "Du kannst es selbst tun: Verschiebe die Unterhaltung mit „In den Papierkorb schieben“ in den Papierkorb.",
   "action.report.finished": "„Ignorieren und löschen“ ist fertig.",
+  "action.report.undo":
+    "Rückgängig machen: Hol die Unterhaltung aus JoyClubs Papierkorb zurück. Öffne dann das Profil des Mitglieds und wähle im Menü „Profil nicht mehr ignorieren“.",
   "action.report.running": "„Ignorieren und löschen“ läuft.",
   "action.report.stopped": "„Ignorieren und löschen“ wurde angehalten.",
   "action.report.interrupted":
@@ -214,10 +222,13 @@ export const de: Catalog = {
   "quick.region": "JoyFox: Ignorieren und löschen",
   "quick.scope":
     "Experimentell. Ein Klick verschiebt diese Unterhaltung in JoyClubs Papierkorb, öffnet dann das Profil des Mitglieds und ignoriert es dort. JoyFox hält beim ersten Problem an und sagt dir, was erledigt wurde. JoyFox sendet nie eine Nachricht.",
+  "quick.needsList":
+    "Klappt nur, während die ClubMail-Liste neben dieser Unterhaltung zu sehen ist. Mach das Fenster breiter.",
   "quick.noProfile":
     "JoyFox findet die Profiladresse dieses Mitglieds nicht. Dort ist „Profil ignorieren“. JoyFox hat deshalb nichts getan.",
   "quick.resumed":
     "„Ignorieren und löschen“, fortgesetzt aus der Unterhaltung:",
+  "quick.waitingMenu": "JoyFox wartet auf JoyClubs Profilmenü …",
   "quick.previous":
     "Dein letztes „Ignorieren und löschen“ für dieses Mitglied:",
   "quick.previousOther":
@@ -253,6 +264,7 @@ export const de: Catalog = {
     `Du hast diese Person am ${p.date} verschoben. Deine Regel allein würde sie in „${p.placement}“ einordnen.`,
   "triage.move.group": "Diese Person verschieben",
   "triage.move.to": (p) => `Nach „${p.placement}“ verschieben`,
+  "triage.move.keep": (p) => `In „${p.placement}“ lassen`,
   "triage.move.useRule": "Wieder meine Regel verwenden",
   "triage.profileFact.minimumPhotos": "Anzahl der Fotos",
   "triage.profileFact.minimumProfileWords": "Wörter im Profil",
@@ -290,6 +302,8 @@ export const de: Catalog = {
   "panel.ruleOff.rule-disabled":
     "Deine Kontaktregel ist ausgeschaltet, deshalb ordnet JoyFox diese Person nicht ein.",
   "panel.ruleOff.other": "JoyFox ordnet diese Person nicht ein.",
+  "panel.ruleOff.no-account":
+    "Es ist kein JoyFox-Konto aktiv, deshalb zeigt JoyFox zu diesem Mitglied nichts an.",
 
   // Content script: inbox triage
   "inbox.region": "JoyFox-Sortierung",
@@ -300,14 +314,18 @@ export const de: Catalog = {
   "inbox.about": "Über diese Ansichten",
   "inbox.aboutText":
     "„Posteingang“ blendet Zeilen aus „Quarantäne“ nur in dieser Ansicht aus. Nichts wird gelöscht, und JoyFox ändert nichts auf JoyClub.",
-  "inbox.checking": "Wird geprüft",
-  "inbox.badge": (p) => `JoyFox: ${p.text}. Grund zeigen.`,
-  "inbox.why": "Warum diese Einordnung",
-  "inbox.whyNamed": (p) => `Warum: ${p.name}`,
+  "inbox.checking": "Wird eingeordnet …",
+  "inbox.badge": (p) => `JoyFox: ${p.text}. Warum und verschieben.`,
+  "inbox.why": "Warum und verschieben",
+  "inbox.whyNamed": (p) => `Warum und verschieben: ${p.name}`,
   "inbox.rowGone": "Diese Zeile wird nicht mehr angezeigt.",
   "inbox.unidentified":
     "JoyFox konnte die Profilnummer dieser Person nicht lesen und deine Regel deshalb nicht prüfen. Die Zeile bleibt sichtbar.",
   "inbox.stillChecking": "JoyFox prüft diese Person noch.",
+  "inbox.setup.no-account":
+    "Es ist kein JoyFox-Konto aktiv, deshalb sortiert JoyFox diesen Posteingang nicht.",
+  "inbox.setup.no-rule":
+    "Es ist keine Kontaktregel gespeichert, deshalb sortiert JoyFox diesen Posteingang nicht.",
 
   // Content script: notes and tags
   "notes.region": "JoyFox-Notizen und -Tags",

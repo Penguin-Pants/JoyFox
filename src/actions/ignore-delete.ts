@@ -242,7 +242,8 @@ const stepText = (step: ActionStep, outcome: StepOutcome): Message =>
 /**
  * The notice for one operation, from its ActionLog steps alone (PRD Section
  * 21.2). It states what was done, what was not, why it stopped and the next
- * manual action. It never claims a rollback: nothing is undone.
+ * manual action. It never claims a rollback: nothing is undone. A finished
+ * run names how the user can undo it on JoyClub.
  */
 export function reportOperation(
   log: Pick<ActionLog, "steps" | "updatedAt">,
@@ -270,7 +271,7 @@ export function reportOperation(
   const lines: Message[] = [];
   if (status === "completed") {
     lines.push(message("action.report.finished"), stepText("delete", "done"));
-    lines.push(stepText("ignore", "done"));
+    lines.push(stepText("ignore", "done"), message("action.report.undo"));
     return { status, ignore, delete: remove, lines };
   }
   if (status === "running") {
@@ -288,17 +289,26 @@ export function reportOperation(
     // The step that did not complete: Delete runs first.
     const step = remove === "done" ? "ignore" : "delete";
     lines.push(failureText(failure, step, step === "ignore" ? ignore : remove));
+    // Delete's result shows only in the ClubMail list beside the
+    // conversation, so say how to bring the list back.
+    if (failure === "unverifiable" && step === "delete")
+      lines.push(message("action.next.showList"));
   }
   lines.push(stepText("delete", remove), stepText("ignore", ignore));
+  const untouched = ignore === "not-done" && remove === "not-done";
   lines.push(
     message(
-      ignore === "not-done" && remove === "not-done"
-        ? "action.report.nothingChanged"
-        : "action.report.notUndone",
+      untouched ? "action.report.nothingChanged" : "action.report.notUndone",
     ),
   );
-  if (remove !== "done") lines.push(message("action.next.delete"));
-  if (ignore !== "done") lines.push(message("action.next.ignore"));
+  if (untouched) {
+    // Nothing was clicked, so there is nothing to check: the user can do
+    // both steps on JoyClub.
+    lines.push(message("action.self.delete"), message("action.self.ignore"));
+  } else {
+    if (remove !== "done") lines.push(message("action.next.delete"));
+    if (ignore !== "done") lines.push(message("action.next.ignore"));
+  }
   return {
     status,
     ignore,

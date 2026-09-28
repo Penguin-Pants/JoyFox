@@ -427,13 +427,13 @@ describe("content surfaces (docs/i18n-spec.md, Sections 3.7 and 6)", () => {
         ?.textContent;
     await vi.waitFor(() =>
       expect(error()).toBe(
-        "JoyFox could not save that change. Nothing was changed.",
+        "JoyFox could not save that change. Nothing was changed. Try again. If it keeps failing, reload the page.",
       ),
     );
     setLocale("de");
     inbox.localeChanged();
     expect(error()).toBe(
-      "JoyFox konnte diese Änderung nicht speichern. Es wurde nichts geändert.",
+      "JoyFox konnte diese Änderung nicht speichern. Es wurde nichts geändert. Versuche es noch einmal. Wenn es weiter nicht klappt, lade die Seite neu.",
     );
     expect(
       document.querySelectorAll(".joyfox-triage__details .joyfox-error"),

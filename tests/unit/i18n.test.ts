@@ -255,7 +255,7 @@ describe("translator", () => {
       "options.tabs.start",
     );
     expect(t("inbox.whyNamed", { name: "placement.qualified" })).toBe(
-      "Warum: placement.qualified",
+      "Warum und verschieben: placement.qualified",
     );
   });
 
