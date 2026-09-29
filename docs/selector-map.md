@@ -34,6 +34,7 @@ Rules:
 | Event                    | Verified   | `14-events.md`       | Event notes (V1-5)      |
 | Event calendar           | Verified   | `14-events.md`       | Event filter (V1-5)     |
 | Venue                    | Verified   | `15-venues.md`       | Venue notes (V1-5)      |
+| "My JOY" lists           | Verified   | `17-my-joy-lists.md` | Type filter (V1-14)     |
 | Standard composer        | Verified   | `02-conversation.md` | Template picker (M10)   |
 | Conversation Delete item | Verified   | `02-conversation.md` | M9 Delete step, flag on |
 | Profile Ignore item      | Verified   | `10-ignore.md`       | M9 Ignore step, flag on |
@@ -44,15 +45,16 @@ Rules:
 Detection matches the URL path first and then waits for the root element, so a
 half-rendered page is reported as missing rather than read.
 
-| Page         | Path pattern                                                    | Root                                                                                                                                         |
-| ------------ | --------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
-| Conversation | `/clubmail/conversation/conversation-wrapper-personal-<n>-<n>/` | `.cm-conversation-header`                                                                                                                    |
-| Inbox        | `/clubmail/`                                                    | `.cm-conversation-list`                                                                                                                      |
-| Profile      | `/profile/<n>.<nickname>.html`                                  | `[data-e2e="profile-header-base-info"]` (mobile header) or `.profile-header__base-information--desktop`; the strip follows the displayed one |
-| Search       | `/member/` and `/member/<segment>/…/`                           | `div.member_search_list`                                                                                                                     |
-| Event        | `/event/<n>.<slug>.html`                                        | `h1.event_name`                                                                                                                              |
-| Event list   | `/dates_partys/…`                                               | `div.card-list-ui`                                                                                                                           |
-| Venue        | `/club/<n>.<slug>.html`                                         | `h1.profile_name`                                                                                                                            |
+| Page         | Path pattern                                                                | Root                                                                                                                                         |
+| ------------ | --------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| Conversation | `/clubmail/conversation/conversation-wrapper-personal-<n>-<n>/`             | `.cm-conversation-header`                                                                                                                    |
+| Inbox        | `/clubmail/`                                                                | `.cm-conversation-list`                                                                                                                      |
+| Profile      | `/profile/<n>.<nickname>.html`                                              | `[data-e2e="profile-header-base-info"]` (mobile header) or `.profile-header__base-information--desktop`; the strip follows the displayed one |
+| Search       | `/member/` and `/member/<segment>/…/`                                       | `div.member_search_list`                                                                                                                     |
+| Event        | `/event/<n>.<slug>.html`                                                    | `h1.event_name`                                                                                                                              |
+| Event list   | `/dates_partys/…`                                                           | `div.card-list-ui`                                                                                                                           |
+| Venue        | `/club/<n>.<slug>.html`                                                     | `h1.profile_name`                                                                                                                            |
+| My JOY list  | `/my_joy/visitors/`, `/my_joy/visits/`, `/my_joy/voting/(match\|top\|fav)/` | `section.my-joy-visits-view`                                                                                                                 |
 
 Conversation is checked before inbox, because both are client-side routes of one
 app (`09-navigation.md`) and the inbox list can stay in the DOM.
@@ -112,6 +114,11 @@ app (`09-navigation.md`) and the inbox list can stay in the DOM.
 | Event list   | Headline          | `.card-ui-detail-right-headline`                                                   | The badge goes here                                  |
 | Venue        | Venue ID          | URL path                                                                           | Digits before the first `.`                          |
 | Venue        | Name              | `h1.profile_name`                                                                  | Kept with the user's notes                           |
+| My JOY list  | Grid              | `div.card-grid-container`                                                          | The bar goes before it; filter attribute on it       |
+| My JOY list  | Card slot         | `ul.card-grid-container-list > li`                                                 | Grid item (the list is `display: contents`); hidden  |
+| My JOY list  | Filler card       | `li.card-grid-placeholder-card`                                                    | Not a member; never counted, hidden or marked        |
+| My JOY list  | Card              | `j-member-card`                                                                    | "Type unknown" label in its `badge-top-right` slot   |
+| My JOY list  | Profile type code | `j-member-card[universal-gender]`                                                  | `1` man, `2` woman, `3` couple; absent reads unknown |
 
 ## Layout dependency (ADR 0010)
 
@@ -169,8 +176,9 @@ buttons sit in open shadow roots; the driver clicks them there.
   `2`, any other code and a missing shield read as unknown.
 - **Gender codes.** Confirmed by the project owner on 2026-09-23: `1` man, `2`
   woman, `3` couple (a male and a female icon side by side). Other codes read as
-  unknown. No feature filters by profile type. Per-audience rules were dropped
-  from V1 (ADR 0016).
+  unknown. The contact rule has no profile-type condition: per-audience rules
+  were dropped from V1 (ADR 0016). The "My JOY" type filter (V1-14) shows or
+  hides loaded cards by these codes and stores nothing.
 - **Conversation header.** Switching conversations is client-side, so the URL
   can change before the header re-renders. Header data is used only when the
   header's member ID is one of the numbers in the conversation ID. This assumes

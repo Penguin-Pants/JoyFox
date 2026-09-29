@@ -475,6 +475,17 @@ export const de: Catalog = {
     "Wähle in den JoyFox-Einstellungen ein Konto aus oder füge eines hinzu, um nach deinen Notizen zu filtern.",
   "eventFilter.badge": "JoyFox",
   "eventFilter.hasNote": "Notiz",
+  "typeFilter.legend": "Profiltyp",
+  "typeFilter.man": "Mann",
+  "typeFilter.woman": "Frau",
+  "typeFilter.couple": "Paar",
+  "typeFilter.unknown": "Unbekannt",
+  "typeFilter.count": (p, f) =>
+    `${f.number(p.shown)} von ${f.number(p.loaded)} geladenen angezeigt`,
+  "typeFilter.unknownHidden": (p, f) =>
+    `${f.number(p.count)} mit unbekanntem Typ ausgeblendet`,
+  "typeFilter.scrollHint": "Nach unten scrollen, um mehr zu laden.",
+  "typeFilter.unknownMark": "Typ unbekannt",
   "messages.heading": "Nachrichtensuche",
   "messages.hint":
     "JoyFox speichert die ClubMail-Nachrichten, die du öffnest, gesendete und empfangene, damit du sie hier durchsuchen kannst. Es speichert nur, was eine Unterhaltung auf dem Bildschirm zeigt, und lädt nie ältere Nachrichten. Der Text bleibt in diesem Browser, und eine Exportdatei enthält ihn auch. Wenn du JoyFox in privaten Fenstern erlaubst, speichert es die Nachrichten, die du dort öffnest, genauso.",

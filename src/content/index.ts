@@ -26,6 +26,7 @@ import {
 import { EventListFilter } from "./event-list-filter";
 import { MessageCache, runtimeMessageCacheClient } from "./message-cache";
 import { PreferenceRetry } from "./preference-retry";
+import { ProfileTypeFilter } from "./profile-type-filter";
 import { runtimeSharedEventsClient, SharedEvents } from "./shared-events";
 import { ListingPanel, runtimeListingClient } from "./listing-panel";
 import { MemberNotes, runtimeNotesClient } from "./member-notes";
@@ -115,6 +116,7 @@ if (hasVerifiedSelectors() && VERIFIED_HOSTS.includes(location.hostname)) {
   const listingClient = runtimeListingClient();
   const listing = new ListingPanel(document, listingClient);
   const eventFilter = new EventListFilter(document, listingClient);
+  const typeFilter = new ProfileTypeFilter(document);
   const cardSignals = new CardSignals(
     document,
     runtimeSignalsClient(),
@@ -140,6 +142,7 @@ if (hasVerifiedSelectors() && VERIFIED_HOSTS.includes(location.hostname)) {
     searches.localeChanged();
     listing.localeChanged();
     eventFilter.localeChanged();
+    typeFilter.localeChanged();
     compatibility.localeChanged();
     cardSignals.localeChanged();
     sharedEvents.localeChanged();
@@ -183,6 +186,9 @@ if (hasVerifiedSelectors() && VERIFIED_HOSTS.includes(location.hostname)) {
     else listing.leave();
     if (type === "event-calendar") eventFilter.update();
     else eventFilter.leave();
+    // The five "My JOY" lists (V1-14).
+    if (type === "my-joy-list") typeFilter.update();
+    else typeFilter.leave();
     // Profile, search results, the inbox list and event guest lists (V1-2).
     compatibility.update(type);
     // Completeness, trust, note and tags on every card (V1-10).

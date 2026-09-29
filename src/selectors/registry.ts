@@ -6,6 +6,7 @@ export type PageType =
   | "event"
   | "event-calendar"
   | "venue"
+  | "my-joy-list"
   | "unknown";
 export type SelectorStatus = "unverified" | "verified";
 
@@ -186,6 +187,29 @@ export const selectorRegistry: Readonly<
     fields: {
       venueId: FROM_URL,
       name: "h1.profile_name",
+    },
+  },
+  // V1-14, from 17-my-joy-lists.md. The five "My JOY" lists (visitors,
+  // matches, liked you, you like, you visited) share one component tree, and
+  // JoyClub's tabs move between them client-side. The section exists on each
+  // of them; the grid is read inside it.
+  "my-joy-list": {
+    status: "verified",
+    evidence: "17-my-joy-lists.md",
+    path: "^/my_joy/(?:visitors|visits|voting/(?:match|top|fav))/?$",
+    root: "section.my-joy-visits-view",
+    fields: {
+      // `display: grid`. It holds a summary card (`aside`) and the list.
+      grid: "div.card-grid-container",
+      // `display: contents`, so each `li` is a grid item: hiding one leaves no
+      // gap. JoyClub appends 40 more `li` per scroll to the same list.
+      slot: "ul.card-grid-container-list > li",
+      // Always 4 filler cards at the list's end. Not members.
+      placeholder: "li.card-grid-placeholder-card",
+      card: "j-member-card",
+      // The card host carries the code; it always equals the gender icon's
+      // code in the card's shadow root, and the coordinator sees it change.
+      genderCode: "j-member-card[universal-gender]",
     },
   },
 };

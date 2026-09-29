@@ -126,6 +126,13 @@ them. The options page's "Events" tab is your personal calendar of every tracked
 event, also after JoyClub removes it (V1-5, `docs/manual-acceptance.md`, items
 111 to 115).
 
+On the five "My JOY" lists (Profilbesuche, Matches, Mögen mich, Mag ich and
+Besuchte Profile), a "Profile type" bar shows only the loaded cards of the types
+you tick: Man, Woman, Couple or Unknown. Nothing ticked shows all. The choice
+lasts for the tab across the five lists. JoyFox filters only the cards JoyClub
+has loaded, and stores nothing about them (V1-14, `docs/manual-acceptance.md`,
+items 167 to 171).
+
 The Compatibility Overlay compares a profile's "Vorlieben" with your own. JoyFox
 reads your own preferences when you open your own profile. On another member's
 profile it frames the tags you both like and lists them on request; on search

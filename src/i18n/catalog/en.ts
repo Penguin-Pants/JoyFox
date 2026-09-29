@@ -511,6 +511,19 @@ export const en = {
   "eventFilter.badge": "JoyFox",
   "eventFilter.hasNote": "note",
 
+  // Content script: profile type filter on the "My JOY" lists (V1-14)
+  "typeFilter.legend": "Profile type",
+  "typeFilter.man": "Man",
+  "typeFilter.woman": "Woman",
+  "typeFilter.couple": "Couple",
+  "typeFilter.unknown": "Unknown",
+  "typeFilter.count": (p: { shown: number; loaded: number }, f: Format) =>
+    `Showing ${f.number(p.shown)} of ${f.number(p.loaded)} loaded`,
+  "typeFilter.unknownHidden": (p: { count: number }, f: Format) =>
+    `${f.number(p.count)} with unknown type hidden`,
+  "typeFilter.scrollHint": "Scroll down to load more.",
+  "typeFilter.unknownMark": "Type unknown",
+
   // Options page: message search (V1-4)
   "messages.heading": "Message search",
   "messages.hint":

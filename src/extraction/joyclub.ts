@@ -158,6 +158,24 @@ export function profileTypeFromCode(
   return PROFILE_TYPE_CODE_MEANING[code.value] ?? "unknown";
 }
 
+/**
+ * V1-14: a "My JOY" card's profile type, from the `universal-gender` code on
+ * the card itself (17-my-joy-lists.md). A couple is one code, `3`. A card
+ * without the code (seen on "Besuchte Profile") or with another code is
+ * unknown.
+ */
+export function cardProfileType(card: Element): ProfileType | "unknown" {
+  const source = "my-joy-list.genderCode";
+  const selector = verifiedSelector("my-joy-list", "genderCode");
+  const raw =
+    selector && card.matches(selector)
+      ? card.getAttribute("universal-gender")?.trim()
+      : undefined;
+  return profileTypeFromCode(
+    raw && /^\d+$/.test(raw) ? found(Number(raw), source) : missing(source),
+  );
+}
+
 const countWords = (text: string) =>
   text.trim() === "" ? 0 : text.trim().split(/\s+/u).length;
 

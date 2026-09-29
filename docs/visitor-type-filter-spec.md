@@ -1,6 +1,7 @@
 # Feature specification: profile type filter on "My JOY" lists
 
-Status: draft for owner confirmation (2026-09-29). Task ID: V1-14 (proposed).
+Status: built (2026-09-29), live check pending (`manual-acceptance.md`, items
+167 to 171). Task ID: V1-14.
 
 ## Problem
 
@@ -345,8 +346,9 @@ None.
 
 ## Implementation plan
 
-Status: waits for evidence E5 (`docs/live-evidence/capture-prompt-e5.md`).
-Selectors below in angle brackets come from that evidence.
+Status: done (2026-09-29). Evidence E5 is
+`docs/live-evidence/17-my-joy-lists.md`. Selectors below in angle brackets were
+filled from it (see "What the evidence settled").
 
 ### Steps (in order)
 
@@ -454,3 +456,29 @@ AC-23; the capture prompt exempts its navigation probe from the read-only rule.
 
 Removed as unsupported: a performance concern for large grids. The pass is one
 `querySelectorAll` per debounced mutation, the same cost as the event filter.
+
+## What the evidence settled (E5, 2026-09-29)
+
+- **Page root:** `section.my-joy-visits-view`, the same on all five pages. The
+  grid is `div.card-grid-container`; the bar goes directly before it, or first
+  in the section when there is no grid (AC-20).
+- **Cards:** `ul.card-grid-container-list > li > j-member-card`. The list is
+  `display: contents`, so each `li` is a grid item and hiding it leaves no gap.
+  The summary card (`aside`) is not in the list and is never touched.
+- **Profile type:** the card host's `universal-gender` attribute, always equal
+  to the gender icon's code in the card's shadow root. A couple is one code,
+  `3`, never two icons, so AC-23 holds with the code alone. The coordinator
+  already watches that attribute, so no shadow-root observer is needed (FR-08,
+  AC-08).
+- **Unknown type:** cards without a code were seen on "Besuchte Profile" only.
+- **Placeholders:** always 4 `li.card-grid-placeholder-card` filler cards at the
+  list's end. They are skipped (FR-07, AC-21).
+- **Loading:** all five lists use infinite scroll, 40 cards per batch, into the
+  same list, with no button or page numbers. So the scroll hint shows on all
+  five, and no page needs the FR-16 exception; AC-22 has no page to apply to.
+- **Navigation:** the tabs move client-side. The navigation coordinator already
+  re-detects on a URL change.
+- **Not observed:** an empty list's markup. AC-20 is tested with a synthetic
+  list without a grid.
+- **Mark place:** a light-DOM child in the card's `badge-top-right` slot, as on
+  search cards.

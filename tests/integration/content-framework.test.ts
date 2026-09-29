@@ -14,6 +14,7 @@ import profileEvidence from "../../docs/live-evidence/03-profile.md?raw";
 import searchEvidence from "../../docs/live-evidence/11-search.md?raw";
 import eventsEvidence from "../../docs/live-evidence/14-events.md?raw";
 import venuesEvidence from "../../docs/live-evidence/15-venues.md?raw";
+import myJoyEvidence from "../../docs/live-evidence/17-my-joy-lists.md?raw";
 
 const EVIDENCE: Record<string, string> = {
   "01-inbox.md": inboxEvidence,
@@ -22,6 +23,7 @@ const EVIDENCE: Record<string, string> = {
   "11-search.md": searchEvidence,
   "14-events.md": eventsEvidence,
   "15-venues.md": venuesEvidence,
+  "17-my-joy-lists.md": myJoyEvidence,
 };
 
 describe("F2 content framework", () => {

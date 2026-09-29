@@ -21,6 +21,7 @@ const DETECTION_ORDER: readonly KnownPage[] = [
   "event",
   "event-calendar",
   "venue",
+  "my-joy-list",
 ];
 
 /**

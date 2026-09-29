@@ -24,6 +24,7 @@ replaced with `0`. The code values in `01-inbox.md` (`verification-status`,
 | `14-events.md`           | Event list, event page, attendee list         | 5 (E4)                                         |
 | `15-venues.md`           | Venue (club) page                             | 5 (E4, venue part)                             |
 | `16-navigation.md`       | Navigation types for search, events, profiles | 9 (partial)                                    |
+| `17-my-joy-lists.md`     | The five "My JOY" lists, cards, type codes    | E5 (V1-14); empty state not observed           |
 
 What each partial item still lacks:
 
