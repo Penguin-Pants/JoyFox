@@ -194,20 +194,20 @@ The user is the owner of a JoyClub Premium account who uses JoyFox.
 
 ## Edge cases and failure modes
 
-| Case                                                        | Required behavior                                                                            |
-| ----------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
-| Evidence shows no profile type code on cards (text only)    | Stop. Owner decides whether JoyFox may read the type from text. No code is built on a guess. |
-| One page's cards differ from the others                     | That page stays unverified and undetected. The other pages work.                             |
-| Couple code other than `3` (for example two women)          | Reads as unknown: shown, and marked, only when Unknown is ticked.                            |
-| Non-Premium account (blurred or locked cards)               | Cards without a readable code read as unknown.                                               |
-| Session storage blocked                                     | The choice lasts only for the current page. No error shown.                                  |
-| Stored value holds an unknown type name                     | That name is ignored. If none is valid, no box is ticked.                                    |
-| JoyClub re-renders the grid (new root element)              | JoyFox drops its marks from the old root and applies the filter to the new one.              |
-| JoyClub's scroll code loads more because the grid got short | JoyFox does not prevent or cause it. New cards are filtered.                                 |
-| Page root never renders                                     | No bar. Nothing else changes.                                                                |
-| Loading placeholders in the grid                            | Not classified, counted, hidden or marked (FR-07).                                           |
-| Tab duplicated, or opened from a filtered tab               | The browser copies session storage, so the new tab starts with the copied choice.            |
-| JoyFox account switch                                       | No effect: the filter holds no account data.                                                 |
+| Case                                                        | Required behavior                                                                                                     |
+| ----------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
+| Evidence shows no profile type code on cards (text only)    | Stop. Owner decides whether JoyFox may read the type from text. No code is built on a guess.                          |
+| One page's cards differ from the others                     | Did not occur: E5 found one identical component on all five pages. If JoyClub changes one, it goes back to the owner. |
+| Couple code other than `3` (for example two women)          | Reads as unknown: shown, and marked, only when Unknown is ticked.                                                     |
+| Non-Premium account (blurred or locked cards)               | Cards without a readable code read as unknown.                                                                        |
+| Session storage blocked                                     | The choice lasts only for the current page. No error shown.                                                           |
+| Stored value holds an unknown type name                     | That name is ignored. If none is valid, no box is ticked.                                                             |
+| JoyClub re-renders the grid (new root element)              | JoyFox drops its marks from the old root and applies the filter to the new one.                                       |
+| JoyClub's scroll code loads more because the grid got short | JoyFox does not prevent or cause it. New cards are filtered.                                                          |
+| Page root never renders                                     | No bar. Nothing else changes.                                                                                         |
+| Loading placeholders in the grid                            | Not classified, counted, hidden or marked (FR-07).                                                                    |
+| Tab duplicated, or opened from a filtered tab               | The browser copies session storage, so the new tab starts with the copied choice.                                     |
+| JoyFox account switch                                       | No effect: the filter holds no account data.                                                                          |
 
 ## Technical constraints
 
@@ -282,8 +282,10 @@ Confirmed from the repository:
 - **AC-23** A couple drawn as the evidence defines (one code or several icons)
   reads as couple, never as the type of its first icon.
 - **AC-18** Live check: on the owner's Premium account, ticking a type on each
-  of the five pages hides only cards of other known types, the grid shows no
-  empty gaps, and scrolling filters new cards.
+  of the five pages hides only cards of other known types and the grid shows no
+  empty gaps; on each list longer than one batch of 40 cards, scrolling filters
+  the new cards. A list shorter than one batch is complete and loads no more
+  (E5).
 - **AC-19** `npm test`, `npm run lint`, `npm run typecheck`,
   `npm run format:check`, `npm run build:firefox` and `npm run build:chrome`
   pass.
@@ -365,12 +367,13 @@ filled from it (see "What the evidence settled").
    `DETECTION_ORDER` in `src/content/page-detector.ts`. A page that differs in
    the evidence leaves its path out of the pattern.
 3. **Type reading** (`src/extraction/joyclub.ts`). Add
-   `readCardProfileType(card)` that reads the code with the existing
-   `codeAttribute` helper (in the card's open shadow root if the evidence says
-   so) and maps it with `profileTypeFromCode`. It returns `"unknown"` for any
-   other state. If the evidence draws a couple as several icons, it reads all of
-   them with `querySelectorAll` and applies the evidence rule; `codeAttribute`
-   alone reads only the first match.
+   `readCardProfileType(card)` that reads the code and maps it with
+   `profileTypeFromCode`. It returns `"unknown"` for any other state. If the
+   evidence draws a couple as several icons, it reads all of them with
+   `querySelectorAll` and applies the evidence rule. As built (E5): the code is
+   on the card host, so `cardProfileType` reads the host's own attribute;
+   `codeAttribute` searches only descendants and cannot read it. A couple is one
+   code, and no shadow-root observer is needed.
 4. **Filter module** (new `src/content/profile-type-filter.ts`), modeled on
    `EventListFilter`, with no background client:
    - `update()`, `leave()`, `localeChanged()`; an injectable session store.

@@ -943,8 +943,9 @@ on a Premium account.
      with the unticked boxes Man, Woman, Couple and Unknown directly above the
      cards, and that every card shows. Tick one type. Confirm only cards of that
      type show, the grid has no gaps, the bar says "Showing X of Y loaded" and
-     "Scroll down to load more.", and that scrolling adds cards that are
-     filtered too. Repeat on "Matches", "Mögen mich", "Mag ich" and "Besuchte
+     "Scroll down to load more.", and, on a list longer than 40 cards, that
+     scrolling adds cards that are filtered too (a shorter list is complete and
+     loads no more). Repeat on "Matches", "Mögen mich", "Mag ich" and "Besuchte
      Profile", moving with JoyClub's tabs, and confirm the ticked boxes stay
      (spec AC-09, AC-18).
 168. On "Besuchte Profile", find a card without a profile type (seen there in
