@@ -221,5 +221,6 @@ Needs an account with an empty list (for example a new account's `match` page).
 3. Empty-state markup.
 4. Meaning of `highlighted-gender` and of `verification-status` values `0`, `6`.
 5. Placeholder behavior when JoyFox hides slots (placeholders may no longer fill
-   the last row exactly).
+   the last row exactly). Closed 2026-09-29: with a type ticked, the filler
+   cards looked fine (owner, `manual-acceptance.md` item 169).
 6. Other profile type codes beyond 1, 2, 3.

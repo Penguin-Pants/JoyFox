@@ -1,7 +1,7 @@
 # Feature specification: profile type filter on "My JOY" lists
 
-Status: built (2026-09-29), live check pending (`manual-acceptance.md`, items
-167 to 171). Task ID: V1-14.
+Status: accepted (2026-09-29). The owner passed the live check
+(`manual-acceptance.md`, items 167 to 171). Task ID: V1-14.
 
 ## Problem
 
@@ -487,3 +487,13 @@ Removed as unsupported: a performance concern for large grids. The pass is one
   list without a grid.
 - **Mark place:** a light-DOM child in the card's `badge-top-right` slot, as on
   search cards.
+
+## Owner decisions after the live check (2026-09-29)
+
+- **Filler cards:** with a type ticked, JoyClub's filler cards at the list's end
+  looked fine (item 169). They stay untouched.
+- **Scroll hint on a complete short list:** kept. JoyFox cannot tell that a list
+  is complete (no end marker; a full first batch held 39 or 40 cards), and the
+  hint is harmless there. The hint is hidden only while no card shows.
+- **German strings:** reviewed and approved by the owner
+  (`docs/i18n-strings.md`, "typeFilter").
