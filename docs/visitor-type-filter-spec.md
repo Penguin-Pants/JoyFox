@@ -184,8 +184,10 @@ The user is the owner of a JoyClub Premium account who uses JoyFox.
   catalogs. A language change redraws an open bar without losing the ticked
   boxes.
 - **FR-15 Documentation.** `docs/selector-map.md`, the README "Features"
-  section, `docs/manual-acceptance.md`, `Task Backlog.md` (new V1-14 row) and
-  `docs/i18n-strings.md` describe the feature. The statement "No feature filters
+  section, `docs/manual-acceptance.md`, `Task Backlog.md` (new V1-14 row),
+  `docs/i18n-strings.md` and `docs/privacy-model.md` ("Page session storage":
+  the third key, `joyfox.profileTypeFilter`, what it holds and that JoyClub's
+  scripts can read it) describe the feature. The statement "No feature filters
   by profile type" in `selector-map.md` is corrected to say that the contact
   rule does not, and this display filter does.
 
@@ -303,7 +305,10 @@ Confirmed from the repository:
 - Update `docs/live-evidence/README.md`, `docs/selector-map.md`, README
   "Features", `docs/manual-acceptance.md`, `Task Backlog.md`,
   `docs/i18n-strings.md`.
-- No privacy-model change: nothing new is stored.
+- Update `docs/privacy-model.md`, "Page session storage": it lists every key
+  JoyFox keeps in the tab's session storage, so it gains
+  `joyfox.profileTypeFilter` (type names only, readable by JoyClub's scripts,
+  gone when the tab closes). No member data is stored.
 
 ## Deferred items
 
@@ -404,14 +409,20 @@ Selectors below in angle brackets come from that evidence.
      decode, match decision.
    - `tests/fixtures/joyclub/my-joy-list.html`: a sanitized fixture from the
      evidence (2 man, 2 woman, 2 couple, 1 unknown).
-   - `tests/integration/profile-type-filter.test.ts`: AC-01 to AC-17.
+   - `tests/integration/profile-type-filter.test.ts`: AC-01 to AC-17 and AC-20
+     to AC-23.
+   - `tests/integration/content-framework.test.ts`: import
+     `17-my-joy-lists.md?raw` and add it to the `EVIDENCE` map. That test
+     requires every verified registry entry's evidence file to be in the map, so
+     `npm test` fails without it.
    - Page detection tests for the five paths and for a near-miss path.
    - The existing network-isolation, `data-v-*` and i18n table tests cover the
      new code without changes.
 9. **Docs.** `docs/selector-map.md` (surface row, page signal, fields, the
    corrected profile-type sentence), README "Features",
    `docs/manual-acceptance.md` (new items from 167: AC-18, dark theme, narrow
-   window, German), `Task Backlog.md` (V1-14 row), and this file's status.
+   window, German), `Task Backlog.md` (V1-14 row), `docs/privacy-model.md`
+   ("Page session storage") and this file's status.
 10. **Checks.** `npm test`, `npm run lint`, `npm run typecheck`,
     `npm run format:check`, `npm run build:firefox`, `npm run build:chrome`.
 
@@ -436,7 +447,10 @@ failed detection (page root added); a duplicated or opener-created tab copies
 session storage (AC-10 narrowed); `codeAttribute` reads only the first icon
 (step 3); shadow-root code changes do not reach the coordinator (step 4);
 loading placeholders were counted (FR-07); the scroll hint was shown on pages
-that may not load by scrolling (FR-16).
+that may not load by scrolling (FR-16). Second round: the new session key
+belongs in the privacy model (FR-15); the evidence file must join the
+content-framework test's `EVIDENCE` map (step 8); step 8 now tests AC-20 to
+AC-23; the capture prompt exempts its navigation probe from the read-only rule.
 
 Removed as unsupported: a performance concern for large grids. The pass is one
 `querySelectorAll` per debounced mutation, the same cost as the event filter.

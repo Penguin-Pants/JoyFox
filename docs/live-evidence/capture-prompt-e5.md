@@ -27,7 +27,10 @@ owner then copies your file into the repository.
    run read-only JavaScript in the page (`document.querySelector`,
    `querySelectorAll`, `getComputedStyle`, reading attributes, class names and
    open shadow roots). Never call `fetch`, `XMLHttpRequest` or any JoyClub API
-   from JavaScript. Never set a value or dispatch an event.
+   from JavaScript. Never set a value on a page element or in page storage, and
+   never dispatch an event. The only exception is the navigation probe below: it
+   adds one `pageshow` listener and sets the probe variables `window.__jf` and
+   `window.__jfRestored`, which belong to no JoyClub code.
 4. **Human pace.** Wait a few seconds between page loads. Open at most about 15
    pages in total. Scroll each list at most twice.
 5. **Stop and report** if you see a CAPTCHA, a warning, a login prompt, a
