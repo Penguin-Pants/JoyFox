@@ -495,3 +495,5 @@ Removed as unsupported: a performance concern for large grids. The pass is one
 - **Scroll hint on a complete short list:** kept. JoyFox cannot tell that a list
   is complete (no end marker; a full first batch held 39 or 40 cards), and the
   hint is harmless there. The hint is hidden only while no card shows.
+- **German strings:** reviewed and approved by the owner
+  (`docs/i18n-strings.md`, "typeFilter").
