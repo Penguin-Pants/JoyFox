@@ -6,7 +6,8 @@ every string on 2026-09-25 and reviewed the strings added later on
 2026-09-26 and the profile type filter's (V1-14) on 2026-09-29. The
 German drafts for the ClubMail Delete and Mark buttons (change request
 2026-09-29) were accepted as drafted, without an owner review, on the
-owner's instruction. Any other changed string needs a new review. Do not
+owner's instruction. The owner approved the collapse button's strings
+on 2026-09-29. Any other changed string needs a new review. Do not
 edit by hand:
 change the catalogs, then run
 `UPDATE_I18N_TABLE=1 npx vitest run tests/unit/i18n-table.test.ts`.
@@ -283,6 +284,18 @@ stay as they are.
 | `bar.negative` | Negative | Negativ |
 | `bar.undo` | Undo | Zurücknehmen |
 | `bar.details` | Details | Details |
+
+## strip
+
+| Key | English | Deutsch |
+| --- | --- | --- |
+| `strip.collapse` | Collapse JoyFox | JoyFox einklappen |
+| `strip.expand` | Expand JoyFox | JoyFox ausklappen |
+
+## bar
+
+| Key | English | Deutsch |
+| --- | --- | --- |
 | `bar.scoreDetails` | Score details | Details zum Wert |
 
 ## panel
@@ -907,6 +920,7 @@ stay as they are.
 | `data.setting.messageCaching` | store messages | Nachrichten speichern |
 | `data.setting.messageRetention` | keep messages for | Nachrichten behalten für |
 | `data.setting.quickIgnoreDelete` | Ignore and Delete button | Schaltfläche „Ignorieren und löschen“ |
+| `data.setting.stripCollapsed` | JoyFox bar collapsed | JoyFox-Leiste eingeklappt |
 | `data.setting.templatePicker` | template picker | Vorlagenauswahl |
 | `data.setting.sharedEventException` | shared-event exception | Ausnahme für gemeinsame Events |
 | `data.setting.snapshotRetention` | snapshots kept per member | Momentaufnahmen je Mitglied |

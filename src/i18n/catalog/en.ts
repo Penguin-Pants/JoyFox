@@ -351,6 +351,8 @@ export const en = {
   "bar.negative": "Negative",
   "bar.undo": "Undo",
   "bar.details": "Details",
+  "strip.collapse": "Collapse JoyFox",
+  "strip.expand": "Expand JoyFox",
   "bar.scoreDetails": "Score details",
   "panel.ruleOff.no-rule":
     "No contact rule is set, so JoyFox does not place this sender.",
@@ -1188,6 +1190,7 @@ export const en = {
   "data.setting.messageCaching": "store messages",
   "data.setting.messageRetention": "keep messages for",
   "data.setting.quickIgnoreDelete": "Ignore and Delete button",
+  "data.setting.stripCollapsed": "JoyFox bar collapsed",
   "data.setting.templatePicker": "template picker",
   "data.setting.sharedEventException": "shared-event exception",
   "data.setting.snapshotRetention": "snapshots kept per member",

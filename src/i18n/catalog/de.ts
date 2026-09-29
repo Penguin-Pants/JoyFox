@@ -326,6 +326,8 @@ export const de: Catalog = {
   "bar.negative": "Negativ",
   "bar.undo": "Zurücknehmen",
   "bar.details": "Details",
+  "strip.collapse": "JoyFox einklappen",
+  "strip.expand": "JoyFox ausklappen",
   "bar.scoreDetails": "Details zum Wert",
   "panel.ruleOff.no-rule":
     "Es ist keine Kontaktregel gespeichert, deshalb ordnet JoyFox diese Person nicht ein.",
@@ -1101,6 +1103,7 @@ export const de: Catalog = {
   "data.setting.messageCaching": "Nachrichten speichern",
   "data.setting.messageRetention": "Nachrichten behalten für",
   "data.setting.quickIgnoreDelete": "Schaltfläche „Ignorieren und löschen“",
+  "data.setting.stripCollapsed": "JoyFox-Leiste eingeklappt",
   "data.setting.templatePicker": "Vorlagenauswahl",
   "data.setting.sharedEventException": "Ausnahme für gemeinsame Events",
   "data.setting.snapshotRetention": "Momentaufnahmen je Mitglied",

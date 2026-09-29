@@ -913,7 +913,15 @@ export class QuickIgnoreDelete implements ConversationTrash {
         if (!this.#busy) onClick();
       });
       run.dataset.action = action;
-      const scope = element(document, "p", "joyfox-note", t(description));
+      // Visually hidden (owner request, 2026-09-29: the labels are clear and
+      // the text took too much room). Screen readers still read it as the
+      // button's description, since the click is the confirmation.
+      const scope = element(
+        document,
+        "p",
+        "joyfox-visually-hidden",
+        t(description),
+      );
       scope.id = `joyfox-quick-scope-${id}-${action}`;
       // The click is the confirmation, so the button carries what it does.
       run.setAttribute("aria-describedby", scope.id);
