@@ -221,7 +221,13 @@ export class ProfileTypeFilter {
       );
     setText(this.#count, parts.join(" · "));
     // All five lists load more cards as the user scrolls (17-my-joy-lists.md).
-    setText(this.#hint, filtering ? t("typeFilter.scrollHint") : "");
+    // A list with no cards has nothing to scroll. Whether a list is complete
+    // cannot be read: JoyClub shows no end marker, and a full first batch
+    // held 39 or 40 cards.
+    setText(
+      this.#hint,
+      filtering && loaded > 0 ? t("typeFilter.scrollHint") : "",
+    );
   }
 
   /** The "Type unknown" label, over the card's photo. */

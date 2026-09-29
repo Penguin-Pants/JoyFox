@@ -161,8 +161,9 @@ The user is the owner of a JoyClub Premium account who uses JoyFox.
   it adds "N with unknown type hidden".
 - **FR-16 Scroll hint.** With one or more boxes ticked, the bar shows "Scroll
   down to load more." on each page where the evidence shows that scrolling loads
-  more cards. With no box ticked, or on a page that the evidence shows loads no
-  more cards by scrolling (a button, page numbers or none), it does not.
+  more cards, while the list shows at least one card. With no box ticked, or on
+  a page that the evidence shows loads no more cards by scrolling (a button,
+  page numbers or none), it does not.
 - **FR-08 Added cards.** Cards that JoyClub adds or changes in place are
   filtered and counted within one navigation-coordinator cycle of the change.
   This includes a type code that changes inside a card's shadow root, which the
@@ -273,7 +274,8 @@ Confirmed from the repository:
 - **AC-17** On a page outside the five paths, and on a host other than
   `www.joyclub.de`, no bar appears.
 - **AC-20** With Woman ticked and a list that shows JoyClub's empty state (no
-  grid), the bar shows with Woman ticked and "Showing 0 of 0 loaded".
+  grid), the bar shows with Woman ticked and "Showing 0 of 0 loaded", and no
+  scroll hint.
 - **AC-21** With 2 woman cards and 2 loading placeholders in the grid and Woman
   ticked, the bar shows "Showing 2 of 2 loaded" and no placeholder is hidden or
   marked.

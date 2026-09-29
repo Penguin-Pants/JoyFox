@@ -331,6 +331,8 @@ describe("V1-14 profile type filter", () => {
     expect(section.firstElementChild).toBe(bar());
     expect(box("woman").checked).toBe(true);
     expect(count()).toBe("Showing 0 of 0 loaded");
+    // Nothing to scroll.
+    expect(hint()).toBe("");
   });
 
   it("never counts, hides or marks JoyClub's filler cards (AC-21)", () => {
