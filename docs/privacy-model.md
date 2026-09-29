@@ -169,7 +169,8 @@ seen a member's nickname, its texts show "Member" and the number.
 The JoyFox strip on conversation and profile pages has its own collapse button.
 Its state is one flag in the extension's `storage.local`,
 `joyfox.stripCollapsed` (`true` while collapsed), so every JoyClub tab shows the
-same state. It holds no member data and is never imported.
+same state. It holds no member data. An import sets it only when it is `true` or
+`false` and none is stored, like the other preferences.
 
 ## Page session storage (UX audit, 2026-09-28)
 

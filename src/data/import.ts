@@ -145,6 +145,8 @@ const IMPORTED_SETTINGS: Readonly<Record<string, (value: unknown) => boolean>> =
     // Message caching (V1-4): the switch and how long messages are kept.
     [MESSAGE_CACHING_KEY]: (value) => typeof value === "boolean",
     [MESSAGE_RETENTION_KEY]: isMessageRetention,
+    // Whether the JoyFox strip is collapsed: layout only, never a feature.
+    "joyfox.stripCollapsed": (value) => typeof value === "boolean",
   };
 
 /** Every field each entity may have. Anything else refuses the file. */

@@ -184,6 +184,8 @@ describe("M8 import: restoring and merging", () => {
     await settings.set({
       [ACTIVE_ACCOUNT_SETTING_KEY]: "a",
       "joyfox.templatePicker": false,
+      // Layout only: restored like a preference, never skipped as a switch.
+      "joyfox.stripCollapsed": true,
     });
     const before = await data.exportAll();
     const text = serializeExport(before);
@@ -197,6 +199,8 @@ describe("M8 import: restoring and merging", () => {
       expect(after.entities[name]).toEqual(before.entities[name]);
     expect(settings.items.get(ACTIVE_ACCOUNT_SETTING_KEY)).toBe("a");
     expect(settings.items.get("joyfox.templatePicker")).toBe(false);
+    expect(settings.items.get("joyfox.stripCollapsed")).toBe(true);
+    expect(plan.settingsSkipped).not.toContain("joyfox.stripCollapsed");
   });
 
   it("takes a member's newer nickname from the file", async () => {
