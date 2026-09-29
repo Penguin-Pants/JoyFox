@@ -283,6 +283,11 @@ owner's approval before the task starts. The others quote the PRD.
   profile) and the venue page (a venue is a member account). Still open: the
   venue's own events page. Unblocks V1-5, V1-13 and the attendee-list parts of
   V1-2 and V1-10.
+- **E5:** not captured. The five "My JOY" lists (visitors, matches, liked you,
+  you like, you visited): grid, card, profile type code and loading. The prompt
+  is `live-evidence/capture-prompt-e5.md`. Unblocks V1-14, the profile type
+  filter on those lists (owner request, 2026-09-29; scope and plan in
+  `visitor-type-filter-spec.md`).
 
 ### Owner decisions needed
 
