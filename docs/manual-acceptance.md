@@ -961,3 +961,6 @@ on a Premium account.
 171. Switch the language to German. Confirm the bar, the count, the hint and the
      label are German ("Profiltyp", "Mann", "Frau", "Paar", "Unbekannt", "Typ
      unbekannt"), and that the ticked boxes stay.
+
+**Result (2026-09-29): passed.** The project owner confirmed items 167 to 171,
+including item 169 (the filler cards at the list's end).

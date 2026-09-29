@@ -1,7 +1,7 @@
 # Feature specification: profile type filter on "My JOY" lists
 
-Status: built (2026-09-29), live check pending (`manual-acceptance.md`, items
-167 to 171). Task ID: V1-14.
+Status: accepted (2026-09-29). The owner passed the live check
+(`manual-acceptance.md`, items 167 to 171). Task ID: V1-14.
 
 ## Problem
 
