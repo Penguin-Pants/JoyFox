@@ -963,4 +963,5 @@ on a Premium account.
      unbekannt"), and that the ticked boxes stay.
 
 **Result (2026-09-29): passed.** The project owner confirmed items 167 to 171,
-including item 169 (the filler cards at the list's end).
+including item 169: with a type ticked, JoyClub's filler cards at the list's end
+looked fine (owner).
