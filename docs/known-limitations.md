@@ -144,10 +144,10 @@
 - "Not flagged as template spam" is always unknown, because JoyFox does not
   check messages for templates yet. The contact rule editor says so on the
   condition.
-- The inbox view (Inbox, Qualified, Needs Review, Quarantined, Show all) and the
-  event list filter are kept for the tab's session in the page's
-  `sessionStorage`, so a new tab starts with the default. A tag filter is not
-  kept, because JoyClub's own scripts can read that storage.
+- The inbox view (Inbox, Qualified, Needs Review, Junk, Show all) and the event
+  list filter are kept for the tab's session in the page's `sessionStorage`, so
+  a new tab starts with the default. A tag filter is not kept, because JoyClub's
+  own scripts can read that storage.
 - Lowering either retention number ("Keep messages for" on "Messages", "Profile
   snapshots kept per member" on "Your data") deletes older records at once, so
   it takes a second click ("Save and delete"). A higher or equal number saves on
@@ -156,19 +156,32 @@
   the shared-preferences section stays. The note editor recognizes the own
   profile by the "Account" headline only.
 - Quick Ignore and Delete (M9) has a live driver (ADR 0011) and was accepted
-  live on 2026-09-25 (`manual-acceptance.md`, items 43 to 54). It is still off
-  by default (`joyfox.quickIgnoreDelete`, a switch on the options page's
-  "Contact rule" tab since 2026-09-27). Items 44, 45, 47 and 50 could not be
+  live on 2026-09-25 (`manual-acceptance.md`, items 43 to 54). It is on by
+  default since 2026-09-29 (`joyfox.quickIgnoreDelete`, a switch on the options
+  page's "Contact rule" tab since 2026-09-27, ADR 0017). The switch controls
+  only Ignore and Delete: "Delete" and "Mark as junk" click JoyClub's trash on a
+  conversation page also while it is off. Items 44, 45, 47 and 50 could not be
   caused by hand and rest on synthetic tests. A member who is already ignored is
   not reported as such (item 46); the owner decided on 2026-09-25 to keep this
   as is. It deletes first, on the conversation page, then opens the member's
   profile in the same tab to ignore them there.
-- M9 Delete is checked by the conversation's row leaving the list, so it runs
-  only in the split view with the member's row loaded. Otherwise it stops before
-  clicking ("cannot see JoyClub's result"). A line under the button says so
-  while the conversation's row is not in the list: the list is hidden, or it has
-  not loaded that row yet. It is checked again when the page changes, so a
-  resize alone that shows the list leaves the line until the next change.
+- Delete (alone, in Ignore and Delete and in "Mark as junk") is checked by the
+  conversation's row leaving the list, so it runs only in the split view with
+  the member's row loaded. Otherwise "Delete" and "Ignore and Delete" are greyed
+  out, and a line under them says why (owner decision, 2026-09-29): the list is
+  hidden, or it has not loaded that row yet. "Mark as junk" then keeps the Junk
+  placement and the Negative outcome and says the conversation was not moved to
+  the trash. It is checked again when the page changes, so a resize alone that
+  shows the list leaves the buttons greyed out until the next change.
+- After a finished Delete, JoyFox returns to the ClubMail list after 2 seconds,
+  only while the page still shows that conversation. JoyClub's own Undo notice
+  for the trash goes with the page; the conversation can still be restored from
+  JoyClub's trash. JoyFox cannot undo a trash.
+- "Mark qualified" and "Mark as junk" stop at the first step that fails or is
+  refused (for example after an account switch). A step already done stays: a
+  placement stays when its outcome could not be logged, and the notice says so.
+  "Use my rule again" clears only the placement; a logged outcome stays until
+  "Undo" in the bar removes it.
 - JoyClub's own Undo notice for Delete disappears when JoyFox moves to the
   profile. The conversation can still be restored from JoyClub's trash.
 - The M9 step timeout (15 seconds), the interrupted threshold (2 minutes; 30
@@ -182,12 +195,12 @@
   to any other JoyClub page ends the hand-off at once (ADR 0011, "Stale hand-off
   on page load"). A move that takes longer than 15 seconds stops before Ignore,
   and the profile page then shows no JoyFox notice.
-- M9 Delete counts the member's rows in the list, not the conversation's own
-  row, so a member with two conversations in the list can mislead it. Matching
-  the own row needs evidence that an inbox row names its conversation.
+- Delete counts the member's rows in the list, not the conversation's own row,
+  so a member with two conversations in the list can mislead it. Matching the
+  own row needs evidence that an inbox row names its conversation.
 - The PRD's guided alternative for M9 (navigate and stage, the user clicks) is
-  not built. The owner dropped it on 2026-09-25 (ADR 0015); Mode A behind the
-  experimental flag is the only mode.
+  not built. The owner dropped it on 2026-09-25 (ADR 0015); Mode A (the click is
+  the confirmation) is the only mode, for Delete too.
 - A sender is "trusted" (PRD Section 7.4) by a manual Qualified placement, not
   by a tag (ADR 0015).
 - The database is at version 4. Versions 1 to 3 upgrade in place and keep their

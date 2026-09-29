@@ -1,6 +1,6 @@
 import type { TriagePlacement } from "../domain/types";
 import type { PlainKey } from "../i18n/catalog/en";
-import { message } from "../i18n/message";
+import { message, type Message } from "../i18n/message";
 import { t } from "../i18n/translator";
 import {
   extractInboxRows,
@@ -30,6 +30,7 @@ import {
   openSections,
   reopenSections,
   UI_ATTRIBUTE,
+  type MarkPlacement,
 } from "./triage-ui";
 
 /**
@@ -51,7 +52,7 @@ const SETUP_TEXT: Record<SetupReason, PlainKey> = {
   "no-rule": "inbox.setup.no-rule",
 };
 
-/** The Close button of the "Why and move" panel, for focus. */
+/** The Close button of the "Details" panel, for focus. */
 const CLOSE_KEY = "close";
 
 /**
@@ -185,7 +186,7 @@ interface RowState {
  * node is moved, removed or changed otherwise, so JoyClub's own list keeps
  * rendering normally, and `teardown` restores it exactly.
  *
- * The default view shows everything except Quarantined. A row not yet
+ * The default view shows everything except Junk. A row not yet
  * evaluated is never hidden from the default view, and any failure leaves
  * the list untouched. Without an account or a saved rule, one line in place
  * of the tab bar says so, and no row is hidden or labelled.
@@ -207,6 +208,14 @@ export class InboxTriage {
    * redraw (for example after a language change) until another choice.
    */
   #failedFor?: string;
+  /**
+   * The member a Mark sequence runs for. Set at the click, before any
+   * request, and kept until the sequence ends, so a double click runs it
+   * once (C9).
+   */
+  #markPending?: string;
+  /** What a Mark sequence did and did not do, when it stopped early. */
+  #notice?: { memberId: string; text: Message };
   #writeQueue: Promise<void> = Promise.resolve();
   #active = false;
   #day?: string;
@@ -353,6 +362,7 @@ export class InboxTriage {
     this.#detailsKey = "";
     this.#selected = undefined;
     this.#failedFor = undefined;
+    this.#notice = undefined;
   }
 
   /**
@@ -637,7 +647,16 @@ export class InboxTriage {
     if (!details || this.#selected === undefined) return;
     const state = rows.find((row) => (row.memberId ?? "") === this.#selected);
     const result = state?.key ? this.#results.get(state.key) : undefined;
-    const key = JSON.stringify([this.#selected, state?.name, result]);
+    // One Mark sequence at a time, for any row: another row's panel waits
+    // too, so its buttons never look usable while a click would do nothing.
+    const markBusy = this.#markPending !== undefined;
+    const key = JSON.stringify([
+      this.#selected,
+      state?.name,
+      result,
+      markBusy,
+      this.#notice,
+    ]);
     if (key === this.#detailsKey) return;
     this.#detailsKey = key;
     details.hidden = false;
@@ -684,12 +703,14 @@ export class InboxTriage {
     const accountId = this.#accountId;
     redraw(
       explanation(this.document, result, {
-        onOverride: (placement) => {
+        onMark: (placement) => this.#mark(memberId, placement),
+        markBusy,
+        onUseRule: () => {
           // In click order, so a quick second choice never lands first.
           if (!accountId) return;
           this.#writeQueue = this.#writeQueue.then(() =>
             this.client
-              .setOverride(accountId, memberId, placement)
+              .setOverride(accountId, memberId, null)
               .then(() => {
                 this.#failedFor = undefined;
                 this.invalidate();
@@ -718,6 +739,63 @@ export class InboxTriage {
       }),
     );
     if (this.#failedFor === memberId) this.#showError();
+    if (this.#notice?.memberId === memberId)
+      this.#showNotice(this.#notice.text);
+  }
+
+  /**
+   * "Mark qualified" or "Mark as junk" in the row panel (C2, C4, C6): the
+   * user's own placement, then one trust outcome, Positive or Negative. No
+   * trash: the inbox list opens no conversation (D10). It stops at the
+   * first step that fails or is refused.
+   */
+  #mark(memberId: string, placement: MarkPlacement): void {
+    const accountId = this.#accountId;
+    if (!accountId || this.#markPending !== undefined) return;
+    this.#markPending = memberId;
+    this.#failedFor = undefined;
+    this.#notice = undefined;
+    this.#detailsKey = "";
+    this.#refresh();
+    this.#writeQueue = this.#writeQueue
+      .then(async () => {
+        try {
+          await this.client.setOverride(accountId, memberId, placement);
+        } catch {
+          this.#failedFor = memberId;
+          return;
+        }
+        try {
+          await this.client.logTrust(
+            accountId,
+            memberId,
+            placement === "qualified" ? "positive" : "negative",
+          );
+        } catch {
+          this.#notice = {
+            memberId,
+            text: message("mark.trustFailed", {
+              placement: message(PLACEMENT_TEXT[placement]),
+            }),
+          };
+        }
+      })
+      .finally(() => {
+        if (this.#markPending === memberId) this.#markPending = undefined;
+        // Asked again: the panel shows the new placement, and any notice.
+        this.invalidate();
+      });
+  }
+
+  /** A Mark sequence's notice, in the details shown now. */
+  #showNotice(text: Message): void {
+    const details = this.document.querySelector<HTMLElement>(
+      `[${UI_ATTRIBUTE}="triage-bar"] .joyfox-triage__details`,
+    );
+    if (!details || details.querySelector(".joyfox-mark-notice")) return;
+    details.append(
+      element(this.document, "p", "joyfox-error joyfox-mark-notice", t(text)),
+    );
   }
 
   /**

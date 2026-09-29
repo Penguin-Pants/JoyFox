@@ -111,8 +111,7 @@ export const MESSAGE_PARAMS: {
   "triage.condition.lineNegated": { outcome: "message", condition: "message" },
   "triage.placementLine": { placement: "message", source: "message" },
   "triage.movedOn": { date: "string", placement: "message" },
-  "triage.move.to": { placement: "message" },
-  "triage.move.keep": { placement: "message" },
+  "mark.trustFailed": { placement: "message" },
   "triage.unknownFacts.one": { fact: "message" },
   "triage.unknownFacts.two": { first: "message", second: "message" },
   "triage.unknownFacts.three": {

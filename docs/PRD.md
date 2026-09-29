@@ -153,6 +153,8 @@ Full detail for Core and Important features. Supporting and edge features sit in
 - Dependencies: Sender Qualification Score, rule engine.
 - Acceptance criteria: A sender who fails the applicable rule set is quarantined by default; the user can always see which rule failed.
 
+**Change, 2026-09-29 (ADR 0017): Delete, Mark qualified and Mark as junk.** A "Delete" button beside "Ignore and Delete" moves the conversation to JoyClub's trash in one click, without the experimental setting, then returns to the ClubMail list. "Mark qualified" and "Mark as junk" replace the manual move to a placement: each stores the user's own placement and logs one trust outcome (+1 or -1) in one click. "Mark as junk" on a conversation page also moves the conversation to JoyClub's trash; on a profile page and in the inbox it does not. "Quarantined" reads "Junk" in the UI. The experimental setting controls only "Ignore and Delete" and is on by default.
+
 **Feature: Quick Ignore and Delete**
 
 - What it does: One button in the message and conversation view replacing the current three-step manual process (open the sender's profile, click Ignore, confirm, return, delete the message) with a single guided action.
@@ -630,7 +632,7 @@ No ToS document sits in this project workspace, so it has not been reviewed as p
 
 The most direct risk to the user personally. JoyClub's anti-fake team and its anti-scraping measures are confirmed active (teardown Sections 2.2, 2.10). One account browsing normally is low risk. The same client-side behavior repeated across many public installs could look different in aggregate to a fraud or anti-fake system, even though no single install is doing anything different from a normal user. The dedicated-profile, manual-approve posture `joyclub-chrome-research-playbook.md` already recommends for a research tool is a reasonable default to carry into this extension too, not a one-off precaution specific to that other tool.
 
-Quick Ignore and Delete's Mode A (Section 6.1) is the concrete example of this risk, not just the abstract case: it is the first and only feature in this document where the extension completes a platform write confirmation on the user's own behalf, a decision made explicitly, with a settings fallback kept available.
+Quick Ignore and Delete's Mode A (Section 6.1) is the concrete example of this risk, not just the abstract case: it is the first and only feature in this document where the extension completes a platform write confirmation on the user's own behalf, a decision made explicitly, with a settings fallback kept available. Since 2026-09-29 (ADR 0017), "Delete" and "Mark as junk" on a conversation page also click JoyClub's trash, with no setting; JoyClub asks no confirmation for that step, and the M9 safety rules apply to it.
 
 ### 18.5 GDPR and data protection
 

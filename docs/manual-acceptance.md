@@ -965,3 +965,46 @@ on a Premium account.
 **Result (2026-09-29): passed.** The project owner confirmed items 167 to 171,
 including item 169: with a type ticked, JoyClub's filler cards at the list's end
 looked fine (owner).
+
+## ClubMail Delete, Mark qualified and Mark as junk (ADR 0017, 2026-09-29)
+
+These items check `docs/clubmail-actions-change-request.md`. Since this change,
+earlier items that name "Quarantined", "Why and move", "Move to …" or "Keep in
+…" read "Junk", "Details", "Mark qualified" and "Mark as junk".
+
+172. On the options page's "Contact rule" tab, untick "Ignore and Delete". Open
+     a ClubMail conversation in the split view (the list beside it). Confirm the
+     JoyFox strip shows "Delete" only. Tick it again: confirm "Delete" and
+     "Ignore and Delete" show side by side (US1, A1, A2).
+173. Click "Delete" once. Confirm JoyClub asks nothing, the member's row leaves
+     the list, the notice says "Delete finished.", and after about 2 seconds the
+     page shows the ClubMail list. Confirm the conversation is in JoyClub's
+     trash and the member is not ignored (A3, A6, D5).
+174. Make the window narrow, or scroll the list until the conversation's row is
+     not in it. Confirm "Delete" and "Ignore and Delete" are greyed out, a click
+     does nothing, and the line "Works only while this conversation shows in the
+     ClubMail list beside it …" shows (A5).
+175. On "Your data", show the Action log. Confirm the run from item 173 reads
+     "Delete finished." and names no Ignore step (A9).
+176. In a conversation whose sender the rule places in Junk or Needs Review,
+     click "Mark qualified" in the member bar, without opening "Details".
+     Confirm the placement reads Qualified with "(your choice)", the local trust
+     score rises by 1, "Mark qualified" is disabled and the page stays (US2).
+177. In another conversation (split view), click "Mark as junk". Confirm the
+     placement reads Junk, the trust score falls by 1, the conversation moves to
+     JoyClub's trash, the notice starts with "Mark as junk: the sender is in
+     Junk …" and the page returns to the ClubMail list (US3).
+178. Repeat item 177 with the list hidden (item 174). Confirm the placement and
+     the Negative outcome stay, and the notice says the conversation was not
+     moved to the trash and to use JoyClub's trash button (C7).
+179. On a member's profile page and in an inbox row's "Details" panel, click
+     "Mark as junk". Confirm the placement and the Negative outcome are stored
+     and nothing is moved to the trash (D10).
+180. In every view (conversation, profile, inbox "Details"), confirm there is no
+     "Move to …" or "Keep in …" button, and "Use my rule again" shows for a
+     sender you marked. Click it: confirm the rule's placement is back and the
+     trust score keeps the logged outcome until you click "Undo" in the bar
+     (D11, D13).
+181. Switch the language to German. Confirm "Junk", "Details", "Als qualifiziert
+     markieren", "Als Junk markieren" and "Löschen", and that no JoyFox text
+     says "Quarantined" or "Quarantäne" (D6, D14).

@@ -1,10 +1,11 @@
 import { extractConversation, extractProfile } from "../extraction/joyclub";
 import type { PlainKey } from "../i18n/catalog/en";
-import { message } from "../i18n/message";
+import { message, type Message } from "../i18n/message";
 import { t } from "../i18n/translator";
 import { isOwnProfile, readPreferences } from "../extraction/preferences";
 import { resolveMemberIdentity } from "../identity/member-identity";
 import type { ProfileFacts } from "../qualification/facts";
+import { PLACEMENT_TEXT } from "../rules/contact-rule";
 import { selectorRegistry } from "../selectors/registry";
 import type {
   MemberTriage,
@@ -33,9 +34,21 @@ import {
   reopenSections,
   UI_ATTRIBUTE,
   unknownProfileFactsText,
+  type MarkPlacement,
 } from "./triage-ui";
 
 export type MemberPage = "conversation" | "profile";
+
+/**
+ * The Delete flow of the conversation page, for the trash step of "Mark as
+ * junk" (C5). `junk` runs it for `memberId`'s open conversation and resolves
+ * once the run has ended. The Delete flow shows its own notice. It answers
+ * `unavailable` when no conversation of that member is shown with its
+ * Delete flow, so nothing was started and no notice was shown.
+ */
+export interface ConversationTrash {
+  junk(memberId: string): Promise<"shown" | "unavailable">;
+}
 
 /** Marks the member panel, which the note editor is placed after. */
 export const MEMBER_PANEL = "member-panel";
@@ -139,8 +152,16 @@ export class MemberPanel {
   #trustPending?: string;
   /** The member whose Undo is being stored; a second click waits for it. */
   #undoPending?: string;
+  /**
+   * The member a Mark sequence runs for, set at the click, before any
+   * request: until the whole sequence (placement, outcome, trash) ends, the
+   * Mark buttons are unavailable, so a double click runs it once (C9).
+   */
+  #markPending?: string;
+  /** What a Mark sequence did and did not do, when it stopped early. */
+  #notice?: { memberId: string; text: Message };
   #page?: MemberPage;
-  /** Whether "Why and move" is open; kept across redraws of the bar. */
+  /** Whether "Details" is open; kept across redraws of the bar. */
   #drawerOpen = false;
   /** The member the drawer state belongs to. */
   #drawerMember?: string;
@@ -148,6 +169,7 @@ export class MemberPanel {
   constructor(
     private readonly document: Document,
     private readonly client: TriageClient,
+    private readonly trash?: ConversationTrash,
   ) {}
 
   update(page: MemberPage): void {
@@ -198,6 +220,7 @@ export class MemberPanel {
     this.#drawerOpen = false;
     this.#captured = "";
     this.#errorFor = undefined;
+    this.#notice = undefined;
     this.invalidate();
   }
 
@@ -211,6 +234,7 @@ export class MemberPanel {
     this.teardown();
     this.#drawerOpen = false;
     this.#errorFor = undefined;
+    this.#notice = undefined;
   }
 
   teardown(): void {
@@ -332,7 +356,20 @@ export class MemberPanel {
     const failed = this.#errorFor === target.memberId;
     const busy = this.#trustPending === target.memberId;
     const undoBusy = this.#undoPending === target.memberId;
-    const key = JSON.stringify([target.key, data, failed, busy, undoBusy]);
+    const markBusy = this.#markPending === target.memberId;
+    const notice =
+      this.#notice?.memberId === target.memberId
+        ? this.#notice.text
+        : undefined;
+    const key = JSON.stringify([
+      target.key,
+      data,
+      failed,
+      busy,
+      undoBusy,
+      markBusy,
+      notice,
+    ]);
     const existing = this.document.querySelector(
       `[${UI_ATTRIBUTE}="${MEMBER_PANEL}"]`,
     );
@@ -416,9 +453,27 @@ export class MemberPanel {
             ? { openProfile: { href: target.profileUrl, text: unknownText } }
             : {}),
           actions: {
-            onOverride: (placement) =>
+            onMark: (placement) => {
+              // Set before any request, so a second click is ignored.
+              if (
+                this.#markPending === memberId ||
+                this.#trustPending === memberId ||
+                this.#undoPending === memberId
+              )
+                return;
+              this.#markPending = memberId;
+              this.#errorFor = undefined;
+              this.#notice = undefined;
+              const page = target.page;
+              // In click order with the bar's other writes.
+              this.#writeQueue = this.#writeQueue.then(() =>
+                this.#mark(data.accountId, memberId, placement, page),
+              );
+              if (this.#page) this.update(this.#page);
+            },
+            onUseRule: () =>
               this.#write(memberId, () =>
-                this.client.setOverride(data.accountId, memberId, placement),
+                this.client.setOverride(data.accountId, memberId, null),
               ),
             onSharedEventOptOut: () =>
               this.#write(memberId, () =>
@@ -428,6 +483,7 @@ export class MemberPanel {
           },
           trustBusy: busy,
           undoBusy,
+          markBusy,
           drawerOpen: this.#drawerOpen,
           onToggle,
         }),
@@ -453,9 +509,70 @@ export class MemberPanel {
       panel.append(
         element(this.document, "p", "joyfox-error", t("common.saveFailed")),
       );
+    if (notice)
+      panel.append(element(this.document, "p", "joyfox-error", t(notice)));
     reopenSections(panel, open);
     placeInStrip(this.document, target.anchor, panel);
     restoreFocus(panel, focus, focusFallbacks(focus?.key));
+  }
+
+  /**
+   * "Mark qualified" or "Mark as junk" (C4 to C7), step by step, stopping at
+   * the first step that fails or is refused:
+   *
+   * 1. the user's own placement (`setOverride`);
+   * 2. one trust outcome: Positive for Qualified, Negative for Junk;
+   * 3. for Junk on a conversation page only, the Delete flow (D7, D10).
+   *
+   * A completed step is kept and never undone. The panel is drawn again
+   * after step 2, so the new placement shows while the trash step runs.
+   */
+  async #mark(
+    accountId: string,
+    memberId: string,
+    placement: MarkPlacement,
+    page: MemberPage,
+  ): Promise<void> {
+    const finish = () => {
+      if (this.#markPending === memberId) this.#markPending = undefined;
+      this.invalidate();
+    };
+    try {
+      await this.client.setOverride(accountId, memberId, placement);
+    } catch {
+      // Nothing was changed: no outcome, no trash.
+      this.#errorFor = memberId;
+      finish();
+      return;
+    }
+    try {
+      await this.client.logTrust(
+        accountId,
+        memberId,
+        placement === "qualified" ? "positive" : "negative",
+      );
+    } catch {
+      this.#notice = {
+        memberId,
+        text: message("mark.trustFailed", {
+          placement: message(PLACEMENT_TEXT[placement]),
+        }),
+      };
+      finish();
+      return;
+    }
+    if (placement !== "quarantined" || page !== "conversation") {
+      finish();
+      return;
+    }
+    this.invalidate();
+    const shown = await Promise.resolve(
+      this.trash?.junk(memberId) ?? "unavailable",
+    ).catch(() => "unavailable" as const);
+    // No Delete flow could take it: say here what was and was not done.
+    if (shown === "unavailable")
+      this.#notice = { memberId, text: message("mark.junk.noTrash") };
+    finish();
   }
 
   /**

@@ -6,7 +6,8 @@ import { QuickActionPanel } from "../../src/options/quick-action-panel";
 import { MemorySettingsArea } from "../memory-settings";
 
 // Owner request, 2026-09-27: turn Ignore and Delete on and off on the options
-// page, never through the console.
+// page, never through the console. Owner decision, 2026-09-29 (ADR 0017): on
+// by default, and it controls only Ignore and Delete.
 let settings: MemorySettingsArea;
 let root: HTMLElement;
 let panel: QuickActionPanel;
@@ -37,18 +38,18 @@ beforeEach(() => {
 afterEach(() => setLocale("en"));
 
 describe("the Ignore and Delete switch on the options page", () => {
-  it("is off by default, and turns the button on and off", async () => {
+  it("is on by default, and turns the button off and on", async () => {
     await panel.render();
     expect(root.textContent).toContain(
       'Show the "Ignore and Delete" button on ClubMail conversations',
     );
-    expect(toggle().checked).toBe(false);
+    expect(toggle().checked).toBe(true);
     expect(root.querySelector("label")?.contains(toggle())).toBe(true);
 
     toggle().click();
     await flush();
-    expect(settings.items.get(QUICK_ACTION_KEY)).toBe(true);
-    expect(toggle().checked).toBe(true);
+    expect(settings.items.get(QUICK_ACTION_KEY)).toBe(false);
+    expect(toggle().checked).toBe(false);
     expect(status()).toBe("Saved. Open ClubMail tabs follow at once.");
     expect(statusNode().getAttribute("role")).toBe("status");
     expect(statusNode().dataset.kind).toBe("info");
@@ -57,17 +58,17 @@ describe("the Ignore and Delete switch on the options page", () => {
 
     toggle().click();
     await flush();
-    expect(settings.items.get(QUICK_ACTION_KEY)).toBe(false);
-    expect(toggle().checked).toBe(false);
+    expect(settings.items.get(QUICK_ACTION_KEY)).toBe(true);
+    expect(toggle().checked).toBe(true);
   });
 
-  it("shows the stored choice, and counts only true as on", async () => {
-    await settings.set({ [QUICK_ACTION_KEY]: true });
-    await panel.render();
-    expect(toggle().checked).toBe(true);
-    await settings.set({ [QUICK_ACTION_KEY]: "yes" });
+  it("shows the stored choice, and counts only false as off", async () => {
+    await settings.set({ [QUICK_ACTION_KEY]: false });
     await panel.render();
     expect(toggle().checked).toBe(false);
+    await settings.set({ [QUICK_ACTION_KEY]: "no" });
+    await panel.render();
+    expect(toggle().checked).toBe(true);
   });
 
   it("says so as an error and keeps the old state when the setting cannot be saved", async () => {
@@ -76,7 +77,7 @@ describe("the Ignore and Delete switch on the options page", () => {
     settings.set = () => Promise.reject(new Error("unavailable"));
     toggle().click();
     await flush();
-    expect(toggle().checked).toBe(false);
+    expect(toggle().checked).toBe(true);
     expect(status()).toBe("JoyFox could not save this setting. Try again.");
     // An error, styled and announced as one, not as a plain status.
     expect(statusNode().dataset.kind).toBe("error");
@@ -111,7 +112,11 @@ describe("the Ignore and Delete switch on the options page", () => {
   it("describes the switch with the risk, where it works and how to undo it", async () => {
     await panel.render();
     const [hint, risk, undo] = description();
-    expect(hint).toContain("off by default");
+    expect(hint).toContain("on by default");
+    // It controls only Ignore and Delete (D2).
+    expect(hint).toContain(
+      'This setting controls only "Ignore and Delete": the "Delete" button and "Mark as junk" move a conversation to JoyClub\'s trash also when it is off.',
+    );
     expect(hint).toContain(
       "It works only while the ClubMail list shows beside the conversation.",
     );
@@ -132,6 +137,7 @@ describe("the Ignore and Delete switch on the options page", () => {
     const [germanHint, germanRisk, germanUndo] = description();
     expect(germanHint).toContain("„Aktionsprotokoll“ unter „Deine Daten“");
     expect(germanHint).toContain("ClubMail-Liste neben der Unterhaltung");
+    expect(germanHint).toContain("standardmäßig an");
     expect(germanRisk).toContain(
       "kann dein Konto eingeschränkt oder geschlossen werden",
     );
@@ -139,11 +145,11 @@ describe("the Ignore and Delete switch on the options page", () => {
     expect(germanUndo).toContain("Papierkorb");
   });
 
-  it("counts an unreadable setting as off, and speaks German", async () => {
+  it("counts an unreadable setting as the default, on, and speaks German", async () => {
     settings.get = () => Promise.reject(new Error("unavailable"));
     setLocale("de");
     await panel.render();
-    expect(toggle().checked).toBe(false);
+    expect(toggle().checked).toBe(true);
     expect(root.textContent).toContain("Ignorieren und löschen");
   });
 });

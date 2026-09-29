@@ -32,12 +32,14 @@ function element<K extends keyof HTMLElementTagNameMap>(
 
 /**
  * The switch for the experimental Ignore and Delete button (M9, ADR 0011),
- * so the user never needs the console (owner request, 2026-09-27). Off by
- * default. Open JoyClub pages hear the change through `storage.onChanged`.
+ * so the user never needs the console (owner request, 2026-09-27). On by
+ * default (owner decision, 2026-09-29, ADR 0017). It controls only Ignore
+ * and Delete: Delete and "Mark as junk" need no switch. Open JoyClub pages
+ * hear the change through `storage.onChanged`.
  */
 export class QuickActionPanel {
   #generation = 0;
-  #on = false;
+  #on = true;
   /** Created once and re-attached on every draw (see `StatusLine`). */
   readonly #status: StatusLine;
   #focusToggle = false;
@@ -51,11 +53,12 @@ export class QuickActionPanel {
 
   async render(): Promise<void> {
     const generation = (this.#generation += 1);
-    // A setting that cannot be read counts as off, like on JoyClub pages.
+    // On unless turned off. A setting that cannot be read counts as the
+    // default, like on JoyClub pages.
     const on = await Promise.resolve()
       .then(() => this.settings.get([QUICK_ACTION_KEY]))
-      .then((stored) => stored[QUICK_ACTION_KEY] === true)
-      .catch(() => false);
+      .then((stored) => stored[QUICK_ACTION_KEY] !== false)
+      .catch(() => true);
     if (generation !== this.#generation) return;
     this.#on = on;
     this.#draw();

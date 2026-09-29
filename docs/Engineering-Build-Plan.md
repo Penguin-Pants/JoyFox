@@ -1391,7 +1391,7 @@ Complete:
 
 Deliverable:
 
-**Incoming messages can be explained and locally sorted into Qualified, Needs Review and Quarantined.**
+**Incoming messages can be explained and locally sorted into Qualified, Needs Review and Quarantined (shown as "Junk" since 2026-09-29, ADR 0017).**
 
 This is the first point at which the central product value is fully testable.
 
@@ -1421,6 +1421,8 @@ Deliverable:
 **Quick Ignore and Delete works only after the action state machine and live DOM path are proven safe enough for personal use.**
 
 If M9 remains unreliable, ship personal MVP without it and keep it behind an experimental feature flag.
+
+**Change, 2026-09-29 (ADR 0017).** Delete alone leaves the experimental gate. A "Delete" button on every conversation page, and the trash step of "Mark as junk" there, click JoyClub's trash without the flag. They keep the M9 safety rules: the identity check before every click, the verification rule (no trash click unless the ClubMail list shows beside the conversation) and the ActionLog written before each step (action `quick-delete`). The flag `joyfox.quickIgnoreDelete` now controls only "Ignore and Delete", and it is on by default (owner decision, 2026-09-29).
 
 ---
 

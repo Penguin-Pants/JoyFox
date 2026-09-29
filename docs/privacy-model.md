@@ -48,7 +48,10 @@ placements are stored per account and per member ID. The trust score uses only
 this browser's own records; nothing is shared with other members or sent
 anywhere. Triage changes only what the user's own inbox shows: it never deletes,
 archives, sends or changes anything on JoyClub. The sender name appears in the
-"Why and move" panel as JoyClub shows it and is never logged.
+"Details" panel as JoyClub shows it and is never logged. "Mark qualified" and
+"Mark as junk" store the user's own placement and log one trust outcome
+(Positive or Negative) in this browser; only "Mark as junk" on a conversation
+page also moves the conversation to JoyClub's trash (see below).
 
 The Compatibility Overlay (V1-2) reads a profile's "Vorlieben" checklist and
 stores, with the profile's snapshot, the labels of the tags it lists at a
@@ -106,18 +109,26 @@ An automated test checks that no source file uses a network API or names a
 remote address, and that running every page feature against the synthetic
 fixtures makes no request (build plan Section 23).
 
-Apart from running a saved search (below), Quick Ignore and Delete (M9) is the
-only feature that performs JoyClub writes. It is off by default: only with
-`joyfox.quickIgnoreDelete` set to `true` (the switch on the options page's
-"Contact rule" tab), and only after the user clicks its button on a
-conversation, does its live driver (ADR 0011) click JoyClub's own controls. It
-moves that conversation to JoyClub's trash, opens the member's profile in the
-same tab, and ignores the member there through JoyClub's menu and dialog. Each
-click is recorded in the ActionLog first. The ActionLog holds member and
-conversation IDs, step names, times and failure codes, never message text. A
-one-time hand-off marker for the tab (the run's ID, account, next step and
-profile path) is kept in `storage.session`, in memory only, and is removed when
-the profile page reads it. M9 never sends a message.
+Apart from running a saved search (below), three conversation actions perform
+JoyClub writes, and each only after the user clicks it on a conversation page
+(ADR 0017):
+
+- **Delete** moves that conversation to JoyClub's trash. It needs no setting.
+- **Mark as junk** (on a conversation page only) stores the Junk placement and a
+  Negative outcome, then runs the same Delete. On a profile page and in the
+  inbox it clicks nothing on JoyClub.
+- **Ignore and Delete** (M9) moves the conversation to JoyClub's trash, opens
+  the member's profile in the same tab, and ignores the member there through
+  JoyClub's menu and dialog. It is experimental and on by default: the switch on
+  the options page's "Contact rule" tab (`joyfox.quickIgnoreDelete`, `false` to
+  turn it off) controls only this action.
+
+Each click is recorded in the ActionLog first. The ActionLog holds member and
+conversation IDs, the action, step names, times and failure codes, never message
+text. For Ignore and Delete, a one-time hand-off marker for the tab (the run's
+ID, account, next step and profile path) is kept in `storage.session`, in memory
+only, and is removed when the profile page reads it. None of these actions ever
+sends a message.
 
 Saved searches (V1-3) click two of JoyClub's controls, and only after the user
 clicks a saved search: the filter button, then "Anwenden", once each. JoyClub

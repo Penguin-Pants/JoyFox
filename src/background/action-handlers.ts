@@ -2,6 +2,8 @@ import type { ActionLogService } from "../actions/action-log-service";
 import {
   ACTION_FAILURES,
   ACTION_STATES,
+  isQuickAction,
+  QUICK_IGNORE_DELETE,
   reportOperation,
   STALE_AFTER_MS,
   staleAfterMs,
@@ -10,6 +12,7 @@ import {
   type ActionFailure,
   type ActionState,
   type ActionStep,
+  type QuickAction,
 } from "../actions/ignore-delete";
 import type { ActionLog } from "../domain/types";
 import type { MessageContract } from "../messaging/protocol";
@@ -151,6 +154,13 @@ function operationId(value: unknown): string {
   return value;
 }
 
+/** The action to start; absent means Quick Ignore and Delete. */
+function action(value: unknown): QuickAction {
+  if (value === undefined) return QUICK_IGNORE_DELETE;
+  if (!isQuickAction(value)) throw invalid("action");
+  return value;
+}
+
 function state(value: unknown): ActionState {
   if (!ACTION_STATES.includes(value as ActionState)) throw invalid("state");
   return value as ActionState;
@@ -181,6 +191,7 @@ export function registerActionHandlers(
       conversationId: conversationId(payload?.conversationId),
     };
     const until = deadline(payload?.deadline);
+    const kind = action(payload?.action);
     const answer = await lockedWrite<
       | Awaited<ReturnType<ActionLogService["begin"]>>
       | { status: "refused" }
@@ -190,7 +201,7 @@ export function registerActionHandlers(
       // late: the page has stopped waiting, so nothing is stored.
       until !== undefined && now() > until
         ? { status: "expired" }
-        : deps.actions.begin(accountId, target),
+        : deps.actions.begin(accountId, target, kind),
     );
     if (answer.status === "started") await bumpActionRevision(deps.settings);
     return answer;
@@ -217,7 +228,13 @@ export function registerActionHandlers(
     next: ActionStep,
   ): Promise<ActionLog | undefined> => {
     const log = await deps.actions.find(accountId, operationId);
-    if (!log?.memberId || !log.conversationId) return undefined;
+    // Only Quick Ignore and Delete has a step on another page.
+    if (
+      log?.action !== QUICK_IGNORE_DELETE ||
+      !log.memberId ||
+      !log.conversationId
+    )
+      return undefined;
     const newest = await deps.actions.latest(accountId, log.memberId);
     if (newest?.id !== log.id) return undefined;
     const last = log.steps.at(-1);
@@ -424,6 +441,7 @@ export function registerActionHandlers(
     return {
       status: "ok",
       accountId,
+      action: isQuickAction(log.action) ? log.action : QUICK_IGNORE_DELETE,
       ...(log.conversationId ? { conversationId: log.conversationId } : {}),
       updatedAt: log.steps.at(-1)?.at ?? log.updatedAt,
       staleAfterMs: staleAfterMs(log.steps.at(-1)?.name),

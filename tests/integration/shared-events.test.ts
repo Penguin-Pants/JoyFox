@@ -309,12 +309,12 @@ describe("V1-13 shared-event exception", () => {
     });
   });
 
-  it("names the event in the Why panel, with a button that turns it off", async () => {
+  it("names the event in the Details panel, with a button that turns it off", async () => {
     await settings.set({ [SHARED_EVENT_EXCEPTION_KEY]: true });
     const result = await placementOf();
     const onSharedEventOptOut = vi.fn();
     const panel = explanation(document, result, {
-      onOverride: () => undefined,
+      onUseRule: () => undefined,
       onSharedEventOptOut,
     });
     expect(panel.textContent).toContain("(the shared-event exception)");

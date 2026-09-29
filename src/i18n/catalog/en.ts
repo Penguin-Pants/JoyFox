@@ -24,7 +24,7 @@ export const en = {
   // Shared labels
   "placement.qualified": "Qualified",
   "placement.needs-review": "Needs Review",
-  "placement.quarantined": "Quarantined",
+  "placement.quarantined": "Junk",
   "condition.verified": "Verified by JoyClub",
   "condition.personallyKnown": "Personally known",
   "condition.minimumPhotos": "Minimum photos",
@@ -203,7 +203,7 @@ export const en = {
   "action.failure.turned-off": (p: { where: T }) =>
     `Ignore and Delete was turned off, so JoyFox stopped ${p.where}.`,
   "action.failure.superseded": (p: { where: T }) =>
-    `A newer Ignore and Delete for this member started, so JoyFox stopped ${p.where}.`,
+    `A newer JoyFox run for this member started, so JoyFox stopped ${p.where}.`,
   "action.failure.log-unavailable": (p: { where: T }) =>
     `JoyFox could not write to its action log, so it stopped ${p.where}.`,
   "action.failure.handoff-failed": (p: { where: T }) =>
@@ -240,15 +240,26 @@ export const en = {
     "Ignore and Delete was interrupted, for example because the tab closed.",
   "action.report.nothingChanged": "Nothing was changed on JoyClub.",
   "action.report.notUndone": "JoyFox did not undo anything.",
+  "action.deleteReport.finished": "Delete finished.",
+  "action.deleteReport.undo":
+    "To undo, restore the conversation from JoyClub's trash.",
+  "action.deleteReport.running": "Delete is running.",
+  "action.deleteReport.stopped": "Delete stopped.",
+  "action.deleteReport.interrupted":
+    "Delete was interrupted, for example because the tab closed.",
 
-  // Content script: the Ignore and Delete button and notice
+  // Content script: the Delete and Ignore and Delete buttons and notice
   "quick.progress.Started": "Ignore and Delete is running. Checking the page.",
+  "quick.delete.progress.Started": "Delete is running. Checking the page.",
   "quick.progress.DeleteRequested": "Moving the conversation to the trash.",
   "quick.progress.DeleteConfirmed":
     "Delete done. Opening the member's profile to ignore them there.",
   "quick.progress.IgnoreRequested": "Ignoring the member on JoyClub.",
   "quick.button": "Ignore and Delete",
-  "quick.region": "JoyFox Ignore and Delete",
+  "quick.region": "JoyFox conversation actions",
+  "quick.delete.button": "Delete",
+  "quick.delete.scope":
+    "One click moves this conversation to JoyClub's trash, then returns to the ClubMail list. The member is not ignored. JoyFox stops at the first problem and tells you what was done. It never sends a message.",
   "quick.scope":
     "Experimental. One click moves this conversation to JoyClub's trash, then opens the member's profile and ignores them there. JoyFox stops at the first problem and tells you what was done. It never sends a message.",
   "quick.needsList":
@@ -261,10 +272,21 @@ export const en = {
   "quick.previousOther":
     "Your last Ignore and Delete for this member, in another conversation:",
   "quick.otherResult": "Your last Ignore and Delete, for another conversation:",
+  "quick.delete.previous": "Your last Delete for this member:",
+  "quick.delete.previousOther":
+    "Your last Delete for this member, in another conversation:",
+  "quick.delete.otherResult": "Your last Delete, for another conversation:",
   "quick.otherRunning":
-    "Ignore and Delete is still running for another conversation. Wait until it ends.",
+    "A JoyFox run is still going for another conversation. Wait until it ends.",
   "quick.busy":
-    "Another Ignore and Delete for this member is still running, for example in another tab. Nothing was done here.",
+    "Another JoyFox run for this member is still going, for example in another tab. Nothing was done here.",
+  "quick.junk.done":
+    "Mark as junk: the sender is in Junk, and a Negative outcome is logged.",
+  "quick.junk.busy":
+    "Another JoyFox run for this member is still going, so JoyFox did not start the trash step.",
+  "quick.junk.notTrashed": "The conversation was not moved to the trash.",
+  "quick.delete.unexpected":
+    "Delete stopped because of an unexpected error. JoyFox may have moved the conversation to the trash: check JoyClub's trash yourself.",
   "quick.unexpected":
     "Ignore and Delete stopped because of an unexpected error. JoyFox may have completed a step: check the member's profile and the conversation yourself.",
 
@@ -290,10 +312,15 @@ export const en = {
   "triage.sharedEvent.optOut": "Don't use the shared event for this sender",
   "triage.movedOn": (p: { date: string; placement: T }) =>
     `You moved this sender on ${p.date}. Your rule alone would place them in ${p.placement}.`,
-  "triage.move.group": "Move this sender",
-  "triage.move.to": (p: { placement: T }) => `Move to ${p.placement}`,
-  "triage.move.keep": (p: { placement: T }) => `Keep in ${p.placement}`,
-  "triage.move.useRule": "Use my rule again",
+  "triage.place.group": "Place this sender",
+  "triage.useRule": "Use my rule again",
+  "mark.group": "Mark this sender",
+  "mark.qualified": "Mark qualified",
+  "mark.junk": "Mark as junk",
+  "mark.trustFailed": (p: { placement: T }) =>
+    `JoyFox placed this sender in ${p.placement} but could not log the trust outcome, so it stopped there. You can log it on the member's conversation or profile page.`,
+  "mark.junk.noTrash":
+    "The sender is in Junk, and a Negative outcome is logged. JoyFox could not move this conversation to the trash here. Move it there yourself with JoyClub's trash button.",
   "triage.profileFact.minimumPhotos": "photo count",
   "triage.profileFact.minimumProfileWords": "profile word count",
   "triage.profileFact.minimumAccountAgeDays": "account age",
@@ -323,7 +350,7 @@ export const en = {
   "bar.neutral": "Neutral",
   "bar.negative": "Negative",
   "bar.undo": "Undo",
-  "bar.whyAndMove": "Why and move",
+  "bar.details": "Details",
   "bar.scoreDetails": "Score details",
   "panel.ruleOff.no-rule":
     "No contact rule is set, so JoyFox does not place this sender.",
@@ -343,11 +370,11 @@ export const en = {
     `${p.view} (${f.number(p.count)})`,
   "inbox.about": "About these views",
   "inbox.aboutText":
-    "Inbox hides Quarantined rows from this view only. Nothing is deleted, and JoyFox changes nothing on JoyClub.",
+    "Inbox hides Junk rows from this view only. Nothing is deleted, and JoyFox changes nothing on JoyClub.",
   "inbox.checking": "Checking",
-  "inbox.badge": (p: { text: T }) => `JoyFox: ${p.text}. Why and move.`,
-  "inbox.why": "Why and move",
-  "inbox.whyNamed": (p: { name: string }) => `Why and move: ${p.name}`,
+  "inbox.badge": (p: { text: T }) => `JoyFox: ${p.text}. Details.`,
+  "inbox.why": "Details",
+  "inbox.whyNamed": (p: { name: string }) => `Details: ${p.name}`,
   "inbox.rowGone": "This row is no longer shown.",
   "inbox.unidentified":
     "JoyFox could not read this sender's profile number, so it could not check your rule. The row stays visible.",
@@ -473,7 +500,7 @@ export const en = {
   "events.exception.label":
     "Shared-event exception: place a sender in Qualified when they are on the guest list of an event I marked Attending or Attended",
   "events.exception.hint":
-    'Off by default. JoyFox stores a tracked event\'s guest list when you open the event page, as far as JoyClub has loaded it, and deletes it when you stop tracking the event. A sender you moved yourself keeps your choice, and the "Why and move" panel can turn the exception off for one sender.',
+    'Off by default. JoyFox stores a tracked event\'s guest list when you open the event page, as far as JoyClub has loaded it, and deletes it when you stop tracking the event. A sender you marked yourself keeps your choice, and the "Details" panel can turn the exception off for one sender.',
   "events.exception.saved": "Saved.",
   "events.exception.saveFailed":
     "JoyFox could not save this setting. Try again.",
@@ -482,7 +509,7 @@ export const en = {
   "quickSetting.label":
     'Show the "Ignore and Delete" button on ClubMail conversations',
   "quickSetting.hint":
-    'Experimental and off by default. One click moves the conversation to JoyClub\'s trash, opens the member\'s profile in the same tab and ignores the member there. It works only while the ClubMail list shows beside the conversation. JoyFox acts only when you click. The "Action log" in "Your data" records every step.',
+    'Experimental and on by default. One click moves the conversation to JoyClub\'s trash, opens the member\'s profile in the same tab and ignores the member there. It works only while the ClubMail list shows beside the conversation. JoyFox acts only when you click. The "Action log" in "Your data" records every step. This setting controls only "Ignore and Delete": the "Delete" button and "Mark as junk" move a conversation to JoyClub\'s trash also when it is off.',
   "quickSetting.risk":
     "If JoyClub finds a tool that clicks for you, it can restrict or close your account. Of all JoyFox features, this one has the highest risk.",
   "quickSetting.undo":
@@ -821,7 +848,7 @@ export const en = {
   "rule.readFailed":
     "JoyFox could not read the contact rule. No rule was changed. Reload the page to try again.",
   "rule.hint":
-    "The rule only changes how JoyFox groups your own inbox into Qualified, Needs Review and Quarantined. It never stops a message, never deletes anything, and the sender sees nothing.",
+    "The rule only changes how JoyFox groups your own inbox into Qualified, Needs Review and Junk. It never stops a message, never deletes anything, and the sender sees nothing.",
   "rule.noAccount":
     "Select or add an account first. Each account has its own rule.",
   "rule.newer":

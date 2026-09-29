@@ -5,6 +5,7 @@ import { texts } from "../i18n-text";
 import { t } from "../../src/i18n/translator";
 import { ActionLogService } from "../../src/actions/action-log-service";
 import {
+  runQuickDelete,
   runQuickIgnoreDelete,
   type ActionRecorder,
   type QuickActionDriver,
@@ -26,6 +27,10 @@ import {
   type QuickActionClient,
 } from "../../src/content/quick-action";
 import { JoyClubQuickActionDriver } from "../../src/content/quick-action-driver";
+import { MemberPanel } from "../../src/content/member-panel";
+import type { TriageClient } from "../../src/content/triage-client";
+import type { TriagePlacement } from "../../src/domain/types";
+import type { MemberTriage } from "../../src/triage/triage-service";
 import type { MessageContract } from "../../src/messaging/protocol";
 import { MessageRouter } from "../../src/messaging/router";
 import { ACTION_REVISION_KEY } from "../../src/storage/action-revision";
@@ -591,7 +596,7 @@ describe("M9 manual test matrix, synthetic (build plan Section 24)", () => {
     expect(driver.clicks).toEqual(["request:delete", "confirm:delete"]);
     expect(result.report.failure).toBe("superseded");
     expect(texts(result.report.lines)).toContain(
-      "A newer Ignore and Delete for this member started, so JoyFox stopped before Ignore.",
+      "A newer JoyFox run for this member started, so JoyFox stopped before Ignore.",
     );
     const logs = await repositories.actionLogs.list("account-a");
     expect(logs.map((log) => log.steps.at(-1)?.name).sort()).toEqual([
@@ -1288,6 +1293,10 @@ describe("M9 button and notice", () => {
     Array.from(section()?.querySelectorAll("button") ?? []).find(
       (node) => node.textContent === t(QUICK_ACTION_TEXT.button),
     );
+  const deleteButton = () =>
+    Array.from(section()?.querySelectorAll("button") ?? []).find(
+      (node) => node.textContent === t(QUICK_ACTION_TEXT.deleteButton),
+    );
   const notice = () => section()?.textContent ?? "";
 
   function openConversation(driver?: QuickActionDriver) {
@@ -1860,7 +1869,7 @@ describe("M9 button and notice", () => {
     expect(runButton()?.getAttribute("aria-disabled")).toBe("false");
   });
 
-  it("stops a run and stays hidden when the flag is turned off", async () => {
+  it("stops a run and hides Ignore and Delete when the flag is turned off, keeping Delete", async () => {
     const driver = new FakeDriver();
     let release: () => void = () => undefined;
     driver.afterClick = (click) =>
@@ -1873,14 +1882,24 @@ describe("M9 button and notice", () => {
     await vi.waitFor(() => expect(runButton()).toBeDefined());
     runButton()!.click();
     await vi.waitFor(() => expect(driver.clicks).toEqual(["request:delete"]));
+    // The content script turns it off, then updates the page (D2).
     quick.turnOff();
-    expect(section()).toBeNull();
+    quick.update();
+    expect(runButton()).toBeUndefined();
+    expect(deleteButton()).toBeDefined();
     release();
     await vi.waitFor(async () =>
       expect((await logged())[0]?.at(-1)).toBe("Failed:turned-off"),
     );
     await new Promise((resolve) => setTimeout(resolve, 20));
-    expect(section()).toBeNull();
+    expect(runButton()).toBeUndefined();
+    // The stored run still says how far it got, so a partial result is
+    // never lost from view.
+    await vi.waitFor(() =>
+      expect(notice()).toContain(
+        "Ignore and Delete was turned off, so JoyFox stopped during Delete.",
+      ),
+    );
     expect(driver.clicks).toEqual(["request:delete"]);
   });
 
@@ -1986,7 +2005,7 @@ describe("M9 button and notice", () => {
     expect(section()?.parentElement?.getAttribute("role")).toBe("region");
   });
 
-  it("says under the button when the list that shows Delete's result is missing", async () => {
+  it("greys out both buttons and says why when the list that shows Delete's result is missing", async () => {
     const driver = new FakeDriver();
     driver.listShown = false;
     const quick = openConversation(driver);
@@ -1999,32 +2018,29 @@ describe("M9 button and notice", () => {
       "Works only while this conversation shows in the ClubMail list beside it. Widen the window, or scroll the list until the conversation shows.",
     );
     expect(hint().hidden).toBe(false);
-    // Right under the button, and part of its description.
-    expect(runButton()!.nextElementSibling).toBe(hint());
-    expect(runButton()!.getAttribute("aria-describedby")?.split(" ")).toContain(
-      hint().id,
-    );
-    // The window is widened: the next redraw hides it.
+    // Right under the buttons, and part of each one's description.
+    expect(runButton()!.parentElement!.nextElementSibling).toBe(hint());
+    for (const node of [runButton()!, deleteButton()!]) {
+      expect(node.getAttribute("aria-describedby")?.split(" ")).toContain(
+        hint().id,
+      );
+      // Greyed out (owner decision, 2026-09-29): a click does nothing.
+      expect(node.getAttribute("aria-disabled")).toBe("true");
+    }
+    runButton()!.click();
+    deleteButton()!.click();
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    expect(driver.clicks).toEqual([]);
+    expect(await logged()).toEqual([]);
+    // The window is widened: the next redraw hides it and frees the buttons.
     driver.listShown = true;
     quick.update();
     expect(hint().hidden).toBe(true);
     expect(runButton()!.getAttribute("aria-describedby")?.split(" ")).toEqual([
       expect.stringMatching(/^joyfox-quick-scope-/),
     ]);
-    // The button stays usable; the run stops safely before any click, and
-    // the notice says how to fix it.
-    driver.listShown = false;
-    quick.update();
-    expect(hint().hidden).toBe(false);
     expect(runButton()!.getAttribute("aria-disabled")).toBe("false");
-    runButton()!.click();
-    await vi.waitFor(() =>
-      expect(notice()).toContain(
-        "Delete works only while this conversation shows in the ClubMail list beside it. Widen the window, or scroll the list until the conversation shows, then try again.",
-      ),
-    );
-    expect(driver.clicks).toEqual([]);
-    expect(await logged()).toEqual([["Started", "Failed:unverifiable"]]);
+    expect(deleteButton()!.getAttribute("aria-disabled")).toBe("false");
   });
 
   it("hides the list hint while a run goes and once the conversation is in the trash", async () => {
@@ -2265,5 +2281,632 @@ describe("M9 button and notice", () => {
     expect(
       lines().filter((line) => line === t(QUICK_ACTION_TEXT.resumed)),
     ).toHaveLength(1);
+  });
+});
+
+describe("Delete alone (ADR 0017)", () => {
+  const section = () =>
+    document.querySelector<HTMLElement>('[data-joyfox-ui="quick-action"]');
+  const named = (text: string) =>
+    Array.from(document.querySelectorAll("button")).find(
+      (node) => node.textContent === text,
+    );
+  const deleteButton = () => named(t(QUICK_ACTION_TEXT.deleteButton));
+  const ignoreButton = () => named(t(QUICK_ACTION_TEXT.button));
+  const notice = () =>
+    Array.from(
+      section()?.querySelectorAll(".joyfox-quick-action__status li") ?? [],
+      (item) => item.textContent,
+    );
+
+  /** A driver on the live conversation page: Delete asks no question. */
+  function conversationDriver(): FakeDriver {
+    const driver = new FakeDriver();
+    driver.current = () => HERE;
+    driver.confirmation.delete = "none";
+    return driver;
+  }
+
+  function openConversation(
+    driver: QuickActionDriver,
+    visited: string[] = [],
+    returnWaitMs = 40,
+  ) {
+    window.history.replaceState(
+      null,
+      "",
+      `/clubmail/conversation/conversation-wrapper-${CONVERSATION}`,
+    );
+    document.body.innerHTML = conversationHtml;
+    const quick = new QuickIgnoreDelete(
+      document,
+      client,
+      () => driver,
+      (url) => visited.push(url),
+      () => Date.now(),
+      HANDOFF_WAIT_MS,
+      returnWaitMs,
+    );
+    return quick;
+  }
+
+  it("runs Started, DeleteRequested, DeleteConfirmed, Completed, and never names Ignore", async () => {
+    const driver = conversationDriver();
+    const result = await runQuickDelete({
+      target: TARGET,
+      driver,
+      recorder: client.recorder("account-a"),
+      timeoutMs: 200,
+    });
+    expect(driver.clicks).toEqual(["request:delete"]);
+    expect(await logged()).toEqual([
+      ["Started", "DeleteRequested", "DeleteConfirmed", "Completed"],
+    ]);
+    const [log] = await repositories.actionLogs.list("account-a");
+    expect(log).toMatchObject({
+      action: "quick-delete",
+      memberId: MEMBER,
+      conversationId: CONVERSATION,
+    });
+    expect(texts(result.report.lines)).toEqual([
+      "Delete finished.",
+      "Delete: done. JoyClub moved the conversation to the trash.",
+      "To undo, restore the conversation from JoyClub's trash.",
+    ]);
+  });
+
+  it("stops at the first failure with the Delete step's checks and codes", async () => {
+    const missing = conversationDriver();
+    missing.controls.delete = false;
+    const stopped = await runQuickDelete({
+      target: TARGET,
+      driver: missing,
+      recorder: client.recorder("account-a"),
+      timeoutMs: 200,
+    });
+    expect(missing.clicks).toEqual([]);
+    expect(texts(stopped.report.lines)).toEqual([
+      "Delete stopped.",
+      "JoyFox could not find JoyClub's Delete option on this page.",
+      "Delete: not done.",
+      "Nothing was changed on JoyClub.",
+      "You can do it yourself: move the conversation to the trash with JoyClub's trash button.",
+    ]);
+    // Another conversation on the page: the identity check stops it.
+    const other = conversationDriver();
+    other.current = () => ({ ...HERE, conversationId: "personal-1-2" });
+    const mismatch = await runQuickDelete({
+      target: TARGET,
+      driver: other,
+      recorder: client.recorder("account-a"),
+      timeoutMs: 200,
+    });
+    expect(mismatch.report.failure).toBe("conversation-mismatch");
+    expect(other.clicks).toEqual([]);
+    // JoyClub does not show the row leaving the list.
+    const unverified = conversationDriver();
+    unverified.verified.delete = false;
+    const failed = await runQuickDelete({
+      target: TARGET,
+      driver: unverified,
+      recorder: client.recorder("account-a"),
+      timeoutMs: 200,
+    });
+    expect(failed.report.failure).toBe("not-verified");
+    expect(texts(failed.report.lines)).toContain(
+      "Next: open the conversation and check whether it is in the trash. If not, move it there yourself with JoyClub's trash button.",
+    );
+    for (const lines of await logged())
+      expect(lines.join(" ")).not.toContain("Ignore");
+  });
+
+  it("refuses a hand-off for a Delete-only run", async () => {
+    const recorder = client.recorder("account-a");
+    const begun = await recorder.begin(TARGET, undefined, "quick-delete");
+    if (begun.status !== "started") throw new Error("not started");
+    await recorder.record(begun.operationId, "DeleteRequested");
+    await recorder.record(begun.operationId, "DeleteConfirmed");
+    // Ignore never follows Delete alone.
+    expect(await recorder.record(begun.operationId, "IgnoreRequested")).toBe(
+      "invalid",
+    );
+    await expect(
+      fromConversation().handOff(
+        "account-a",
+        begun.operationId,
+        "ignore",
+        PROFILE_PATH,
+      ),
+    ).rejects.toThrow();
+  });
+
+  it("shows Delete with the flag off, and both buttons with it on", async () => {
+    const quick = openConversation(conversationDriver());
+    quick.turnOff();
+    quick.update();
+    await vi.waitFor(() => expect(deleteButton()).toBeDefined());
+    expect(ignoreButton()).toBeUndefined();
+    // Its description says what the click does.
+    const described = deleteButton()!.getAttribute("aria-describedby")!;
+    expect(document.getElementById(described)?.textContent).toBe(
+      t(QUICK_ACTION_TEXT.deleteScope),
+    );
+    quick.turnOn();
+    quick.update();
+    expect(deleteButton()).toBeDefined();
+    expect(ignoreButton()).toBeDefined();
+    // Delete first, side by side (A2).
+    expect(deleteButton()!.nextElementSibling).toBe(ignoreButton());
+  });
+
+  it("is disabled without the ClubMail list beside the conversation", async () => {
+    const driver = conversationDriver();
+    driver.listShown = false;
+    const quick = openConversation(driver);
+    quick.turnOff();
+    quick.update();
+    await vi.waitFor(() => expect(deleteButton()).toBeDefined());
+    expect(deleteButton()!.getAttribute("aria-disabled")).toBe("true");
+    const hint = section()!.querySelector<HTMLElement>(
+      ".joyfox-quick-action__hint",
+    )!;
+    expect(hint.hidden).toBe(false);
+    expect(hint.textContent).toBe(t(QUICK_ACTION_TEXT.needsList));
+    deleteButton()!.click();
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    expect(driver.clicks).toEqual([]);
+    expect(await logged()).toEqual([]);
+  });
+
+  it("moves the conversation to the trash in one click and returns to the list after the wait", async () => {
+    const driver = conversationDriver();
+    const visited: string[] = [];
+    const quick = openConversation(driver, visited, 60);
+    quick.update();
+    await vi.waitFor(() => expect(deleteButton()).toBeDefined());
+    deleteButton()!.click();
+    await vi.waitFor(() => expect(notice()).toContain("Delete finished."));
+    // The notice shows first; nothing moved yet (D5).
+    expect(visited).toEqual([]);
+    await vi.waitFor(() =>
+      expect(visited).toEqual([`${window.location.origin}/clubmail/`]),
+    );
+    expect(driver.clicks).toEqual(["request:delete"]);
+    expect(await logged()).toEqual([
+      ["Started", "DeleteRequested", "DeleteConfirmed", "Completed"],
+    ]);
+  });
+
+  it("stays on the page after a failed Delete, and says what to do next", async () => {
+    const driver = conversationDriver();
+    driver.verified.delete = false;
+    const visited: string[] = [];
+    const quick = openConversation(driver, visited, 20);
+    quick.update();
+    await vi.waitFor(() => expect(deleteButton()).toBeDefined());
+    deleteButton()!.click();
+    await vi.waitFor(() => expect(notice()).toContain("Delete stopped."));
+    expect(notice()).toContain(
+      "Next: open the conversation and check whether it is in the trash. If not, move it there yourself with JoyClub's trash button.",
+    );
+    await new Promise((resolve) => setTimeout(resolve, 80));
+    expect(visited).toEqual([]);
+  });
+
+  it("disables both buttons while one run goes, and a busy start does nothing", async () => {
+    const driver = conversationDriver();
+    let release: () => void = () => undefined;
+    driver.afterClick = (click) =>
+      click === "request:delete"
+        ? new Promise<void>((resolve) => (release = resolve))
+        : undefined;
+    const quick = openConversation(driver);
+    quick.update();
+    await vi.waitFor(() => expect(ignoreButton()).toBeDefined());
+    deleteButton()!.click();
+    await vi.waitFor(() => expect(driver.clicks).toEqual(["request:delete"]));
+    expect(deleteButton()!.getAttribute("aria-disabled")).toBe("true");
+    expect(ignoreButton()!.getAttribute("aria-disabled")).toBe("true");
+    expect(notice()).toEqual(["Moving the conversation to the trash."]);
+    ignoreButton()!.click();
+    deleteButton()!.click();
+    release();
+    await vi.waitFor(() => expect(notice()).toContain("Delete finished."));
+    expect(driver.clicks).toEqual(["request:delete"]);
+    expect(await logged()).toHaveLength(1);
+    // Another tab's Ignore and Delete for the member: Delete waits too.
+    const other = client.recorder("account-a");
+    const begun = await other.begin(TARGET);
+    if (begun.status !== "started") throw new Error("not started");
+    quick.invalidate();
+    await vi.waitFor(() =>
+      expect(deleteButton()?.getAttribute("aria-disabled")).toBe("true"),
+    );
+    // A start that reaches the log anyway is refused as busy.
+    const refused = await client
+      .recorder("account-a")
+      .begin(TARGET, undefined, "quick-delete");
+    expect(refused.status).toBe("busy");
+  });
+
+  it("labels an earlier Delete-only run as a Delete", async () => {
+    const recorder = client.recorder("account-a");
+    const begun = await recorder.begin(TARGET, undefined, "quick-delete");
+    if (begun.status !== "started") throw new Error("not started");
+    await recorder.record(begun.operationId, "Failed", "control-missing");
+    const quick = openConversation(conversationDriver());
+    quick.update();
+    await vi.waitFor(() =>
+      expect(notice()[0]).toBe("Your last Delete for this member:"),
+    );
+    expect(notice()).toContain("Delete stopped.");
+    expect(notice().join(" ")).not.toContain("Ignore");
+  });
+});
+
+describe("Mark as junk on the conversation page (C5 to C7)", () => {
+  const panel = () =>
+    document.querySelector<HTMLElement>('[data-joyfox-ui="member-panel"]');
+  const quickNotice = () =>
+    document.querySelector('[data-joyfox-ui="quick-action"]')?.textContent ??
+    "";
+  const markButton = (text: string) =>
+    Array.from(panel()?.querySelectorAll("button") ?? []).find(
+      (node) => node.textContent === text,
+    );
+
+  /** A triage client that keeps the placement and the outcomes in memory. */
+  function memoryTriage() {
+    const state = {
+      placement: "quarantined" as TriagePlacement,
+      source: "rule" as MemberTriage["source"],
+      calls: [] as string[],
+      outcomes: [] as string[],
+    };
+    const result = (): MemberTriage => ({
+      memberId: MEMBER,
+      placement: state.placement,
+      source: state.source,
+      automatic: {
+        placement: "quarantined",
+        reasons: [],
+        evaluatedConditions: [],
+      },
+      trust: {
+        score: state.outcomes.length,
+        contributions: [],
+        logged: state.outcomes.length,
+      },
+    });
+    const triage: TriageClient = {
+      evaluate: async () => ({
+        status: "ok",
+        accountId: "account-a",
+        results: [result()],
+      }),
+      setOverride: async (_account, _member, placement) => {
+        state.calls.push(`override:${placement}`);
+        if (placement) {
+          state.placement = placement;
+          state.source = "override";
+        } else state.source = "rule";
+      },
+      getTrust: async () => ({ status: "no-account" }),
+      logTrust: async (_account, _member, kind) => {
+        state.calls.push(`log:${kind}`);
+        state.outcomes.push(kind);
+      },
+      undoTrust: async () => undefined,
+      captureSnapshot: async () => undefined,
+      optOutSharedEvent: async () => undefined,
+      openOptions: async () => undefined,
+    };
+    return { state, triage };
+  }
+
+  function openPage(driver: FakeDriver, visited: string[]) {
+    window.history.replaceState(
+      null,
+      "",
+      `/clubmail/conversation/conversation-wrapper-${CONVERSATION}`,
+    );
+    document.body.innerHTML = conversationHtml;
+    const quick = new QuickIgnoreDelete(
+      document,
+      client,
+      () => driver,
+      (url) => visited.push(url),
+      () => Date.now(),
+      HANDOFF_WAIT_MS,
+      40,
+    );
+    const { state, triage } = memoryTriage();
+    const member = new MemberPanel(document, triage, quick);
+    member.update("conversation");
+    quick.update();
+    return { quick, member, state };
+  }
+
+  function conversationDriver(): FakeDriver {
+    const driver = new FakeDriver();
+    driver.current = () => HERE;
+    driver.confirmation.delete = "none";
+    return driver;
+  }
+
+  it("places in Junk, logs Negative, trashes the conversation and returns to the list", async () => {
+    const driver = conversationDriver();
+    const visited: string[] = [];
+    const { state } = openPage(driver, visited);
+    await vi.waitFor(() => expect(markButton("Mark as junk")).toBeDefined());
+    await vi.waitFor(() =>
+      expect(
+        document.querySelector('[data-joyfox-ui="quick-action"]'),
+      ).not.toBeNull(),
+    );
+    markButton("Mark as junk")!.click();
+    // Busy at once, for both Mark buttons (C9).
+    expect(markButton("Mark as junk")!.getAttribute("aria-disabled")).toBe(
+      "true",
+    );
+    expect(markButton("Mark qualified")!.getAttribute("aria-disabled")).toBe(
+      "true",
+    );
+    markButton("Mark as junk")!.click();
+    await vi.waitFor(() => expect(quickNotice()).toContain("Delete finished."));
+    expect(quickNotice()).toContain(
+      "Mark as junk: the sender is in Junk, and a Negative outcome is logged.",
+    );
+    // The placement, then the outcome, then the trash (C5), once.
+    expect(state.calls).toEqual(["override:quarantined", "log:negative"]);
+    expect(driver.clicks).toEqual(["request:delete"]);
+    expect(await logged()).toEqual([
+      ["Started", "DeleteRequested", "DeleteConfirmed", "Completed"],
+    ]);
+    // The Action log shows it as a Delete run (T3).
+    const [log] = await repositories.actionLogs.list("account-a");
+    expect(log?.action).toBe("quick-delete");
+    await vi.waitFor(() =>
+      expect(visited).toEqual([`${window.location.origin}/clubmail/`]),
+    );
+    // Now the user's own choice: Mark as junk is disabled (D12).
+    await vi.waitFor(() =>
+      expect(markButton("Mark as junk")?.disabled).toBe(true),
+    );
+    expect(markButton("Mark qualified")?.disabled).toBe(false);
+  });
+
+  it("waits for the Delete flow's first load before the trash step", async () => {
+    const driver = conversationDriver();
+    const visited: string[] = [];
+    window.history.replaceState(
+      null,
+      "",
+      `/clubmail/conversation/conversation-wrapper-${CONVERSATION}`,
+    );
+    document.body.innerHTML = conversationHtml;
+    // The first ActionLog read answers only after the Mark click.
+    let answer: () => void = () => undefined;
+    let reads = 0;
+    const slow: QuickActionClient = {
+      ...client,
+      latest: (memberId) =>
+        (reads += 1) > 1
+          ? client.latest(memberId)
+          : new Promise((resolve) => {
+              answer = () => resolve(client.latest(memberId));
+            }),
+    };
+    const quick = new QuickIgnoreDelete(
+      document,
+      slow,
+      () => driver,
+      (url) => visited.push(url),
+      () => Date.now(),
+      HANDOFF_WAIT_MS,
+      40,
+    );
+    const { state, triage } = memoryTriage();
+    const member = new MemberPanel(document, triage, quick);
+    member.update("conversation");
+    quick.update();
+    await vi.waitFor(() => expect(markButton("Mark as junk")).toBeDefined());
+    expect(
+      document.querySelector('[data-joyfox-ui="quick-action"]'),
+    ).toBeNull();
+    markButton("Mark as junk")!.click();
+    await vi.waitFor(() =>
+      expect(state.calls).toEqual(["override:quarantined", "log:negative"]),
+    );
+    answer();
+    await vi.waitFor(() => expect(quickNotice()).toContain("Delete finished."));
+    expect(driver.clicks).toEqual(["request:delete"]);
+    expect(panel()?.textContent).not.toContain(
+      "JoyFox could not move this conversation to the trash here.",
+    );
+  });
+
+  it("keeps the placement and the Negative log when the trash cannot run", async () => {
+    const driver = conversationDriver();
+    driver.listShown = false;
+    const visited: string[] = [];
+    const { state } = openPage(driver, visited);
+    await vi.waitFor(() => expect(markButton("Mark as junk")).toBeDefined());
+    await vi.waitFor(() =>
+      expect(
+        document.querySelector('[data-joyfox-ui="quick-action"]'),
+      ).not.toBeNull(),
+    );
+    markButton("Mark as junk")!.click();
+    await vi.waitFor(() =>
+      expect(quickNotice()).toContain(
+        "The conversation was not moved to the trash.",
+      ),
+    );
+    expect(quickNotice()).toContain(
+      "You can do it yourself: move the conversation to the trash with JoyClub's trash button.",
+    );
+    expect(state.calls).toEqual(["override:quarantined", "log:negative"]);
+    expect(state.placement).toBe("quarantined");
+    expect(driver.clicks).toEqual([]);
+    await new Promise((resolve) => setTimeout(resolve, 80));
+    expect(visited).toEqual([]);
+  });
+
+  it("keeps the placement and the Negative log when the trash fails", async () => {
+    const driver = conversationDriver();
+    driver.verified.delete = false;
+    const visited: string[] = [];
+    const { state } = openPage(driver, visited);
+    await vi.waitFor(() => expect(markButton("Mark as junk")).toBeDefined());
+    await vi.waitFor(() =>
+      expect(
+        document.querySelector('[data-joyfox-ui="quick-action"]'),
+      ).not.toBeNull(),
+    );
+    markButton("Mark as junk")!.click();
+    await vi.waitFor(() => expect(quickNotice()).toContain("Delete stopped."));
+    expect(quickNotice()).toContain(
+      "Mark as junk: the sender is in Junk, and a Negative outcome is logged.",
+    );
+    expect(state.calls).toEqual(["override:quarantined", "log:negative"]);
+    expect(state.outcomes).toEqual(["negative"]);
+    await new Promise((resolve) => setTimeout(resolve, 80));
+    expect(visited).toEqual([]);
+  });
+
+  it("says so in the bar when no Delete flow can take the trash step", async () => {
+    window.history.replaceState(
+      null,
+      "",
+      `/clubmail/conversation/conversation-wrapper-${CONVERSATION}`,
+    );
+    document.body.innerHTML = conversationHtml;
+    const { state, triage } = memoryTriage();
+    // No Delete flow on this page: the member panel alone.
+    const member = new MemberPanel(document, triage, {
+      junk: async () => "unavailable",
+    });
+    member.update("conversation");
+    await vi.waitFor(() => expect(markButton("Mark as junk")).toBeDefined());
+    markButton("Mark as junk")!.click();
+    await vi.waitFor(() =>
+      expect(panel()?.textContent).toContain(
+        "The sender is in Junk, and a Negative outcome is logged. JoyFox could not move this conversation to the trash here. Move it there yourself with JoyClub's trash button.",
+      ),
+    );
+    expect(state.calls).toEqual(["override:quarantined", "log:negative"]);
+  });
+
+  it("marks qualified with one Positive outcome and trashes nothing", async () => {
+    const driver = conversationDriver();
+    const visited: string[] = [];
+    const { state } = openPage(driver, visited);
+    await vi.waitFor(() => expect(markButton("Mark qualified")).toBeDefined());
+    markButton("Mark qualified")!.click();
+    await vi.waitFor(() =>
+      expect(markButton("Mark qualified")?.disabled).toBe(true),
+    );
+    expect(state.calls).toEqual(["override:qualified", "log:positive"]);
+    expect(driver.clicks).toEqual([]);
+    expect(await logged()).toEqual([]);
+  });
+
+  it("stops before the outcome and the trash when the placement is not saved", async () => {
+    const driver = conversationDriver();
+    const visited: string[] = [];
+    window.history.replaceState(
+      null,
+      "",
+      `/clubmail/conversation/conversation-wrapper-${CONVERSATION}`,
+    );
+    document.body.innerHTML = conversationHtml;
+    const quick = new QuickIgnoreDelete(
+      document,
+      client,
+      () => driver,
+      (url) => visited.push(url),
+    );
+    const { state, triage } = memoryTriage();
+    const member = new MemberPanel(
+      document,
+      {
+        ...triage,
+        // The account changed: the background refused the write (C7).
+        setOverride: () => Promise.reject(new Error("refused")),
+      },
+      quick,
+    );
+    member.update("conversation");
+    quick.update();
+    await vi.waitFor(() => expect(markButton("Mark as junk")).toBeDefined());
+    markButton("Mark as junk")!.click();
+    await vi.waitFor(() =>
+      expect(panel()?.textContent).toContain(
+        "JoyFox could not save that change. Nothing was changed.",
+      ),
+    );
+    expect(state.calls).toEqual([]);
+    expect(driver.clicks).toEqual([]);
+    expect(await logged()).toEqual([]);
+  });
+});
+
+describe("Mark as junk on the profile page (D10)", () => {
+  it("places in Junk and logs Negative, with no trash", async () => {
+    onProfilePage();
+    document.body.innerHTML = profileHtml;
+    const calls: string[] = [];
+    let junkCalls = 0;
+    const result: MemberTriage = {
+      memberId: MEMBER,
+      placement: "needs-review",
+      source: "rule",
+      automatic: {
+        placement: "needs-review",
+        reasons: [],
+        evaluatedConditions: [],
+      },
+      trust: "unknown",
+    };
+    const member = new MemberPanel(
+      document,
+      {
+        evaluate: async () => ({
+          status: "ok",
+          accountId: "account-a",
+          results: [result],
+        }),
+        setOverride: async (_a, _m, placement) => {
+          calls.push(`override:${placement}`);
+        },
+        getTrust: async () => ({ status: "no-account" }),
+        logTrust: async (_a, _m, kind) => {
+          calls.push(`log:${kind}`);
+        },
+        undoTrust: async () => undefined,
+        captureSnapshot: async () => undefined,
+        optOutSharedEvent: async () => undefined,
+        openOptions: async () => undefined,
+      },
+      {
+        junk: async () => {
+          junkCalls += 1;
+          return "shown";
+        },
+      },
+    );
+    member.update("profile");
+    const button = () =>
+      Array.from(document.querySelectorAll("button")).find(
+        (node) => node.textContent === "Mark as junk",
+      );
+    await vi.waitFor(() => expect(button()).toBeDefined());
+    button()!.click();
+    await vi.waitFor(() =>
+      expect(calls).toEqual(["override:quarantined", "log:negative"]),
+    );
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    expect(junkCalls).toBe(0);
   });
 });

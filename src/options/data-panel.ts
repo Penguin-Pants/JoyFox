@@ -2,7 +2,7 @@ import {
   AccountService,
   ACTIVE_ACCOUNT_SETTING_KEY,
 } from "../accounts/account-service";
-import { QUICK_IGNORE_DELETE, reportOperation } from "../actions/ignore-delete";
+import { isQuickAction, reportOperation } from "../actions/ignore-delete";
 import { QUICK_ACTION_KEY } from "../actions/quick-action-setting";
 import {
   DataService,
@@ -629,10 +629,11 @@ export class DataPanel {
             ),
           ),
         );
-        // An Ignore and Delete run in plain words first, as its notice on
-        // JoyClub says it; the stored steps stay below.
+        // A Delete or Ignore and Delete run in plain words first, as its
+        // notice on JoyClub says it, named by its action; the stored steps
+        // stay below.
         const log = record as ActionLog;
-        if (name === "actionLogs" && log.action === QUICK_IGNORE_DELETE)
+        if (name === "actionLogs" && isQuickAction(log.action))
           details.append(this.#renderReport(document, log));
         details.append(
           renderFields(document, record as unknown as Record<string, unknown>),

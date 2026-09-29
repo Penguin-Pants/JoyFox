@@ -236,7 +236,7 @@ describe("translator", () => {
       t("triage.reason.userMoved", {
         placement: message("placement.quarantined"),
       }),
-    ).toBe("Du hast diese Person nach „Quarantäne“ verschoben.");
+    ).toBe("Du hast diese Person nach „Junk“ verschoben.");
   });
 
   it("makes the possessive agree with the count in German", () => {
@@ -255,7 +255,7 @@ describe("translator", () => {
       "options.tabs.start",
     );
     expect(t("inbox.whyNamed", { name: "placement.qualified" })).toBe(
-      "Warum und verschieben: placement.qualified",
+      "Details: placement.qualified",
     );
   });
 

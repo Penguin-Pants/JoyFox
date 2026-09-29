@@ -151,8 +151,8 @@ loaded results known to be below 3 photos or 50 words (V1-10,
 For an event you track, JoyFox stores the guest list the event page shows
 (member IDs only) and lists the shared events on each guest's profile. An
 optional exception, off by default, places a sender in Qualified when they are
-on the guest list of an event you marked Attending or Attended; the "Why and
-move" panel names the event and can turn it off for that sender (V1-13,
+on the guest list of an event you marked Attending or Attended; the "Details"
+panel names the event and can turn it off for that sender (V1-13,
 `docs/manual-acceptance.md`, items 129 to 132).
 
 Conversation History Search stores the ClubMail messages you open, sent and
@@ -177,12 +177,26 @@ JoyClub's message box inserts a template at the cursor; it never sends. See
 `docs/manual-acceptance.md`, items 27 to 35. Import is on the "Accounts" tab,
 and "Your data" links to it.
 
+"Mark qualified" and "Mark as junk" in the member bar (conversation and profile
+pages) and in the inbox row's "Details" panel place a sender in Qualified or
+Junk as your own choice and log one trust outcome, +1 or -1, in one click. On a
+conversation page, "Mark as junk" also moves the conversation to JoyClub's
+trash. "Use my rule again" clears your choice; a logged outcome stays until you
+undo it (ADR 0017).
+
+A "Delete" button on every ClubMail conversation moves it to JoyClub's trash in
+one click, then returns to the ClubMail list after 2 seconds. It needs no
+setting. It works only while the ClubMail list shows the conversation beside it;
+otherwise it is greyed out and says why (ADR 0017, `docs/manual-acceptance.md`,
+items 172 to 181).
+
 Quick Ignore and Delete (M9) has its state machine, action log and on-screen
 notice. Its live driver follows F7's evidence: Delete on the conversation page,
-then Ignore on the member's profile in the same tab (ADR 0011). It stays off
-until you tick "Ignore and Delete" on the options page's "Contact rule" tab
-(item 133). The manual matrix (`docs/manual-acceptance.md`, items 43 to 54) was
-accepted on 2026-09-25. If the move to the profile is cancelled, the
+then Ignore on the member's profile in the same tab (ADR 0011). It is on by
+default, beside "Delete"; untick "Ignore and Delete" on the options page's
+"Contact rule" tab to hide it (item 133, ADR 0017). That switch controls only
+Ignore and Delete. The manual matrix (`docs/manual-acceptance.md`, items 43
+to 54) was accepted on 2026-09-25. If the move to the profile is cancelled, the
 conversation page withdraws the hand-off after 15 seconds and says Ignore was
 not done (item 98). If another JoyClub page loads in the tab first, that page
 drops the hand-off at once (item 100). Both are covered by synthetic tests; item
@@ -195,9 +209,10 @@ Read this before you install JoyFox.
 - JoyFox is an independent project. JoyClub does not make, check or support it.
 - Nobody has checked whether JoyClub's terms of use allow browser extensions
   like JoyFox. Many platforms forbid automated access. If JoyClub finds that you
-  use JoyFox, it can restrict or close your account. Quick Ignore and Delete,
-  which clicks JoyClub's own buttons for you, carries the highest risk; it is
-  off by default.
+  use JoyFox, it can restrict or close your account. The conversation actions
+  click JoyClub's own buttons for you and carry the highest risk: "Delete" and
+  "Mark as junk" move a conversation to JoyClub's trash with no setting, and
+  Quick Ignore and Delete, which also ignores the member, is on by default.
 - JoyFox stores information about other members (profile facts, your notes and
   tags) only in your browser. You are responsible for how you use and keep that
   information. For private use by one person, EU data protection law very likely

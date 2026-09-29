@@ -23,6 +23,10 @@ The manifest's `browser_specific_settings.gecko.update_url` is the only remote
 address in it. It is not a permission: Firefox uses it to check for updates
 (V1-9, `privacy-model.md`, "Update check").
 
+"Delete" and "Mark as junk" (ADR 0017) click JoyClub's trash on a conversation
+page the user opened. They use the existing JoyClub host permission; the
+permissions do not change.
+
 The UI language (ADR 0014) calls `browser.i18n.getUILanguage()` only to pick the
 default language. The `i18n` API needs no permission, so the allowlist does not
 change.

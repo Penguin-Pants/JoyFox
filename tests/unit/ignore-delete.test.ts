@@ -6,6 +6,7 @@ import {
   canTransition,
   checkTarget,
   isTerminal,
+  QUICK_DELETE,
   reportOperation,
   STALE_AFTER_MS,
   STARTED_STALE_AFTER_MS,
@@ -349,5 +350,100 @@ describe("M9 report", () => {
       report(steps("Started", ["Failed", "account-changed"])).lines,
     );
     expect(untouched.join(" ")).not.toMatch(/Next:|check whether/);
+  });
+});
+
+describe("Delete alone: state machine and report (ADR 0017)", () => {
+  const deleteReport = (logged: ReturnType<typeof steps>, now = T0) =>
+    reportOperation(
+      { action: QUICK_DELETE, steps: logged, updatedAt: at() },
+      now,
+    );
+
+  it("runs Started, DeleteRequested, DeleteConfirmed, Completed, or Failed", () => {
+    const order: ActionState[] = [
+      "Started",
+      "DeleteRequested",
+      "DeleteConfirmed",
+      "Completed",
+    ];
+    for (const from of ACTION_STATES)
+      for (const to of ACTION_STATES) {
+        const index = order.indexOf(from);
+        const next = index < 0 ? undefined : order[index + 1];
+        const expected =
+          !isTerminal(from) &&
+          (to === "Failed" || (next !== undefined && to === next));
+        expect(canTransition(from, to, QUICK_DELETE), `${from} -> ${to}`).toBe(
+          expected,
+        );
+      }
+    // Ignore never follows Delete alone.
+    expect(
+      canTransition("DeleteConfirmed", "IgnoreRequested", QUICK_DELETE),
+    ).toBe(false);
+  });
+
+  it("reports a finished Delete without naming Ignore", () => {
+    const result = deleteReport(
+      steps("Started", "DeleteRequested", "DeleteConfirmed", "Completed"),
+    );
+    expect(result.status).toBe("completed");
+    expect(texts(result.lines)).toEqual([
+      "Delete finished.",
+      "Delete: done. JoyClub moved the conversation to the trash.",
+      "To undo, restore the conversation from JoyClub's trash.",
+    ]);
+  });
+
+  it("reports a stopped Delete with the reason and the next manual step", () => {
+    const untouched = deleteReport(
+      steps("Started", ["Failed", "unverifiable"]),
+    );
+    expect(texts(untouched.lines)).toEqual([
+      "Delete stopped.",
+      "JoyFox cannot see JoyClub's result for Delete on this page, so it stopped before Delete.",
+      "Delete works only while this conversation shows in the ClubMail list beside it. Widen the window, or scroll the list until the conversation shows, then try again.",
+      "Delete: not done.",
+      "Nothing was changed on JoyClub.",
+      "You can do it yourself: move the conversation to the trash with JoyClub's trash button.",
+    ]);
+    const started = deleteReport(
+      steps("Started", "DeleteRequested", ["Failed", "not-verified"]),
+    );
+    expect(texts(started.lines)).toEqual([
+      "Delete stopped.",
+      "JoyClub did not show that Delete succeeded.",
+      "Delete: not confirmed. JoyFox started it but did not see JoyClub confirm it.",
+      "JoyFox did not undo anything.",
+      "Next: open the conversation and check whether it is in the trash. If not, move it there yourself with JoyClub's trash button.",
+    ]);
+  });
+
+  it("reads a stalled Delete as interrupted, and a recent one as running", () => {
+    const logged = steps("Started", "DeleteRequested");
+    expect(texts(deleteReport(logged, T0 + 1000).lines)).toEqual([
+      "Delete is running.",
+    ]);
+    const stalled = deleteReport(logged, T0 + STALE_AFTER_MS + 1);
+    expect(stalled.status).toBe("interrupted");
+    expect(texts(stalled.lines)[0]).toBe(
+      "Delete was interrupted, for example because the tab closed.",
+    );
+  });
+
+  it("speaks German", () => {
+    setLocale("de");
+    try {
+      expect(
+        texts(
+          deleteReport(
+            steps("Started", "DeleteRequested", "DeleteConfirmed", "Completed"),
+          ).lines,
+        )[0],
+      ).toBe("„Löschen“ ist fertig.");
+    } finally {
+      setLocale("en");
+    }
   });
 });

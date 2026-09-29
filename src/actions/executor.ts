@@ -1,8 +1,10 @@
 import type { ActionLog } from "../domain/types";
 import {
+  ACTION_STEPS,
   checkTarget,
+  QUICK_DELETE,
+  QUICK_IGNORE_DELETE,
   reportOperation,
-  STEP_ORDER,
   STEP_STATES,
   STEP_TIMEOUT_MS,
   type ActionFailure,
@@ -11,6 +13,7 @@ import {
   type ActionTarget,
   type CurrentTarget,
   type OperationReport,
+  type QuickAction,
 } from "./ignore-delete";
 
 /**
@@ -63,9 +66,14 @@ export interface ActionRecorder {
   /**
    * `deadline` (epoch milliseconds) is when the caller stops waiting. The
    * log stores nothing after it, so a late answer never leaves a run that
-   * reads as running with no tab behind it.
+   * reads as running with no tab behind it. `action` is the operation to
+   * start; absent means Quick Ignore and Delete.
    */
-  begin(target: ActionTarget, deadline?: number): Promise<BeginAnswer>;
+  begin(
+    target: ActionTarget,
+    deadline?: number,
+    action?: QuickAction,
+  ): Promise<BeginAnswer>;
   record(
     operationId: string,
     state: ActionState,
@@ -133,9 +141,21 @@ function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
 const failureOf = (error: unknown): ActionFailure =>
   error instanceof StepTimeout ? "timeout" : "step-error";
 
+/** Run Quick Ignore and Delete once: Delete, then Ignore (ADR 0011). */
+export const runQuickIgnoreDelete = (options: ExecutionOptions) =>
+  runQuickAction(QUICK_IGNORE_DELETE, options);
+
 /**
- * Run Quick Ignore and Delete once (build plan Section 16). The order per
- * step is fixed:
+ * Run Delete alone once (ADR 0017): the same Delete step, checks, timeout
+ * and failure codes as Quick Ignore and Delete, with no hand-off.
+ */
+export const runQuickDelete = (
+  options: Omit<ExecutionOptions, "handOff" | "resume">,
+) => runQuickAction(QUICK_DELETE, options);
+
+/**
+ * Run one quick action once (build plan Section 16). Both actions share the
+ * step logic below. The order per step is fixed:
  *
  * 1. Check, without clicking, that the page shows the expected member and
  *    conversation and that the step's control is there.
@@ -149,7 +169,8 @@ const failureOf = (error: unknown): ActionFailure =>
  * undone. The report is built from the same steps the ActionLog holds; a
  * step JoyClub confirmed but the log could not store still shows as done.
  */
-export async function runQuickIgnoreDelete(
+async function runQuickAction(
+  action: QuickAction,
   options: ExecutionOptions,
 ): Promise<ExecutionResult> {
   const { target, driver, recorder } = options;
@@ -173,7 +194,7 @@ export async function runQuickIgnoreDelete(
     }
   };
   const report = () =>
-    reportOperation({ steps, updatedAt: now() }, Date.parse(now()));
+    reportOperation({ action, steps, updatedAt: now() }, Date.parse(now()));
 
   let operationId: string;
   if (resume) operationId = resume.operationId;
@@ -181,7 +202,12 @@ export async function runQuickIgnoreDelete(
     let begun: BeginAnswer;
     try {
       const deadline = Date.parse(now()) + timeout;
-      begun = await withTimeout(recorder.begin(target, deadline), timeout);
+      begun = await withTimeout(
+        action === QUICK_IGNORE_DELETE
+          ? recorder.begin(target, deadline)
+          : recorder.begin(target, deadline, action),
+        timeout,
+      );
     } catch {
       note("Failed", "log-unavailable");
       return { status: "finished", report: report() };
@@ -301,9 +327,8 @@ export async function runQuickIgnoreDelete(
     return store(confirmed);
   };
 
-  const order = resume
-    ? STEP_ORDER.slice(STEP_ORDER.indexOf(resume.from))
-    : STEP_ORDER;
+  const all = ACTION_STEPS[action];
+  const order = resume ? all.slice(all.indexOf(resume.from)) : all;
   for (const [index, step] of order.entries()) {
     // A later step whose control is on another page is handed off: the
     // caller stores the marker and navigates, and the new page resumes.
@@ -338,8 +363,8 @@ export async function runQuickIgnoreDelete(
     }
     if (failure) return stop(failure);
   }
-  // Both steps are done on JoyClub. If the end cannot be stored, the log
-  // later reads as interrupted with both steps done, which is still true.
+  // Every step is done on JoyClub. If the end cannot be stored, the log
+  // later reads as interrupted with the steps done, which is still true.
   note("Completed");
   await store("Completed");
   return { status: "finished", operationId, report: report() };

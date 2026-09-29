@@ -4,6 +4,7 @@ import type {
   ActionState,
   ActionStep,
   OperationReport,
+  QuickAction,
 } from "../actions/ignore-delete";
 import type { CompatibilityAnswer } from "../compatibility/compatibility-service";
 import type { ActionLog, TriagePlacement } from "../domain/types";
@@ -227,14 +228,17 @@ export interface MessageContract {
     response: { done: boolean };
   };
   /**
-   * M9: start a Quick Ignore and Delete operation. The content script runs
-   * the steps; the background stores each transition in ActionLog.
+   * M9: start a Quick Ignore and Delete operation, or Delete alone
+   * (`action: "quick-delete"`, ADR 0017). The content script runs the steps;
+   * the background stores each transition in ActionLog.
    */
   "action.ignoreDelete.start": {
     request: {
       accountId: string;
       memberId: string;
       conversationId: string;
+      /** Absent: Quick Ignore and Delete. */
+      action?: QuickAction;
       /** Epoch milliseconds; nothing is stored after it. */
       deadline?: number;
     };
@@ -250,7 +254,10 @@ export interface MessageContract {
     };
     response: { status: RecordAnswer };
   };
-  /** The newest operation for one member under the active account. */
+  /**
+   * The newest operation for one member under the active account, Quick
+   * Ignore and Delete or Delete alone.
+   */
   "action.ignoreDelete.latest": {
     request: { memberId: string };
     response:
@@ -259,6 +266,7 @@ export interface MessageContract {
       | {
           status: "ok";
           accountId: string;
+          action: QuickAction;
           /** The conversation the run acted on, when it was stored. */
           conversationId?: string;
           /** When the run last moved: its last stored step. */
