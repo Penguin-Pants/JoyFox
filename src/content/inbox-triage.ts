@@ -647,9 +647,9 @@ export class InboxTriage {
     if (!details || this.#selected === undefined) return;
     const state = rows.find((row) => (row.memberId ?? "") === this.#selected);
     const result = state?.key ? this.#results.get(state.key) : undefined;
-    const markBusy =
-      this.#markPending !== undefined &&
-      this.#markPending === (state?.memberId ?? "");
+    // One Mark sequence at a time, for any row: another row's panel waits
+    // too, so its buttons never look usable while a click would do nothing.
+    const markBusy = this.#markPending !== undefined;
     const key = JSON.stringify([
       this.#selected,
       state?.name,

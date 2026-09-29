@@ -734,6 +734,40 @@ describe("M2 inbox triage", () => {
     }
   });
 
+  it("holds every row's Mark buttons while one Mark sequence runs", async () => {
+    await rules.saveGlobalRule(ACCOUNT, knownRule());
+    setPage("/clubmail/", inboxHtml);
+    const client = serviceClient();
+    let release: () => void = () => undefined;
+    new InboxTriage(document, {
+      ...client,
+      setOverride: async (accountId, memberId, placement) => {
+        await new Promise<void>((resolve) => (release = resolve));
+        await client.setOverride(accountId, memberId, placement as never);
+      },
+    }).update();
+    await vi.waitFor(() => expect(bar()).not.toBeNull());
+    badgeOf(1).click();
+    buttonNamed(details(), "Mark qualified").click();
+    // Another row's panel, while the first sequence still runs.
+    buttonNamed(details(), "Close").click();
+    badgeOf(0).click();
+    await vi.waitFor(() =>
+      expect(details().textContent).toContain("Details: Synthetic One"),
+    );
+    for (const name of ["Mark qualified", "Mark as junk"])
+      expect(buttonNamed(details(), name).getAttribute("aria-disabled")).toBe(
+        "true",
+      );
+    release();
+    await vi.waitFor(() => expect(placements()[1]).toBe("qualified"));
+    await vi.waitFor(() =>
+      expect(
+        buttonNamed(details(), "Mark as junk").getAttribute("aria-disabled"),
+      ).toBeNull(),
+    );
+  });
+
   it("keeps focus in the Details panel after a mark, and gives it back to the row on Close", async () => {
     await rules.saveGlobalRule(ACCOUNT, knownRule());
     setPage("/clubmail/", inboxHtml);

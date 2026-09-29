@@ -257,6 +257,8 @@ export class QuickIgnoreDelete implements ConversationTrash {
   #shown?: Shown;
   #latest?: { key: string; answer: LatestAnswer };
   #inFlight?: string;
+  /** The ActionLog read in flight; `done` settles when it ends, either way. */
+  #loading?: { key: string; done: Promise<void> };
   #generation = 0;
   #drawn?: Drawn;
   #running?: {
@@ -711,7 +713,7 @@ export class QuickIgnoreDelete implements ConversationTrash {
     if (this.#inFlight === key) return;
     this.#inFlight = key;
     const generation = this.#generation;
-    this.client
+    const done = this.client
       .latest(memberId)
       .then((answer) => {
         if (generation !== this.#generation) return;
@@ -725,6 +727,33 @@ export class QuickIgnoreDelete implements ConversationTrash {
         this.#inFlight = undefined;
         this.teardown();
       });
+    this.#loading = { key, done };
+  }
+
+  /**
+   * Wait until the ActionLog answer for the shown conversation is in, so a
+   * "Mark as junk" clicked while the page is still loading runs its trash
+   * step instead of skipping it. A read replaced by a newer one (another
+   * tab's run moved) is waited for too. Gives up after one step timeout, or
+   * once the page shows another conversation.
+   */
+  async #ready(key: string): Promise<void> {
+    const deadline = this.clock() + STEP_TIMEOUT_MS;
+    for (let attempt = 0; attempt < 3; attempt += 1) {
+      if (this.#shown?.key !== key || this.#latest?.key === key) return;
+      const loading = this.#loading;
+      if (loading?.key !== key) return;
+      const left = deadline - this.clock();
+      if (left <= 0) return;
+      let timer: ReturnType<typeof setTimeout> | undefined;
+      await Promise.race([
+        loading.done,
+        new Promise<void>((resolve) => {
+          timer = setTimeout(resolve, left);
+        }),
+      ]);
+      clearTimeout(timer);
+    }
   }
 
   #clearStaleTimer(): void {
@@ -937,6 +966,8 @@ export class QuickIgnoreDelete implements ConversationTrash {
    * for that member, so nothing was started or shown.
    */
   async junk(memberId: string): Promise<"shown" | "unavailable"> {
+    const pending = this.#shown;
+    if (pending?.target.memberId === memberId) await this.#ready(pending.key);
     const shown = this.#shown;
     const latest = this.#latest;
     if (

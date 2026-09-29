@@ -2676,6 +2676,56 @@ describe("Mark as junk on the conversation page (C5 to C7)", () => {
     expect(markButton("Mark qualified")?.disabled).toBe(false);
   });
 
+  it("waits for the Delete flow's first load before the trash step", async () => {
+    const driver = conversationDriver();
+    const visited: string[] = [];
+    window.history.replaceState(
+      null,
+      "",
+      `/clubmail/conversation/conversation-wrapper-${CONVERSATION}`,
+    );
+    document.body.innerHTML = conversationHtml;
+    // The first ActionLog read answers only after the Mark click.
+    let answer: () => void = () => undefined;
+    let reads = 0;
+    const slow: QuickActionClient = {
+      ...client,
+      latest: (memberId) =>
+        (reads += 1) > 1
+          ? client.latest(memberId)
+          : new Promise((resolve) => {
+              answer = () => resolve(client.latest(memberId));
+            }),
+    };
+    const quick = new QuickIgnoreDelete(
+      document,
+      slow,
+      () => driver,
+      (url) => visited.push(url),
+      () => Date.now(),
+      HANDOFF_WAIT_MS,
+      40,
+    );
+    const { state, triage } = memoryTriage();
+    const member = new MemberPanel(document, triage, quick);
+    member.update("conversation");
+    quick.update();
+    await vi.waitFor(() => expect(markButton("Mark as junk")).toBeDefined());
+    expect(
+      document.querySelector('[data-joyfox-ui="quick-action"]'),
+    ).toBeNull();
+    markButton("Mark as junk")!.click();
+    await vi.waitFor(() =>
+      expect(state.calls).toEqual(["override:quarantined", "log:negative"]),
+    );
+    answer();
+    await vi.waitFor(() => expect(quickNotice()).toContain("Delete finished."));
+    expect(driver.clicks).toEqual(["request:delete"]);
+    expect(panel()?.textContent).not.toContain(
+      "JoyFox could not move this conversation to the trash here.",
+    );
+  });
+
   it("keeps the placement and the Negative log when the trash cannot run", async () => {
     const driver = conversationDriver();
     driver.listShown = false;
