@@ -144,8 +144,8 @@ function whenOpened(details: HTMLDetailsElement, fill: () => void): void {
 
 /**
  * The names of the settings an import can add or skip, so the result lists
- * words instead of stored keys. The template picker and diagnostics keys
- * are written out: their constants live in the content script.
+ * words instead of stored keys. The template picker, diagnostics and strip
+ * keys are written out: their constants live in the content script.
  */
 const SETTING_NAMES: Readonly<Record<string, PlainKey>> = {
   [ACTIVE_ACCOUNT_SETTING_KEY]: "data.setting.activeAccount",
@@ -157,6 +157,7 @@ const SETTING_NAMES: Readonly<Record<string, PlainKey>> = {
   [SHARED_EVENT_EXCEPTION_KEY]: "data.setting.sharedEventException",
   [SNAPSHOT_RETENTION_KEY]: "data.setting.snapshotRetention",
   "joyfox.diagnostics": "data.setting.diagnostics",
+  "joyfox.stripCollapsed": "data.setting.stripCollapsed",
 };
 
 const isNamedSetting = (key: string) => Object.hasOwn(SETTING_NAMES, key);

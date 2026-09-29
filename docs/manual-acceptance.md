@@ -1008,3 +1008,18 @@ earlier items that name "Quarantined", "Why and move", "Move to …" or "Keep in
 181. Switch the language to German. Confirm "Junk", "Details", "Als qualifiziert
      markieren", "Als Junk markieren" and "Löschen", and that no JoyFox text
      says "Quarantined" or "Quarantäne" (D6, D14).
+
+## JoyFox bar: compact buttons and collapse (owner request, 2026-09-29)
+
+182. Open a ClubMail conversation. Confirm the JoyFox strip shows "Delete" and
+     "Ignore and Delete" with no explanation text under them. With a screen
+     reader, confirm each button still reads what its click does.
+183. Click the round chevron button at the strip's top left. Confirm the strip
+     shrinks to one line with the button, "JoyFox" and the placement, and does
+     not disappear. Click it again: confirm everything is back. Confirm it does
+     not sit under JoyClub's own round arrow button at the top right.
+184. Collapse the strip, then open another conversation and a profile, and
+     reload the page. Confirm the strip stays collapsed. In a second JoyClub
+     tab, confirm it follows when you expand it in the first. Switch the
+     language to German: confirm the button's name is "JoyFox ausklappen" or
+     "JoyFox einklappen".

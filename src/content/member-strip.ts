@@ -1,4 +1,5 @@
-import { UI_ATTRIBUTE } from "./triage-ui";
+import { t } from "../i18n/translator";
+import { button, element, UI_ATTRIBUTE } from "./triage-ui";
 
 /**
  * One full-width JoyFox strip under a conversation or profile header, which
@@ -14,8 +15,18 @@ import { UI_ATTRIBUTE } from "./triage-ui";
  */
 export const MEMBER_STRIP = "member-strip";
 
+/** Marks the strip's own collapse button, which is always its first child. */
+export const STRIP_TOGGLE = "strip-toggle";
+
+/**
+ * The `storage.local` key for the strip's collapsed state (owner request,
+ * 2026-09-29). `true`: collapsed. Kept across pages and tabs.
+ */
+export const STRIP_COLLAPSED_KEY = "joyfox.stripCollapsed";
+
 /** The order of the sections inside the strip. */
 const SECTION_ORDER: readonly string[] = [
+  STRIP_TOGGLE,
   "member-panel",
   "completeness",
   "compatibility",
@@ -61,6 +72,64 @@ export function stripAnchor(anchor: Element): Element {
   return isHorizontalFlex(parent) ? parent : anchor;
 }
 
+let collapsed = false;
+let storeCollapsed: ((collapsed: boolean) => void) | undefined;
+
+/**
+ * Set the strip's collapsed state, from the stored setting or a change in
+ * another tab. `store` is where a click on the button saves the new state.
+ */
+export function setStripCollapsed(
+  document: Document,
+  value: boolean,
+  store?: (collapsed: boolean) => void,
+): void {
+  collapsed = value;
+  if (store) storeCollapsed = store;
+  const strip = findStrip(document);
+  if (strip) applyCollapsed(strip);
+}
+
+/**
+ * Collapsed, the strip shows one slim line: the wordmark, the placement,
+ * a running action's notice, an error, and this button to expand it
+ * again. Everything else is hidden by the stylesheet, never removed.
+ */
+function applyCollapsed(strip: HTMLElement): void {
+  const value = String(collapsed);
+  if (strip.dataset.collapsed !== value) strip.dataset.collapsed = value;
+  const toggle = strip.querySelector<HTMLButtonElement>(
+    `:scope > [${UI_ATTRIBUTE}="${STRIP_TOGGLE}"]`,
+  );
+  if (!toggle) return;
+  const expanded = String(!collapsed);
+  if (toggle.getAttribute("aria-expanded") !== expanded)
+    toggle.setAttribute("aria-expanded", expanded);
+  // Set on every placement, so a language change reaches it too.
+  const label = t(collapsed ? "strip.expand" : "strip.collapse");
+  if (toggle.getAttribute("aria-label") !== label) {
+    toggle.setAttribute("aria-label", label);
+    toggle.title = label;
+  }
+}
+
+function stripToggle(document: Document, strip: HTMLElement): HTMLElement {
+  const toggle = button(
+    document,
+    "joyfox-button joyfox-strip__toggle",
+    "",
+    () => {
+      collapsed = !collapsed;
+      applyCollapsed(strip);
+      storeCollapsed?.(collapsed);
+    },
+  );
+  toggle.setAttribute(UI_ATTRIBUTE, STRIP_TOGGLE);
+  // The chevron is drawn by the stylesheet; the name is the label.
+  toggle.append(element(document, "span", "joyfox-strip__chevron"));
+  return toggle;
+}
+
 function findStrip(document: Document): HTMLElement | null {
   return document.querySelector<HTMLElement>(
     `[${UI_ATTRIBUTE}="${MEMBER_STRIP}"]`,
@@ -95,7 +164,9 @@ export function placeInStrip(
     // it. A brand name: the same in every language.
     strip.setAttribute("role", "region");
     strip.setAttribute("aria-label", "JoyFox");
+    strip.append(stripToggle(document, strip));
   }
+  applyCollapsed(strip);
   if (strip.previousElementSibling !== after) {
     // Moving a node blurs whatever is focused inside it, such as the note
     // text area. The sections already in place do not rebuild, so they would
@@ -117,8 +188,14 @@ export function placeInStrip(
   else strip.append(section);
 }
 
-/** Remove the strip once no section is left in it. */
+/** Remove the strip once no section is left in it, only its button. */
 export function removeEmptyStrip(document: Document): void {
   const strip = findStrip(document);
-  if (strip && strip.children.length === 0) strip.remove();
+  if (
+    strip &&
+    Array.from(strip.children).every(
+      (child) => child.getAttribute(UI_ATTRIBUTE) === STRIP_TOGGLE,
+    )
+  )
+    strip.remove();
 }

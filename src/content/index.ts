@@ -31,6 +31,7 @@ import { runtimeSharedEventsClient, SharedEvents } from "./shared-events";
 import { ListingPanel, runtimeListingClient } from "./listing-panel";
 import { MemberNotes, runtimeNotesClient } from "./member-notes";
 import { MemberPanel } from "./member-panel";
+import { setStripCollapsed, STRIP_COLLAPSED_KEY } from "./member-strip";
 import { NavigationCoordinator } from "./navigation-coordinator";
 import { detectPage } from "./page-detector";
 import {
@@ -73,6 +74,12 @@ if (hasVerifiedSelectors() && VERIFIED_HOSTS.includes(location.hostname)) {
     storageEvents,
     QUICK_ACTION_KEY,
     true,
+  );
+  // Whether the JoyFox strip is collapsed (owner request, 2026-09-29).
+  const stripCollapsed = new DiagnosticsFlag(
+    () => runtimeSettingsArea.get([STRIP_COLLAPSED_KEY]),
+    storageEvents,
+    STRIP_COLLAPSED_KEY,
   );
   // V1-4: on unless the user turned it off (PRD 13.3, ADR 0016).
   const messageCaching = new DiagnosticsFlag(
@@ -245,6 +252,9 @@ if (hasVerifiedSelectors() && VERIFIED_HOSTS.includes(location.hostname)) {
     // The flag listener registered first, so it already holds the new value.
     if (TEMPLATE_PICKER_KEY in changes) updatePicker();
     if (QUICK_ACTION_KEY in changes) updateQuickAction();
+    // Collapsed or expanded in another tab: this tab follows.
+    if (STRIP_COLLAPSED_KEY in changes)
+      setStripCollapsed(document, stripCollapsed.enabled);
     // The flag listener registered first, so it already holds the new value:
     // storing just turned on captures the open conversation at once.
     if (MESSAGE_CACHING_KEY in changes) {
@@ -319,6 +329,13 @@ if (hasVerifiedSelectors() && VERIFIED_HOSTS.includes(location.hostname)) {
     diagnostics.ready,
     templatePicker.ready,
     quickAction.ready,
+    stripCollapsed.ready.then(() =>
+      setStripCollapsed(document, stripCollapsed.enabled, (value) => {
+        void runtimeSettingsArea
+          .set({ [STRIP_COLLAPSED_KEY]: value })
+          .catch(() => undefined);
+      }),
+    ),
     messageCaching.ready,
     accountRead,
     language,

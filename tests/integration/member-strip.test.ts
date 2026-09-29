@@ -5,9 +5,11 @@ import {
   isPlaced,
   placeInStrip,
   removeEmptyStrip,
+  setStripCollapsed,
   shownElement,
   stripAnchor,
 } from "../../src/content/member-strip";
+import { setLocale } from "../../src/i18n/translator";
 
 const section = (name: string) => {
   const node = document.createElement("section");
@@ -35,7 +37,10 @@ describe("member strip", () => {
     placeInStrip(document, header, notes);
     placeInStrip(document, header, panel);
     const strip = document.querySelector("#row")!.nextElementSibling!;
-    expect(Array.from(strip.children)).toEqual([panel, notes, quick]);
+    const [toggle, ...sections] = Array.from(strip.children);
+    // The strip's own collapse button comes first, then the sections.
+    expect(toggle?.getAttribute("data-joyfox-ui")).toBe("strip-toggle");
+    expect(sections).toEqual([panel, notes, quick]);
     expect(strip.nextElementSibling).toBe(document.querySelector("#messages"));
     for (const node of [panel, notes, quick])
       expect(isPlaced(node, header)).toBe(true);
@@ -60,6 +65,78 @@ describe("member strip", () => {
     expect(
       document.querySelector('[data-joyfox-ui="member-strip"]'),
     ).toBeNull();
+  });
+
+  describe("collapse button (owner request, 2026-09-29)", () => {
+    const strip = () =>
+      document.querySelector<HTMLElement>('[data-joyfox-ui="member-strip"]')!;
+    const toggle = () =>
+      document.querySelector<HTMLButtonElement>(
+        '[data-joyfox-ui="strip-toggle"]',
+      )!;
+
+    beforeEach(() => setStripCollapsed(document, false));
+
+    it("collapses and expands again, and stores each choice", () => {
+      const stored: boolean[] = [];
+      setStripCollapsed(document, false, (value) => stored.push(value));
+      placeInStrip(
+        document,
+        document.querySelector("#header")!,
+        section("member-panel"),
+      );
+      expect(strip().dataset.collapsed).toBe("false");
+      expect(toggle().getAttribute("aria-expanded")).toBe("true");
+      expect(toggle().getAttribute("aria-label")).toBe("Collapse JoyFox");
+      toggle().click();
+      // Collapsed, never removed: the button stays to expand it again.
+      expect(strip().dataset.collapsed).toBe("true");
+      expect(toggle().getAttribute("aria-expanded")).toBe("false");
+      expect(toggle().getAttribute("aria-label")).toBe("Expand JoyFox");
+      expect(
+        document.querySelector('[data-joyfox-ui="member-panel"]'),
+      ).not.toBeNull();
+      toggle().click();
+      expect(strip().dataset.collapsed).toBe("false");
+      expect(stored).toEqual([true, false]);
+    });
+
+    it("draws a new strip in the stored state, and follows another tab", () => {
+      setStripCollapsed(document, true);
+      placeInStrip(
+        document,
+        document.querySelector("#header")!,
+        section("member-panel"),
+      );
+      expect(strip().dataset.collapsed).toBe("true");
+      // Another tab expands it: this one follows.
+      setStripCollapsed(document, false);
+      expect(strip().dataset.collapsed).toBe("false");
+    });
+
+    it("names the button in German after a language change", () => {
+      const header = document.querySelector("#header")!;
+      const panel = section("member-panel");
+      placeInStrip(document, header, panel);
+      setLocale("de");
+      try {
+        // A redraw places its section again.
+        placeInStrip(document, header, panel);
+        expect(toggle().getAttribute("aria-label")).toBe("JoyFox einklappen");
+      } finally {
+        setLocale("en");
+      }
+    });
+
+    it("goes with the strip when the last section goes", () => {
+      const panel = section("member-panel");
+      placeInStrip(document, document.querySelector("#header")!, panel);
+      panel.remove();
+      removeEmptyStrip(document);
+      expect(
+        document.querySelector('[data-joyfox-ui="strip-toggle"]'),
+      ).toBeNull();
+    });
   });
 
   it("follows the header itself when the parent is not a row", () => {

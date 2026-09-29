@@ -339,6 +339,68 @@ button.joyfox-badge {
   line-height: 1.4;
 }
 
+/*
+ * The strip's own collapse button (owner request, 2026-09-29), first on the
+ * left: JoyClub floats its own round arrow button over the strip's top right
+ * corner, so JoyFox keeps clear of it. The chevron points up to collapse and
+ * down to expand.
+ */
+.joyfox-strip {
+  position: relative;
+  padding-left: 2.75em;
+}
+
+.joyfox-strip > .joyfox-strip__toggle {
+  position: absolute;
+  top: 0.3em;
+  left: 0.4em;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.9em;
+  height: 1.9em;
+  padding: 0;
+  border-radius: 50%;
+}
+
+.joyfox-strip__chevron {
+  width: 0.5em;
+  height: 0.5em;
+  margin-top: 0.2em;
+  border-top: 2px solid currentColor;
+  border-left: 2px solid currentColor;
+  transform: rotate(45deg);
+}
+
+.joyfox-strip[data-collapsed="true"] .joyfox-strip__chevron {
+  margin-top: -0.2em;
+  transform: rotate(225deg);
+}
+
+/*
+ * Collapsed: one slim line with the wordmark and the placement. A running
+ * action's notice and an error stay, so a result is never hidden.
+ */
+.joyfox-strip[data-collapsed="true"]
+  > :not(
+    .joyfox-strip__toggle,
+    .joyfox-member,
+    [data-joyfox-ui="quick-action"]
+  ),
+.joyfox-strip[data-collapsed="true"]
+  > [data-joyfox-ui="quick-action"]:not(:has(.joyfox-quick-action__status > *)),
+.joyfox-strip[data-collapsed="true"]
+  > [data-joyfox-ui="quick-action"]
+  > :not(.joyfox-quick-action__status),
+.joyfox-strip[data-collapsed="true"]
+  .joyfox-member
+  > :not(.joyfox-bar, .joyfox-error),
+.joyfox-strip[data-collapsed="true"]
+  .joyfox-bar
+  > :not(.joyfox-bar__brand, .joyfox-pill) {
+  display: none;
+}
+
 .joyfox-strip > .joyfox-panel {
   margin: 0;
   padding: 0;

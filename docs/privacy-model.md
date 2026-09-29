@@ -164,6 +164,13 @@ never leaves the browser except in an export file the user saves. It is
 exported, imported and deleted with the other records. When JoyFox has never
 seen a member's nickname, its texts show "Member" and the number.
 
+## JoyFox bar collapsed (owner request, 2026-09-29)
+
+The JoyFox strip on conversation and profile pages has its own collapse button.
+Its state is one flag in the extension's `storage.local`,
+`joyfox.stripCollapsed` (`true` while collapsed), so every JoyClub tab shows the
+same state. It holds no member data and is never imported.
+
 ## Page session storage (UX audit, 2026-09-28)
 
 Besides the saved-search run record above, JoyFox keeps three small choices in

@@ -2431,6 +2431,10 @@ describe("Delete alone (ADR 0017)", () => {
     expect(document.getElementById(described)?.textContent).toBe(
       t(QUICK_ACTION_TEXT.deleteScope),
     );
+    // Read by screen readers only: the labels say enough on screen.
+    expect(document.getElementById(described)?.className).toBe(
+      "joyfox-visually-hidden",
+    );
     quick.turnOn();
     quick.update();
     expect(deleteButton()).toBeDefined();

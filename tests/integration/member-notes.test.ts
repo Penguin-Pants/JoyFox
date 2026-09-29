@@ -142,10 +142,14 @@ describe("M5 note and tag editor", () => {
     const header = document.querySelector(
       '[data-e2e="profile-header-base-info"]',
     )!;
-    // One strip after the header holds both, the panel first.
+    // One strip after the header holds both, the panel first after the
+    // strip's own collapse button.
     const strip = header.nextElementSibling;
     expect(strip?.getAttribute("data-joyfox-ui")).toBe("member-strip");
-    expect(strip?.firstElementChild).toBe(panelNode());
+    expect(strip?.firstElementChild?.getAttribute("data-joyfox-ui")).toBe(
+      "strip-toggle",
+    );
+    expect(strip?.firstElementChild?.nextElementSibling).toBe(panelNode());
     expect(panelNode()?.nextElementSibling).toBe(editor());
     // Updating again leaves both in place: nothing is drawn twice.
     const drawn = editor();
