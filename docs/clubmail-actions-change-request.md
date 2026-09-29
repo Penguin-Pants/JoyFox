@@ -81,8 +81,11 @@ manual choices.
   `joyfox.quickIgnoreDelete`.
 - **A2.** With the flag on, show "Delete" and "Ignore and Delete" side by side.
   With the flag off, show "Delete" only.
-- **A3.** One click starts the run. JoyFox confirms JoyClub's own trash dialog,
-  as the Delete step of "Ignore and Delete" does today.
+- **A3.** One click starts the run. JoyClub shows no confirmation for Delete
+  (`awaitConfirmation("delete")` returns `"none"` in
+  `src/content/quick-action-driver.ts`). Do not wait for a dialog and do not add
+  a selector for one. JoyFox verifies the result as today: the member's row
+  leaves the ClubMail list.
 - **A4.** Add a new ActionLog action (for example `quick-delete`) with the
   states `Started`, `DeleteRequested`, `DeleteConfirmed`, `Completed`, `Failed`.
   Record each state before JoyFox moves on. Use the same identity check (member
@@ -95,8 +98,11 @@ manual choices.
   says what was done, what was not and the next manual step.
 - **A7.** Delete does not change the placement or the trust score.
 - **A8.** Only one trash run at a time. While Delete, "Ignore and Delete" or a
-  junk trash runs, the other trash buttons are disabled with the `quick.busy`
-  text.
+  junk trash runs, the other trash buttons are disabled. Do not reuse
+  `quick.busy` and `quick.otherRunning` as they are: they name "Ignore and
+  Delete" and say "Nothing was done here". Make them action-neutral, or add one
+  text per action. For a junk trash that is refused as busy, the notice must
+  also say that the placement and the Negative log were done (C7).
 - **A9.** The "last run" notice and the options page "Action log"
   (`src/options/data-panel.ts`, which today filters on `QUICK_IGNORE_DELETE`)
   also show Delete-only runs, with their own labels.
@@ -136,14 +142,22 @@ manual choices.
 - **C7.** Stop at the first failed step. Do not run the next step. The notice
   says what was done and what was not. Examples:
   - Override save fails: show `common.saveFailed`. No trust log, no trash.
+  - A refused write counts as failed. `triage.setOverride` and `trust.log`
+    answer `{ done: false }` when the active account changed, and
+    `messageTriageClient` (`src/content/triage-client.ts`) drops that answer
+    today. The Mark flow must read `done` (or the client must reject on
+    `done: false`) before it runs the next step.
   - Trash cannot run (ClubMail list not beside the conversation) or fails:
     placement and Negative log stay. The notice says the conversation was not
     moved to the trash and names the manual step (JoyClub's trash button).
 - **C8.** Disable a Mark button when the result's source is `override` and its
   placement already equals the button's placement (D12). When the rule or the
   shared-event exception placed the sender there, the button stays enabled.
-- **C9.** While a trust log or undo is in progress (`trustBusy`), set the Mark
-  buttons to `aria-disabled`, so a double click cannot log twice.
+- **C9.** Set a busy flag synchronously when a Mark click starts, before the
+  override request. Keep both Mark buttons `aria-disabled` until the whole
+  sequence (override, trust log, trash) ends. Also disable them while a trust
+  log or undo from the bar runs (`trustBusy`). A double click must never give
+  two trust outcomes or two trash runs.
 - **C10.** Remove the "Move to ..." and "Keep in ..." buttons from
   `explanation()` in all views. "Needs Review" stays as a rule result. Only the
   manual move to it goes away.
@@ -165,9 +179,16 @@ manual choices.
   moves the conversation to JoyClub's trash ...").
 - **D-2.** Write ADR 0017: Delete leaves the experimental gate, why, and the
   safety rules that stay (identity check, verification rule, ActionLog).
-- **D-3.** Update `docs/PRD.md`, `docs/Engineering-Build-Plan.md` (Section 27),
-  `docs/privacy-model.md`, `docs/permissions.md` and `docs/known-limitations.md`
-  where they say JoyFox clicks JoyClub controls only with the experimental flag.
+- **D-3.** Update `README.md`, `docs/PRD.md`, `docs/Engineering-Build-Plan.md`
+  (Section 27), `docs/privacy-model.md`, `docs/permissions.md` and
+  `docs/known-limitations.md` where they say JoyFox clicks JoyClub controls only
+  with the experimental flag. In `README.md` this includes the M9 paragraph ("It
+  stays off until you tick ...") and the Disclaimer line "Quick Ignore and
+  Delete ... carries the highest risk; it is off by default". Delete and Mark as
+  junk now click JoyClub's trash with the flag off, and the Disclaimer must say
+  so.
+- **D-3a.** Update `docs/data-model.md` (section "ActionLog") for the new
+  `action` value and its state sequence (A4).
 - **D-4.** Add manual acceptance items to `docs/manual-acceptance.md` for US1,
   US2 and US3 and for the rename.
 - **D-5.** Add a release note entry under `docs/release-notes/`.
