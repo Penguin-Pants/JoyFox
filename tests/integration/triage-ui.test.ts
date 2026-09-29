@@ -179,13 +179,11 @@ describe("M2 inbox triage", () => {
       rows().map(
         (row) => row.querySelector('[data-joyfox-ui="badge"]')?.textContent,
       ),
-    ).toEqual(["Qualified", "Quarantined", "Needs Review"]);
-    expect(buttonNamed(bar()!, "Quarantined").textContent).toBe(
-      "Quarantined (1)",
-    );
+    ).toEqual(["Qualified", "Junk", "Needs Review"]);
+    expect(buttonNamed(bar()!, "Junk").textContent).toBe("Junk (1)");
   });
 
-  it("hides Quarantined from the default view only, and each tab shows its group", async () => {
+  it("hides Junk from the default view only, and each tab shows its group", async () => {
     await rules.saveGlobalRule(ACCOUNT, knownRule());
     setPage("/clubmail/", inboxHtml);
     const inbox = new InboxTriage(document, serviceClient());
@@ -194,12 +192,12 @@ describe("M2 inbox triage", () => {
     const visible = () =>
       rows().map((row) => getComputedStyle(row).display !== "none");
     expect(visible()).toEqual([true, false, true]);
-    buttonNamed(bar()!, "Quarantined").click();
+    buttonNamed(bar()!, "Junk").click();
     expect(inbox.view).toBe("quarantined");
     expect(visible()).toEqual([false, true, false]);
-    expect(
-      buttonNamed(bar()!, "Quarantined").getAttribute("aria-pressed"),
-    ).toBe("true");
+    expect(buttonNamed(bar()!, "Junk").getAttribute("aria-pressed")).toBe(
+      "true",
+    );
     buttonNamed(bar()!, "Show all").click();
     expect(visible()).toEqual([true, true, true]);
   });
@@ -229,7 +227,7 @@ describe("M2 inbox triage", () => {
         (slot) => getComputedStyle(slot).display !== "none",
       );
     expect(shown()).toEqual([true, false, true]);
-    buttonNamed(bar()!, "Quarantined").click();
+    buttonNamed(bar()!, "Junk").click();
     expect(shown()).toEqual([false, true, false]);
     buttonNamed(bar()!, "Needs Review").click();
     expect(shown()).toEqual([false, false, true]);
@@ -246,7 +244,7 @@ describe("M2 inbox triage", () => {
     expect(rowSlot(at("row2"), at("list2"))).toBe(at("row2"));
   });
 
-  it("explains a placement and moves the sender at once when the user overrides it", async () => {
+  it("explains a placement and marks the sender at once, with one trust outcome", async () => {
     await rules.saveGlobalRule(ACCOUNT, knownRule());
     setPage("/clubmail/", inboxHtml);
     const inbox = new InboxTriage(document, serviceClient());
@@ -256,23 +254,36 @@ describe("M2 inbox triage", () => {
       rows()[1]?.querySelector('[data-joyfox-ui="badge"]') as HTMLElement
     ).click();
     const details = bar()!.querySelector(".joyfox-triage__details")!;
-    expect(details.textContent).toContain("Why and move: Synthetic Two");
+    expect(details.textContent).toContain("Details: Synthetic Two");
     expect(details.textContent).toContain(
       "You have not marked this member as personally known, which the rule requires.",
     );
     expect(details.textContent).toContain(
-      "This sender does not meet your contact rule, so JoyFox places them in Quarantined.",
+      "This sender does not meet your contact rule, so JoyFox places them in Junk.",
     );
-    buttonNamed(details, "Move to Qualified").click();
+    // No manual move to any placement (D11): only the Mark buttons.
+    expect(details.textContent).not.toContain("Move to");
+    expect(details.textContent).not.toContain("Keep in");
+    buttonNamed(details, "Mark qualified").click();
     await vi.waitFor(() =>
       expect(placements()).toEqual(["qualified", "qualified", "needs-review"]),
     );
     expect(details.textContent).toContain("your manual choice");
     expect(details.textContent).toContain(
-      "Your rule alone would place them in Quarantined.",
+      "Your rule alone would place them in Junk.",
+    );
+    // One Positive outcome (D8).
+    const signals = async () =>
+      (await repositories.trustSignals.list(ACCOUNT)).map(
+        (signal) => `${signal.memberId}:${signal.kind}`,
+      );
+    await vi.waitFor(async () =>
+      expect(await signals()).toEqual(["98765432:positive"]),
     );
     buttonNamed(details, "Use my rule again").click();
     await vi.waitFor(() => expect(placements()[1]).toBe("quarantined"));
+    // The rule is used again; the logged outcome stays (D13).
+    expect(await signals()).toEqual(["98765432:positive"]);
   });
 
   it("settles: a repeated update changes nothing and injects nothing twice", async () => {
@@ -329,7 +340,7 @@ describe("M2 inbox triage", () => {
     const inbox = new InboxTriage(document, serviceClient());
     inbox.update();
     await vi.waitFor(() => expect(bar()).not.toBeNull());
-    buttonNamed(bar()!, "Quarantined").click();
+    buttonNamed(bar()!, "Junk").click();
     (
       rows()[1]?.querySelector('[data-joyfox-ui="badge"]') as HTMLElement
     ).click();
@@ -470,9 +481,7 @@ describe("M2 inbox triage", () => {
     const inbox = new InboxTriage(document, serviceClient());
     inbox.update();
     await vi.waitFor(() => expect(bar()).not.toBeNull());
-    expect(buttonNamed(bar()!, "Quarantined").textContent).toBe(
-      "Quarantined (0)",
-    );
+    expect(buttonNamed(bar()!, "Junk").textContent).toBe("Junk (0)");
   });
 
   it("removes the previous account's UI at once when the account changes", async () => {
@@ -606,32 +615,82 @@ describe("M2 inbox triage", () => {
     new InboxTriage(document, serviceClient()).update();
     await vi.waitFor(() => expect(bar()).not.toBeNull());
     expect(badgeOf(0).getAttribute("aria-label")).toBe(
-      "JoyFox: Qualified. Why and move.",
+      "JoyFox: Qualified. Details.",
     );
     badgeOf(0).click();
     expect(details().querySelector("h2")?.textContent).toBe(
-      "Why and move: Synthetic One",
+      "Details: Synthetic One",
     );
   });
 
-  it("offers to keep the sender where the rule placed them, as a choice of their own", async () => {
+  it("marks a rule-placed Junk sender as junk, logs Negative and trashes nothing", async () => {
     await rules.saveGlobalRule(ACCOUNT, knownRule());
     setPage("/clubmail/", inboxHtml);
-    new InboxTriage(document, serviceClient()).update();
+    const client = serviceClient();
+    new InboxTriage(document, client).update();
     await vi.waitFor(() => expect(bar()).not.toBeNull());
     badgeOf(1).click();
-    // The rule placed this sender in Quarantined: the button keeps them.
-    const keep = buttonNamed(details(), "Keep in Quarantined");
-    expect(keep.disabled).toBe(false);
-    expect(details().textContent).not.toContain("Move to Quarantined");
-    keep.click();
+    // The rule placed this sender in Junk: the button stays enabled (D12).
+    const junk = buttonNamed(details(), "Mark as junk");
+    expect(junk.disabled).toBe(false);
+    expect(buttonNamed(details(), "Mark qualified").disabled).toBe(false);
+    junk.click();
     await vi.waitFor(() =>
       expect(details().textContent).toContain("your manual choice"),
     );
     expect(placements()[1]).toBe("quarantined");
-    // Now a manual choice: the same place reads as a move, and is disabled.
-    expect(buttonNamed(details(), "Move to Quarantined").disabled).toBe(true);
+    expect(
+      (await repositories.trustSignals.list(ACCOUNT)).map(
+        (signal) => signal.kind,
+      ),
+    ).toEqual(["negative"]);
+    // The placement, then the outcome, in that order (C4, C5).
+    expect(client.writes).toEqual([`override:${ACCOUNT}`, `log:${ACCOUNT}`]);
+    // Now the user's own choice: Mark as junk is disabled, the other not.
+    expect(buttonNamed(details(), "Mark as junk").disabled).toBe(true);
+    expect(buttonNamed(details(), "Mark qualified").disabled).toBe(false);
     expect(buttonNamed(details(), "Use my rule again")).toBeDefined();
+    expect(details().textContent).not.toContain("Move to");
+  });
+
+  it("runs one Mark sequence for a double click, and stops at a refused step", async () => {
+    await rules.saveGlobalRule(ACCOUNT, knownRule());
+    setPage("/clubmail/", inboxHtml);
+    const client = serviceClient();
+    let release: () => void = () => undefined;
+    let overrides = 0;
+    new InboxTriage(document, {
+      ...client,
+      setOverride: async (accountId, memberId, placement) => {
+        overrides += 1;
+        await new Promise<void>((resolve) => (release = resolve));
+        await client.setOverride(accountId, memberId, placement as never);
+      },
+      // The background refused the outcome (C7): the client rejects.
+      logTrust: () => Promise.reject(new Error("refused")),
+    }).update();
+    await vi.waitFor(() => expect(bar()).not.toBeNull());
+    badgeOf(1).click();
+    buttonNamed(details(), "Mark qualified").click();
+    // Busy at once, before the request is answered (C9).
+    expect(
+      buttonNamed(details(), "Mark qualified").getAttribute("aria-disabled"),
+    ).toBe("true");
+    expect(
+      buttonNamed(details(), "Mark as junk").getAttribute("aria-disabled"),
+    ).toBe("true");
+    buttonNamed(details(), "Mark qualified").click();
+    buttonNamed(details(), "Mark as junk").click();
+    await vi.waitFor(() => expect(overrides).toBe(1));
+    release();
+    await vi.waitFor(() =>
+      expect(details().textContent).toContain(
+        "JoyFox placed this sender in Qualified but could not log the trust outcome, so it stopped there.",
+      ),
+    );
+    expect(overrides).toBe(1);
+    expect(placements()[1]).toBe("qualified");
+    expect(await repositories.trustSignals.list(ACCOUNT)).toEqual([]);
   });
 
   it("keeps the chosen view for the tab across a reload", async () => {
@@ -640,7 +699,7 @@ describe("M2 inbox triage", () => {
     const first = new InboxTriage(document, serviceClient());
     first.update();
     await vi.waitFor(() => expect(bar()).not.toBeNull());
-    buttonNamed(bar()!, "Quarantined").click();
+    buttonNamed(bar()!, "Junk").click();
     first.leave();
     // The page reloads in the same tab: a new content script starts.
     setPage("/clubmail/", inboxHtml);
@@ -650,9 +709,9 @@ describe("M2 inbox triage", () => {
     await vi.waitFor(() =>
       expect(list().getAttribute(VIEW_ATTRIBUTE)).toBe("quarantined"),
     );
-    expect(
-      buttonNamed(bar()!, "Quarantined").getAttribute("aria-pressed"),
-    ).toBe("true");
+    expect(buttonNamed(bar()!, "Junk").getAttribute("aria-pressed")).toBe(
+      "true",
+    );
     again.leave();
   });
 
@@ -675,18 +734,19 @@ describe("M2 inbox triage", () => {
     }
   });
 
-  it("keeps focus in the Why panel after a move, and gives it back to the row on Close", async () => {
+  it("keeps focus in the Details panel after a mark, and gives it back to the row on Close", async () => {
     await rules.saveGlobalRule(ACCOUNT, knownRule());
     setPage("/clubmail/", inboxHtml);
     new InboxTriage(document, serviceClient()).update();
     await vi.waitFor(() => expect(bar()).not.toBeNull());
     badgeOf(1).click();
-    const move = buttonNamed(details(), "Move to Qualified");
-    move.focus();
-    move.click();
+    const mark = buttonNamed(details(), "Mark qualified");
+    mark.focus();
+    mark.click();
     await vi.waitFor(() => expect(placements()[1]).toBe("qualified"));
+    // Mark qualified is now disabled: the next Mark button (C14).
     await vi.waitFor(() =>
-      expect(document.activeElement?.textContent).toBe("Use my rule again"),
+      expect(document.activeElement?.textContent).toBe("Mark as junk"),
     );
     expect(details().contains(document.activeElement)).toBe(true);
     buttonNamed(details(), "Close").click();
@@ -805,14 +865,21 @@ describe("conversation and profile panel", () => {
     expect(bar.textContent).toContain("Placement: Qualified");
     expect(bar.textContent).toContain("Local trust score:");
     expect(buttonNamed(bar, "Log positive")).toBeDefined();
-    const toggle = buttonNamed(bar, "Why and move")!;
+    const toggle = buttonNamed(bar, "Details")!;
     const drawer = () => panel()!.querySelector<HTMLElement>(".joyfox-drawer")!;
     expect(toggle.getAttribute("aria-expanded")).toBe("false");
     expect(drawer().hidden).toBe(true);
     expect(toggle.getAttribute("aria-controls")).toBe(drawer().id);
+    // The Mark buttons are in the bar, visible with the drawer closed (C1).
+    expect(buttonNamed(bar, "Mark qualified")).toBeDefined();
+    expect(buttonNamed(bar, "Mark as junk")).toBeDefined();
     toggle.click();
     expect(drawer().hidden).toBe(false);
-    expect(buttonNamed(drawer(), "Move to Quarantined")).toBeDefined();
+    // The drawer keeps the reasons, with no manual move (C10, C12).
+    expect(drawer().textContent).toContain("All checked conditions");
+    expect(drawer().textContent).not.toContain("Move to");
+    expect(drawer().textContent).not.toContain("Keep in");
+    expect(drawer().textContent).not.toContain("Mark qualified");
     // Logging an outcome redraws the bar; the open drawer stays open.
     buttonNamed(bar, "Log positive")!.click();
     await vi.waitFor(() =>
@@ -824,7 +891,7 @@ describe("conversation and profile panel", () => {
     expect(
       buttonNamed(
         panel()!.querySelector(".joyfox-bar")!,
-        "Why and move",
+        "Details",
       )?.getAttribute("aria-expanded"),
     ).toBe("true");
   });
@@ -835,10 +902,7 @@ describe("conversation and profile panel", () => {
     const memberPanel = new MemberPanel(document, serviceClient());
     memberPanel.update("conversation");
     await vi.waitFor(() => expect(panel()).not.toBeNull());
-    buttonNamed(
-      panel()!.querySelector(".joyfox-bar")!,
-      "Why and move",
-    )!.click();
+    buttonNamed(panel()!.querySelector(".joyfox-bar")!, "Details")!.click();
     memberPanel.leave();
     expect(panel()).toBeNull();
     memberPanel.update("conversation");
@@ -1492,19 +1556,19 @@ describe("conversation and profile panel", () => {
     );
     // Undo is gone with nothing left to undo: the first Log button.
     expect(focused()).toBe("Log positive");
-    press("Why and move");
-    expect(focused()).toBe("Why and move");
-    press("Move to Needs Review");
+    press("Details");
+    expect(focused()).toBe("Details");
+    press("Mark as junk");
     await vi.waitFor(() =>
-      expect(panel()?.textContent).toContain("Placement: Needs Review"),
+      expect(panel()?.textContent).toContain("Placement: Junk"),
     );
-    // The chosen place is now disabled: the next control in the group.
-    expect(focused()).toBe("Use my rule again");
+    // The chosen place is now disabled: the next Mark button.
+    await vi.waitFor(() => expect(focused()).toBe("Mark qualified"));
     press("Use my rule again");
     await vi.waitFor(() =>
       expect(panel()?.textContent).toContain("Placement: Qualified"),
     );
-    expect(focused()).toBe("Keep in Qualified");
+    expect(focused()).toBe("Mark qualified");
     expect(panel()!.querySelector<HTMLElement>(".joyfox-drawer")!.hidden).toBe(
       false,
     );
@@ -1519,8 +1583,7 @@ describe("conversation and profile panel", () => {
     });
     member.update("conversation");
     await vi.waitFor(() => expect(panel()).not.toBeNull());
-    buttonNamed(panel()!, "Why and move").click();
-    buttonNamed(panel()!, "Move to Needs Review").click();
+    buttonNamed(panel()!, "Mark as junk").click();
     const error = () => panel()?.querySelector(".joyfox-error")?.textContent;
     await vi.waitFor(() =>
       expect(error()).toBe(
@@ -1550,8 +1613,7 @@ describe("conversation and profile panel", () => {
     );
     expect(error()).toBeUndefined();
     // And after an account switch.
-    buttonNamed(panel()!, "Why and move").click();
-    buttonNamed(panel()!, "Move to Needs Review").click();
+    buttonNamed(panel()!, "Mark as junk").click();
     await vi.waitFor(() => expect(error()).toBeDefined());
     member.accountChanged();
     await vi.waitFor(() => expect(panel()).not.toBeNull());

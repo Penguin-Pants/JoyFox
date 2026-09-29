@@ -3,8 +3,10 @@
 Generated from `src/i18n/catalog/en.ts` and `src/i18n/catalog/de.ts` for
 the owner's review (docs/i18n-spec.md, Section 1). The owner approved
 every string on 2026-09-25 and reviewed the strings added later on
-2026-09-26 and the profile type filter's (V1-14) on 2026-09-29; a
-changed string needs a new review. Do not
+2026-09-26 and the profile type filter's (V1-14) on 2026-09-29. The
+German drafts for the ClubMail Delete and Mark buttons (change request
+2026-09-29) were accepted as drafted, without an owner review, on the
+owner's instruction. Any other changed string needs a new review. Do not
 edit by hand:
 change the catalogs, then run
 `UPDATE_I18N_TABLE=1 npx vitest run tests/unit/i18n-table.test.ts`.
@@ -20,7 +22,7 @@ stay as they are.
 | --- | --- | --- |
 | `placement.qualified` | Qualified | Qualifiziert |
 | `placement.needs-review` | Needs Review | Zu prüfen |
-| `placement.quarantined` | Quarantined | Quarantäne |
+| `placement.quarantined` | Junk | Junk |
 
 ## condition
 
@@ -150,7 +152,7 @@ stay as they are.
 | `action.failure.identity-unavailable` | JoyFox could not confirm which member or conversation the page shows, so it stopped {where}. | JoyFox konnte nicht bestätigen, welches Mitglied oder welche Unterhaltung die Seite zeigt, und hat deshalb {where} angehalten. |
 | `action.failure.account-changed` | The active JoyFox account changed, so JoyFox stopped {where}. | Das aktive JoyFox-Konto hat sich geändert. JoyFox hat deshalb {where} angehalten. |
 | `action.failure.turned-off` | Ignore and Delete was turned off, so JoyFox stopped {where}. | „Ignorieren und löschen“ wurde ausgeschaltet. JoyFox hat deshalb {where} angehalten. |
-| `action.failure.superseded` | A newer Ignore and Delete for this member started, so JoyFox stopped {where}. | Ein neueres „Ignorieren und löschen“ für dieses Mitglied hat begonnen. JoyFox hat deshalb {where} angehalten. |
+| `action.failure.superseded` | A newer JoyFox run for this member started, so JoyFox stopped {where}. | Ein neuerer JoyFox-Vorgang für dieses Mitglied hat begonnen. JoyFox hat deshalb {where} angehalten. |
 | `action.failure.log-unavailable` | JoyFox could not write to its action log, so it stopped {where}. | JoyFox konnte nicht in sein Aktionsprotokoll schreiben und hat deshalb {where} angehalten. |
 | `action.failure.handoff-failed` | JoyFox could not move on to the member's profile, so it stopped {where}. | JoyFox konnte nicht zum Profil des Mitglieds wechseln und hat deshalb {where} angehalten. |
 | `action.failure.timeout` | JoyClub did not respond in time during {step}. | JoyClub hat während „{step}“ nicht rechtzeitig reagiert. |
@@ -173,17 +175,25 @@ stay as they are.
 | `action.report.interrupted` | Ignore and Delete was interrupted, for example because the tab closed. | „Ignorieren und löschen“ wurde unterbrochen, zum Beispiel weil der Tab geschlossen wurde. |
 | `action.report.nothingChanged` | Nothing was changed on JoyClub. | Auf JoyClub wurde nichts geändert. |
 | `action.report.notUndone` | JoyFox did not undo anything. | JoyFox hat nichts rückgängig gemacht. |
+| `action.deleteReport.finished` | Delete finished. | „Löschen“ ist fertig. |
+| `action.deleteReport.undo` | To undo, restore the conversation from JoyClub's trash. | Rückgängig machen: Hol die Unterhaltung aus JoyClubs Papierkorb zurück. |
+| `action.deleteReport.running` | Delete is running. | „Löschen“ läuft. |
+| `action.deleteReport.stopped` | Delete stopped. | „Löschen“ wurde angehalten. |
+| `action.deleteReport.interrupted` | Delete was interrupted, for example because the tab closed. | „Löschen“ wurde unterbrochen, zum Beispiel weil der Tab geschlossen wurde. |
 
 ## quick
 
 | Key | English | Deutsch |
 | --- | --- | --- |
 | `quick.progress.Started` | Ignore and Delete is running. Checking the page. | „Ignorieren und löschen“ läuft. JoyFox prüft die Seite. |
+| `quick.delete.progress.Started` | Delete is running. Checking the page. | „Löschen“ läuft. JoyFox prüft die Seite. |
 | `quick.progress.DeleteRequested` | Moving the conversation to the trash. | Die Unterhaltung wird in den Papierkorb verschoben. |
 | `quick.progress.DeleteConfirmed` | Delete done. Opening the member's profile to ignore them there. | Papierkorb erledigt. JoyFox öffnet das Profil des Mitglieds, um es dort zu ignorieren. |
 | `quick.progress.IgnoreRequested` | Ignoring the member on JoyClub. | Das Mitglied wird auf JoyClub ignoriert. |
 | `quick.button` | Ignore and Delete | Ignorieren und löschen |
-| `quick.region` | JoyFox Ignore and Delete | JoyFox: Ignorieren und löschen |
+| `quick.region` | JoyFox conversation actions | JoyFox: Aktionen für die Unterhaltung |
+| `quick.delete.button` | Delete | Löschen |
+| `quick.delete.scope` | One click moves this conversation to JoyClub's trash, then returns to the ClubMail list. The member is not ignored. JoyFox stops at the first problem and tells you what was done. It never sends a message. | Ein Klick verschiebt diese Unterhaltung in JoyClubs Papierkorb und kehrt dann zur ClubMail-Liste zurück. Das Mitglied wird nicht ignoriert. JoyFox hält beim ersten Problem an und sagt dir, was erledigt wurde. JoyFox sendet nie eine Nachricht. |
 | `quick.scope` | Experimental. One click moves this conversation to JoyClub's trash, then opens the member's profile and ignores them there. JoyFox stops at the first problem and tells you what was done. It never sends a message. | Experimentell. Ein Klick verschiebt diese Unterhaltung in JoyClubs Papierkorb, öffnet dann das Profil des Mitglieds und ignoriert es dort. JoyFox hält beim ersten Problem an und sagt dir, was erledigt wurde. JoyFox sendet nie eine Nachricht. |
 | `quick.needsList` | Works only while this conversation shows in the ClubMail list beside it. Widen the window, or scroll the list until the conversation shows. | Klappt nur, während diese Unterhaltung in der ClubMail-Liste daneben zu sehen ist. Mach das Fenster breiter oder scrolle die Liste, bis die Unterhaltung erscheint. |
 | `quick.noProfile` | JoyFox cannot find the link to this member's profile, where Ignore is, so it did nothing. You can do it yourself: move the conversation to the trash with JoyClub's trash button, then open the member's profile and ignore them there. | JoyFox findet den Link zum Profil dieses Mitglieds nicht. Dort ist „Profil ignorieren“. JoyFox hat deshalb nichts getan. Du kannst es selbst tun: Verschiebe die Unterhaltung mit „In den Papierkorb schieben“ in den Papierkorb. Öffne dann das Profil des Mitglieds und ignoriere es dort mit „Profil ignorieren“. |
@@ -192,8 +202,15 @@ stay as they are.
 | `quick.previous` | Your last Ignore and Delete for this member: | Dein letztes „Ignorieren und löschen“ für dieses Mitglied: |
 | `quick.previousOther` | Your last Ignore and Delete for this member, in another conversation: | Dein letztes „Ignorieren und löschen“ für dieses Mitglied, in einer anderen Unterhaltung: |
 | `quick.otherResult` | Your last Ignore and Delete, for another conversation: | Dein letztes „Ignorieren und löschen“, für eine andere Unterhaltung: |
-| `quick.otherRunning` | Ignore and Delete is still running for another conversation. Wait until it ends. | „Ignorieren und löschen“ läuft noch für eine andere Unterhaltung. Warte, bis es fertig ist. |
-| `quick.busy` | Another Ignore and Delete for this member is still running, for example in another tab. Nothing was done here. | Ein anderes „Ignorieren und löschen“ für dieses Mitglied läuft noch, zum Beispiel in einem anderen Tab. Hier wurde nichts getan. |
+| `quick.delete.previous` | Your last Delete for this member: | Dein letztes „Löschen“ für dieses Mitglied: |
+| `quick.delete.previousOther` | Your last Delete for this member, in another conversation: | Dein letztes „Löschen“ für dieses Mitglied, in einer anderen Unterhaltung: |
+| `quick.delete.otherResult` | Your last Delete, for another conversation: | Dein letztes „Löschen“, für eine andere Unterhaltung: |
+| `quick.otherRunning` | A JoyFox run is still going for another conversation. Wait until it ends. | Ein JoyFox-Vorgang läuft noch für eine andere Unterhaltung. Warte, bis er fertig ist. |
+| `quick.busy` | Another JoyFox run for this member is still going, for example in another tab. Nothing was done here. | Ein anderer JoyFox-Vorgang für dieses Mitglied läuft noch, zum Beispiel in einem anderen Tab. Hier wurde nichts getan. |
+| `quick.junk.done` | Mark as junk: the sender is in Junk, and a Negative outcome is logged. | Als Junk markiert: Die Person ist in „Junk“, und ein negatives Ergebnis ist festgehalten. |
+| `quick.junk.busy` | Another JoyFox run for this member is still going, so JoyFox did not start the trash step. | Ein anderer JoyFox-Vorgang für dieses Mitglied läuft noch. JoyFox hat den Papierkorb-Schritt deshalb nicht begonnen. |
+| `quick.junk.notTrashed` | The conversation was not moved to the trash. | Die Unterhaltung wurde nicht in den Papierkorb verschoben. |
+| `quick.delete.unexpected` | Delete stopped because of an unexpected error. JoyFox may have moved the conversation to the trash: check JoyClub's trash yourself. | „Löschen“ wurde durch einen unerwarteten Fehler angehalten. Vielleicht hat JoyFox die Unterhaltung in den Papierkorb verschoben: Prüfe selbst JoyClubs Papierkorb. |
 | `quick.unexpected` | Ignore and Delete stopped because of an unexpected error. JoyFox may have completed a step: check the member's profile and the conversation yourself. | „Ignorieren und löschen“ wurde durch einen unerwarteten Fehler angehalten. Vielleicht hat JoyFox einen Schritt erledigt: Prüfe selbst das Profil des Mitglieds und die Unterhaltung. |
 
 ## triage
@@ -214,10 +231,23 @@ stay as they are.
 | `triage.sharedEvent.attended` | On the guest list of "{event}" ({when}), which you marked Attended. | Auf der Gästeliste von „{event}“ ({when}), das du mit „Ich war dort“ markiert hast. |
 | `triage.sharedEvent.optOut` | Don't use the shared event for this sender | Das gemeinsame Event für diese Person nicht verwenden |
 | `triage.movedOn` | You moved this sender on {date}. Your rule alone would place them in {placement}. | Du hast diese Person am {date} verschoben. Deine Regel allein würde sie in „{placement}“ einordnen. |
-| `triage.move.group` | Move this sender | Diese Person verschieben |
-| `triage.move.to` | Move to {placement} | Nach „{placement}“ verschieben |
-| `triage.move.keep` | Keep in {placement} | In „{placement}“ lassen |
-| `triage.move.useRule` | Use my rule again | Wieder meine Regel verwenden |
+| `triage.place.group` | Place this sender | Diese Person einordnen |
+| `triage.useRule` | Use my rule again | Wieder meine Regel verwenden |
+
+## mark
+
+| Key | English | Deutsch |
+| --- | --- | --- |
+| `mark.group` | Mark this sender | Diese Person markieren |
+| `mark.qualified` | Mark qualified | Als qualifiziert markieren |
+| `mark.junk` | Mark as junk | Als Junk markieren |
+| `mark.trustFailed` | JoyFox placed this sender in {placement} but could not log the trust outcome, so it stopped there. You can log it on the member's conversation or profile page. | JoyFox hat diese Person in „{placement}“ eingeordnet, konnte das Vertrauensergebnis aber nicht festhalten und hat deshalb dort angehalten. Du kannst es auf der Unterhaltung oder dem Profil des Mitglieds festhalten. |
+| `mark.junk.noTrash` | The sender is in Junk, and a Negative outcome is logged. JoyFox could not move this conversation to the trash here. Move it there yourself with JoyClub's trash button. | Die Person ist in „Junk“, und ein negatives Ergebnis ist festgehalten. JoyFox konnte diese Unterhaltung hier nicht in den Papierkorb verschieben. Verschiebe sie selbst mit „In den Papierkorb schieben“. |
+
+## triage
+
+| Key | English | Deutsch |
+| --- | --- | --- |
 | `triage.profileFact.minimumPhotos` | photo count | Anzahl der Fotos |
 | `triage.profileFact.minimumProfileWords` | profile word count | Wörter im Profil |
 | `triage.profileFact.minimumAccountAgeDays` | account age | Kontoalter |
@@ -252,7 +282,7 @@ stay as they are.
 | `bar.neutral` | Neutral | Neutral |
 | `bar.negative` | Negative | Negativ |
 | `bar.undo` | Undo | Zurücknehmen |
-| `bar.whyAndMove` | Why and move | Warum und verschieben |
+| `bar.details` | Details | Details |
 | `bar.scoreDetails` | Score details | Details zum Wert |
 
 ## panel
@@ -274,11 +304,11 @@ stay as they are.
 | `inbox.view.all` | Show all | Alle zeigen |
 | `inbox.viewCount` | {view} ({count}) | {view} ({count}) |
 | `inbox.about` | About these views | Über diese Ansichten |
-| `inbox.aboutText` | Inbox hides Quarantined rows from this view only. Nothing is deleted, and JoyFox changes nothing on JoyClub. | „Posteingang“ blendet Zeilen aus „Quarantäne“ nur in dieser Ansicht aus. Nichts wird gelöscht, und JoyFox ändert nichts auf JoyClub. |
+| `inbox.aboutText` | Inbox hides Junk rows from this view only. Nothing is deleted, and JoyFox changes nothing on JoyClub. | „Posteingang“ blendet Zeilen aus „Junk“ nur in dieser Ansicht aus. Nichts wird gelöscht, und JoyFox ändert nichts auf JoyClub. |
 | `inbox.checking` | Checking | Wird eingeordnet … |
-| `inbox.badge` | JoyFox: {text}. Why and move. | JoyFox: {text}. Warum und verschieben. |
-| `inbox.why` | Why and move | Warum und verschieben |
-| `inbox.whyNamed` | Why and move: {name} | Warum und verschieben: {name} |
+| `inbox.badge` | JoyFox: {text}. Details. | JoyFox: {text}. Details. |
+| `inbox.why` | Details | Details |
+| `inbox.whyNamed` | Details: {name} | Details: {name} |
 | `inbox.rowGone` | This row is no longer shown. | Diese Zeile wird nicht mehr angezeigt. |
 | `inbox.unidentified` | JoyFox could not read this sender's profile number, so it could not check your rule. The row stays visible. | JoyFox konnte die Profilnummer dieser Person nicht lesen und deine Regel deshalb nicht prüfen. Die Zeile bleibt sichtbar. |
 | `inbox.stillChecking` | JoyFox is still checking this sender. | JoyFox prüft diese Person noch. |
@@ -373,7 +403,7 @@ stay as they are.
 | `events.venuesHeading` | Your venues | Deine Clubs |
 | `events.guests` | 1 guest stored / {count} guests stored | 1 Gast gespeichert / {count} Gäste gespeichert |
 | `events.exception.label` | Shared-event exception: place a sender in Qualified when they are on the guest list of an event I marked Attending or Attended | Ausnahme für gemeinsame Events: eine Person als „Qualifiziert“ einordnen, wenn sie auf der Gästeliste eines Events steht, das ich mit „Ich gehe hin“ oder „Ich war dort“ markiert habe |
-| `events.exception.hint` | Off by default. JoyFox stores a tracked event's guest list when you open the event page, as far as JoyClub has loaded it, and deletes it when you stop tracking the event. A sender you moved yourself keeps your choice, and the "Why and move" panel can turn the exception off for one sender. | Standardmäßig aus. JoyFox speichert die Gästeliste eines verfolgten Events, wenn du die Event-Seite öffnest, so weit JoyClub sie geladen hat, und löscht sie, wenn du das Event nicht mehr verfolgst. Eine Person, die du selbst verschoben hast, behält deine Wahl, und im Bereich „Warum und verschieben“ kannst du die Ausnahme für eine Person abschalten. |
+| `events.exception.hint` | Off by default. JoyFox stores a tracked event's guest list when you open the event page, as far as JoyClub has loaded it, and deletes it when you stop tracking the event. A sender you marked yourself keeps your choice, and the "Details" panel can turn the exception off for one sender. | Standardmäßig aus. JoyFox speichert die Gästeliste eines verfolgten Events, wenn du die Event-Seite öffnest, so weit JoyClub sie geladen hat, und löscht sie, wenn du das Event nicht mehr verfolgst. Eine Person, die du selbst markiert hast, behält deine Wahl, und im Bereich „Details“ kannst du die Ausnahme für eine Person abschalten. |
 | `events.exception.saved` | Saved. | Gespeichert. |
 | `events.exception.saveFailed` | JoyFox could not save this setting. Try again. | JoyFox konnte diese Einstellung nicht speichern. Versuche es noch einmal. |
 
@@ -383,7 +413,7 @@ stay as they are.
 | --- | --- | --- |
 | `quickSetting.heading` | Ignore and Delete | Ignorieren und löschen |
 | `quickSetting.label` | Show the "Ignore and Delete" button on ClubMail conversations | Die Schaltfläche „Ignorieren und löschen“ in ClubMail-Unterhaltungen zeigen |
-| `quickSetting.hint` | Experimental and off by default. One click moves the conversation to JoyClub's trash, opens the member's profile in the same tab and ignores the member there. It works only while the ClubMail list shows beside the conversation. JoyFox acts only when you click. The "Action log" in "Your data" records every step. | Experimentell und standardmäßig aus. Ein Klick schiebt die Unterhaltung in JoyClubs Papierkorb, öffnet das Profil des Mitglieds im selben Tab und ignoriert das Mitglied dort. Das funktioniert nur, solange die ClubMail-Liste neben der Unterhaltung zu sehen ist. JoyFox handelt nur, wenn du klickst. Das „Aktionsprotokoll“ unter „Deine Daten“ hält jeden Schritt fest. |
+| `quickSetting.hint` | Experimental and on by default. One click moves the conversation to JoyClub's trash, opens the member's profile in the same tab and ignores the member there. It works only while the ClubMail list shows beside the conversation. JoyFox acts only when you click. The "Action log" in "Your data" records every step. This setting controls only "Ignore and Delete": the "Delete" button and "Mark as junk" move a conversation to JoyClub's trash also when it is off. | Experimentell und standardmäßig an. Ein Klick schiebt die Unterhaltung in JoyClubs Papierkorb, öffnet das Profil des Mitglieds im selben Tab und ignoriert das Mitglied dort. Das funktioniert nur, solange die ClubMail-Liste neben der Unterhaltung zu sehen ist. JoyFox handelt nur, wenn du klickst. Das „Aktionsprotokoll“ unter „Deine Daten“ hält jeden Schritt fest. Diese Einstellung steuert nur „Ignorieren und löschen“: Die Schaltfläche „Löschen“ und „Als Junk markieren“ verschieben eine Unterhaltung auch dann in JoyClubs Papierkorb, wenn sie aus ist. |
 | `quickSetting.risk` | If JoyClub finds a tool that clicks for you, it can restrict or close your account. Of all JoyFox features, this one has the highest risk. | Bemerkt JoyClub ein Werkzeug, das für dich klickt, kann dein Konto eingeschränkt oder geschlossen werden. Von allen JoyFox-Funktionen hat diese das höchste Risiko. |
 | `quickSetting.undo` | To undo, restore the conversation from JoyClub's trash. Then open the member's profile and choose "Profil nicht mehr ignorieren" in its menu. | Um es rückgängig zu machen, stelle die Unterhaltung aus JoyClubs Papierkorb wieder her. Öffne dann das Profil des Mitglieds und wähle im Menü „Profil nicht mehr ignorieren“. |
 | `quickSetting.saved` | Saved. Open ClubMail tabs follow at once. | Gespeichert. Offene ClubMail-Tabs folgen sofort. |
@@ -650,7 +680,7 @@ stay as they are.
 | Key | English | Deutsch |
 | --- | --- | --- |
 | `rule.readFailed` | JoyFox could not read the contact rule. No rule was changed. Reload the page to try again. | JoyFox konnte die Kontaktregel nicht lesen. Es wurde keine Regel geändert. Lade die Seite neu, um es noch einmal zu versuchen. |
-| `rule.hint` | The rule only changes how JoyFox groups your own inbox into Qualified, Needs Review and Quarantined. It never stops a message, never deletes anything, and the sender sees nothing. | Die Regel ändert nur, wie JoyFox deinen eigenen Posteingang in „Qualifiziert“, „Zu prüfen“ und „Quarantäne“ gruppiert. Sie hält keine Nachricht auf, löscht nichts, und die sendende Person sieht nichts davon. |
+| `rule.hint` | The rule only changes how JoyFox groups your own inbox into Qualified, Needs Review and Junk. It never stops a message, never deletes anything, and the sender sees nothing. | Die Regel ändert nur, wie JoyFox deinen eigenen Posteingang in „Qualifiziert“, „Zu prüfen“ und „Junk“ gruppiert. Sie hält keine Nachricht auf, löscht nichts, und die sendende Person sieht nichts davon. |
 | `rule.noAccount` | Select or add an account first. Each account has its own rule. | Wähle zuerst ein Konto aus oder füge eines hinzu. Jedes Konto hat seine eigene Regel. |
 | `rule.newer` | This rule was made in a newer version of JoyFox and cannot be edited here. Delete it to start a new one. | Diese Regel wurde mit einer neueren JoyFox-Version erstellt und kann hier nicht bearbeitet werden. Lösche sie, um eine neue anzulegen. |
 | `rule.note.saved` | A rule is saved for the active account. | Für das aktive Konto ist eine Regel gespeichert. |

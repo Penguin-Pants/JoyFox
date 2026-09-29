@@ -13,7 +13,7 @@ export const de: Catalog = {
   // Shared labels
   "placement.qualified": "Qualifiziert",
   "placement.needs-review": "Zu prüfen",
-  "placement.quarantined": "Quarantäne",
+  "placement.quarantined": "Junk",
   "condition.verified": "Verifiziert",
   "condition.personallyKnown": "Persönlich bekannt",
   "condition.minimumPhotos": "Mindestanzahl Fotos",
@@ -171,7 +171,7 @@ export const de: Catalog = {
   "action.failure.turned-off": (p) =>
     `„Ignorieren und löschen“ wurde ausgeschaltet. JoyFox hat deshalb ${p.where} angehalten.`,
   "action.failure.superseded": (p) =>
-    `Ein neueres „Ignorieren und löschen“ für dieses Mitglied hat begonnen. JoyFox hat deshalb ${p.where} angehalten.`,
+    `Ein neuerer JoyFox-Vorgang für dieses Mitglied hat begonnen. JoyFox hat deshalb ${p.where} angehalten.`,
   "action.failure.log-unavailable": (p) =>
     `JoyFox konnte nicht in sein Aktionsprotokoll schreiben und hat deshalb ${p.where} angehalten.`,
   "action.failure.handoff-failed": (p) =>
@@ -210,17 +210,28 @@ export const de: Catalog = {
     "„Ignorieren und löschen“ wurde unterbrochen, zum Beispiel weil der Tab geschlossen wurde.",
   "action.report.nothingChanged": "Auf JoyClub wurde nichts geändert.",
   "action.report.notUndone": "JoyFox hat nichts rückgängig gemacht.",
+  "action.deleteReport.finished": "„Löschen“ ist fertig.",
+  "action.deleteReport.undo":
+    "Rückgängig machen: Hol die Unterhaltung aus JoyClubs Papierkorb zurück.",
+  "action.deleteReport.running": "„Löschen“ läuft.",
+  "action.deleteReport.stopped": "„Löschen“ wurde angehalten.",
+  "action.deleteReport.interrupted":
+    "„Löschen“ wurde unterbrochen, zum Beispiel weil der Tab geschlossen wurde.",
 
-  // Content script: the Ignore and Delete button and notice
+  // Content script: the Delete and Ignore and Delete buttons and notice
   "quick.progress.Started":
     "„Ignorieren und löschen“ läuft. JoyFox prüft die Seite.",
+  "quick.delete.progress.Started": "„Löschen“ läuft. JoyFox prüft die Seite.",
   "quick.progress.DeleteRequested":
     "Die Unterhaltung wird in den Papierkorb verschoben.",
   "quick.progress.DeleteConfirmed":
     "Papierkorb erledigt. JoyFox öffnet das Profil des Mitglieds, um es dort zu ignorieren.",
   "quick.progress.IgnoreRequested": "Das Mitglied wird auf JoyClub ignoriert.",
   "quick.button": "Ignorieren und löschen",
-  "quick.region": "JoyFox: Ignorieren und löschen",
+  "quick.region": "JoyFox: Aktionen für die Unterhaltung",
+  "quick.delete.button": "Löschen",
+  "quick.delete.scope":
+    "Ein Klick verschiebt diese Unterhaltung in JoyClubs Papierkorb und kehrt dann zur ClubMail-Liste zurück. Das Mitglied wird nicht ignoriert. JoyFox hält beim ersten Problem an und sagt dir, was erledigt wurde. JoyFox sendet nie eine Nachricht.",
   "quick.scope":
     "Experimentell. Ein Klick verschiebt diese Unterhaltung in JoyClubs Papierkorb, öffnet dann das Profil des Mitglieds und ignoriert es dort. JoyFox hält beim ersten Problem an und sagt dir, was erledigt wurde. JoyFox sendet nie eine Nachricht.",
   "quick.needsList":
@@ -236,10 +247,23 @@ export const de: Catalog = {
     "Dein letztes „Ignorieren und löschen“ für dieses Mitglied, in einer anderen Unterhaltung:",
   "quick.otherResult":
     "Dein letztes „Ignorieren und löschen“, für eine andere Unterhaltung:",
+  "quick.delete.previous": "Dein letztes „Löschen“ für dieses Mitglied:",
+  "quick.delete.previousOther":
+    "Dein letztes „Löschen“ für dieses Mitglied, in einer anderen Unterhaltung:",
+  "quick.delete.otherResult":
+    "Dein letztes „Löschen“, für eine andere Unterhaltung:",
   "quick.otherRunning":
-    "„Ignorieren und löschen“ läuft noch für eine andere Unterhaltung. Warte, bis es fertig ist.",
+    "Ein JoyFox-Vorgang läuft noch für eine andere Unterhaltung. Warte, bis er fertig ist.",
   "quick.busy":
-    "Ein anderes „Ignorieren und löschen“ für dieses Mitglied läuft noch, zum Beispiel in einem anderen Tab. Hier wurde nichts getan.",
+    "Ein anderer JoyFox-Vorgang für dieses Mitglied läuft noch, zum Beispiel in einem anderen Tab. Hier wurde nichts getan.",
+  "quick.junk.done":
+    "Als Junk markiert: Die Person ist in „Junk“, und ein negatives Ergebnis ist festgehalten.",
+  "quick.junk.busy":
+    "Ein anderer JoyFox-Vorgang für dieses Mitglied läuft noch. JoyFox hat den Papierkorb-Schritt deshalb nicht begonnen.",
+  "quick.junk.notTrashed":
+    "Die Unterhaltung wurde nicht in den Papierkorb verschoben.",
+  "quick.delete.unexpected":
+    "„Löschen“ wurde durch einen unerwarteten Fehler angehalten. Vielleicht hat JoyFox die Unterhaltung in den Papierkorb verschoben: Prüfe selbst JoyClubs Papierkorb.",
   "quick.unexpected":
     "„Ignorieren und löschen“ wurde durch einen unerwarteten Fehler angehalten. Vielleicht hat JoyFox einen Schritt erledigt: Prüfe selbst das Profil des Mitglieds und die Unterhaltung.",
 
@@ -263,10 +287,15 @@ export const de: Catalog = {
     "Das gemeinsame Event für diese Person nicht verwenden",
   "triage.movedOn": (p) =>
     `Du hast diese Person am ${p.date} verschoben. Deine Regel allein würde sie in „${p.placement}“ einordnen.`,
-  "triage.move.group": "Diese Person verschieben",
-  "triage.move.to": (p) => `Nach „${p.placement}“ verschieben`,
-  "triage.move.keep": (p) => `In „${p.placement}“ lassen`,
-  "triage.move.useRule": "Wieder meine Regel verwenden",
+  "triage.place.group": "Diese Person einordnen",
+  "triage.useRule": "Wieder meine Regel verwenden",
+  "mark.group": "Diese Person markieren",
+  "mark.qualified": "Als qualifiziert markieren",
+  "mark.junk": "Als Junk markieren",
+  "mark.trustFailed": (p) =>
+    `JoyFox hat diese Person in „${p.placement}“ eingeordnet, konnte das Vertrauensergebnis aber nicht festhalten und hat deshalb dort angehalten. Du kannst es auf der Unterhaltung oder dem Profil des Mitglieds festhalten.`,
+  "mark.junk.noTrash":
+    "Die Person ist in „Junk“, und ein negatives Ergebnis ist festgehalten. JoyFox konnte diese Unterhaltung hier nicht in den Papierkorb verschieben. Verschiebe sie selbst mit „In den Papierkorb schieben“.",
   "triage.profileFact.minimumPhotos": "Anzahl der Fotos",
   "triage.profileFact.minimumProfileWords": "Wörter im Profil",
   "triage.profileFact.minimumAccountAgeDays": "Kontoalter",
@@ -296,7 +325,7 @@ export const de: Catalog = {
   "bar.neutral": "Neutral",
   "bar.negative": "Negativ",
   "bar.undo": "Zurücknehmen",
-  "bar.whyAndMove": "Warum und verschieben",
+  "bar.details": "Details",
   "bar.scoreDetails": "Details zum Wert",
   "panel.ruleOff.no-rule":
     "Es ist keine Kontaktregel gespeichert, deshalb ordnet JoyFox diese Person nicht ein.",
@@ -315,11 +344,11 @@ export const de: Catalog = {
   "inbox.viewCount": (p, f) => `${p.view} (${f.number(p.count)})`,
   "inbox.about": "Über diese Ansichten",
   "inbox.aboutText":
-    "„Posteingang“ blendet Zeilen aus „Quarantäne“ nur in dieser Ansicht aus. Nichts wird gelöscht, und JoyFox ändert nichts auf JoyClub.",
+    "„Posteingang“ blendet Zeilen aus „Junk“ nur in dieser Ansicht aus. Nichts wird gelöscht, und JoyFox ändert nichts auf JoyClub.",
   "inbox.checking": "Wird eingeordnet …",
-  "inbox.badge": (p) => `JoyFox: ${p.text}. Warum und verschieben.`,
-  "inbox.why": "Warum und verschieben",
-  "inbox.whyNamed": (p) => `Warum und verschieben: ${p.name}`,
+  "inbox.badge": (p) => `JoyFox: ${p.text}. Details.`,
+  "inbox.why": "Details",
+  "inbox.whyNamed": (p) => `Details: ${p.name}`,
   "inbox.rowGone": "Diese Zeile wird nicht mehr angezeigt.",
   "inbox.unidentified":
     "JoyFox konnte die Profilnummer dieser Person nicht lesen und deine Regel deshalb nicht prüfen. Die Zeile bleibt sichtbar.",
@@ -441,7 +470,7 @@ export const de: Catalog = {
   "events.exception.label":
     "Ausnahme für gemeinsame Events: eine Person als „Qualifiziert“ einordnen, wenn sie auf der Gästeliste eines Events steht, das ich mit „Ich gehe hin“ oder „Ich war dort“ markiert habe",
   "events.exception.hint":
-    "Standardmäßig aus. JoyFox speichert die Gästeliste eines verfolgten Events, wenn du die Event-Seite öffnest, so weit JoyClub sie geladen hat, und löscht sie, wenn du das Event nicht mehr verfolgst. Eine Person, die du selbst verschoben hast, behält deine Wahl, und im Bereich „Warum und verschieben“ kannst du die Ausnahme für eine Person abschalten.",
+    "Standardmäßig aus. JoyFox speichert die Gästeliste eines verfolgten Events, wenn du die Event-Seite öffnest, so weit JoyClub sie geladen hat, und löscht sie, wenn du das Event nicht mehr verfolgst. Eine Person, die du selbst markiert hast, behält deine Wahl, und im Bereich „Details“ kannst du die Ausnahme für eine Person abschalten.",
   "events.exception.saved": "Gespeichert.",
   "events.exception.saveFailed":
     "JoyFox konnte diese Einstellung nicht speichern. Versuche es noch einmal.",
@@ -449,7 +478,7 @@ export const de: Catalog = {
   "quickSetting.label":
     "Die Schaltfläche „Ignorieren und löschen“ in ClubMail-Unterhaltungen zeigen",
   "quickSetting.hint":
-    "Experimentell und standardmäßig aus. Ein Klick schiebt die Unterhaltung in JoyClubs Papierkorb, öffnet das Profil des Mitglieds im selben Tab und ignoriert das Mitglied dort. Das funktioniert nur, solange die ClubMail-Liste neben der Unterhaltung zu sehen ist. JoyFox handelt nur, wenn du klickst. Das „Aktionsprotokoll“ unter „Deine Daten“ hält jeden Schritt fest.",
+    "Experimentell und standardmäßig an. Ein Klick schiebt die Unterhaltung in JoyClubs Papierkorb, öffnet das Profil des Mitglieds im selben Tab und ignoriert das Mitglied dort. Das funktioniert nur, solange die ClubMail-Liste neben der Unterhaltung zu sehen ist. JoyFox handelt nur, wenn du klickst. Das „Aktionsprotokoll“ unter „Deine Daten“ hält jeden Schritt fest. Diese Einstellung steuert nur „Ignorieren und löschen“: Die Schaltfläche „Löschen“ und „Als Junk markieren“ verschieben eine Unterhaltung auch dann in JoyClubs Papierkorb, wenn sie aus ist.",
   "quickSetting.risk":
     "Bemerkt JoyClub ein Werkzeug, das für dich klickt, kann dein Konto eingeschränkt oder geschlossen werden. Von allen JoyFox-Funktionen hat diese das höchste Risiko.",
   "quickSetting.undo":
@@ -761,7 +790,7 @@ export const de: Catalog = {
   "rule.readFailed":
     "JoyFox konnte die Kontaktregel nicht lesen. Es wurde keine Regel geändert. Lade die Seite neu, um es noch einmal zu versuchen.",
   "rule.hint":
-    "Die Regel ändert nur, wie JoyFox deinen eigenen Posteingang in „Qualifiziert“, „Zu prüfen“ und „Quarantäne“ gruppiert. Sie hält keine Nachricht auf, löscht nichts, und die sendende Person sieht nichts davon.",
+    "Die Regel ändert nur, wie JoyFox deinen eigenen Posteingang in „Qualifiziert“, „Zu prüfen“ und „Junk“ gruppiert. Sie hält keine Nachricht auf, löscht nichts, und die sendende Person sieht nichts davon.",
   "rule.noAccount":
     "Wähle zuerst ein Konto aus oder füge eines hinzu. Jedes Konto hat seine eigene Regel.",
   "rule.newer":

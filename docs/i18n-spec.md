@@ -344,7 +344,7 @@ keys.
 | Your data           | Deine Daten    |
 | Qualified           | Qualifiziert   |
 | Needs Review        | Zu prüfen      |
-| Quarantined         | Quarantäne     |
+| Junk                | Junk           |
 | Trust score         | Vertrauenswert |
 | Note                | Notiz          |
 | Tags                | Tags           |

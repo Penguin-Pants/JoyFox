@@ -20,6 +20,8 @@ import type { TrustOutcomeKind } from "../trust/trust-service";
  *
  * Writes name the account the page's data came from, taken from the last
  * answer. The background ignores a write whose account is no longer active.
+ * `setOverride` and `logTrust` reject when it does (`done: false`), so a
+ * Mark sequence never runs its next step after a refused one (C7).
  */
 export interface TriageClient {
   evaluate(members: TriageRequestMember[]): Promise<TriageResponse>;
@@ -53,16 +55,22 @@ export function messageTriageClient(sender: MessageSender): TriageClient {
   return {
     evaluate: (members) => request(sender, "triage.evaluate", { members }),
     async setOverride(accountId, memberId, placement) {
-      await request(sender, "triage.setOverride", {
+      const answer = await request(sender, "triage.setOverride", {
         accountId,
         memberId,
         placement,
       });
+      if (!answer.done) throw new Error("The placement was not saved");
     },
     getTrust: (memberId, observed) =>
       request(sender, "trust.get", { memberId, observed }),
     async logTrust(accountId, memberId, kind) {
-      await request(sender, "trust.log", { accountId, memberId, kind });
+      const answer = await request(sender, "trust.log", {
+        accountId,
+        memberId,
+        kind,
+      });
+      if (!answer.done) throw new Error("The outcome was not logged");
     },
     async undoTrust(accountId, memberId) {
       await request(sender, "trust.undo", { accountId, memberId });

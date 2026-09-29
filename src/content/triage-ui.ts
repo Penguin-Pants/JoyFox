@@ -29,6 +29,23 @@ const OUTCOME_TEXT: Record<EvaluatedCondition["outcome"], PlainKey> = {
   "needs-review": "triage.outcome.needs-review",
 };
 
+/**
+ * The placements a user can mark a sender with (change request 2026-09-29,
+ * US2 and US3). A user who reads a message has reviewed it, so Needs Review
+ * is only ever a rule result.
+ */
+export type MarkPlacement = "qualified" | "quarantined";
+
+export const MARK_PLACEMENTS: readonly MarkPlacement[] = [
+  "qualified",
+  "quarantined",
+];
+
+const MARK_TEXT: Record<MarkPlacement, PlainKey> = {
+  qualified: "mark.qualified",
+  quarantined: "mark.junk",
+};
+
 /** The text of a placement, in the current language. */
 export const placementText = (placement: TriagePlacement): string =>
   t(PLACEMENT_TEXT[placement]);
@@ -44,20 +61,23 @@ export const FOCUS = {
   openOptions: "open-options",
   openProfile: "open-profile",
   sharedEventOptOut: "shared-event-opt-out",
-  useRule: "move:rule",
-  move: (placement: TriagePlacement) => `move:${placement}`,
+  useRule: "use-rule",
+  mark: (placement: MarkPlacement) => `mark:${placement}`,
   trust: (kind: TrustOutcomeKind | "undo") => `trust:${kind}`,
 } as const;
 
 /** Where focus goes when its control is gone or disabled after a redraw. */
 export function focusFallbacks(key: string | undefined): string[] {
   if (key?.startsWith("trust:")) return [FOCUS.trust("positive"), FOCUS.toggle];
-  if (key?.startsWith("move:") || key === FOCUS.sharedEventOptOut)
+  if (
+    key?.startsWith("mark:") ||
+    key === FOCUS.useRule ||
+    key === FOCUS.sharedEventOptOut
+  )
     return [
+      FOCUS.mark("qualified"),
+      FOCUS.mark("quarantined"),
       FOCUS.useRule,
-      FOCUS.move("qualified"),
-      FOCUS.move("needs-review"),
-      FOCUS.move("quarantined"),
       FOCUS.toggle,
     ];
   return [FOCUS.toggle];
@@ -126,7 +146,16 @@ export function reopenSections(root: Element, open: Set<string>): void {
 }
 
 export interface ExplanationActions {
-  onOverride(placement: TriagePlacement | null): void;
+  /** "Use my rule again": clear the user's own choice. */
+  onUseRule(): void;
+  /**
+   * "Mark qualified" or "Mark as junk". Present where the Mark buttons are
+   * part of the explanation (the inbox panel); the member bar shows them in
+   * its row instead.
+   */
+  onMark?(placement: MarkPlacement): void;
+  /** A Mark sequence or a trust write is on its way: Mark waits for it. */
+  markBusy?: boolean;
   /** V1-13: turn the shared-event exception off for this sender. */
   onSharedEventOptOut?(): void;
   /** Present where the user can log outcomes (conversation, profile). */
@@ -316,43 +345,56 @@ export function explanation(
 
   const controls = element(document, "div", "joyfox-actions");
   controls.setAttribute("role", "group");
-  controls.setAttribute("aria-label", t("triage.move.group"));
-  for (const placement of [
-    "qualified",
-    "needs-review",
-    "quarantined",
-  ] as const) {
-    const params = { placement: message(PLACEMENT_TEXT[placement]) };
-    // The placement the rule (or the shared event) chose: a click keeps the
-    // sender there as the user's own choice, so it says "Keep in".
-    const current = result.placement === placement;
-    const control = keyed(
-      button(
-        document,
-        "joyfox-button",
-        current && result.source !== "override"
-          ? t("triage.move.keep", params)
-          : t("triage.move.to", params),
-        () => actions.onOverride(placement),
-      ),
-      FOCUS.move(placement),
+  controls.setAttribute("aria-label", t("triage.place.group"));
+  if (actions.onMark)
+    controls.append(
+      ...markButtons(document, result, actions.onMark, actions.markBusy),
     );
-    // Disabled rather than hidden, so the control set stays predictable.
-    control.disabled = result.source === "override" && current;
-    controls.append(control);
-  }
+  // The manual move to a placement is gone (D11): only the way back to the
+  // rule stays. It clears the choice, never a logged trust outcome (D13).
   if (result.source === "override")
     controls.append(
       keyed(
-        button(document, "joyfox-button", t("triage.move.useRule"), () =>
-          actions.onOverride(null),
+        button(
+          document,
+          "joyfox-button",
+          t("triage.useRule"),
+          actions.onUseRule,
         ),
         FOCUS.useRule,
       ),
     );
-  root.append(controls);
+  if (controls.hasChildNodes()) root.append(controls);
   root.append(trustSection(document, result.trust, actions));
   return root;
+}
+
+/**
+ * "Mark qualified" and "Mark as junk" for one sender. A button whose
+ * placement is already the user's own choice is disabled (D12); one the
+ * rule or the shared-event exception chose stays enabled, so a click makes
+ * it the user's choice. While `busy`, both are marked unavailable
+ * (`aria-disabled`, so focus stays), so a double click runs one sequence.
+ */
+export function markButtons(
+  document: Document,
+  result: MemberTriage,
+  onMark: (placement: MarkPlacement) => void,
+  busy = false,
+): HTMLButtonElement[] {
+  return MARK_PLACEMENTS.map((placement) => {
+    const control = keyed(
+      button(document, "joyfox-button", t(MARK_TEXT[placement]), () =>
+        onMark(placement),
+      ),
+      FOCUS.mark(placement),
+    );
+    control.dataset.mark = placement;
+    control.disabled =
+      result.source === "override" && result.placement === placement;
+    if (busy) control.setAttribute("aria-disabled", "true");
+    return control;
+  });
 }
 
 /** Rule conditions whose facts only the profile page shows. */
@@ -412,14 +454,16 @@ export interface MemberBarInput {
   trustBusy?: boolean;
   /** An Undo is being stored: Undo waits for it. */
   undoBusy?: boolean;
+  /** A Mark sequence runs: both Mark buttons wait for it (C9). */
+  markBusy?: boolean;
   drawerOpen: boolean;
   onToggle(open: boolean): void;
 }
 
 /**
  * The compact member bar (owner decision, 2026-09-24, "Option A"): one row
- * with the placement, the local trust score and the outcome buttons, and a
- * drawer, closed by default, with the explanation and the move controls.
+ * with the placement, the Mark buttons, the local trust score and the
+ * outcome buttons, and a drawer, closed by default, with the explanation.
  * The row wraps on a narrow screen instead of turning into a column.
  */
 export function memberBar(
@@ -452,6 +496,22 @@ export function memberBar(
       bar.append(
         element(document, "span", "joyfox-note", t("bar.sharedEvent")),
       );
+    if (actions.onMark) {
+      const group = element(document, "span", "joyfox-bar__group");
+      group.setAttribute("role", "group");
+      group.setAttribute("aria-label", t("mark.group"));
+      group.append(
+        ...markButtons(
+          document,
+          result,
+          actions.onMark,
+          // A trust write from the bar also holds Mark, so one click never
+          // adds a second outcome while the first is being stored.
+          Boolean(input.markBusy || input.trustBusy || input.undoBusy),
+        ),
+      );
+      bar.append(group);
+    }
     if (input.openProfile) {
       const group = element(document, "span", "joyfox-bar__group");
       const link = keyed(
@@ -541,13 +601,13 @@ export function memberBar(
   const drawer = element(document, "div", "joyfox-drawer");
   drawer.id = `joyfox-drawer-${(drawerIds += 1)}`;
   drawer.hidden = !input.drawerOpen;
-  if (result && actions.onOverride) {
-    // Without `onTrust` the explanation leaves out the outcome buttons,
-    // which live in the bar. The drawer keeps the reasons, the conditions,
-    // the move controls and the score breakdown.
+  if (result && actions.onUseRule) {
+    // Without `onTrust` and `onMark` the explanation leaves out the outcome
+    // and Mark buttons, which live in the bar. The drawer keeps the reasons,
+    // the conditions, "Use my rule again" and the score breakdown.
     drawer.append(
       explanation(document, result, {
-        onOverride: actions.onOverride,
+        onUseRule: actions.onUseRule,
         ...(actions.onSharedEventOptOut
           ? { onSharedEventOptOut: actions.onSharedEventOptOut }
           : {}),
@@ -562,7 +622,7 @@ export function memberBar(
     button(
       document,
       "joyfox-button joyfox-bar__toggle",
-      t(result ? "bar.whyAndMove" : "bar.scoreDetails"),
+      t(result ? "bar.details" : "bar.scoreDetails"),
       () => {
         const open = drawer.hidden;
         drawer.hidden = !open;

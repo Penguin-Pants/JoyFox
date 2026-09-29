@@ -354,13 +354,13 @@ describe("schema version 4", () => {
       const reasons = stored.flatMap((record) => record.reasons);
       expect(texts(reasons)).toEqual([
         "You moved this sender to Needs Review.",
-        "You moved this sender to Quarantined.",
+        "You moved this sender to Junk.",
         "A reason from an older build.",
       ]);
       setLocale("de");
       expect(texts(reasons)).toEqual([
         "Du hast diese Person nach „Zu prüfen“ verschoben.",
-        "Du hast diese Person nach „Quarantäne“ verschoben.",
+        "Du hast diese Person nach „Junk“ verschoben.",
         "A reason from an older build.",
       ]);
       setLocale("en");

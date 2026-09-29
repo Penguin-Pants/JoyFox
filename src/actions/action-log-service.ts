@@ -7,12 +7,14 @@ import {
 } from "../storage/repositories";
 import {
   canTransition,
+  isQuickAction,
   QUICK_IGNORE_DELETE,
   reportOperation,
   type ActionFailure,
   type ActionState,
   type ActionTarget,
   type OperationReport,
+  type QuickAction,
 } from "./ignore-delete";
 
 export type BeginResult =
@@ -40,7 +42,7 @@ const newestFirst = (a: ActionLog, b: ActionLog) =>
   Date.parse(b.createdAt) - Date.parse(a.createdAt) || b.id.localeCompare(a.id);
 
 /**
- * The M9 ActionLog. Every transition is appended and stored at once, before
+ * The M9 ActionLog, for Quick Ignore and Delete and for Delete alone. Every transition is appended and stored at once, before
  * the caller may act on it, so the log always shows how far an operation got
  * (build plan Section 16). A transition the state machine does not allow is
  * refused, so the log can never describe an impossible sequence. The caller
@@ -58,10 +60,15 @@ export class ActionLogService {
 
   /**
    * Start an operation, unless one for the same member is still running (in
-   * another tab, for example). One that stopped moving counts as
-   * interrupted and does not block a new start.
+   * another tab, for example), whichever action it is: only one trash run
+   * at a time. One that stopped moving counts as interrupted and does not
+   * block a new start.
    */
-  async begin(accountId: string, target: ActionTarget): Promise<BeginResult> {
+  async begin(
+    accountId: string,
+    target: ActionTarget,
+    action: QuickAction = QUICK_IGNORE_DELETE,
+  ): Promise<BeginResult> {
     requireAccountId(accountId);
     const previous = await this.latest(accountId, target.memberId);
     const at = this.now();
@@ -77,7 +84,7 @@ export class ActionLogService {
       accountId,
       memberId: target.memberId,
       conversationId: target.conversationId,
-      action: QUICK_IGNORE_DELETE,
+      action,
       steps: [{ name: "Started", ok: true, at }],
       createdAt: at,
       updatedAt: at,
@@ -100,9 +107,9 @@ export class ActionLogService {
   ): Promise<RecordResult> {
     requireAccountId(accountId);
     const log = await this.logs.get(accountId, operationId);
-    if (!log || log.action !== QUICK_IGNORE_DELETE) return "unknown-operation";
+    if (!log || !isQuickAction(log.action)) return "unknown-operation";
     const last = log.steps.at(-1)?.name as ActionState | undefined;
-    if (!last || !canTransition(last, state)) return "invalid";
+    if (!last || !canTransition(last, state, log.action)) return "invalid";
     if ((state === "Failed") !== (failure !== undefined)) return "invalid";
     if (log.memberId) {
       const newest = await this.latest(accountId, log.memberId);
@@ -125,17 +132,21 @@ export class ActionLogService {
     return "recorded";
   }
 
-  /** One operation by ID, or `undefined` when it is not this action's. */
+  /** One operation by ID, or `undefined` when it is not a quick action. */
   async find(
     accountId: string,
     operationId: string,
   ): Promise<ActionLog | undefined> {
     requireAccountId(accountId);
     const log = await this.logs.get(accountId, operationId);
-    return log?.action === QUICK_IGNORE_DELETE ? log : undefined;
+    return isQuickAction(log?.action) ? log : undefined;
   }
 
-  /** The newest Quick Ignore and Delete operation for one member. */
+  /**
+   * The newest operation for one member, Quick Ignore and Delete or Delete
+   * alone: both act on the member's conversation, so a newer one of either
+   * replaces an older one.
+   */
   async latest(
     accountId: string,
     memberId: string,
@@ -143,10 +154,7 @@ export class ActionLogService {
     requireAccountId(accountId);
     const logs = await this.logs.list(accountId);
     return logs
-      .filter(
-        (log) =>
-          log.action === QUICK_IGNORE_DELETE && log.memberId === memberId,
-      )
+      .filter((log) => isQuickAction(log.action) && log.memberId === memberId)
       .sort(newestFirst)[0];
   }
 }

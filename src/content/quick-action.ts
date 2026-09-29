@@ -1,16 +1,20 @@
 import { QUICK_ACTION_KEY } from "../actions/quick-action-setting";
 import {
+  runQuickDelete,
   runQuickIgnoreDelete,
   type ActionRecorder,
   type QuickActionDriver,
 } from "../actions/executor";
 import {
+  QUICK_DELETE,
+  QUICK_IGNORE_DELETE,
   STEP_TIMEOUT_MS,
   type ActionFailure,
   type ActionState,
   type ActionStep,
   type ActionTarget,
   type OperationReport,
+  type QuickAction,
 } from "../actions/ignore-delete";
 import { message, type Message } from "../i18n/message";
 import { t } from "../i18n/translator";
@@ -21,7 +25,7 @@ import type {
 } from "../messaging/protocol";
 import { request, type MessageSender } from "../messaging/request";
 import { selectorRegistry } from "../selectors/registry";
-import { pageMember } from "./member-panel";
+import { pageMember, type ConversationTrash } from "./member-panel";
 import { JoyClubQuickActionDriver } from "./quick-action-driver";
 import { isPlaced, placeInStrip, removeEmptyStrip } from "./member-strip";
 import { button, element, UI_ATTRIBUTE } from "./triage-ui";
@@ -29,7 +33,7 @@ import { button, element, UI_ATTRIBUTE } from "./triage-ui";
 /** Re-exported for the content script's other parts. */
 export { QUICK_ACTION_KEY };
 
-/** Marks the M9 section. */
+/** Marks the M9 section: the Delete and Ignore and Delete buttons. */
 export const QUICK_ACTION = "quick-action";
 
 export type LatestAnswer =
@@ -84,11 +88,12 @@ export function messageQuickActionClient(
         operationId,
       }),
     recorder: (accountId) => ({
-      begin: (target, deadline) =>
+      begin: (target, deadline, action) =>
         request(sender, "action.ignoreDelete.start", {
           accountId,
           ...target,
           ...(deadline !== undefined ? { deadline } : {}),
+          ...(action !== undefined ? { action } : {}),
         }),
       record: async (operationId, state, failure) =>
         (
@@ -111,8 +116,9 @@ export function runtimeQuickActionClient(): QuickActionClient {
 }
 
 /**
- * The live JoyClub driver (ADR 0011), built from the F7 evidence. The button
- * still appears only while the experimental flag is on.
+ * The live JoyClub driver (ADR 0011), built from the F7 evidence. Delete
+ * shows on every conversation page (ADR 0017); Ignore and Delete only while
+ * its experimental flag is on.
  */
 export function liveQuickActionDriver(): QuickActionDriver | undefined {
   return new JoyClubQuickActionDriver(document);
@@ -123,6 +129,12 @@ const PROGRESS_TEXT: Partial<Record<ActionState, Message>> = {
   DeleteRequested: message("quick.progress.DeleteRequested"),
   DeleteConfirmed: message("quick.progress.DeleteConfirmed"),
   IgnoreRequested: message("quick.progress.IgnoreRequested"),
+};
+
+/** A Delete-only run's progress never names Ignore and Delete (A10). */
+const DELETE_PROGRESS_TEXT: Partial<Record<ActionState, Message>> = {
+  Started: message("quick.delete.progress.Started"),
+  DeleteRequested: message("quick.progress.DeleteRequested"),
 };
 
 /** How long a resumed run waits for the profile menu before it tries. */
@@ -137,8 +149,9 @@ export const RESUME_WAIT_MS = 10_000;
 export const HANDOFF_WAIT_MS = STEP_TIMEOUT_MS;
 
 /**
- * How long the profile page shows a finished run's notice before it returns
- * to the ClubMail list, so the user can read it and the live region can
+ * How long a finished run's notice shows before the page returns to the
+ * ClubMail list (the profile page after Ignore and Delete, the conversation
+ * page after Delete, D5), so the user can read it and the live region can
  * announce it.
  */
 export const RETURN_WAIT_MS = 2_000;
@@ -150,6 +163,8 @@ export const CLUBMAIL_PATH = "/clubmail/";
 export const QUICK_ACTION_TEXT = {
   button: message("quick.button"),
   scope: message("quick.scope"),
+  deleteButton: message("quick.delete.button"),
+  deleteScope: message("quick.delete.scope"),
   needsList: message("quick.needsList"),
   handedOff: message("quick.progress.DeleteConfirmed"),
   noProfile: message("quick.noProfile"),
@@ -161,7 +176,28 @@ export const QUICK_ACTION_TEXT = {
   otherRunning: message("quick.otherRunning"),
   busy: message("quick.busy"),
   unexpected: message("quick.unexpected"),
+  deleteUnexpected: message("quick.delete.unexpected"),
+  junkDone: message("quick.junk.done"),
+  junkBusy: message("quick.junk.busy"),
+  junkNotTrashed: message("quick.junk.notTrashed"),
 } as const;
+
+/** The labels of a stored run's notice, per action (A9). */
+const PREVIOUS_TEXT: Record<
+  QuickAction,
+  { previous: Message; previousOther: Message; otherResult: Message }
+> = {
+  [QUICK_IGNORE_DELETE]: {
+    previous: QUICK_ACTION_TEXT.previous,
+    previousOther: QUICK_ACTION_TEXT.previousOther,
+    otherResult: QUICK_ACTION_TEXT.otherResult,
+  },
+  [QUICK_DELETE]: {
+    previous: message("quick.delete.previous"),
+    previousOther: message("quick.delete.previousOther"),
+    otherResult: message("quick.delete.otherResult"),
+  },
+};
 
 /** The hand-off this profile page resumes, once read (one-shot). */
 interface ResumeState {
@@ -181,10 +217,16 @@ interface Shown {
 /** The section on screen, kept across updates so its live region stays. */
 interface Drawn {
   key: string;
+  /** Whether it holds "Ignore and Delete" (its flag was on when drawn). */
+  withIgnore: boolean;
   section: HTMLElement;
-  button: HTMLButtonElement;
-  /** What the click does; the button's description. */
-  scope: HTMLElement;
+  /** Delete first, then Ignore and Delete when its flag is on. */
+  buttons: Array<{
+    action: QuickAction;
+    button: HTMLButtonElement;
+    /** What the click does; the button's description. */
+    scope: HTMLElement;
+  }>;
   /** Shown while the page cannot show Delete's result. */
   hint: HTMLElement;
   status: HTMLElement;
@@ -195,26 +237,38 @@ interface Drawn {
 let sectionIds = 0;
 
 /**
- * M9: the "Ignore and Delete" button and its notice on a conversation page
- * (PRD Section 6.1). The click is the confirmation (Mode A). The steps run
- * through `runQuickIgnoreDelete`, which records every transition in the
- * background's ActionLog before it moves on. The notice is built from those
- * steps and names what was done, what was not and the next manual action
- * (PRD Section 21.2). A failed or interrupted earlier run for the member is
- * shown from the stored ActionLog.
+ * M9: the "Delete" and "Ignore and Delete" buttons and their notice on a
+ * conversation page (PRD Section 6.1, ADR 0017). Delete shows on every
+ * conversation page; Ignore and Delete only while its experimental flag is
+ * on. The click is the confirmation (Mode A). The steps run through
+ * `runQuickDelete` and `runQuickIgnoreDelete`, which record every
+ * transition in the background's ActionLog before they move on. The notice
+ * is built from those steps and names what was done, what was not and the
+ * next manual action (PRD Section 21.2). A failed or interrupted earlier
+ * run for the member is shown from the stored ActionLog. Only one run goes
+ * at a time: while one runs, both buttons wait. "Mark as junk" runs the
+ * same Delete flow through `junk` (C5).
  *
  * A run belongs to the conversation it started on. Its progress and result
  * stay tied to that conversation, and are still shown, labelled, on another
  * conversation page, so a partial result is never lost from view.
  */
-export class QuickIgnoreDelete {
+export class QuickIgnoreDelete implements ConversationTrash {
   #shown?: Shown;
   #latest?: { key: string; answer: LatestAnswer };
   #inFlight?: string;
   #generation = 0;
   #drawn?: Drawn;
-  #running?: { key: string; progress: Message };
-  #result?: { key: string; lines: readonly Message[] };
+  #running?: {
+    key: string;
+    action: QuickAction;
+    progress: Message;
+    /** Lines shown above the progress: what "Mark as junk" did first. */
+    lead?: readonly Message[];
+  };
+  #result?: { key: string; action: QuickAction; lines: readonly Message[] };
+  /** Whether "Ignore and Delete" is on (its experimental flag). */
+  #ignoreDeleteOn = true;
   /** Set when the run must stop before its next click. */
   #stop?: ActionFailure;
   #busy = false;
@@ -233,6 +287,8 @@ export class QuickIgnoreDelete {
   #profileAnchor?: Element;
   /** Set while a finished run waits to return to the ClubMail list. */
   #returnTimer?: ReturnType<typeof setTimeout>;
+  /** The same, for a finished Delete on the conversation page. */
+  #deleteReturnTimer?: ReturnType<typeof setTimeout>;
 
   constructor(
     private readonly document: Document,
@@ -290,7 +346,11 @@ export class QuickIgnoreDelete {
     if (answer.status === "stopped" && !resume.started) {
       // Shown once, from the stored steps: Delete done, Ignore not.
       resume.started = true;
-      this.#result = { key: "stopped", lines: answer.lines };
+      this.#result = {
+        key: "stopped",
+        action: QUICK_IGNORE_DELETE,
+        lines: answer.lines,
+      };
     }
     if (answer.status !== "ok") {
       this.#renderProfile(member.anchor);
@@ -325,7 +385,11 @@ export class QuickIgnoreDelete {
   ): void {
     const key = `${answer.memberId}|${answer.conversationId}`;
     // Shown under the "continued" line, until the first step moves.
-    this.#running = { key, progress: PROGRESS_TEXT.Started! };
+    this.#running = {
+      key,
+      action: QUICK_IGNORE_DELETE,
+      progress: PROGRESS_TEXT.Started!,
+    };
     this.#stop = undefined;
     this.#result = undefined;
     void runQuickIgnoreDelete({
@@ -344,12 +408,16 @@ export class QuickIgnoreDelete {
       onState: (state) => {
         const text = PROGRESS_TEXT[state];
         if (!text || !this.#running) return;
-        this.#running = { key, progress: text };
+        this.#running = { ...this.#running, progress: text };
         this.updateProfile();
       },
     })
       .then((result) => {
-        this.#result = { key, lines: result.report.lines };
+        this.#result = {
+          key,
+          action: QUICK_IGNORE_DELETE,
+          lines: result.report.lines,
+        };
         // Both steps are done: back to the ClubMail list. A run that stopped
         // stays on the profile, where its notice names the next manual step.
         // Not when the flag was turned off or the account changed while the
@@ -358,7 +426,11 @@ export class QuickIgnoreDelete {
           this.#returnToClubMail(answer.memberId);
       })
       .catch(() => {
-        this.#result = { key, lines: [QUICK_ACTION_TEXT.unexpected] };
+        this.#result = {
+          key,
+          action: QUICK_IGNORE_DELETE,
+          lines: [QUICK_ACTION_TEXT.unexpected],
+        };
       })
       .finally(() => {
         this.#running = undefined;
@@ -389,15 +461,40 @@ export class QuickIgnoreDelete {
   }
 
   /**
+   * After a completed Delete, the conversation stays open on JoyClub
+   * (`10-ignore.md`). After `returnWaitMs`, go to the ClubMail list (D5),
+   * but only while the page still shows that conversation: a user who
+   * moved on in the meantime is not taken back.
+   */
+  #returnFromConversation(target: ActionTarget): void {
+    clearTimeout(this.#deleteReturnTimer);
+    this.#deleteReturnTimer = setTimeout(() => {
+      this.#deleteReturnTimer = undefined;
+      const member = pageMember(this.document, "conversation");
+      const conversation =
+        member?.page === "conversation"
+          ? member.extraction.conversationId
+          : undefined;
+      if (
+        member?.memberId !== target.memberId ||
+        conversation?.status !== "found" ||
+        conversation.value !== target.conversationId
+      )
+        return;
+      this.navigate(new URL(CLUBMAIL_PATH, this.document.URL).href);
+    }, this.returnWaitMs);
+  }
+
+  /**
    * The language changed: the button, its note and the notice are drawn
    * again. A run in progress is not touched.
    */
   localeChanged(): void {
     if (this.#drawn) {
-      const focused = this.#drawn.section.contains(this.document.activeElement);
+      const focused = this.#focusedAction(this.#drawn);
       this.teardown();
       if (this.#shown) this.update();
-      if (focused) this.#drawn?.button.focus({ preventScroll: true });
+      if (focused) this.#focusButton(focused);
     }
     if (this.#profileDrawn) {
       this.#removeProfileSection();
@@ -507,6 +604,8 @@ export class QuickIgnoreDelete {
     if (this.#running) this.#stop = "account-changed";
     else this.#result = undefined;
     this.#cancelReturn();
+    clearTimeout(this.#deleteReturnTimer);
+    this.#deleteReturnTimer = undefined;
     this.teardown();
     this.invalidate();
   }
@@ -541,13 +640,26 @@ export class QuickIgnoreDelete {
     this.client.dropStale().catch(() => undefined);
   }
 
-  /** The flag was turned off: stop a run before its next click, show nothing. */
+  /** The experimental flag is on: "Ignore and Delete" shows again. */
+  turnOn(): void {
+    this.#ignoreDeleteOn = true;
+  }
+
+  /**
+   * The experimental flag is off (D2): "Ignore and Delete" goes, and a run
+   * of it stops before its next click. Delete stays: it does not need the
+   * flag. Called on every page event while the flag is off; the caller
+   * then updates or leaves the page as usual.
+   */
   turnOff(): void {
-    if (this.#running) this.#stop = "turned-off";
-    this.#result = undefined;
+    this.#ignoreDeleteOn = false;
+    if (this.#running?.action === QUICK_IGNORE_DELETE)
+      this.#stop = "turned-off";
+    if (this.#result?.action === QUICK_IGNORE_DELETE) this.#result = undefined;
     this.#cancelReturn();
     this.#discardHandOff();
-    this.leave();
+    // A profile page shows only a resumed Ignore and Delete: it goes.
+    this.#removeProfileSection();
   }
 
   /**
@@ -623,27 +735,26 @@ export class QuickIgnoreDelete {
 
   #lines(
     shown: Shown,
-    previous?: OperationReport,
+    previous?: { action: QuickAction; report: OperationReport },
     previousHere = true,
   ): readonly Message[] {
     const running = this.#running;
     if (running)
       return running.key === shown.key
-        ? [running.progress]
+        ? [...(running.lead ?? []), running.progress]
         : [QUICK_ACTION_TEXT.otherRunning];
     const result = this.#result;
     if (result)
       return result.key === shown.key
         ? result.lines
-        : [QUICK_ACTION_TEXT.otherResult, ...result.lines];
+        : [PREVIOUS_TEXT[result.action].otherResult, ...result.lines];
     if (!previous) return [];
     // The stored run may be for another conversation with the same member;
     // its next steps then name that conversation, not this one.
+    const labels = PREVIOUS_TEXT[previous.action];
     return [
-      previousHere
-        ? QUICK_ACTION_TEXT.previous
-        : QUICK_ACTION_TEXT.previousOther,
-      ...previous.lines,
+      previousHere ? labels.previous : labels.previousOther,
+      ...previous.report.lines,
     ];
   }
 
@@ -654,48 +765,50 @@ export class QuickIgnoreDelete {
     }
     const previous =
       latest.status === "ok" && latest.report.status !== "completed"
-        ? latest.report
+        ? { action: latest.action, report: latest.report }
         : undefined;
     // Busy while any run in this tab, or another tab's run for the member,
-    // is going.
-    const otherTab = previous?.status === "running" && !this.#running;
+    // is going: only one trash run at a time (A8).
+    const otherTab = previous?.report.status === "running" && !this.#running;
     this.#busy = this.#running !== undefined || otherTab;
     let drawn = this.#drawn;
     if (
       !drawn ||
       drawn.key !== shown.key ||
+      drawn.withIgnore !== this.#ignoreDeleteOn ||
       !drawn.section.isConnected ||
       !isPlaced(drawn.section, shown.anchor)
     ) {
-      const focused =
-        drawn?.section.contains(this.document.activeElement) === true;
+      const focused = drawn ? this.#focusedAction(drawn) : undefined;
       this.teardown();
       drawn = this.#build(shown, latest.accountId);
       placeInStrip(this.document, shown.anchor, drawn.section);
       this.#drawn = drawn;
-      if (focused) drawn.button.focus({ preventScroll: true });
+      if (focused) this.#focusButton(focused);
     }
-    // `aria-disabled` rather than `disabled`, so keyboard focus stays on the
-    // button; the click is ignored while busy.
-    drawn.button.setAttribute("aria-disabled", String(this.#busy));
     // Delete is checked in the ClubMail list beside the conversation. While
-    // the page does not show the member's row there, a line under the button
-    // says so; a click still stops safely before any change. Not while a run
-    // goes (its own Delete removes the row), nor once this conversation is
-    // in the trash.
+    // the page does not show the member's row there, both buttons are
+    // unavailable (owner decision, 2026-09-29) and a line under them says
+    // why. The line stays hidden while a run goes (its own Delete removes
+    // the row), and once this conversation is in the trash.
     const deleted =
       latest.status === "ok" &&
       latest.conversationId === shown.target.conversationId &&
       latest.report.delete === "done";
-    const needsList =
-      !this.#busy && !deleted && !canVerifyDelete(this.driver());
-    if (drawn.hint.hidden === needsList) {
-      drawn.hint.hidden = !needsList;
-      drawn.button.setAttribute(
-        "aria-describedby",
-        needsList ? `${drawn.hint.id} ${drawn.scope.id}` : drawn.scope.id,
-      );
+    const unverifiable = !canVerifyDelete(this.driver());
+    const needsList = !this.#busy && !deleted && unverifiable;
+    // `aria-disabled` rather than `disabled`, so keyboard focus stays on the
+    // button; the click is ignored while it is set.
+    const unavailable = this.#busy || unverifiable;
+    for (const item of drawn.buttons) {
+      item.button.setAttribute("aria-disabled", String(unavailable));
+      const describedBy = needsList
+        ? `${drawn.hint.id} ${item.scope.id}`
+        : item.scope.id;
+      if (item.button.getAttribute("aria-describedby") !== describedBy)
+        item.button.setAttribute("aria-describedby", describedBy);
     }
+    if (drawn.hint.hidden === needsList) drawn.hint.hidden = !needsList;
     // Updated in place, so the live region announces each change.
     const lines = this.#lines(
       shown,
@@ -734,6 +847,21 @@ export class QuickIgnoreDelete {
     }
   }
 
+  /** The action of the button that has keyboard focus, if any. */
+  #focusedAction(drawn: Drawn): QuickAction | undefined {
+    return drawn.buttons.find(
+      (item) => item.button === this.document.activeElement,
+    )?.action;
+  }
+
+  /** Focus the same button after a redraw, or Delete when it is gone. */
+  #focusButton(action: QuickAction): void {
+    const buttons = this.#drawn?.buttons ?? [];
+    (
+      buttons.find((item) => item.action === action) ?? buttons[0]
+    )?.button.focus({ preventScroll: true });
+  }
+
   #build(shown: Shown, accountId: string): Drawn {
     const document = this.document;
     const section = element(document, "section", "joyfox-panel");
@@ -742,15 +870,41 @@ export class QuickIgnoreDelete {
     // A group inside the strip's one "JoyFox" region, not a landmark.
     section.setAttribute("role", "group");
     section.setAttribute("aria-label", t("quick.region"));
-    const run = button(
-      document,
-      "joyfox-button",
-      t(QUICK_ACTION_TEXT.button),
-      () => {
-        if (!this.#busy) this.#run(shown, accountId);
-      },
-    );
     const id = (sectionIds += 1);
+    const row = element(document, "div", "joyfox-actions");
+    const scopes: HTMLElement[] = [];
+    const buttons: Drawn["buttons"] = [];
+    const add = (
+      action: QuickAction,
+      label: Message,
+      description: Message,
+      onClick: () => void,
+    ) => {
+      const run = button(document, "joyfox-button", t(label), () => {
+        if (!this.#busy) onClick();
+      });
+      run.dataset.action = action;
+      const scope = element(document, "p", "joyfox-note", t(description));
+      scope.id = `joyfox-quick-scope-${id}-${action}`;
+      // The click is the confirmation, so the button carries what it does.
+      run.setAttribute("aria-describedby", scope.id);
+      row.append(run);
+      scopes.push(scope);
+      buttons.push({ action, button: run, scope });
+    };
+    add(
+      QUICK_DELETE,
+      QUICK_ACTION_TEXT.deleteButton,
+      QUICK_ACTION_TEXT.deleteScope,
+      () => void this.#runDelete(shown, accountId),
+    );
+    if (this.#ignoreDeleteOn)
+      add(
+        QUICK_IGNORE_DELETE,
+        QUICK_ACTION_TEXT.button,
+        QUICK_ACTION_TEXT.scope,
+        () => this.#run(shown, accountId),
+      );
     const hint = element(
       document,
       "p",
@@ -759,28 +913,131 @@ export class QuickIgnoreDelete {
     );
     hint.id = `joyfox-quick-hint-${id}`;
     hint.hidden = true;
-    const scope = element(
-      document,
-      "p",
-      "joyfox-note",
-      t(QUICK_ACTION_TEXT.scope),
-    );
-    scope.id = `joyfox-quick-scope-${id}`;
-    // The click is the confirmation, so the button carries what it does.
-    run.setAttribute("aria-describedby", scope.id);
     const status = element(document, "div", "joyfox-quick-action__status");
     status.setAttribute("role", "status");
     status.setAttribute("aria-live", "polite");
-    section.append(run, hint, scope, status);
+    section.append(row, hint, ...scopes, status);
     return {
       key: shown.key,
+      withIgnore: this.#ignoreDeleteOn,
       section,
-      button: run,
-      scope,
+      buttons,
       hint,
       status,
       lines: "",
     };
+  }
+
+  /**
+   * The trash step of "Mark as junk" (C5): the Delete flow for `memberId`'s
+   * conversation, shown on this page. The placement and the Negative
+   * outcome are already stored, so every notice starts with that line, and
+   * a trash step that cannot run says the conversation was not moved and
+   * names the manual step (C7). `unavailable`: this page shows no Delete
+   * for that member, so nothing was started or shown.
+   */
+  async junk(memberId: string): Promise<"shown" | "unavailable"> {
+    const shown = this.#shown;
+    const latest = this.#latest;
+    if (
+      !shown ||
+      shown.target.memberId !== memberId ||
+      this.#drawn?.key !== shown.key ||
+      latest?.key !== shown.key ||
+      latest.answer.status === "no-account"
+    )
+      return "unavailable";
+    const lead = [QUICK_ACTION_TEXT.junkDone];
+    const refused = (...lines: Message[]) => {
+      this.#result = {
+        key: shown.key,
+        action: QUICK_DELETE,
+        lines: [
+          ...lead,
+          ...lines,
+          QUICK_ACTION_TEXT.junkNotTrashed,
+          message("action.self.delete"),
+        ],
+      };
+      this.update();
+      return "shown" as const;
+    };
+    if (this.#busy) return refused(QUICK_ACTION_TEXT.junkBusy);
+    if (!canVerifyDelete(this.driver()))
+      return refused(QUICK_ACTION_TEXT.needsList);
+    await this.#runDelete(shown, latest.answer.accountId, lead);
+    return "shown";
+  }
+
+  /**
+   * Delete alone (A1 to A8): one click moves the conversation to JoyClub's
+   * trash, with the checks of Quick Ignore and Delete's Delete step. A
+   * completed run returns to the ClubMail list after `returnWaitMs`; a
+   * failed one stays, and its notice names the next manual step. `lead`
+   * comes first in every notice of the run.
+   */
+  #runDelete(
+    shown: Shown,
+    accountId: string,
+    lead: readonly Message[] = [],
+  ): Promise<void> {
+    const driver = this.driver();
+    if (this.#running || !driver) return Promise.resolve();
+    this.#stop = undefined;
+    const busyLines = lead.length
+      ? [
+          QUICK_ACTION_TEXT.junkBusy,
+          QUICK_ACTION_TEXT.junkNotTrashed,
+          message("action.self.delete"),
+        ]
+      : [QUICK_ACTION_TEXT.busy];
+    this.#running = {
+      key: shown.key,
+      action: QUICK_DELETE,
+      progress: DELETE_PROGRESS_TEXT.Started!,
+      lead,
+    };
+    this.#result = undefined;
+    this.update();
+    return runQuickDelete({
+      target: shown.target,
+      driver,
+      recorder: this.client.recorder(accountId),
+      // Delete does not need the experimental flag (D2), so turning it off
+      // never stops this run.
+      stopReason: () => (this.#stop === "turned-off" ? undefined : this.#stop),
+      onState: (state) => {
+        const text = DELETE_PROGRESS_TEXT[state];
+        if (!text || this.#running?.action !== QUICK_DELETE) return;
+        this.#running = { ...this.#running, progress: text };
+        if (this.#shown) this.update();
+      },
+    })
+      .then((result) => {
+        this.#result = {
+          key: shown.key,
+          action: QUICK_DELETE,
+          lines: [
+            ...lead,
+            ...(result.status === "busy" ? busyLines : result.report.lines),
+          ],
+        };
+        // Not when the account changed while the end was stored.
+        if (result.report.status === "completed" && !this.#stop)
+          this.#returnFromConversation(shown.target);
+      })
+      .catch(() => {
+        this.#result = {
+          key: shown.key,
+          action: QUICK_DELETE,
+          lines: [...lead, QUICK_ACTION_TEXT.deleteUnexpected],
+        };
+      })
+      .finally(() => {
+        this.#running = undefined;
+        // Read the ActionLog again, so the notice matches what is stored.
+        if (this.#shown) this.invalidate();
+      });
   }
 
   #run(shown: Shown, accountId: string): void {
@@ -791,11 +1048,19 @@ export class QuickIgnoreDelete {
     // be done and Ignore could not follow, so nothing is started.
     const profile = profileUrl(shown.anchor, shown.target.memberId);
     if (!profile) {
-      this.#result = { key: shown.key, lines: [QUICK_ACTION_TEXT.noProfile] };
+      this.#result = {
+        key: shown.key,
+        action: QUICK_IGNORE_DELETE,
+        lines: [QUICK_ACTION_TEXT.noProfile],
+      };
       this.update();
       return;
     }
-    this.#running = { key: shown.key, progress: PROGRESS_TEXT.Started! };
+    this.#running = {
+      key: shown.key,
+      action: QUICK_IGNORE_DELETE,
+      progress: PROGRESS_TEXT.Started!,
+    };
     this.#result = undefined;
     this.update();
     void runQuickIgnoreDelete({
@@ -814,8 +1079,8 @@ export class QuickIgnoreDelete {
         ),
       onState: (state) => {
         const text = PROGRESS_TEXT[state];
-        if (!text || !this.#running) return;
-        this.#running = { key: shown.key, progress: text };
+        if (!text || this.#running?.action !== QUICK_IGNORE_DELETE) return;
+        this.#running = { ...this.#running, progress: text };
         if (this.#shown) this.update();
       },
     })
@@ -826,6 +1091,7 @@ export class QuickIgnoreDelete {
         }
         this.#result = {
           key: shown.key,
+          action: QUICK_IGNORE_DELETE,
           lines:
             result.status === "busy"
               ? [QUICK_ACTION_TEXT.busy]
@@ -837,12 +1103,13 @@ export class QuickIgnoreDelete {
       .catch(() => {
         this.#result = {
           key: shown.key,
+          action: QUICK_IGNORE_DELETE,
           lines: [QUICK_ACTION_TEXT.unexpected],
         };
       })
       .finally(() => {
         this.#running = undefined;
-        // A flag turned off during the run keeps the button away.
+        // A flag turned off during the run keeps its notice away.
         if (this.#stop === "turned-off") this.#result = undefined;
         // Read the ActionLog again, so the notice matches what is stored.
         if (this.#shown) this.invalidate();
@@ -868,7 +1135,11 @@ export class QuickIgnoreDelete {
         .withdraw(accountId, operationId)
         .then((answer) => {
           if (answer.status === "withdrawn")
-            this.#result = { key, lines: answer.lines };
+            this.#result = {
+              key,
+              action: QUICK_IGNORE_DELETE,
+              lines: answer.lines,
+            };
         })
         .catch(() => undefined)
         .finally(() => this.invalidate());

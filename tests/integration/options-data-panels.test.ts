@@ -103,6 +103,57 @@ describe("M8 data panel", () => {
     await panel.render();
   });
 
+  it("shows Delete-only and Ignore and Delete runs in the Action log, each with its own label (A9)", async () => {
+    const run = (id: string, action: string, at: string) => ({
+      id,
+      accountId: a,
+      memberId: "2222222",
+      conversationId: "personal-1-2",
+      action,
+      steps: [
+        { name: "Started", ok: true, at },
+        { name: "DeleteRequested", ok: true, at },
+        { name: "DeleteConfirmed", ok: true, at },
+        { name: "Completed", ok: true, at },
+      ],
+      createdAt: at,
+      updatedAt: at,
+    });
+    await repositories.actionLogs.put(
+      a,
+      run("action:1", "quick-delete", "2026-09-29T10:00:00.000Z"),
+    );
+    await repositories.actionLogs.put(a, {
+      ...run("action:2", "quick-ignore-delete", "2026-09-29T11:00:00.000Z"),
+      steps: [
+        {
+          name: "Started",
+          ok: true,
+          at: "2026-09-29T11:00:00.000Z",
+        },
+        {
+          name: "Failed",
+          ok: false,
+          at: "2026-09-29T11:00:01.000Z",
+          errorCode: "control-missing",
+        },
+      ],
+    });
+    await panel.render();
+    await showRecords("Show Action log");
+    await settle(
+      () => root.querySelectorAll(".joyfox-data__report").length === 2,
+    );
+    const firstLines = Array.from(
+      root.querySelectorAll(".joyfox-data__report"),
+      (report) => report.querySelector("li")?.textContent,
+    ).sort();
+    expect(firstLines).toEqual([
+      "Delete finished.",
+      "Ignore and Delete stopped.",
+    ]);
+  });
+
   it("shows a count for every entity of the active account by default", () => {
     expect(root.querySelectorAll("tr[data-entity]")).toHaveLength(
       ENTITY_NAMES.length,

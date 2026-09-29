@@ -2,14 +2,31 @@ import type { ActionLog } from "../domain/types";
 import { message, type Message } from "../i18n/message";
 
 /**
- * M9 Quick Ignore and Delete as an explicit state machine (build plan Section
- * 16). This module is pure: no DOM, no storage. It defines the states, the
+ * M9 Quick Ignore and Delete, and Delete alone (ADR 0017), as explicit state
+ * machines (build plan Section 16). This module is pure: no DOM, no storage. It defines the states, the
  * allowed transitions, the identity invariant checked before every JoyClub
  * write, and the report shown to the user, all computed from ActionLog steps.
  */
 
 /** `ActionLog.action` for this operation. */
 export const QUICK_IGNORE_DELETE = "quick-ignore-delete";
+
+/**
+ * `ActionLog.action` for Delete alone (change request 2026-09-29, ADR 0017):
+ * the "Delete" button and the trash step of "Mark as junk". It runs the same
+ * Delete step as Quick Ignore and Delete, with the same checks.
+ */
+export const QUICK_DELETE = "quick-delete";
+
+export type QuickAction = typeof QUICK_IGNORE_DELETE | typeof QUICK_DELETE;
+
+export const QUICK_ACTIONS: readonly QuickAction[] = [
+  QUICK_IGNORE_DELETE,
+  QUICK_DELETE,
+];
+
+export const isQuickAction = (value: unknown): value is QuickAction =>
+  QUICK_ACTIONS.includes(value as QuickAction);
 
 /**
  * The order is Delete, then Ignore (owner decision, 2026-09-24, ADR 0011):
@@ -45,21 +62,34 @@ export const ACTION_STATES: readonly ActionState[] = [
   "Failed",
 ];
 
-const NEXT: Partial<Record<ActionState, ActionState>> = {
-  Started: "DeleteRequested",
-  DeleteRequested: "DeleteConfirmed",
-  DeleteConfirmed: "IgnoreRequested",
-  IgnoreRequested: "IgnoreConfirmed",
-  IgnoreConfirmed: "Completed",
+const NEXT: Record<QuickAction, Partial<Record<ActionState, ActionState>>> = {
+  [QUICK_IGNORE_DELETE]: {
+    Started: "DeleteRequested",
+    DeleteRequested: "DeleteConfirmed",
+    DeleteConfirmed: "IgnoreRequested",
+    IgnoreRequested: "IgnoreConfirmed",
+    IgnoreConfirmed: "Completed",
+  },
+  // Delete alone: `Started`, `DeleteRequested`, `DeleteConfirmed`,
+  // `Completed`, or `Failed` from any state that is not terminal.
+  [QUICK_DELETE]: {
+    Started: "DeleteRequested",
+    DeleteRequested: "DeleteConfirmed",
+    DeleteConfirmed: "Completed",
+  },
 };
 
 export const isTerminal = (state: ActionState) =>
   state === "Completed" || state === "Failed";
 
 /** One step forward, or `Failed` from any state that is not terminal. */
-export function canTransition(from: ActionState, to: ActionState): boolean {
+export function canTransition(
+  from: ActionState,
+  to: ActionState,
+  action: QuickAction = QUICK_IGNORE_DELETE,
+): boolean {
   if (isTerminal(from)) return false;
-  return to === "Failed" || NEXT[from] === to;
+  return to === "Failed" || NEXT[action][from] === to;
 }
 
 /** Why an operation stopped. Stored as the `Failed` step's `errorCode`. */
@@ -110,8 +140,14 @@ export const ACTION_FAILURES: readonly ActionFailure[] = [
 
 export type ActionStep = "delete" | "ignore";
 
-/** The steps in the order they run. */
+/** The steps of Quick Ignore and Delete, in the order they run. */
 export const STEP_ORDER: readonly ActionStep[] = ["delete", "ignore"];
+
+/** The steps of each action, in the order they run. */
+export const ACTION_STEPS: Record<QuickAction, readonly ActionStep[]> = {
+  [QUICK_IGNORE_DELETE]: STEP_ORDER,
+  [QUICK_DELETE]: ["delete"],
+};
 
 export const STEP_STATES: Record<
   ActionStep,
@@ -239,16 +275,22 @@ function failureText(
 const stepText = (step: ActionStep, outcome: StepOutcome): Message =>
   message(`action.stepText.${step}.${outcome}`);
 
+/** The action a stored log names; a log without one is Ignore and Delete. */
+const actionOf = (log: { action?: string }): QuickAction =>
+  log.action === QUICK_DELETE ? QUICK_DELETE : QUICK_IGNORE_DELETE;
+
 /**
  * The notice for one operation, from its ActionLog steps alone (PRD Section
  * 21.2). It states what was done, what was not, why it stopped and the next
  * manual action. It never claims a rollback: nothing is undone. A finished
- * run names how the user can undo it on JoyClub.
+ * run names how the user can undo it on JoyClub. `action` picks the texts: a
+ * Delete-only run never names Ignore.
  */
 export function reportOperation(
-  log: Pick<ActionLog, "steps" | "updatedAt">,
+  log: Pick<ActionLog, "steps" | "updatedAt"> & { action?: string },
   now: number,
 ): OperationReport {
+  const action = actionOf(log);
   const steps = log.steps;
   const last = steps.at(-1);
   const lastState = last?.name as ActionState | undefined;
@@ -268,6 +310,8 @@ export function reportOperation(
         : !Number.isFinite(lastAt) || now - lastAt > staleAfterMs(lastState)
           ? "interrupted"
           : "running";
+  if (action === QUICK_DELETE)
+    return deleteReport(status, remove, ignore, failure);
   const lines: Message[] = [];
   if (status === "completed") {
     lines.push(message("action.report.finished"), stepText("delete", "done"));
@@ -309,6 +353,54 @@ export function reportOperation(
     if (remove !== "done") lines.push(message("action.next.delete"));
     if (ignore !== "done") lines.push(message("action.next.ignore"));
   }
+  return {
+    status,
+    ignore,
+    delete: remove,
+    ...(failure ? { failure } : {}),
+    lines,
+  };
+}
+
+/** The notice for a Delete-only run: the same facts, without Ignore. */
+function deleteReport(
+  status: OperationReport["status"],
+  remove: StepOutcome,
+  ignore: StepOutcome,
+  failure: ActionFailure | undefined,
+): OperationReport {
+  const lines: Message[] = [];
+  if (status === "completed") {
+    lines.push(
+      message("action.deleteReport.finished"),
+      stepText("delete", "done"),
+      message("action.deleteReport.undo"),
+    );
+    return { status, ignore, delete: remove, lines };
+  }
+  if (status === "running") {
+    lines.push(message("action.deleteReport.running"));
+    return { status, ignore, delete: remove, lines };
+  }
+  lines.push(
+    message(
+      status === "failed"
+        ? "action.deleteReport.stopped"
+        : "action.deleteReport.interrupted",
+    ),
+  );
+  if (failure) {
+    lines.push(failureText(failure, "delete", remove));
+    if (failure === "unverifiable") lines.push(message("action.next.showList"));
+  }
+  lines.push(stepText("delete", remove));
+  const untouched = remove === "not-done";
+  lines.push(
+    message(
+      untouched ? "action.report.nothingChanged" : "action.report.notUndone",
+    ),
+    message(untouched ? "action.self.delete" : "action.next.delete"),
+  );
   return {
     status,
     ignore,

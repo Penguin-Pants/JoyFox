@@ -266,7 +266,10 @@ Holds only the user's manual placement for one sender, with ID
 optional `ruleId` and the reasons as catalog messages (schema version 4).
 `conversationId` is optional, because the inbox shows no conversation ID.
 Clearing the placement deletes the record. Automatic placements are never
-stored; they are recomputed from the rule.
+stored; they are recomputed from the rule. "Mark qualified" stores `qualified`
+and "Mark as junk" stores `quarantined` (ADR 0017). The stored value stays
+`quarantined`; only its label reads "Junk", so no migration is needed and older
+exports still import.
 
 ## TrustSignal and snapshot capture (Milestone C)
 
@@ -320,11 +323,24 @@ database version change was needed.
 
 ## ActionLog (Milestone E, M9)
 
-One record per Quick Ignore and Delete run: `action` is `quick-ignore-delete`,
-`memberId` and an optional `conversationId` (the opaque `personal-<n>-<n>` from
-the conversation URL) name the target, and `steps` holds one entry per state
+One record per run of a conversation action. `action` names it:
+
+- `quick-ignore-delete`, Quick Ignore and Delete: `Started`, `DeleteRequested`,
+  `DeleteConfirmed`, `IgnoreRequested`, `IgnoreConfirmed`, `Completed`.
+- `quick-delete`, Delete alone (ADR 0017), from the "Delete" button or the trash
+  step of "Mark as junk": `Started`, `DeleteRequested`, `DeleteConfirmed`,
+  `Completed`. It uses the Delete step's identity check, step timeout and
+  failure codes.
+
+Either may end in `Failed` from any state that is not terminal. `memberId` and
+an optional `conversationId` (the opaque `personal-<n>-<n>` from the
+conversation URL) name the target, and `steps` holds one entry per state
 reached, in order, each with `name`, `ok`, `at` and, for `Failed`, the reason in
-`errorCode`. IDs are `action:<time>:<sequence>:<random>`.
+`errorCode`. IDs are `action:<time>:<sequence>:<random>`. Only one run per
+member goes at a time, whichever action: a start while one runs is refused as
+busy, and a newer run replaces an older one. A record with any other `action` is
+kept and shown as stored fields only. The new value needs no database version
+change.
 
 The service appends a step only when the state machine allows it (ADR 0008), so
 a log never shows an impossible sequence. `…Requested` is stored before JoyFox

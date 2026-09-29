@@ -66,11 +66,13 @@ if (hasVerifiedSelectors() && VERIFIED_HOSTS.includes(location.hostname)) {
     TEMPLATE_PICKER_KEY,
     true,
   );
-  // M9 is experimental and off unless set to `true` (ADR 0008, ADR 0011).
+  // "Ignore and Delete" is experimental and on unless set to `false`
+  // (owner decision, 2026-09-29, ADR 0017). Delete does not need it.
   const quickAction = new DiagnosticsFlag(
     () => runtimeSettingsArea.get([QUICK_ACTION_KEY]),
     storageEvents,
     QUICK_ACTION_KEY,
+    true,
   );
   // V1-4: on unless the user turned it off (PRD 13.3, ADR 0016).
   const messageCaching = new DiagnosticsFlag(
@@ -108,8 +110,14 @@ if (hasVerifiedSelectors() && VERIFIED_HOSTS.includes(location.hostname)) {
       messageCache.update(messageCaching.enabled);
   };
   const client = runtimeTriageClient();
+  const quick = new QuickIgnoreDelete(
+    document,
+    runtimeQuickActionClient(),
+    liveQuickActionDriver,
+  );
   const inbox = new InboxTriage(document, client);
-  const panel = new MemberPanel(document, client);
+  // "Mark as junk" on a conversation runs the page's Delete flow (C5).
+  const panel = new MemberPanel(document, client, quick);
   const notes = new MemberNotes(document, runtimeNotesClient());
   const picker = new TemplatePicker(document, runtimeTemplateClient());
   const searches = new SavedSearchBar(document, runtimeSavedSearchClient());
@@ -125,11 +133,6 @@ if (hasVerifiedSelectors() && VERIFIED_HOSTS.includes(location.hostname)) {
   const compatibility = new CompatibilityOverlay(
     document,
     runtimeCompatibilityClient(),
-  );
-  const quick = new QuickIgnoreDelete(
-    document,
-    runtimeQuickActionClient(),
-    liveQuickActionDriver,
   );
   // A language picked on the options page redraws every JoyFox surface in
   // this tab at once, with no reload. Unsaved input stays.
@@ -155,15 +158,16 @@ if (hasVerifiedSelectors() && VERIFIED_HOSTS.includes(location.hostname)) {
     else picker.leave();
   };
   const updateQuickAction = () => {
-    // Turning the flag off also stops a run before its next click.
-    if (!quickAction.enabled) {
-      quick.turnOff();
-      return;
-    }
-    quick.pageSeen();
+    // Turning the flag off removes "Ignore and Delete" and stops a run of it
+    // before its next click. Delete stays: it needs no flag (ADR 0017).
+    if (quickAction.enabled) {
+      quick.turnOn();
+      quick.pageSeen();
+    } else quick.turnOff();
     if (lastType === "conversation") quick.update();
     // A run handed off from a conversation continues here (ADR 0011).
-    else if (lastType === "profile") quick.updateProfile();
+    else if (lastType === "profile" && quickAction.enabled)
+      quick.updateProfile();
     else quick.leave();
   };
   let lastSummary = "";
@@ -247,7 +251,7 @@ if (hasVerifiedSelectors() && VERIFIED_HOSTS.includes(location.hostname)) {
       messageCache.reset();
       updateMessageCache();
     }
-    // A Quick Ignore and Delete run moved, in this tab or another one.
+    // A Delete or Ignore and Delete run moved, in this tab or another one.
     if (ACTION_REVISION_KEY in changes) quick.invalidate();
     if (ACTIVE_ACCOUNT_SETTING_KEY in changes) {
       inbox.accountChanged();

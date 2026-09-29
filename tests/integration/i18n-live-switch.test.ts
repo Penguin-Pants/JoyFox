@@ -487,7 +487,7 @@ describe("content surfaces (docs/i18n-spec.md, Sections 3.7 and 6)", () => {
     ).toHaveLength(1);
   });
 
-  it("redraws the member panel, notes, Ignore and Delete and the picker, keeping typed text", async () => {
+  it("redraws the member panel, notes, Delete, Ignore and Delete and the picker, keeping typed text", async () => {
     const client = await setUp();
     await trust.logOutcome(ACCOUNT, MEMBER, "positive");
     await triage.setOverride(ACCOUNT, MEMBER, "needs-review");
@@ -533,6 +533,7 @@ describe("content surfaces (docs/i18n-spec.md, Sections 3.7 and 6)", () => {
         Promise.resolve({
           status: "ok",
           accountId: ACCOUNT,
+          action: "quick-ignore-delete",
           conversationId: "personal-1234567-7654321",
           updatedAt: "2026-09-25T10:00:02.000Z",
           staleAfterMs: 120_000,
@@ -657,6 +658,21 @@ describe("content surfaces (docs/i18n-spec.md, Sections 3.7 and 6)", () => {
     expect(
       document.querySelector('[data-joyfox-ui="quick-action"]')?.textContent,
     ).toContain("„In den Papierkorb schieben“");
+    // The new labels in German: Details, Junk, the Mark and Delete buttons.
+    const buttons = Array.from(
+      document.querySelectorAll<HTMLButtonElement>("[data-joyfox-ui] button"),
+      (button) => button.textContent,
+    );
+    expect(buttons).toEqual(
+      expect.arrayContaining([
+        "Details",
+        "Als qualifiziert markieren",
+        "Als Junk markieren",
+        "Löschen",
+        "Ignorieren und löschen",
+      ]),
+    );
+    expect(buttons.join(" ")).not.toContain("verschieben");
     expect(leaks(joyfox())).toEqual([]);
   });
 });
