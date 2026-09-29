@@ -933,3 +933,31 @@ result stays as recorded.
      notice that the rest was not pasted.
 166. Switch the language to German and repeat items 141, 146, 151, 154 and 160.
      Confirm every new text is German.
+
+## Profile type filter on "My JOY" lists (V1-14)
+
+These items check the profile type filter (`docs/visitor-type-filter-spec.md`)
+on a Premium account.
+
+167. Open "Profilbesuche" (`/my_joy/visitors/`). Confirm one "Profile type" bar
+     with the unticked boxes Man, Woman, Couple and Unknown directly above the
+     cards, and that every card shows. Tick one type. Confirm only cards of that
+     type show, the grid has no gaps, the bar says "Showing X of Y loaded" and
+     "Scroll down to load more.", and, on a list longer than 40 cards, that
+     scrolling adds cards that are filtered too (a shorter list is complete and
+     loads no more). Repeat on "Matches", "Mögen mich", "Mag ich" and "Besuchte
+     Profile", moving with JoyClub's tabs, and confirm the ticked boxes stay
+     (spec AC-09, AC-18).
+168. On "Besuchte Profile", find a card without a profile type (seen there in
+     E5). Tick Woman: confirm it is hidden and the bar says "1 with unknown type
+     hidden" (or the number there is). Also tick Unknown: confirm it shows, with
+     "Type unknown" over its photo.
+169. With a type ticked, look at the end of the list. JoyClub puts up to 4 empty
+     filler cards there. Record whether they look wrong next to the filtered
+     cards (E5, open question 5).
+170. On JoyClub's light and dark theme, confirm the bar and the "Type unknown"
+     label are easy to read. Make the window narrow: confirm the bar wraps and
+     the page does not scroll sideways.
+171. Switch the language to German. Confirm the bar, the count, the hint and the
+     label are German ("Profiltyp", "Mann", "Frau", "Paar", "Unbekannt", "Typ
+     unbekannt"), and that the ticked boxes stay.

@@ -412,6 +412,20 @@ stay as they are.
 | `eventFilter.badge` | JoyFox | JoyFox |
 | `eventFilter.hasNote` | note | Notiz |
 
+## typeFilter
+
+| Key | English | Deutsch |
+| --- | --- | --- |
+| `typeFilter.legend` | Profile type | Profiltyp |
+| `typeFilter.man` | Man | Mann |
+| `typeFilter.woman` | Woman | Frau |
+| `typeFilter.couple` | Couple | Paar |
+| `typeFilter.unknown` | Unknown | Unbekannt |
+| `typeFilter.count` | Showing {shown} of {loaded} loaded | {shown} von {loaded} geladenen angezeigt |
+| `typeFilter.unknownHidden` | {count} with unknown type hidden | {count} mit unbekanntem Typ ausgeblendet |
+| `typeFilter.scrollHint` | Scroll down to load more. | Nach unten scrollen, um mehr zu laden. |
+| `typeFilter.unknownMark` | Type unknown | Typ unbekannt |
+
 ## messages
 
 | Key | English | Deutsch |

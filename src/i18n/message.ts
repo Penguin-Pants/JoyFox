@@ -172,6 +172,8 @@ export const MESSAGE_PARAMS: {
   "events.past": { when: "string" },
   "events.venue": { venue: "string" },
   "eventFilter.count": { shown: "number", loaded: "number" },
+  "typeFilter.count": { shown: "number", loaded: "number" },
+  "typeFilter.unknownHidden": { count: "number" },
   "compat.shared": { count: "number" },
   "triage.sharedEvent.attending": { event: "string", when: "string" },
   "triage.sharedEvent.attended": { event: "string", when: "string" },

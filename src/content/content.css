@@ -681,6 +681,45 @@ button.joyfox-badge {
   margin: 0.25em 0 0;
 }
 
+/* V1-14: the profile type filter hides the other types' cards, in place. */
+[data-joyfox-type-filter="on"] [data-joyfox-type-match="no"] {
+  display: none !important;
+}
+
+.joyfox-type-filter {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--joyfox-space);
+  align-items: center;
+}
+
+.joyfox-type-filter__group {
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.joyfox-type-filter__legend {
+  float: left;
+  margin-inline-end: var(--joyfox-space);
+  padding: 0;
+  font-weight: 700;
+}
+
+.joyfox-type-filter__option {
+  display: inline-flex;
+  gap: 0.25em;
+  align-items: center;
+  margin-inline-end: var(--joyfox-space);
+  white-space: nowrap;
+}
+
+.joyfox-type-filter__count:empty,
+.joyfox-type-filter__hint:empty {
+  display: none;
+}
+
 /*
  * V1-2: a tag the viewer shares, inside JoyClub's own checklist. The label
  * is in the tag's shadow root, so the host element is framed. The frame is a
@@ -915,7 +954,8 @@ button.joyfox-badge {
  * on any image and do not take the card's link colour.
  */
 .joyfox-card-line[slot="media-overlay"],
-.joyfox-compat-badge[slot="badge-top-right"] {
+.joyfox-compat-badge[slot="badge-top-right"],
+.joyfox-type-unknown[slot="badge-top-right"] {
   color: #fff;
   background: rgb(0 0 0 / 70%);
 }
