@@ -105,12 +105,14 @@ The user is the owner of a JoyClub Premium account who uses JoyFox.
 - **Default:** all unticked. Unticked all means no filter.
 - **Feedback:** the count line changes at once on each tick and each added card.
 - **Scroll hint:** "Scroll down to load more." ("Nach unten scrollen, um mehr zu
-  laden.") in the bar, next to the count, whenever at least one box is ticked.
-  It is not placed in JoyClub's grid.
-- **Loading:** the bar appears only after the grid root has rendered. Before
+  laden.") in the bar, next to the count, whenever at least one box is ticked,
+  on each page where the evidence shows that scrolling loads more cards. It is
+  not placed in JoyClub's grid.
+- **Loading:** the bar appears only after the page root has rendered. Before
   that, nothing shows.
-- **Empty grid:** when the list has no cards and a box is ticked, the count
-  reads "Showing 0 of 0 loaded". JoyFox adds no other empty-state text.
+- **Empty list:** when the list has no cards (an empty grid, or JoyClub's
+  empty-state element in place of the grid) and a box is ticked, the count reads
+  "Showing 0 of 0 loaded". JoyFox adds no other empty-state text.
 - **All loaded cards hidden:** the count reads "Showing 0 of Y loaded", with the
   scroll hint.
 - **Unknown mark:** a short text label "Type unknown" ("Typ unbekannt") on the
@@ -131,30 +133,39 @@ The user is the owner of a JoyClub Premium account who uses JoyFox.
   full page load or client-side. A page is detected only when its registry entry
   is verified from that file.
 - **FR-02 Detection.** JoyFox detects the five paths in the table above on
-  `www.joyclub.de` only, as one page type, when the evidence-verified root is
-  present.
+  `www.joyclub.de` only, as one page type, when the evidence-verified page root
+  is present. The page root is an element that exists whether the list has cards
+  or not; the grid is a separate field that can be absent.
 - **FR-03 Bar.** On a detected page, exactly one JoyFox "Profile type" bar, with
   the four checkboxes Man, Woman, Couple and Unknown, is placed directly before
-  the grid root. It is removed when the user leaves the five pages.
+  the grid, or before JoyClub's empty-state element when there is no grid. It is
+  removed when the user leaves the five pages.
 - **FR-04 Type reading.** A card's type comes only from its evidence-verified
   profile type code, mapped with `PROFILE_TYPE_CODE_MEANING`: `1` man, `2`
   woman, `3` couple. A missing icon, a missing or non-numeric code, or any other
   code reads as unknown. If the evidence shows that a card draws a couple in
-  another form (for example two icons), the evidence file defines the rule, and
-  JoyFox never infers it.
+  another form (for example two icons), the evidence file defines the rule;
+  JoyFox then reads every relevant icon on the card, never only the first, and
+  never infers the rule.
 - **FR-05 No selection.** With no box ticked, JoyFox hides no card, marks no
   card and shows no count and no hint.
 - **FR-06 Selection.** With one or more boxes ticked, a card shows only when its
   type (man, woman, couple or unknown) is ticked. Each visible card of unknown
   type carries the "Type unknown" mark.
 - **FR-07 Count.** With one or more boxes ticked, the bar shows "Showing X of Y
-  loaded", where Y is the number of cards in the grid and X the number not
-  hidden. When Unknown is not ticked and N cards of unknown type are hidden, N
-  more than 0, it adds "N with unknown type hidden".
+  loaded", where Y is the number of rendered cards in the grid and X the number
+  not hidden. A slot that holds a loading placeholder (evidence-verified
+  selector) and no card is not classified, counted, hidden or marked. When
+  Unknown is not ticked and N cards of unknown type are hidden, N more than 0,
+  it adds "N with unknown type hidden".
 - **FR-16 Scroll hint.** With one or more boxes ticked, the bar shows "Scroll
-  down to load more." With no box ticked, it does not.
+  down to load more." on each page where the evidence shows that scrolling loads
+  more cards. With no box ticked, or on a page that the evidence shows loads no
+  more cards by scrolling (a button, page numbers or none), it does not.
 - **FR-08 Added cards.** Cards that JoyClub adds or changes in place are
   filtered and counted within one navigation-coordinator cycle of the change.
+  This includes a type code that changes inside a card's shadow root, which the
+  document-level observer cannot see (plan step 4).
 - **FR-09 Tab persistence.** The ticked types are kept in the tab's session
   storage under one key shared by the five pages, as a list of type names only.
   A missing, blocked or invalid value means no box is ticked. Unticking all
@@ -190,7 +201,9 @@ The user is the owner of a JoyClub Premium account who uses JoyFox.
 | Stored value holds an unknown type name                     | That name is ignored. If none is valid, no box is ticked.                                    |
 | JoyClub re-renders the grid (new root element)              | JoyFox drops its marks from the old root and applies the filter to the new one.              |
 | JoyClub's scroll code loads more because the grid got short | JoyFox does not prevent or cause it. New cards are filtered.                                 |
-| Grid root never renders                                     | No bar. Nothing else changes.                                                                |
+| Page root never renders                                     | No bar. Nothing else changes.                                                                |
+| Loading placeholders in the grid                            | Not classified, counted, hidden or marked (FR-07).                                           |
+| Tab duplicated, or opened from a filtered tab               | The browser copies session storage, so the new tab starts with the copied choice.            |
 | JoyFox account switch                                       | No effect: the filter holds no account data.                                                 |
 
 ## Technical constraints
@@ -214,14 +227,15 @@ Confirmed from the repository:
 
 ## Acceptance criteria
 
-- **AC-01** On each of the five pages, after the grid renders, exactly one
+- **AC-01** On each of the five pages, after the page root renders, exactly one
   "Profile type" bar with unticked Man, Woman, Couple and Unknown checkboxes is
   directly before the grid.
 - **AC-02** With no box ticked, every card is visible, no card has a JoyFox mark
   and the bar shows no count and no scroll hint.
 - **AC-03** With a grid of 2 man, 2 woman, 2 couple and 1 unknown-code card,
   ticking Woman shows only the 2 woman cards, marks no card and shows "Showing 2
-  of 7 loaded", "1 with unknown type hidden" and "Scroll down to load more."
+  of 7 loaded", "1 with unknown type hidden" and, on a page loaded by scrolling,
+  "Scroll down to load more."
 - **AC-04** Ticking Woman and Couple in the same grid shows 4 cards and shows
   "Showing 4 of 7 loaded" and "1 with unknown type hidden".
 - **AC-05** Ticking Woman and Unknown in the same grid shows 3 cards, marks only
@@ -233,11 +247,13 @@ Confirmed from the repository:
   grid shows the 2 new woman cards, hides the new man card and shows "Showing 4
   of 10 loaded".
 - **AC-08** A card whose code changes in place from `1` to `2` while Woman is
-  ticked becomes visible and the count updates.
+  ticked becomes visible and the count updates, also when the code is inside the
+  card's open shadow root.
 - **AC-09** With Woman and Couple ticked, loading another of the five pages in
   the same tab shows the bar with Woman and Couple ticked and the filter
   applied.
-- **AC-10** A new tab on any of the five pages starts with no box ticked.
+- **AC-10** A tab opened on its own (a new tab, not duplicated and not opened
+  from a filtered tab) on any of the five pages starts with no box ticked.
 - **AC-11** With session storage throwing on access, ticking a box still filters
   the page and no error shows.
 - **AC-12** A stored value of `["woman","robot"]` starts with only Woman ticked;
@@ -253,6 +269,15 @@ Confirmed from the repository:
   `aria-live="polite"` region.
 - **AC-17** On a page outside the five paths, and on a host other than
   `www.joyclub.de`, no bar appears.
+- **AC-20** With Woman ticked and a list that shows JoyClub's empty state (no
+  grid), the bar shows with Woman ticked and "Showing 0 of 0 loaded".
+- **AC-21** With 2 woman cards and 2 loading placeholders in the grid and Woman
+  ticked, the bar shows "Showing 2 of 2 loaded" and no placeholder is hidden or
+  marked.
+- **AC-22** On a page whose evidence shows no scroll loading, the bar never
+  shows the scroll hint.
+- **AC-23** A couple drawn as the evidence defines (one code or several icons)
+  reads as couple, never as the type of its first icon.
 - **AC-18** Live check: on the owner's Premium account, ticking a type on each
   of the five pages hides only cards of other known types, the grid shows no
   empty gaps, and scrolling filters new cards.
@@ -265,7 +290,7 @@ Confirmed from the repository:
 - **Unit:** type reading from a card (codes 1, 2, 3, other, missing, two icons);
   match decision; session value encode and decode with invalid input.
 - **Integration (jsdom):** a synthetic fixture per page built from the evidence;
-  AC-01 to AC-17.
+  AC-01 to AC-17 and AC-20 to AC-23.
 - **Regression:** existing page-detection tests still pass; the network
   isolation test covers the new module; the `data-v-*` test covers the new
   selectors.
@@ -327,14 +352,18 @@ Selectors below in angle brackets come from that evidence.
 2. **Registry** (`src/selectors/registry.ts`). Add the page type `my-joy-list`:
    `status: "verified"`, `evidence: "17-my-joy-lists.md"`,
    `path: "^/my_joy/(?:visitors|visits|voting/(?:match|top|fav))/?$"`,
-   `root: <grid root>`, fields `grid`, `slot`, `card`, `genderCode`,
-   `markPlace`. Add it to `DETECTION_ORDER` in `src/content/page-detector.ts`. A
-   page that differs in the evidence leaves its path out of the pattern.
+   `root: <page root>` (present with or without cards), fields `grid`,
+   `emptyState`, `slot`, `card`, `placeholder`, `genderCode`, `markPlace`, and a
+   per-path list of the pages that load by scrolling. Add it to
+   `DETECTION_ORDER` in `src/content/page-detector.ts`. A page that differs in
+   the evidence leaves its path out of the pattern.
 3. **Type reading** (`src/extraction/joyclub.ts`). Add
    `readCardProfileType(card)` that reads the code with the existing
    `codeAttribute` helper (in the card's open shadow root if the evidence says
    so) and maps it with `profileTypeFromCode`. It returns `"unknown"` for any
-   other state.
+   other state. If the evidence draws a couple as several icons, it reads all of
+   them with `querySelectorAll` and applies the evidence rule; `codeAttribute`
+   alone reads only the first match.
 4. **Filter module** (new `src/content/profile-type-filter.ts`), modeled on
    `EventListFilter`, with no background client:
    - `update()`, `leave()`, `localeChanged()`; an injectable session store.
@@ -350,6 +379,14 @@ Selectors below in angle brackets come from that evidence.
      the `joyfox-type-unknown` mark. Write attributes, marks and count text only
      when they change, so JoyFox's own writes do not start endless passes.
    - A new grid root: unmark the old one first.
+   - Skip slots that hold a placeholder and no card (FR-07).
+   - If the type code sits only inside a card's open shadow root, the
+     coordinator's document-level `MutationObserver` cannot see it change. Then
+     the filter observes each card's shadow root for `universal-gender`
+     attribute changes (one observer per root, dropped on `leave()`) and calls
+     `coordinator.refresh()`. If the card host mirrors the code in an attribute,
+     read that instead and add no observer.
+   - Show the hint only on paths the registry lists as scroll-loaded.
 5. **CSS** (`src/content/content.css`).
    `[data-joyfox-type-filter="on"] [data-joyfox-type-match="no"] { display: none !important; }`,
    bar styles on `joyfox-panel` with `flex-wrap: wrap`, and a mark style that
@@ -393,6 +430,13 @@ Confirmed points, built into the steps above:
   root.
 - New German text needs the owner's review (`docs/i18n-spec.md`). Step 7 names
   it.
+
+Found by review on PR 96 and fixed (2026-09-29): an empty list without a grid
+failed detection (page root added); a duplicated or opener-created tab copies
+session storage (AC-10 narrowed); `codeAttribute` reads only the first icon
+(step 3); shadow-root code changes do not reach the coordinator (step 4);
+loading placeholders were counted (FR-07); the scroll hint was shown on pages
+that may not load by scrolling (FR-16).
 
 Removed as unsupported: a performance concern for large grids. The pass is one
 `querySelectorAll` per debounced mutation, the same cost as the event filter.

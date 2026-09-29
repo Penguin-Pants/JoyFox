@@ -66,9 +66,10 @@ If a page has no tab to it, open it by URL.
 For **each** of the five pages, record:
 
 1. **Page signal.** The final URL path after any redirect (sanitized), the page
-   heading text, and a unique root: a stable element or `data-e2e` hook that
-   exists only when the card grid has rendered. Give its `querySelectorAll`
-   count.
+   heading text, and a unique page root: a stable element or `data-e2e` hook
+   that exists once the list area has rendered, **whether the list has cards or
+   not** (check on an empty list if one of the five pages is empty). Give its
+   `querySelectorAll` count.
 2. **Grid.** The lowest element that holds every card. Its selector, its
    `getComputedStyle(...).display` value (`grid`, `flex`, `block` or other) and
    whether it is the same element type on all five pages.
@@ -85,7 +86,8 @@ For **each** of the five pages, record:
      its shadow root? Its attribute `universal-gender` and the set of codes seen
      on the page.
    - Is the type also, or only, a card attribute (for example a `gender` or
-     `universal-gender` attribute on the card element)?
+     `universal-gender` attribute on the card element)? This matters: JoyFox
+     cannot watch changes inside a shadow root as easily as on the card itself.
    - **Key question: how is a couple drawn?** One icon with one code (which
      code), or two icons? Report one couple card's structure, sanitized.
    - Is the type also shown as text (for example "Paar", "Mann", "Frau")? Where?
@@ -103,10 +105,11 @@ For **each** of the five pages, record:
    click anything except the tabs to the other four pages.**
 9. **Loading.** Scroll down once or twice. Do more cards appear in the same
    grid? Does the URL change? Is there a "more" button or page numbers? Do
-   placeholder or skeleton cards appear first (their selector)? Does the grid
-   root stay the same element or get replaced?
+   placeholder or skeleton cards appear first? If so, their selector, and
+   whether they sit in the same kind of slot as a card. Does the grid root stay
+   the same element or get replaced?
 10. **Empty list.** If a page has no cards, what it shows instead (selector and
-    label text).
+    label text), and whether the grid element is still in the page.
 
 **Navigation type** for each move between the five pages. On every page, as soon
 as it opens, run once:
