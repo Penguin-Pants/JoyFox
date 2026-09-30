@@ -1009,6 +1009,8 @@ earlier items that name "Quarantined", "Why and move", "Move to …" or "Keep in
      markieren", "Als Junk markieren" and "Löschen", and that no JoyFox text
      says "Quarantined" or "Quarantäne" (D6, D14).
 
+**Result (2026-09-30): passed.** The project owner confirmed items 172 to 181.
+
 ## JoyFox bar: compact buttons and collapse (owner request, 2026-09-29)
 
 182. Open a ClubMail conversation. Confirm the JoyFox strip shows "Delete" and
