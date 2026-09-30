@@ -188,7 +188,7 @@ A "Delete" button on every ClubMail conversation moves it to JoyClub's trash in
 one click, then returns to the ClubMail list after 2 seconds. It needs no
 setting. It works only while the ClubMail list shows the conversation beside it;
 otherwise it is greyed out and says why (ADR 0017, `docs/manual-acceptance.md`,
-items 172 to 181).
+items 172 to 181, accepted live on 2026-09-30).
 
 Quick Ignore and Delete (M9) has its state machine, action log and on-screen
 notice. Its live driver follows F7's evidence: Delete on the conversation page,
