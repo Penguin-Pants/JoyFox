@@ -6,11 +6,11 @@ Your job is to convert the existing product and engineering specifications in th
 
 Before changing code, read these project documents in full:
 
-1. `JoyClub Enhancement Extension Product Requirements Document.md`
-2. `Technical Design.md`
-3. `Task Backlog.md`
-4. `Test Strategy.md`
-5. the current Engineering Build Plan, if present in the repository
+1. `docs/PRD.md`
+2. `docs/Technical Design.md`
+3. `docs/Task Backlog.md`
+4. `docs/Test Strategy.md`
+5. `docs/Engineering-Build-Plan.md`
 
 Treat them as the product source of truth.
 
