@@ -1,7 +1,7 @@
 import { execFileSync } from "node:child_process";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { createRequire } from "node:module";
-import { extname } from "node:path";
+import { extname, isAbsolute, join, relative, resolve, sep } from "node:path";
 import process from "node:process";
 import { URL } from "node:url";
 import { build } from "esbuild";
@@ -145,9 +145,15 @@ async function main() {
         };
       }
       try {
+        const baseFull = resolve(DIST);
+        const target = join(baseFull, file);
+        const rel = relative(baseFull, target);
+        if (rel === ".." || rel.startsWith(`..${sep}`) || isAbsolute(rel)) {
+          throw new Error("Invalid file path");
+        }
         return {
           contentType: TYPES[extname(file)],
-          body: await readFile(`${DIST}/${file}`),
+          body: await readFile(target),
         };
       } catch {
         return { status: 404, body: "" };
