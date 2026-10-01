@@ -1,12 +1,13 @@
+/// <reference types="node" />
 import { describe, expect, it } from "vitest";
-import { isAbsolute, join, relative, resolve, sep } from "path";
+import { isAbsolute, join, relative, resolve, sep } from "node:path";
 
 /**
  * Security tests for file inclusion attack mitigation in capture.mjs.
- * 
+ *
  * The vulnerability being tested: path traversal attacks via the file parameter
  * that could allow reading arbitrary files outside the intended DIST directory.
- * 
+ *
  * The mitigation validates that resolved paths stay within the base directory
  * by checking if the relative path starts with ".." or is absolute.
  */
@@ -23,7 +24,7 @@ describe("Path traversal protection in capture.mjs file serving", () => {
       const baseFull = resolve(basePath);
       const target = join(baseFull, file);
       const rel = relative(baseFull, target);
-      
+
       // Security check: reject paths that escape the base directory
       if (rel === ".." || rel.startsWith(`..${sep}`) || isAbsolute(rel)) {
         throw new Error("Invalid file path");
@@ -37,16 +38,19 @@ describe("Path traversal protection in capture.mjs file serving", () => {
   /**
    * Simulates the file serving logic with security checks
    */
-  async function serveFile(basePath: string, file: string): Promise<{ status: number; body: string }> {
+  async function serveFile(
+    basePath: string,
+    file: string,
+  ): Promise<{ status: number; body: string }> {
     try {
       const baseFull = resolve(basePath);
       const target = join(baseFull, file);
       const rel = relative(baseFull, target);
-      
+
       if (rel === ".." || rel.startsWith(`..${sep}`) || isAbsolute(rel)) {
         throw new Error("Invalid file path");
       }
-      
+
       // In the real code, this would read the file
       // For testing, we just return success if validation passed
       return { status: 200, body: "file content" };
@@ -135,7 +139,7 @@ describe("Path traversal protection in capture.mjs file serving", () => {
       const maliciousFile = "../package.json";
       const target = join(baseFull, maliciousFile);
       const rel = relative(baseFull, target);
-      
+
       // The key security property: relative path starts with ".."
       expect(rel.startsWith("..")).toBe(true);
     });
@@ -145,7 +149,7 @@ describe("Path traversal protection in capture.mjs file serving", () => {
       const safeFile = "options.html";
       const target = join(baseFull, safeFile);
       const rel = relative(baseFull, target);
-      
+
       // Safe paths should not start with ".." and should not be absolute
       expect(rel.startsWith("..")).toBe(false);
       expect(isAbsolute(rel)).toBe(false);
@@ -156,7 +160,7 @@ describe("Path traversal protection in capture.mjs file serving", () => {
       const baseFull = resolve(DIST);
       const maliciousFile = "../package.json";
       const target = join(baseFull, maliciousFile);
-      
+
       // Without validation, join() would create a path outside DIST
       expect(target).not.toContain(baseFull);
       expect(target.endsWith("package.json")).toBe(true);
