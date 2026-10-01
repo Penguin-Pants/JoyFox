@@ -894,6 +894,14 @@ stay as they are.
 | `data.retentionSaved` | Saved. 1 older snapshot was / {deleted} older snapshots were deleted. | Gespeichert. 1 ältere Momentaufnahme wurde / {deleted} ältere Momentaufnahmen wurden gelöscht. |
 | `data.retentionInvalid` | Enter a whole number from {minimum} to {maximum}. Nothing was changed. | Gib eine ganze Zahl von {minimum} bis {maximum} ein. Es wurde nichts geändert. |
 | `data.retentionFailed` | JoyFox could not save the setting. The field shows the number in use now. Try again. | JoyFox konnte die Einstellung nicht speichern. Das Feld zeigt die Zahl, die jetzt gilt. Versuche es noch einmal. |
+| `data.reminderLabel` | Remind me to export all data after (days) | An den Export aller Daten erinnern nach (Tagen) |
+| `data.reminderHint` | JoyFox data stays in this browser profile, also when you close the browser. If you remove JoyFox or lose the profile, the data is gone, so a full export is your backup. This page asks for one when the last full export is older than this number of days. 0 turns the reminder off. From {minimum} to {maximum}; the default is {default}. Click "Save" to apply. | JoyFox-Daten bleiben in diesem Browserprofil, auch wenn du den Browser schließt. Wenn du JoyFox entfernst oder das Profil verlierst, sind die Daten weg. Ein vollständiger Export ist deine Sicherung. Diese Seite bittet um einen, wenn der letzte vollständige Export älter als diese Zahl von Tagen ist. 0 schaltet die Erinnerung aus. Von {minimum} bis {maximum}; Standard ist {default}. Klicke auf „Speichern“, um die Zahl zu übernehmen. |
+| `data.reminderSave` | Save | Speichern |
+| `data.reminderSaved` | Saved. JoyFox reminds you 1 day / {days} days after the last full export. | Gespeichert. JoyFox erinnert dich 1 Tag / {days} Tage nach dem letzten vollständigen Export. |
+| `data.reminderInvalid` | Enter a whole number from {minimum} to {maximum}. Nothing was changed. | Gib eine ganze Zahl von {minimum} bis {maximum} ein. Es wurde nichts geändert. |
+| `data.reminderNever` | You have not exported all JoyFox data yet. If you remove JoyFox or lose this browser profile, the data is gone. Click "Export all JoyFox data (JSON)" to save a backup. | Du hast noch nicht alle JoyFox-Daten exportiert. Wenn du JoyFox entfernst oder dieses Browserprofil verlierst, sind die Daten weg. Klicke auf „Alle JoyFox-Daten exportieren (JSON)“, um eine Sicherung zu speichern. |
+| `data.reminderDue` | Your last full export was 1 day ago / {days} days ago. If you remove JoyFox or lose this browser profile, newer data is gone. Click "Export all JoyFox data (JSON)" to save a backup. | Dein letzter vollständiger Export war vor 1 Tag / vor {days} Tagen. Wenn du JoyFox entfernst oder dieses Browserprofil verlierst, sind neuere Daten weg. Klicke auf „Alle JoyFox-Daten exportieren (JSON)“, um eine Sicherung zu speichern. |
+| `data.lastExport` | Last full export: 1 day ago / {days} days ago. | Letzter vollständiger Export: vor 1 Tag / vor {days} Tagen. |
 | `data.exportAll` | Export all JoyFox data (JSON) | Alle JoyFox-Daten exportieren (JSON) |
 | `data.exportedAll` | Export of all JoyFox data created. | Der Export aller JoyFox-Daten wurde erstellt. |
 | `data.deleteEverything` | Delete all JoyFox data | Alle JoyFox-Daten löschen |
@@ -924,6 +932,7 @@ stay as they are.
 | `data.setting.templatePicker` | template picker | Vorlagenauswahl |
 | `data.setting.sharedEventException` | shared-event exception | Ausnahme für gemeinsame Events |
 | `data.setting.snapshotRetention` | snapshots kept per member | Momentaufnahmen je Mitglied |
+| `data.setting.exportReminder` | export reminder | Export-Erinnerung |
 | `data.setting.diagnostics` | diagnostics | Diagnose |
 | `data.import.settingsUnknown` | The file also holds settings that this version of JoyFox does not know. They were not imported. | Die Datei enthält außerdem Einstellungen, die diese JoyFox-Version nicht kennt. Sie wurden nicht importiert. |
 | `data.import.settingsSkipped` | Settings in the file that are never imported (they switch features on): {keys}. | Einstellungen in der Datei, die nie importiert werden (sie schalten Funktionen ein): {keys}. |

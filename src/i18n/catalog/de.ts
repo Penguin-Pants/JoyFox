@@ -1064,6 +1064,33 @@ export const de: Catalog = {
     `Gib eine ganze Zahl von ${f.number(p.minimum)} bis ${f.number(p.maximum)} ein. Es wurde nichts geändert.`,
   "data.retentionFailed":
     "JoyFox konnte die Einstellung nicht speichern. Das Feld zeigt die Zahl, die jetzt gilt. Versuche es noch einmal.",
+  "data.reminderLabel": "An den Export aller Daten erinnern nach (Tagen)",
+  "data.reminderHint": (p, f) =>
+    `JoyFox-Daten bleiben in diesem Browserprofil, auch wenn du den Browser schließt. Wenn du JoyFox entfernst oder das Profil verlierst, sind die Daten weg. Ein vollständiger Export ist deine Sicherung. Diese Seite bittet um einen, wenn der letzte vollständige Export älter als diese Zahl von Tagen ist. 0 schaltet die Erinnerung aus. Von ${f.number(p.minimum)} bis ${f.number(p.maximum)}; Standard ist ${f.number(p.default)}. Klicke auf „Speichern“, um die Zahl zu übernehmen.`,
+  "data.reminderSave": "Speichern",
+  "data.reminderSaved": (p, f) =>
+    p.days === 0
+      ? "Gespeichert. Die Export-Erinnerung ist aus."
+      : `Gespeichert. JoyFox erinnert dich ${f.plural(p.days, {
+          one: "1 Tag",
+          other: `${f.number(p.days)} Tage`,
+        })} nach dem letzten vollständigen Export.`,
+  "data.reminderInvalid": (p, f) =>
+    `Gib eine ganze Zahl von ${f.number(p.minimum)} bis ${f.number(p.maximum)} ein. Es wurde nichts geändert.`,
+  "data.reminderNever":
+    "Du hast noch nicht alle JoyFox-Daten exportiert. Wenn du JoyFox entfernst oder dieses Browserprofil verlierst, sind die Daten weg. Klicke auf „Alle JoyFox-Daten exportieren (JSON)“, um eine Sicherung zu speichern.",
+  "data.reminderDue": (p, f) =>
+    `Dein letzter vollständiger Export war ${f.plural(p.days, {
+      one: "vor 1 Tag",
+      other: `vor ${f.number(p.days)} Tagen`,
+    })}. Wenn du JoyFox entfernst oder dieses Browserprofil verlierst, sind neuere Daten weg. Klicke auf „Alle JoyFox-Daten exportieren (JSON)“, um eine Sicherung zu speichern.`,
+  "data.lastExport": (p, f) =>
+    p.days === 0
+      ? "Letzter vollständiger Export: heute."
+      : `Letzter vollständiger Export: ${f.plural(p.days, {
+          one: "vor 1 Tag",
+          other: `vor ${f.number(p.days)} Tagen`,
+        })}.`,
   "data.exportAll": "Alle JoyFox-Daten exportieren (JSON)",
   "data.exportedAll": "Der Export aller JoyFox-Daten wurde erstellt.",
   "data.deleteEverything": "Alle JoyFox-Daten löschen",
@@ -1107,6 +1134,7 @@ export const de: Catalog = {
   "data.setting.templatePicker": "Vorlagenauswahl",
   "data.setting.sharedEventException": "Ausnahme für gemeinsame Events",
   "data.setting.snapshotRetention": "Momentaufnahmen je Mitglied",
+  "data.setting.exportReminder": "Export-Erinnerung",
   "data.setting.diagnostics": "Diagnose",
   "data.import.settingsUnknown":
     "Die Datei enthält außerdem Einstellungen, die diese JoyFox-Version nicht kennt. Sie wurden nicht importiert.",

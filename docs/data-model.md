@@ -296,6 +296,12 @@ the repository layer (`src/storage/repositories.ts`) and `DataService`
   `settings` object with every `storage.local` key.
 - Both are indented JSON. `storageKey`, an internal key, is never exported. No
   passphrase exists to export (SyncConfig refuses one).
+- **Export reminder**: each full export sets `joyfox.lastExportAt` (ISO date) in
+  `storage.local`. "Your data" asks for a full export when none was made or the
+  last one is older than `joyfox.exportReminderDays` (default 14, 0 to 365, 0
+  turns it off; `src/storage/export-reminder.ts`). An account export does not
+  count. Import takes the days setting but never the last export time, which
+  describes the browser that made the file.
 - **Delete record** and **delete entity** act in one account. **Delete account
   data** removes every record of the account except its ExtensionAccount record.
   The account record is removed only with the whole account (Accounts panel).

@@ -475,6 +475,74 @@ describe("M8 data panel", () => {
     );
   });
 
+  it("reminds to export everything until a full export is made", async () => {
+    const reminder = () => root.querySelector(".joyfox-data__reminder");
+    expect(reminder()?.textContent).toBe(
+      'You have not exported all JoyFox data yet. If you remove JoyFox or lose this browser profile, the data is gone. Click "Export all JoyFox data (JSON)" to save a backup.',
+    );
+    // An account export is not a backup of everything.
+    root.querySelector<HTMLButtonElement>(".joyfox-data__export")!.click();
+    await settle(() => saved.length === 1);
+    await panel.render();
+    expect(reminder()).not.toBeNull();
+    root.querySelector<HTMLButtonElement>(".joyfox-data__export-all")!.click();
+    await settle(() => saved.length === 2 && reminder() === null);
+    expect(
+      Date.parse(settings.items.get("joyfox.lastExportAt") as string),
+    ).not.toBeNaN();
+    expect(text()).toContain("Last full export: today.");
+  });
+
+  it("reminds again when the last full export is older than the set days", async () => {
+    const daysAgo = (days: number) =>
+      new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString();
+    await settings.set({ "joyfox.lastExportAt": daysAgo(13) });
+    await panel.render();
+    expect(root.querySelector(".joyfox-data__reminder")).toBeNull();
+    expect(text()).toContain("Last full export: 13 days ago.");
+    await settings.set({ "joyfox.lastExportAt": daysAgo(20) });
+    await panel.render();
+    expect(root.querySelector(".joyfox-data__reminder")?.textContent).toBe(
+      'Your last full export was 20 days ago. If you remove JoyFox or lose this browser profile, newer data is gone. Click "Export all JoyFox data (JSON)" to save a backup.',
+    );
+  });
+
+  it("sets the export reminder days, and 0 turns the reminder off", async () => {
+    const input = () =>
+      root.querySelector<HTMLInputElement>("#joyfox-data-export-reminder")!;
+    const save = () =>
+      root.querySelector<HTMLButtonElement>(".joyfox-data__reminder-save")!;
+    expect(input().value).toBe("14");
+    expect(
+      root.querySelector("label[for='joyfox-data-export-reminder']")
+        ?.textContent,
+    ).toBe("Remind me to export all data after (days)");
+    expect(input().getAttribute("aria-describedby")).toBe(
+      "joyfox-data-export-reminder-hint",
+    );
+    input().value = "400";
+    save().click();
+    await settle(
+      () => status()?.textContent?.includes("whole number") ?? false,
+    );
+    expect(status()?.textContent).toBe(
+      "Enter a whole number from 0 to 365. Nothing was changed.",
+    );
+    expect(settings.items.has("joyfox.exportReminderDays")).toBe(false);
+    input().value = "0";
+    save().click();
+    await settle(() => root.querySelector(".joyfox-data__reminder") === null);
+    expect(status()?.textContent).toBe("Saved. The export reminder is off.");
+    expect(settings.items.get("joyfox.exportReminderDays")).toBe(0);
+    expect(input().value).toBe("0");
+    input().value = "30";
+    save().click();
+    await settle(() => root.querySelector(".joyfox-data__reminder") !== null);
+    expect(status()?.textContent).toBe(
+      "Saved. JoyFox reminds you 30 days after the last full export.",
+    );
+  });
+
   it("exports the inspected account and everything as JSON files", async () => {
     root.querySelector<HTMLButtonElement>(".joyfox-data__export")!.click();
     await settle(() => saved.length === 1);

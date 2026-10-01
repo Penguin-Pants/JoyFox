@@ -30,6 +30,15 @@ import {
   type FullDataExport,
 } from "../storage/repositories";
 import {
+  EXPORT_REMINDER_KEY,
+  isExportReminderDays,
+  LAST_EXPORT_KEY,
+  MAX_EXPORT_REMINDER_DAYS,
+  MIN_EXPORT_REMINDER_DAYS,
+  readExportReminder,
+  type ExportReminder,
+} from "../storage/export-reminder";
+import {
   isSnapshotRetention,
   MAX_SNAPSHOT_RETENTION,
   MIN_SNAPSHOT_RETENTION,
@@ -184,6 +193,28 @@ export class DataService {
       await this.settings.set({ [SNAPSHOT_RETENTION_KEY]: keep });
       return repositories.profileSnapshots.pruneAll(keep);
     });
+  }
+
+  /** The export reminder setting and the last full export (never fails). */
+  exportReminder(): Promise<ExportReminder> {
+    return readExportReminder(this.settings);
+  }
+
+  /** Saves how many days after a full export the reminder shows; 0 is off. */
+  async setExportReminderDays(days: number): Promise<void> {
+    if (!isExportReminderDays(days))
+      throw new ExtensionError("StorageError", "Invalid export reminder", {
+        display: message("data.reminderInvalid", {
+          minimum: MIN_EXPORT_REMINDER_DAYS,
+          maximum: MAX_EXPORT_REMINDER_DAYS,
+        }),
+      });
+    await this.settings.set({ [EXPORT_REMINDER_KEY]: days });
+  }
+
+  /** Notes that a full export was saved now, which resets the reminder. */
+  async recordFullExport(at: Date = new Date()): Promise<void> {
+    await this.settings.set({ [LAST_EXPORT_KEY]: at.toISOString() });
   }
 
   /**
