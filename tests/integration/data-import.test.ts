@@ -781,6 +781,32 @@ describe("M8 import: restoring and merging", () => {
     expect(settings.items.has("joyfox.snapshotRetention")).toBe(false);
   });
 
+  it("imports a valid export reminder setting, and never the last export time", async () => {
+    const plan = await importText(
+      fullFile(
+        { extensionAccounts: [account("a", "me")] },
+        {
+          "joyfox.exportReminderDays": 30,
+          // The file's last export describes another browser, not this one.
+          "joyfox.lastExportAt": "2026-09-01T00:00:00.000Z",
+        },
+      ),
+    );
+    expect(plan.settingsAdded).toContain("joyfox.exportReminderDays");
+    expect(plan.settingsSkipped).not.toContain("joyfox.lastExportAt");
+    expect(settings.items.get("joyfox.exportReminderDays")).toBe(30);
+    expect(settings.items.has("joyfox.lastExportAt")).toBe(false);
+    settings.items.delete("joyfox.exportReminderDays");
+    const invalid = await importText(
+      fullFile(
+        { extensionAccounts: [account("a", "me")] },
+        { "joyfox.exportReminderDays": -1 },
+      ),
+    );
+    expect(invalid.settingsAdded).not.toContain("joyfox.exportReminderDays");
+    expect(settings.items.has("joyfox.exportReminderDays")).toBe(false);
+  });
+
   it("applies the snapshot limit to imported snapshots at once (V1-12)", async () => {
     const snapshots = Array.from({ length: 4 }, (_, index) => ({
       id: `snap-${index}`,

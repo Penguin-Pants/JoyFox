@@ -24,6 +24,16 @@ import {
   MESSAGE_RETENTION_KEY,
 } from "../messages/message-settings";
 import { ENTITY_NAMES } from "../storage/database";
+import {
+  daysSinceExport,
+  DEFAULT_EXPORT_REMINDER_DAYS,
+  EXPORT_REMINDER_KEY,
+  exportDue,
+  isExportReminderDays,
+  MAX_EXPORT_REMINDER_DAYS,
+  MIN_EXPORT_REMINDER_DAYS,
+  type ExportReminder,
+} from "../storage/export-reminder";
 import type { EntityCounts } from "../storage/repositories";
 import {
   DEFAULT_SNAPSHOT_RETENTION,
@@ -150,6 +160,7 @@ function whenOpened(details: HTMLDetailsElement, fill: () => void): void {
 const SETTING_NAMES: Readonly<Record<string, PlainKey>> = {
   [ACTIVE_ACCOUNT_SETTING_KEY]: "data.setting.activeAccount",
   [LOCALE_KEY]: "data.setting.language",
+  [EXPORT_REMINDER_KEY]: "data.setting.exportReminder",
   [MESSAGE_CACHING_KEY]: "data.setting.messageCaching",
   [MESSAGE_RETENTION_KEY]: "data.setting.messageRetention",
   [QUICK_ACTION_KEY]: "data.setting.quickIgnoreDelete",
@@ -198,7 +209,7 @@ const EXPORT_FAILED: Failure = {
   suffix: "error.withSuffix.nothingExported",
   fallback: "data.exportFailed",
 };
-const RETENTION_FAILED: Failure = {
+const SETTING_FAILED: Failure = {
   suffix: "error.withSuffix.settingNotChanged",
   fallback: "data.retentionFailed",
 };
@@ -331,6 +342,7 @@ export class DataPanel {
     let names = new Map<string, string>();
     // Never fails: an unreadable setting reads as the default.
     const retention = await this.data.snapshotRetention();
+    const reminder = await this.data.exportReminder();
     try {
       accounts = await this.accounts.listAccounts();
       const activeId = (await this.accounts.getActiveAccount())?.id;
@@ -418,7 +430,8 @@ export class DataPanel {
     }
     this.root.append(
       this.#renderRetention(document, retention),
-      this.#renderGlobalActions(document),
+      this.#renderReminderSetting(document, reminder.days),
+      this.#renderGlobalActions(document, reminder, accounts.length > 0),
       this.#status.node,
     );
     this.importRoot?.replaceChildren(
@@ -819,7 +832,7 @@ export class DataPanel {
           const deleted = await this.data.setSnapshotRetention(keep);
           this.#setStatus(message("data.retentionSaved", { deleted }), "info");
           this.onChange();
-        }, RETENTION_FAILED);
+        }, SETTING_FAILED);
       },
       "retention-save",
     );
@@ -835,7 +848,112 @@ export class DataPanel {
     return section;
   }
 
-  #renderGlobalActions(document: Document): HTMLElement {
+  /**
+   * How many days after a full export "Your data" asks for a new one. Saving
+   * deletes nothing, so it saves on the first click.
+   */
+  #renderReminderSetting(document: Document, current: number): HTMLElement {
+    const section = element(document, "div", "joyfox-data__reminder-setting");
+    const field = element(document, "p", "joyfox-panel__field");
+    const label = element(
+      document,
+      "label",
+      "joyfox-panel__field-label",
+      t("data.reminderLabel"),
+    );
+    label.htmlFor = "joyfox-data-export-reminder";
+    const input = element(document, "input", "joyfox-data__reminder-input");
+    input.id = "joyfox-data-export-reminder";
+    input.type = "number";
+    input.step = "1";
+    input.min = String(MIN_EXPORT_REMINDER_DAYS);
+    input.max = String(MAX_EXPORT_REMINDER_DAYS);
+    input.value = String(current);
+    input.setAttribute(FOCUS_KEY, "export-reminder");
+    const hint = element(
+      document,
+      "p",
+      "joyfox-panel__hint",
+      t("data.reminderHint", {
+        minimum: MIN_EXPORT_REMINDER_DAYS,
+        maximum: MAX_EXPORT_REMINDER_DAYS,
+        default: DEFAULT_EXPORT_REMINDER_DAYS,
+      }),
+    );
+    hint.id = "joyfox-data-export-reminder-hint";
+    input.setAttribute("aria-describedby", hint.id);
+    const save = this.#button(
+      document,
+      "joyfox-data__reminder-save",
+      t("data.reminderSave"),
+      undefined,
+      () =>
+        void this.#guard(async () => {
+          // Any other action disarms a pending delete, at once.
+          this.#pending = undefined;
+          // An empty field is not zero: zero turns the reminder off.
+          const days = input.value.trim() ? Number(input.value) : Number.NaN;
+          if (!isExportReminderDays(days)) {
+            this.#setStatus(
+              message("data.reminderInvalid", {
+                minimum: MIN_EXPORT_REMINDER_DAYS,
+                maximum: MAX_EXPORT_REMINDER_DAYS,
+              }),
+              "error",
+            );
+            return;
+          }
+          await this.data.setExportReminderDays(days);
+          this.#setStatus(message("data.reminderSaved", { days }), "info");
+        }, SETTING_FAILED),
+      "reminder-save",
+    );
+    field.append(label, " ", input, " ", save);
+    section.append(field, hint);
+    return section;
+  }
+
+  /**
+   * The backup line above "Export all": a reminder when a full export is
+   * due, else when the last one was. Only a full export counts, as only it
+   * holds every account and setting.
+   */
+  #renderLastExport(
+    document: Document,
+    reminder: ExportReminder,
+    hasAccounts: boolean,
+  ): HTMLElement[] {
+    const now = new Date();
+    const days = reminder.lastExportAt
+      ? daysSinceExport(reminder.lastExportAt, now)
+      : undefined;
+    if (hasAccounts && exportDue(reminder, now))
+      return [
+        element(
+          document,
+          "p",
+          "joyfox-data__reminder",
+          days === undefined
+            ? t("data.reminderNever")
+            : t("data.reminderDue", { days }),
+        ),
+      ];
+    if (days === undefined) return [];
+    return [
+      element(
+        document,
+        "p",
+        "joyfox-panel__hint joyfox-data__last-export",
+        t("data.lastExport", { days }),
+      ),
+    ];
+  }
+
+  #renderGlobalActions(
+    document: Document,
+    reminder: ExportReminder,
+    hasAccounts: boolean,
+  ): HTMLElement {
     const section = element(document, "div", "joyfox-data__global");
     section.append(
       element(
@@ -844,6 +962,7 @@ export class DataPanel {
         "joyfox-data__global-title",
         t("data.allAccounts"),
       ),
+      ...this.#renderLastExport(document, reminder, hasAccounts),
       this.#button(
         document,
         "joyfox-data__export-all",
@@ -856,6 +975,11 @@ export class DataPanel {
             const exported = await this.data.exportAll();
             this.saveFile(exportFileName(exported), serializeExport(exported));
             this.#setStatus(message("data.exportedAll"), "info");
+            try {
+              await this.data.recordFullExport();
+            } catch {
+              // The file is saved. The reminder only shows again too soon.
+            }
           }, EXPORT_FAILED),
         "export-all",
       ),

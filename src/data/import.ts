@@ -1,5 +1,10 @@
 import { ACTIVE_ACCOUNT_SETTING_KEY } from "../accounts/account-service";
 import {
+  EXPORT_REMINDER_KEY,
+  isExportReminderDays,
+  LAST_EXPORT_KEY,
+} from "../storage/export-reminder";
+import {
   isSnapshotRetention,
   SNAPSHOT_RETENTION_KEY,
 } from "../storage/snapshot-retention";
@@ -123,8 +128,12 @@ const KEEP_EXISTING: ReadonlySet<EntityName> = new Set<EntityName>([
  * (Quick Ignore and Delete) and change markers are never imported: a file
  * must not switch on a feature, least of all a destructive one.
  */
-/** Change markers carry no data; they are dropped without mention. */
+/**
+ * Change markers carry no data, and the last export time describes the
+ * browser that made the file: both are dropped without mention.
+ */
 const CHANGE_MARKERS: ReadonlySet<string> = new Set([
+  LAST_EXPORT_KEY,
   TRIAGE_REVISION_KEY,
   "joyfox.actionRevision",
   "joyfox.notesRevision",
@@ -142,6 +151,8 @@ const IMPORTED_SETTINGS: Readonly<Record<string, (value: unknown) => boolean>> =
     [LOCALE_KEY]: isLocale,
     // How many profile snapshots are kept per member (V1-12).
     [SNAPSHOT_RETENTION_KEY]: isSnapshotRetention,
+    // How many days after a full export the backup reminder shows.
+    [EXPORT_REMINDER_KEY]: isExportReminderDays,
     // Message caching (V1-4): the switch and how long messages are kept.
     [MESSAGE_CACHING_KEY]: (value) => typeof value === "boolean",
     [MESSAGE_RETENTION_KEY]: isMessageRetention,

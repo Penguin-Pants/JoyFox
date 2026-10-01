@@ -597,3 +597,11 @@
   gap: var(--joyfox-space-2);
   align-items: flex-start;
 }
+
+/* The backup reminder: bordered so it stands out, never in a warning color. */
+.joyfox-data__reminder {
+  border: 1px solid var(--joyfox-border);
+  border-radius: var(--joyfox-radius);
+  font-weight: 600;
+  padding: var(--joyfox-space-2);
+}

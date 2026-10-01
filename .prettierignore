@@ -1,4 +1,7 @@
 codex.md
+# Instruction files are formatted with `mdformat --number` (AGENTS.md).
+AGENTS.md
+CLAUDE.md
 docs/PRD.md
 docs/Engineering-Build-Plan.md
 docs/Task Backlog.md

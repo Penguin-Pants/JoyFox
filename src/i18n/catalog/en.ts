@@ -1150,6 +1150,39 @@ export const en = {
     `Enter a whole number from ${f.number(p.minimum)} to ${f.number(p.maximum)}. Nothing was changed.`,
   "data.retentionFailed":
     "JoyFox could not save the setting. The field shows the number in use now. Try again.",
+  "data.reminderLabel": "Remind me to export all data after (days)",
+  "data.reminderHint": (
+    p: { minimum: number; maximum: number; default: number },
+    f: Format,
+  ) =>
+    `JoyFox data stays in this browser profile, also when you close the browser. If you remove JoyFox or lose the profile, the data is gone, so a full export is your backup. This page asks for one when the last full export is older than this number of days. 0 turns the reminder off. From ${f.number(p.minimum)} to ${f.number(p.maximum)}; the default is ${f.number(p.default)}. Click "Save" to apply.`,
+  "data.reminderSave": "Save",
+  "data.reminderSaved": (p: { days: number }, f: Format) =>
+    p.days === 0
+      ? "Saved. The export reminder is off."
+      : `Saved. JoyFox reminds you ${f.plural(p.days, {
+          one: "1 day",
+          other: `${f.number(p.days)} days`,
+        })} after the last full export.`,
+  "data.reminderInvalid": (
+    p: { minimum: number; maximum: number },
+    f: Format,
+  ) =>
+    `Enter a whole number from ${f.number(p.minimum)} to ${f.number(p.maximum)}. Nothing was changed.`,
+  "data.reminderNever":
+    'You have not exported all JoyFox data yet. If you remove JoyFox or lose this browser profile, the data is gone. Click "Export all JoyFox data (JSON)" to save a backup.',
+  "data.reminderDue": (p: { days: number }, f: Format) =>
+    `Your last full export was ${f.plural(p.days, {
+      one: "1 day ago",
+      other: `${f.number(p.days)} days ago`,
+    })}. If you remove JoyFox or lose this browser profile, newer data is gone. Click "Export all JoyFox data (JSON)" to save a backup.`,
+  "data.lastExport": (p: { days: number }, f: Format) =>
+    p.days === 0
+      ? "Last full export: today."
+      : `Last full export: ${f.plural(p.days, {
+          one: "1 day ago",
+          other: `${f.number(p.days)} days ago`,
+        })}.`,
   "data.exportAll": "Export all JoyFox data (JSON)",
   "data.exportedAll": "Export of all JoyFox data created.",
   "data.deleteEverything": "Delete all JoyFox data",
@@ -1194,6 +1227,7 @@ export const en = {
   "data.setting.templatePicker": "template picker",
   "data.setting.sharedEventException": "shared-event exception",
   "data.setting.snapshotRetention": "snapshots kept per member",
+  "data.setting.exportReminder": "export reminder",
   "data.setting.diagnostics": "diagnostics",
   "data.import.settingsUnknown":
     "The file also holds settings that this version of JoyFox does not know. They were not imported.",
