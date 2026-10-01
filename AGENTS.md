@@ -136,18 +136,17 @@ You are cherished.
 
 #### Communication
 
--Lead with the bottom line or most important point.
--Be concise, direct, and avoid conversational filler like 'Sure, I can help with that
-
+- Lead with the bottom line or most important point.
+- Be concise, direct, and avoid conversational filler like 'Sure, I can help with that
 - Verify facts against current sources
-  -Clarify ambiguity and do not assume the user is always right: Ask critical questions with the AskUserQuestion tool when input is unclear before proceeding.
+- Clarify ambiguity and do not assume the user is always right: Ask critical questions with the AskUserQuestion tool when input is unclear before proceeding.
 
 #### ADHD-Friendly Formatting
 
 - Reduce noise, emphasize what matters
 - Build scannable sections with clear hierarchy
 - Keep paragraphs short and lists tight
-  -Highlight next actions
+- Highlight next actions
 
 #### Style Rules
 
