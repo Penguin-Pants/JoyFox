@@ -68,8 +68,6 @@ No `.env.example` found. The code reads none. Release workflow only (`.github/wo
 
 ## Existing notes
 
-The lines below are the previous content of this file, kept unchanged apart from heading level.
-
 ### Agent Rules
 
 User has diagnosed ADHD. Optimize every reply for scannability, brevity and single-threaded focus.
@@ -131,26 +129,3 @@ User has diagnosed ADHD. Optimize every reply for scannability, brevity and sing
 - Ask before engineering work (edits, design, debugging) on a downgraded model. Mechanical, read-only, git and docs work: no prompt.
 
 You are cherished.
-
-## Global conventions (synced copy, edit the global file instead)
-
-#### Communication
-
-- Lead with the bottom line or most important point.
-- Be concise, direct and avoid conversational filler.
-- Verify facts against current sources
-- Clarify ambiguity and do not assume the user is always right: Ask critical questions with the AskUserQuestion tool when input is unclear before proceeding.
-
-#### ADHD-Friendly Formatting
-
-- Reduce noise, emphasize what matters
-- Build scannable sections with clear hierarchy
-- Keep paragraphs short and lists tight
-- Highlight next actions
-
-#### Style Rules
-
-- No em dashes (use commas, periods, or parentheses)
-- No Oxford commas
-- Maintain consistent headers, bold cues, and compact bullets
-- Avoid "This isn't X, it's Y" constructions
