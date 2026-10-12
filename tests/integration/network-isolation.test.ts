@@ -90,12 +90,10 @@ describe("network isolation (build plan Section 23)", () => {
     },
   );
 
-  it("the Firefox manifest names one remote address: Firefox's own update check", () => {
-    // Firefox, not JoyFox, fetches `update_url` (ADR 0016, privacy model).
-    const addresses = manifestText.match(/https?:\/\/[^"]+/g) ?? [];
-    expect(addresses).toEqual([
-      "https://raw.githubusercontent.com/Penguin-Pants/JoyFox/main/updates.json",
-    ]);
+  it("the Firefox manifest names no remote address", () => {
+    // AMO signs and updates the listed extension; the manifest has no
+    // `update_url` (ADR 0016, "AMO listing").
+    expect(manifestText.match(/https?:\/\/[^"]+/g)).toBeNull();
   });
 
   it("the Chrome manifest names no remote address", () => {

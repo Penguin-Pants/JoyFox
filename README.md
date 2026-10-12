@@ -36,10 +36,8 @@ UI uses them.
 - **Chrome 148 or later, for development:** run `npm run build:chrome`, then
   load `dist/chrome` from `chrome://extensions` ("Developer mode" > "Load
   unpacked").
-- **A signed release:** download the `.xpi` from the GitHub release and open it
-  in Firefox (`about:addons` > gear menu > "Install Add-on From File"). Release
-  Firefox installs only signed builds; `docs/distribution.md` describes how a
-  release is signed.
+- **Firefox, a release:** install JoyFox from its page on addons.mozilla.org.
+  Mozilla signs it, and Firefox updates it from there (`docs/release.md`).
 
 The extension ID is `joyfox@drclaw`. Firefox keeps an extension's data under its
 ID, so a build with a different ID starts empty: export your data under "Your

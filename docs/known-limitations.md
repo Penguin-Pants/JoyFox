@@ -308,9 +308,6 @@
   JoyClub (the network isolation check forbids remote addresses in the
   extension's code). The search matches the query's words in order, ignoring
   case and spacing; it has no fuzzy matching.
-- Mozilla's reviewers get no JoyClub test account (owner, 2026-09-28, ADR 0016).
-  If AMO picks a version for manual review, the review can be delayed or
-  rejected, or the add-on blocked.
-- Automatic updates through a GitHub release link are not proven yet: no Mozilla
-  page says whether Firefox follows the link's redirect. The first update after
-  1.0.0 checks it (`release.md`). If it fails, only `updates.json` changes.
+- Mozilla's reviewers get no JoyClub test account (owner, 2026-09-28, kept for
+  the AMO listing on 2026-10-12, ADR 0016). If AMO picks a version for manual
+  review, the review can be delayed or rejected, or the add-on blocked.

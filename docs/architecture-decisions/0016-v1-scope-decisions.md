@@ -286,3 +286,32 @@ release and logged it for later.
    and drafts each release (`.github/workflows/release.yml`). The AMO keys are
    repository secrets. It builds on Ubuntu 24.04 with Node.js 22, the
    environment the README names for reviewers.
+
+## Amendment: AMO listing replaces the unlisted channel (project owner, 2026-10-12)
+
+This overrides F8 in "Amendment: D7 and F8" and the "Updates" decision in
+`distribution.md`. The owner chose to list JoyFox publicly on addons.mozilla.org
+(AMO) instead of the unlisted build with a self-hosted update file. Version
+1.0.0 was signed as unlisted on AMO but never published on GitHub, so no public
+copy depends on the old update address. A copy of 1.0.0 installed from that file
+gets no update: remove it and install from AMO. The extension ID stays, so its
+stored data stays.
+
+1. **Channel: listed only.** AMO signs, hosts and updates JoyFox. The owner
+   chose this over keeping a second, unlisted build on GitHub, which would need
+   two manifests and two signed files per version.
+2. **No `update_url`.** AMO's validator refuses `update_url` for a listed add-on
+   (`MANIFEST_UPDATE_URL`, `distribution.md`). The manifest drops it,
+   `updates.json` is deleted, and `npm run lint:amo` now checks the build as a
+   listed add-on. The manifest names no remote address.
+3. **First listed version 1.0.1,** because AMO keeps 1.0.0 (unlisted) and
+   refuses a version number twice. It is submitted by hand through the AMO web
+   form, which creates the listing (`release.md`, `amo-listing.md`). Later
+   versions go through the Release workflow with `--channel=listed`.
+4. **Reviewer account: still none.** The owner keeps the 2026-09-28 decision for
+   the listed channel and accepts the higher risk: a listed version can be
+   reviewed by hand, and without a JoyClub account the review can be delayed or
+   rejected. The reviewer notes say so and explain what works without one.
+5. **Privacy:** Firefox now checks AMO, not GitHub, for updates. JoyFox's own
+   code still sends no request, and `data_collection_permissions` stays
+   `["none"]`.

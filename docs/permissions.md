@@ -19,9 +19,9 @@ The manifest declares
 `docs/distribution.md`). Review this value before any feature sends data off the
 device, for example sync (V1-6).
 
-The manifest's `browser_specific_settings.gecko.update_url` is the only remote
-address in it. It is not a permission: Firefox uses it to check for updates
-(V1-9, `privacy-model.md`, "Update check").
+The manifest names no remote address. AMO updates the listed extension, so it
+has no `update_url` (ADR 0016, "AMO listing"; `privacy-model.md`, "Update
+check").
 
 "Delete" and "Mark as junk" (ADR 0017) click JoyClub's trash on a conversation
 page the user opened. They use the existing JoyClub host permission; the

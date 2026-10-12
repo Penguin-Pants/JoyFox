@@ -2,6 +2,11 @@
 
 ## Status
 
+**Changed 2026-10-12 (ADR 0016, "AMO listing"):** JoyFox is listed on AMO. The
+manifest has no `update_url` and `updates.json` is gone; AMO signs and updates
+the extension. The procedure is `release.md`, the listing is `amo-listing.md`.
+The unlisted research below stays as the record of F8.
+
 Verified. Research draft from 2026-09-25; items 2 to 4 of the "Verification
 checklist" verified on 2026-09-26 with Mozilla's own tools (`web-ext` 10.7.0,
 `addons-linter` 10.13.0, `@mdn/browser-compat-data`); items 1, 5 and 6 verified
@@ -173,12 +178,14 @@ rebuild match the submitted file.
 ## Owner decisions
 
 - **Channel:** decided (owner, 2026-09-26, ADR 0016): an unlisted signed build,
-  published on the GitHub release (PRD Section 20, V1). An AMO listing stays
-  "Later".
+  published on the GitHub release (PRD Section 20, V1). **Replaced 2026-10-12:**
+  listed on AMO (ADR 0016, "AMO listing").
 - **Extension ID:** decided: `joyfox@drclaw` (ADR 0016).
-- **Updates:** decided (owner, 2026-09-26, ADR 0016): automatic, through
-  `update_url` and an `updates.json` served over HTTPS from GitHub. The address
-  is `https://raw.githubusercontent.com/Penguin-Pants/JoyFox/main/updates.json`
+- **Updates:** replaced 2026-10-12: AMO updates the listed extension, and the
+  manifest has no `update_url`. The earlier decision (owner, 2026-09-26,
+  ADR 0016) was automatic updates through `update_url` and an `updates.json`
+  served over HTTPS from GitHub. The address is
+  `https://raw.githubusercontent.com/Penguin-Pants/JoyFox/main/updates.json`
   (owner, 2026-09-26): a file in the repository, updated by each release PR.
   V1-9 adds the file and the manifest key. This address can never change for
   installed copies: "existing installations cannot discover a new update_url on
