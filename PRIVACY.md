@@ -1,6 +1,6 @@
 # JoyFox privacy policy
 
-Last updated: 2026-09-30
+Last updated: 2026-10-12
 
 JoyFox is a browser extension for Firefox and Chrome that enhances the JoyClub
 pages you open. It is an independent project, not made, sponsored or supported
@@ -70,9 +70,9 @@ everything. Removing the extension deletes its storage.
 
 ## Updates
 
-The Firefox version checks a file on GitHub about once a day for updates; the
-browser, not JoyFox, makes that request, and it holds no JoyFox data. The Chrome
-version is updated by the Chrome Web Store.
+Firefox updates JoyFox from addons.mozilla.org and Chrome from the Chrome Web
+Store. The browser, not JoyFox, makes these checks, and they hold no JoyFox
+data.
 
 ## Contact
 

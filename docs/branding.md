@@ -80,8 +80,11 @@ Store images never go into a build. The brand package's icons, promo tiles and
 screenshot templates are in `assets/brand/store/`. The screenshots are in
 `assets/store/screenshots/`.
 
-- **Firefox Add-ons:** `store/firefox/` (icons, screenshot template). JoyFox is
-  unlisted for now (`distribution.md`), so AMO shows none of them yet.
+- **Firefox Add-ons:** JoyFox is listed (ADR 0016, "AMO listing"). The listing
+  icon is `icons/universal/joyfox-128.png` (AMO recommends 128×128 and makes the
+  32 and 64 px sizes itself); the screenshots are below. `amo-listing.md` names
+  each file and its caption. `store/firefox/` holds the 32 and 64 px icons and
+  the screenshot template, which are not uploaded.
 - **Chrome Web Store:** `store/chrome/` (the 128 px store icon, the small promo
   tile, the marquee, a screenshot template). See `chrome.md`.
 - **Screenshots:** five 1280×800 PNGs (24-bit, no alpha) for both stores: inbox

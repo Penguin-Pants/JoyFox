@@ -1,30 +1,32 @@
-# Releasing JoyFox (V1-9)
+# Releasing JoyFox
 
-How to publish a signed, unlisted release on GitHub. The background is in
-`distribution.md`; the decisions are in ADR 0016.
+How to publish a listed release on addons.mozilla.org (AMO). The background is
+in `distribution.md`; the decisions are in ADR 0016 ("AMO listing"). The listing
+texts and images are in `amo-listing.md`.
 
 ## Rules
 
-- **Every release has a higher version than all earlier ones.** Firefox installs
-  only an update with a higher version. A fix for a bad release is a new, higher
-  version, never an older number again.
+- **Every release has a higher version than all earlier ones.** AMO refuses a
+  version number it already has, and Firefox installs only an update with a
+  higher version. A fix for a bad release is a new, higher version.
 - **The version is in three places:** `package.json` (with `package-lock.json`),
   `manifests/firefox.json` and `manifests/chrome.json`. `npm run lint` checks
   that they match.
 - **Every version needs its release notes** in
   `docs/release-notes/<version>.md`, with the README's "Disclaimer" section word
   for word. `npm run lint` checks this.
-- **The `update_url` never changes.** Installed copies cannot find a new one. It
-  is `https://raw.githubusercontent.com/Penguin-Pants/JoyFox/main/updates.json`,
-  so the repository must stay public and `updates.json` must stay on `main`.
+- **No `update_url`.** AMO refuses it for a listed add-on and updates installed
+  copies itself. `npm run lint` checks that the Firefox manifest has none.
+- **Every version carries its source package** (`npm run package:source`): the
+  build is bundled by esbuild (`distribution.md`, "Source code").
 - **Never put the AMO keys in the repository,** a file, a commit, an issue or a
   chat. They live only in the repository's Actions secrets.
 
 ## One-time setup (owner)
 
 1. Make the GitHub repository public (Settings > General > Danger Zone > Change
-   visibility). Firefox reads `updates.json` without signing in, and the release
-   must be public (V1-9).
+   visibility). The listing links to it as homepage, support site and privacy
+   policy source.
 2. Create an addons.mozilla.org account and accept the developer agreement.
 3. On AMO, open "Developer Hub" > "Manage API Keys" and create credentials: a
    "JWT issuer" and a "JWT secret".
@@ -32,62 +34,47 @@ How to publish a signed, unlisted release on GitHub. The background is in
    repository secrets: `AMO_JWT_ISSUER` (the JWT issuer) and `AMO_JWT_SECRET`
    (the JWT secret).
 
-## Each release
+## First listed version (1.0.1): by hand
+
+The add-on `joyfox@drclaw` already exists on AMO with the unlisted version
+1.0.0. The first listed version creates its public listing, so it goes through
+the AMO web form, which takes the listing texts and images.
+
+1. On a clean checkout of `main`: `npm ci`, `npm run build:firefox`,
+   `npm run lint:amo` (no errors), then
+   `npx web-ext build --source-dir dist/firefox --artifacts-dir dist --filename joyfox-{version}.zip --overwrite-dest`
+   and `npm run package:source`.
+2. On AMO, open "Developer Hub" > "My Add-ons" > JoyFox > "Upload New Version",
+   choose "On this site" and upload `dist/joyfox-1.0.1.zip`.
+3. Fill in every page with the answers in `amo-listing.md`, in its order.
+4. After "Submit Version", wait for AMO's email. Then check the listing page
+   (`amo-listing.md`, "After approval").
+
+## Later versions: the workflow
 
 1. **Release PR.** Raise the version with
    `npm version <x.y.z> --no-git-tag-version`, set the same `version` in
    `manifests/firefox.json` and `manifests/chrome.json`, and add
    `docs/release-notes/<x.y.z>.md`. Merge it into `main` once CI is green.
-2. **Sign.** In GitHub, open Actions > "Release" > "Run workflow" on `main`. The
-   workflow:
+2. **Submit.** In GitHub, open Actions > "Release" > "Run workflow" on `main`.
+   The workflow:
    - runs every check, builds `dist/firefox` and runs Mozilla's linter;
-   - refuses a version that already has a release;
-   - makes the source package (`npm run package:source`) and signs the build
-     with Mozilla as unlisted, with the source attached;
+   - refuses a version that already has a GitHub release;
+   - makes the source package and submits the build to AMO as a listed version,
+     with the source attached;
    - checks that the signed `.xpi` holds exactly the built files, apart from
      `META-INF`;
    - drafts the GitHub release `v<x.y.z>` with the `.xpi`, the source package
-     and the release notes. Its summary shows the `update_link` and
-     `update_hash`.
+     and the release notes.
 3. **If signing times out.** `web-ext` waits 15 minutes. A manual review takes
    longer: the job fails with "Approval: timeout exceeded" and the AMO address
-   of the version. Do not run the workflow again for the same version. Once AMO
-   approves it, download the signed `.xpi` from that address and continue by
-   hand: unpack it and compare it with a build of the same commit (README,
-   "Verify a release"), take its hash with `sha256sum`, and draft the release
-   with the same files and notes.
-4. **Check the draft.** Download the `.xpi` from the draft and install it on
-   release Firefox (`about:addons` > gear menu > "Install Add-on From File").
-   Confirm that the options page opens and the version is right.
-5. **Publish** the draft release.
-6. **Update PR.** Add the version to `updates.json`, with the `update_link` and
-   `update_hash` from the workflow summary:
-
-   ```json
-   {
-     "version": "<x.y.z>",
-     "update_link": "https://github.com/Penguin-Pants/JoyFox/releases/download/v<x.y.z>/joyfox-<x.y.z>.xpi",
-     "update_hash": "sha256:<hash>",
-     "applications": { "gecko": { "strict_min_version": "121.0" } }
-   }
-   ```
-
-   Keep the list in version order. Merge it: from then on, installed copies
-   update to this version within 24 hours.
-
-## First update: the redirect check
-
-A GitHub release link redirects to another HTTPS host, and no Mozilla page says
-whether Firefox follows that for an `update_link` (`distribution.md`, "Open for
-V1-9"). Check it with the first update after 1.0.0:
-
-1. Keep 1.0.0 installed from its release.
-2. After step 6 for the new version, open `about:config` and set
-   `extensions.update.interval` to `120`, or open `about:addons` > gear menu >
-   "Check for Updates".
-3. Confirm that `about:addons` shows the new version. Set the interval back
-   (reset the preference).
-
-If Firefox does not update, the `update_link` must point to an address without a
-redirect. Only `updates.json` changes for that, so the installed copies are not
-stuck: the `update_url` stays the same.
+   of the version. Do not run the workflow again for the same version. AMO
+   publishes the version once it is approved. To also draft the GitHub release,
+   download the signed `.xpi` from that address, compare it with a build of the
+   same commit (README, "Verify a release") and draft the release with the same
+   files and notes.
+4. **Release notes on AMO.** Open the version on AMO ("Manage Status &
+   Versions") and paste the "What it does" part of the release notes into its
+   release notes field.
+5. **Check and publish** the GitHub draft release. Installed copies get the new
+   version from AMO within 24 hours.

@@ -199,13 +199,10 @@ README and the options page's "Messages" tab say so, and every such record can
 be deleted under "Your data". Notes and tags the user types are stored in both
 cases, as the user asked for them.
 
-## Update check (V1-9, ADR 0016)
+## Update check (ADR 0016, "AMO listing")
 
-The manifest's `update_url` makes Firefox itself, not JoyFox, fetch
-`updates.json` from raw.githubusercontent.com about once a day. GitHub receives
-what any web request carries, such as the IP address and Firefox's user agent.
-The request holds no JoyFox data: no account, member, note or setting. The
-address has no placeholders, so Firefox adds nothing to it. The update file and
-the `.xpi` come from the public repository, and the `.xpi` is checked against
-`update_hash`. JoyFox's own code still sends no network request (network
-isolation test).
+JoyFox is listed on addons.mozilla.org, and the manifest has no `update_url`.
+Firefox itself, not JoyFox, checks AMO for updates about once a day, as for
+every add-on from AMO. The request holds no JoyFox data: no account, member,
+note or setting. JoyFox's own code sends no network request (network isolation
+test).

@@ -1,6 +1,6 @@
 {
   "name": "joyfox",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "license": "GPL-3.0-or-later",
   "private": true,
   "type": "module",
@@ -12,7 +12,7 @@
     "lint": "eslint . && node scripts/check-permissions.mjs && node scripts/check-release.mjs && node scripts/check-icons.mjs",
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
-    "lint:amo": "web-ext lint --source-dir dist/firefox --self-hosted",
+    "lint:amo": "web-ext lint --source-dir dist/firefox",
     "package:source": "node scripts/package-source.mjs",
     "screenshots:store": "node scripts/store-screenshots/capture.mjs",
     "package:chrome": "npm run build:chrome && web-ext build --source-dir dist/chrome --artifacts-dir dist --filename joyfox-{version}-chrome.zip --overwrite-dest"

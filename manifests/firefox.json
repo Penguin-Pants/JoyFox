@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "JoyFox",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Local-first enhancements for pages you open on JoyClub.",
   "icons": {
     "32": "icons/icon-32.png",
@@ -51,7 +51,6 @@
     "gecko": {
       "id": "joyfox@drclaw",
       "strict_min_version": "121.0",
-      "update_url": "https://raw.githubusercontent.com/Penguin-Pants/JoyFox/main/updates.json",
       "data_collection_permissions": {
         "required": ["none"]
       }

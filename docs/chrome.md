@@ -15,8 +15,8 @@ release.
   and no `chrome.*` calls. Older Chrome versions refuse to install the build
   (`minimum_chrome_version`).
 - **Distribution: Chrome Web Store, unlisted.** The Store signs and updates the
-  extension, so the manifest has no `update_url` and `updates.json` is for
-  Firefox only.
+  extension, so the manifest has no `update_url`. The Firefox manifest has none
+  either: AMO updates it (ADR 0016, "AMO listing").
 
 ## Differences from the Firefox manifest
 
