@@ -4,7 +4,7 @@
 
 The Chrome build uses the same source as the Firefox build. Only the manifest
 (`manifests/chrome.json`) and the esbuild target differ. The owner uploads it to
-the Chrome Web Store by hand as an unlisted item. There is no automated Chrome
+the Chrome Web Store by hand as a public item. There is no automated Chrome
 release.
 
 ## Owner decisions (2026-09-28)
@@ -14,9 +14,10 @@ release.
   returning a Promise. The background uses both, so the build has no polyfill
   and no `chrome.*` calls. Older Chrome versions refuse to install the build
   (`minimum_chrome_version`).
-- **Distribution: Chrome Web Store, unlisted.** The Store signs and updates the
-  extension, so the manifest has no `update_url`. The Firefox manifest has none
-  either: AMO updates it (ADR 0016, "AMO listing").
+- **Distribution: Chrome Web Store, public** (owner, 2026-10-13; was unlisted).
+  `chrome-web-store-listing.md` answers every dashboard field. The Store signs
+  and updates the extension, so the manifest has no `update_url`. The Firefox
+  manifest has none either: AMO updates it (ADR 0016, "AMO listing").
 
 ## Differences from the Firefox manifest
 
@@ -45,7 +46,8 @@ checks that both carry the `package.json` version.
 
 1. `npm ci`
 2. `npm run package:chrome` writes `dist/joyfox-<version>-chrome.zip`.
-3. Upload the ZIP in the Chrome Web Store Developer Dashboard.
+3. Upload the ZIP and the listing images in the Chrome Web Store Developer
+   Dashboard (`chrome-web-store-listing.md`, "Files to upload").
 
 For development, run `npm run build:chrome` and load `dist/chrome` from
 `chrome://extensions` ("Developer mode" > "Load unpacked").
@@ -60,10 +62,6 @@ Chromium 141 fails with `browser is not defined`, as expected.
 
 ## Open
 
-- **Store listing images.** The manifest icons are done (`branding.md`). The
-  Store listing takes `store/chrome/chrome-web-store-icon-128.png`, the small
-  promo tile and the marquee from `assets/brand/`, and the screenshots from
-  `assets/store/screenshots/`.
 - **Check in Chrome 148 or later:** the inbox, conversation and profile pages on
   www.joyclub.de; the dropdown colors in `content.css` (a fix for Firefox); and
   a restart of the service worker from `chrome://extensions`.
