@@ -60,7 +60,7 @@ JoyFox needs Chrome 148 or later.
    and sends updates to installed copies.
 
 Chrome does not install a `.crx` file from outside the store for normal users.
-Use the store (unlisted) to share JoyFox.
+Use the public Chrome Web Store item to share JoyFox (see `chrome.md`).
 
 ## A new version
 

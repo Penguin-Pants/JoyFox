@@ -62,7 +62,7 @@ WHAT IT DOES
 - Private notes and tags for members and events, on profiles, conversations, search results and guest lists.
 - Shared preferences: see which "Vorlieben" you share with a member. No match percentage.
 - Saved member searches, a personal event calendar with your attendance, and a "Profile type" filter on the My JOY lists.
-- Search the ClubMail messages you opened (on by default, deleted after 12 months, can be turned off).
+- Search the ClubMail messages you opened (on by default, retention is user-configurable from 1 to 120 months with a 12-month default, can be turned off).
 - Message templates you insert yourself. JoyFox never sends a message.
 - German and English.
 
@@ -152,17 +152,17 @@ network request.
 Google counts data stored only on the device as handled data (user data FAQ,
 questions 3 and 14). Tick what `PRIVACY.md` lists:
 
-| Category                            | Tick | What JoyFox stores (`PRIVACY.md`)                                                                   |
-| ----------------------------------- | ---- | --------------------------------------------------------------------------------------------------- |
-| Personally identifiable information | Yes  | Other members' member IDs and nicknames; the JoyClub account names the user enters                  |
-| Health information                  | No   |                                                                                                     |
-| Financial and payment information   | No   |                                                                                                     |
-| Authentication information          | No   | No passwords, cookies or tokens                                                                     |
-| Personal communications             | Yes  | Text of the ClubMail messages the user opens (on by default, can be turned off)                     |
-| Location                            | No   |                                                                                                     |
-| Web history                         | No   | No browsing history; it records only JoyClub pages as member and event records                      |
-| User activity                       | No   | No clicks, keystrokes or scrolling are recorded; the action log holds IDs and times of user actions |
-| Website content                     | Yes  | Profile snapshots: photo and word counts, badges, join dates, preference tags; event guest lists    |
+| Category                            | Tick | What JoyFox stores (`PRIVACY.md`)                                                                                                                            |
+| ----------------------------------- | ---- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Personally identifiable information | Yes  | Other members' member IDs and nicknames; the JoyClub account names the user enters                                                                           |
+| Health information                  | No   |                                                                                                                                                              |
+| Financial and payment information   | No   |                                                                                                                                                              |
+| Authentication information          | No   | No passwords, cookies or tokens                                                                                                                              |
+| Personal communications             | Yes  | Text of the ClubMail messages the user opens (on by default, retention is user-configurable from 1 to 120 months with a 12-month default, can be turned off) |
+| Location                            | No   |                                                                                                                                                              |
+| Web history                         | No   | No browsing history; it records only JoyClub pages as member and event records                                                                               |
+| User activity                       | No   | No clicks, keystrokes or scrolling are recorded; the action log holds IDs and times of user actions                                                          |
+| Website content                     | Yes  | Profile snapshots: photo and word counts, badges, join dates, preference tags; event guest lists                                                             |
 
 Then tick all three certifications: no sale to third parties, no use unrelated
 to the single purpose, no use for credit decisions.
@@ -185,17 +185,19 @@ to the single purpose, no use for credit decisions.
   the owner's legal call.
 - **Contact email:** must be verified before publishing.
 
-## Test instructions (Privacy tab or "Test instructions" field)
+## Test instructions tab
+
+Review includes the in-page features, not only the options page. Before
+submission, create a dedicated JoyClub test account for reviewers and provide
+its sign-in credentials through the Chrome Web Store dashboard's **Test
+instructions** tab. Keep credentials out of this repository and the public
+listing.
 
 ```text
-Every in-page feature runs on www.joyclub.de and needs a signed-in JoyClub account. No test account is provided. Without an account, the options page works fully (toolbar button, or chrome://extensions > JoyFox > Details > Extension options): accounts, the contact rule editor and presets, templates, events, messages, and "Your data" with export, import and delete.
+Every in-page feature runs on www.joyclub.de and needs a signed-in JoyClub account. Sign in with the dedicated test account supplied in this tab, then open the inbox, a conversation and a member profile to test JoyFox's in-page features. Without an account, the options page works fully (toolbar button, or chrome://extensions > JoyFox > Details > Extension options): accounts, the contact rule editor and presets, templates, events, messages, and "Your data" with export, import and delete.
 
 Build from source: https://github.com/Penguin-Pants/JoyFox (npm ci, then npm run build:chrome; output in dist/chrome). esbuild bundles the TypeScript; nothing is minified or obfuscated.
 ```
-
-Risk: a reviewer who cannot sign in may reject the item as "not testable". A
-JoyClub account made for reviewers, with its credentials in this field, removes
-that risk.
 
 ## After approval
 
