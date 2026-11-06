@@ -15,13 +15,16 @@
 .joyfox-badge,
 .joyfox-template-picker,
 .joyfox-saved-searches,
-.joyfox-strip {
+.joyfox-strip,
+.joyfox-signals {
   --joyfox-ink: currentColor;
   --joyfox-muted: color-mix(in srgb, currentColor 70%, transparent);
   --joyfox-surface: color-mix(in srgb, currentColor 6%, transparent);
   --joyfox-surface-strong: color-mix(in srgb, currentColor 12%, transparent);
   --joyfox-field: color-mix(in srgb, currentColor 4%, transparent);
   --joyfox-line: color-mix(in srgb, currentColor 28%, transparent);
+  /* Editable fields need a stronger boundary than decorative dividers. */
+  --joyfox-field-line: color-mix(in srgb, currentColor 60%, transparent);
   /* JoyFox Red (assets/brand/tokens), for the "Fox" of the bar's name only. */
   --joyfox-brand: #ea1c2c;
   --joyfox-focus: #4d90fe;
@@ -189,7 +192,7 @@ button.joyfox-badge {
   font: inherit;
   color: inherit;
   background: var(--joyfox-field);
-  border: 1px solid var(--joyfox-line);
+  border: 1px solid var(--joyfox-field-line);
   border-radius: var(--joyfox-radius);
   padding: 0.25em 0.5em;
 }
@@ -298,7 +301,7 @@ button.joyfox-badge {
 }
 
 .joyfox-template-picker__status:empty {
-  display: none;
+  margin: 0;
 }
 
 .joyfox-template-picker__status {
@@ -621,7 +624,7 @@ button.joyfox-badge {
   box-sizing: border-box;
   max-width: 100%;
   padding: 0.25em 0.5em;
-  border: 1px solid var(--joyfox-line);
+  border: 1px solid var(--joyfox-field-line);
   border-radius: var(--joyfox-radius);
   background: var(--joyfox-field);
   color: inherit;
@@ -629,7 +632,7 @@ button.joyfox-badge {
 }
 
 .joyfox-saved-searches__status:empty {
-  display: none;
+  margin: 0;
 }
 
 .joyfox-saved-searches__status {
@@ -686,7 +689,7 @@ button.joyfox-badge {
 .joyfox-listing__tag-input,
 .joyfox-listing__attendance {
   padding: 0.25em 0.5em;
-  border: 1px solid var(--joyfox-line);
+  border: 1px solid var(--joyfox-field-line);
   border-radius: var(--joyfox-radius);
   background: var(--joyfox-field);
   color: inherit;
@@ -713,7 +716,7 @@ button.joyfox-badge {
 }
 
 .joyfox-listing__status:empty {
-  display: none;
+  margin: 0;
 }
 
 .joyfox-listing__status {
@@ -735,7 +738,7 @@ button.joyfox-badge {
 .joyfox-event-filter__select {
   max-width: 100%;
   padding: 0.25em 0.5em;
-  border: 1px solid var(--joyfox-line);
+  border: 1px solid var(--joyfox-field-line);
   border-radius: var(--joyfox-radius);
   background: var(--joyfox-field);
   color: inherit;
@@ -891,16 +894,6 @@ button.joyfox-badge {
   border-radius: var(--joyfox-radius);
 }
 
-.joyfox-signals,
-.joyfox-signals-filter,
-.joyfox-card-editor {
-  --joyfox-ink: currentColor;
-  --joyfox-line: color-mix(in srgb, currentColor 28%, transparent);
-  --joyfox-qualified: #2ea663;
-  --joyfox-quarantined: #e0544a;
-  --joyfox-radius: 0.5em;
-}
-
 [data-joyfox-hide-incomplete="on"] [data-joyfox-incomplete="yes"] {
   display: none !important;
 }
@@ -948,7 +941,7 @@ button.joyfox-badge {
 }
 
 .joyfox-card-editor__status:empty {
-  display: none;
+  margin: 0;
 }
 
 /* V1-13: tracked events a member's guest list entry was seen on. */
@@ -1012,6 +1005,13 @@ button.joyfox-badge {
 .joyfox-card-line .joyfox-button {
   min-width: 24px;
   text-align: center;
+}
+
+/* The compact row clips overflow. Keep its focus ring inside the control. */
+.joyfox-card-line .joyfox-button:focus-visible,
+.joyfox-card-line .joyfox-badge:focus-visible {
+  outline-color: currentColor;
+  outline-offset: -2px;
 }
 
 .joyfox-card-line .joyfox-signals__note[data-has-note="true"] {
