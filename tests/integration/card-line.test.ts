@@ -61,6 +61,132 @@ describe("JoyFox's page styles", () => {
     document.head.replaceChildren(style);
   });
 
+  it("gives standalone card signals the tokens used by their note button", () => {
+    document.body.innerHTML =
+      '<span class="joyfox-signals"><button class="joyfox-button joyfox-signals__note">Edit note</button></span>';
+    const style = getComputedStyle(document.querySelector(".joyfox-signals")!);
+    for (const token of ["--joyfox-focus", "--joyfox-surface-strong"])
+      expect(style.getPropertyValue(token).trim(), token).not.toBe("");
+  });
+
+  it("keeps the card row's focus strokes inside its clipped bounds", () => {
+    document.body.innerHTML =
+      '<div class="joyfox-card-line"><button class="joyfox-button">Note</button><button class="joyfox-badge">Qualified</button></div>';
+    for (const button of Array.from(document.querySelectorAll("button"))) {
+      // Inspect the focused rules without relying on jsdom's focus state.
+      // Chromium checks the rendered ring separately.
+      const rules = Array.from(document.styleSheets[0]!.cssRules).filter(
+        (rule): rule is CSSStyleRule =>
+          "selectorText" in rule &&
+          "style" in rule &&
+          Boolean(
+            (rule.style as CSSStyleDeclaration).getPropertyValue(
+              "outline-offset",
+            ),
+          ) &&
+          (rule.selectorText as string)
+            .split(",")
+            .some((selector) =>
+              button.matches(selector.replace(":focus-visible", "").trim()),
+            ),
+      );
+      const offset = rules
+        .map((rule) => rule.style.getPropertyValue("outline-offset"))
+        .filter(Boolean)
+        .at(-1);
+      // The 16 px control has only 1 px clearance in the accepted 18 px row.
+      // Its 2 px focus stroke must not extend beyond the control's border.
+      expect(parseFloat(offset ?? ""), button.className).toBeLessThanOrEqual(
+        -2,
+      );
+    }
+  });
+
+  it("keeps empty live regions exposed before their first message", () => {
+    for (const name of [
+      "template-picker",
+      "saved-searches",
+      "listing",
+      "card-editor",
+    ]) {
+      const status = document.createElement("p");
+      status.className = `joyfox-${name}__status`;
+      status.setAttribute("role", "status");
+      document.body.append(status);
+      expect(getComputedStyle(status).display, name).not.toBe("none");
+      expect(getComputedStyle(status).visibility, name).not.toBe("hidden");
+      const emptyRule = Array.from(document.styleSheets[0]!.cssRules).find(
+        (rule): rule is CSSStyleRule =>
+          "selectorText" in rule &&
+          rule.selectorText === `.joyfox-${name}__status:empty`,
+      );
+      expect(emptyRule?.style.margin, name).toBe("0");
+      status.textContent = "Saved";
+      expect(getComputedStyle(status).display, name).not.toBe("none");
+    }
+  });
+
+  it("gives editable field boundaries at least 3:1 on light and dark surfaces", () => {
+    const rules = Array.from(document.styleSheets[0]!.cssRules).filter(
+      (rule): rule is CSSStyleRule => "selectorText" in rule,
+    );
+    const share = (token: string) => {
+      const value = rules
+        .map((rule) => rule.style.getPropertyValue(token))
+        .find(Boolean);
+      const match = /currentColor (\d+)%/.exec(value ?? "");
+      expect(match, token).not.toBeNull();
+      return Number(match![1]) / 100;
+    };
+    for (const selector of [
+      ".joyfox-notes__text",
+      ".joyfox-notes__tag-input",
+      ".joyfox-saved-searches__name",
+      ".joyfox-listing__note",
+      ".joyfox-listing__tag-input",
+      ".joyfox-listing__attendance",
+      ".joyfox-event-filter__select",
+    ]) {
+      const rule = rules.find(
+        (rule) =>
+          rule.style.border &&
+          rule.selectorText.split(",").some((part) => part.trim() === selector),
+      );
+      expect(rule?.style.border, selector).toContain(
+        "var(--joyfox-field-line)",
+      );
+    }
+    const luminance = (channel: number) => {
+      const c = channel / 255;
+      return c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
+    };
+    const mix = (ink: number, background: number, amount: number) =>
+      ink * amount + background * (1 - amount);
+    for (const [ink, page] of [
+      [0, 255],
+      [230, 26],
+      [251, 28],
+    ] as const) {
+      // Fields can sit in a panel and its drawer, or on an opaque editor.
+      for (const layers of [0, 1, 2]) {
+        let surface: number = page;
+        for (let layer = 0; layer < layers; layer++)
+          surface = mix(ink, surface, share("--joyfox-surface"));
+        const field = mix(ink, surface, share("--joyfox-field"));
+        const border = mix(ink, field, share("--joyfox-field-line"));
+        for (const adjacent of [surface, field]) {
+          const values = [luminance(border), luminance(adjacent)].sort(
+            (a, b) => b - a,
+          );
+          expect(
+            (values[0]! + 0.05) / (values[1]! + 0.05),
+            `${ink} on ${page}, ${layers} layers`,
+          ).toBeGreaterThanOrEqual(3);
+        }
+      }
+    }
+  });
+
   it("keeps the card line clickable inside an overlay without pointer events", () => {
     // Owner's live check, item 126: a click on the note button over a search
     // result's photo opened the profile instead.
