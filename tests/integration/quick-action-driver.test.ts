@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import "../setup-indexeddb";
-import { beforeEach, describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { texts } from "../i18n-text";
 import { ActionLogService } from "../../src/actions/action-log-service";
 import { runQuickIgnoreDelete } from "../../src/actions/executor";
@@ -222,6 +222,108 @@ async function steps(): Promise<string[]> {
 }
 
 describe("M9 live driver on synthetic JoyClub pages (ADR 0011)", () => {
+  it("does not click a late menu item after the executor timed out", async () => {
+    vi.useFakeTimers();
+    try {
+      openConversation();
+      const menu = document.querySelector("j-context-menu")!;
+      menu
+        .querySelector('[slot="activator"]')!
+        .shadowRoot!.querySelector("button")!
+        .addEventListener("click", () => {
+          const items = Array.from(
+            menu.querySelectorAll("j-context-menu-item"),
+          );
+          items.forEach((item) => item.remove());
+          setTimeout(() => menu.append(...items), 100);
+        });
+      const pending = run({
+        timeoutMs: 50,
+        recorder: {
+          begin: async () => ({ status: "started", operationId: "synthetic" }),
+          record: async () => "recorded",
+        },
+      });
+      await vi.advanceTimersByTimeAsync(150);
+      expect((await pending).report.failure).toBe("timeout");
+      expect(pressed).toEqual(["Optionen"]);
+      expect(rowsOf(MEMBER)).toHaveLength(1);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("checks cancellation again before Ignore after opening its menu", async () => {
+    openProfile({ itemOnlyWhenOpen: true });
+    let stopped = false;
+    const menu = document.querySelector("j-context-menu")!;
+    menu
+      .querySelector('[slot="activator"]')!
+      .shadowRoot!.querySelector("button")!
+      .addEventListener("click", () => {
+        stopped = true;
+      });
+    const driver = new JoyClubQuickActionDriver(document, TIMING);
+    await expect(
+      driver.request("ignore", () => {
+        if (stopped) throw new Error("cancelled");
+      }),
+    ).rejects.toThrow("cancelled");
+    expect(pressed).toEqual(["Profiloptionen"]);
+    expect(document.querySelector("j-modal")).toBeNull();
+  });
+
+  it.each(["account-changed", "turned-off"] as const)(
+    "does not delete after %s while the menu opens",
+    async (reason) => {
+      openConversation();
+      let stopped = false;
+      const menu = document.querySelector("j-context-menu")!;
+      menu
+        .querySelector('[slot="activator"]')!
+        .shadowRoot!.querySelector("button")!
+        .addEventListener("click", () => {
+          // Keep the page identity unchanged. Only the operation is cancelled.
+          stopped = true;
+          const items = Array.from(
+            menu.querySelectorAll("j-context-menu-item"),
+          );
+          items.forEach((item) => item.remove());
+          setTimeout(() => menu.append(...items), 10);
+        });
+      const result = await run({
+        stopReason: () => (stopped ? reason : undefined),
+      });
+      expect(pressed).toEqual(["Optionen"]);
+      expect(rowsOf(MEMBER)).toHaveLength(1);
+      expect(result.report.failure).toBe(reason);
+    },
+  );
+
+  it("does not start Delete for the final loaded row", async () => {
+    openConversation();
+    for (const id of ["5550001", "5550002"])
+      rowsOf(id)[0]!.closest("j-list-item")!.remove();
+    const result = await run();
+    expect(pressed).toEqual([]);
+    expect(rowsOf(MEMBER)).toHaveLength(1);
+    expect(result.report.failure).toBe("unverifiable");
+  });
+
+  it("does not delete when other rows vanish while the menu opens", async () => {
+    openConversation();
+    document
+      .querySelector('[slot="activator"]')!
+      .shadowRoot!.querySelector("button")!
+      .addEventListener("click", () => {
+        for (const id of ["5550001", "5550002"])
+          rowsOf(id)[0]!.closest("j-list-item")!.remove();
+      });
+    await run();
+    expect(pressed).toEqual(["Optionen"]);
+    expect(rowsOf(MEMBER)).toHaveLength(1);
+  });
+
   it("deletes on the conversation page, hands off, and ignores on the profile", async () => {
     openConversation();
     const first = await run({
@@ -384,7 +486,7 @@ describe("M9 live driver on synthetic JoyClub pages (ADR 0011)", () => {
     );
     // The notice says how to bring the list back.
     expect(texts(result.report.lines)).toContain(
-      "Delete works only while this conversation shows in the ClubMail list beside it. Widen the window, or scroll the list until the conversation shows, then try again.",
+      "Delete works only while this conversation shows in the ClubMail list beside it. Widen the window, or scroll the list until the conversation shows, then try again. At least one other conversation must stay in the loaded list. If this is the last one, use JoyClub’s trash button.",
     );
     expect(pressed).toEqual([]);
     expect(await steps()).toEqual(["Started", "Failed:unverifiable"]);

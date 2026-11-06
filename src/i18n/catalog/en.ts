@@ -226,7 +226,7 @@ export const en = {
   "action.next.delete":
     "Next: open the conversation and check whether it is in the trash. If not, move it there yourself with JoyClub's trash button.",
   "action.next.showList":
-    "Delete works only while this conversation shows in the ClubMail list beside it. Widen the window, or scroll the list until the conversation shows, then try again.",
+    "Delete works only while this conversation shows in the ClubMail list beside it. Widen the window, or scroll the list until the conversation shows, then try again. At least one other conversation must stay in the loaded list. If this is the last one, use JoyClub’s trash button.",
   "action.self.ignore":
     "You can do it yourself: open the member's profile and ignore them there.",
   "action.self.delete":
@@ -263,7 +263,7 @@ export const en = {
   "quick.scope":
     "Experimental. One click moves this conversation to JoyClub's trash, then opens the member's profile and ignores them there. JoyFox stops at the first problem and tells you what was done. It never sends a message.",
   "quick.needsList":
-    "Works only while this conversation shows in the ClubMail list beside it. Widen the window, or scroll the list until the conversation shows.",
+    "Works only while this conversation shows in the ClubMail list beside it. Widen the window, or scroll the list until the conversation shows. At least one other conversation must stay in the loaded list. If this is the last one, use JoyClub’s trash button.",
   "quick.noProfile":
     "JoyFox cannot find the link to this member's profile, where Ignore is, so it did nothing. You can do it yourself: move the conversation to the trash with JoyClub's trash button, then open the member's profile and ignore them there.",
   "quick.resumed": "Ignore and Delete, continued from the conversation:",

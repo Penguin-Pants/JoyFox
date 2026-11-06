@@ -18,10 +18,9 @@ import {
 
 /**
  * The JoyClub side of M9, one method per kind of page action. The executor
- * decides when each is called; a driver only reads and clicks. No live
- * driver exists yet: F7 shows Ignore is only on the profile page (Path B), so
- * the live driver waits on resume after navigation and on the conversation
- * page's Delete result. Only test drivers implement this.
+ * decides when each is called; a driver only reads and clicks. A request
+ * that waits for a control must call `beforeClick` after the wait and
+ * immediately before each click, so cancellation still takes effect.
  */
 export interface QuickActionDriver {
   /** What the page shows now. Read fresh before every click. */
@@ -34,7 +33,7 @@ export interface QuickActionDriver {
    */
   canVerify?(step: ActionStep): boolean;
   /** Click the step's JoyClub control. */
-  request(step: ActionStep): Promise<void>;
+  request(step: ActionStep, beforeClick?: () => void): Promise<void>;
   /**
    * Wait for JoyClub's own confirmation for the step. `none` when JoyClub
    * asks for no confirmation for this step.
@@ -128,6 +127,12 @@ const STEP_PAGE: Record<ActionStep, "conversation" | "profile"> = {
 
 class StepTimeout extends Error {}
 
+class ClickRefused extends Error {
+  constructor(readonly failure: ActionFailure) {
+    super(failure);
+  }
+}
+
 function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
   let timer: ReturnType<typeof setTimeout> | undefined;
   return Promise.race([
@@ -139,7 +144,11 @@ function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
 }
 
 const failureOf = (error: unknown): ActionFailure =>
-  error instanceof StepTimeout ? "timeout" : "step-error";
+  error instanceof ClickRefused
+    ? error.failure
+    : error instanceof StepTimeout
+      ? "timeout"
+      : "step-error";
 
 /** Run Quick Ignore and Delete once: Delete, then Ignore (ADR 0011). */
 export const runQuickIgnoreDelete = (options: ExecutionOptions) =>
@@ -302,7 +311,18 @@ async function runQuickAction(
     // stops the run, the log says the step was started, never less.
     const changed = ready(step);
     if (changed) return changed;
-    const clicked = await attempt(() => driver.request(step));
+    let waitingForClick = true;
+    const clicked = await attempt(() =>
+      driver.request(step, () => {
+        // A timed-out request can still finish its menu wait. It must never
+        // click later, even if the account and page have not changed.
+        if (!waitingForClick) throw new ClickRefused("timeout");
+        const failure = guard(step);
+        if (failure) throw new ClickRefused(failure);
+      }),
+    ).finally(() => {
+      waitingForClick = false;
+    });
     if (clicked) return clicked;
     let confirmation: "shown" | "missing" | "none" = "missing";
     const waited = await attempt(async () => {

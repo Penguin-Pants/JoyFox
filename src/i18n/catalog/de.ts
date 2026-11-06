@@ -196,7 +196,7 @@ export const de: Catalog = {
   "action.next.delete":
     "Nächster Schritt: Öffne die Unterhaltung und prüfe, ob sie im Papierkorb ist. Wenn nicht, verschiebe sie selbst mit „In den Papierkorb schieben“.",
   "action.next.showList":
-    "„In den Papierkorb schieben“ klappt nur, während diese Unterhaltung in der ClubMail-Liste daneben zu sehen ist. Mach das Fenster breiter oder scrolle die Liste, bis die Unterhaltung erscheint, und versuche es dann noch einmal.",
+    "„In den Papierkorb schieben“ klappt nur, während diese Unterhaltung in der ClubMail-Liste daneben zu sehen ist. Mach das Fenster breiter oder scrolle die Liste, bis die Unterhaltung erscheint, und versuche es dann noch einmal. Mindestens eine andere Unterhaltung muss in der geladenen Liste bleiben. Nutze für die letzte Unterhaltung JoyClubs Papierkorb-Schaltfläche.",
   "action.self.ignore":
     "Du kannst es selbst tun: Öffne das Profil des Mitglieds und ignoriere es dort mit „Profil ignorieren“.",
   "action.self.delete":
@@ -235,7 +235,7 @@ export const de: Catalog = {
   "quick.scope":
     "Experimentell. Ein Klick verschiebt diese Unterhaltung in JoyClubs Papierkorb, öffnet dann das Profil des Mitglieds und ignoriert es dort. JoyFox hält beim ersten Problem an und sagt dir, was erledigt wurde. JoyFox sendet nie eine Nachricht.",
   "quick.needsList":
-    "Klappt nur, während diese Unterhaltung in der ClubMail-Liste daneben zu sehen ist. Mach das Fenster breiter oder scrolle die Liste, bis die Unterhaltung erscheint.",
+    "Klappt nur, während diese Unterhaltung in der ClubMail-Liste daneben zu sehen ist. Mach das Fenster breiter oder scrolle die Liste, bis die Unterhaltung erscheint. Mindestens eine andere Unterhaltung muss in der geladenen Liste bleiben. Nutze für die letzte Unterhaltung JoyClubs Papierkorb-Schaltfläche.",
   "quick.noProfile":
     "JoyFox findet den Link zum Profil dieses Mitglieds nicht. Dort ist „Profil ignorieren“. JoyFox hat deshalb nichts getan. Du kannst es selbst tun: Verschiebe die Unterhaltung mit „In den Papierkorb schieben“ in den Papierkorb. Öffne dann das Profil des Mitglieds und ignoriere es dort mit „Profil ignorieren“.",
   "quick.resumed":
