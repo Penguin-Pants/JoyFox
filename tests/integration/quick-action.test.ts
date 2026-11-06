@@ -2015,7 +2015,7 @@ describe("M9 button and notice", () => {
         (node) => node.textContent === t(QUICK_ACTION_TEXT.needsList),
       )!;
     expect(t(QUICK_ACTION_TEXT.needsList)).toBe(
-      "Works only while this conversation shows in the ClubMail list beside it. Widen the window, or scroll the list until the conversation shows.",
+      "Works only while this conversation shows in the ClubMail list beside it. Widen the window, or scroll the list until the conversation shows. At least one other conversation must stay in the loaded list. If this is the last one, use JoyClub’s trash button.",
     );
     expect(hint().hidden).toBe(false);
     // Right under the buttons, and part of each one's description.

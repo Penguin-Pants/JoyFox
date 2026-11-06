@@ -167,12 +167,15 @@
   profile in the same tab to ignore them there.
 - Delete (alone, in Ignore and Delete and in "Mark as junk") is checked by the
   conversation's row leaving the list, so it runs only in the split view with
-  the member's row loaded. Otherwise "Delete" and "Ignore and Delete" are greyed
-  out, and a line under them says why (owner decision, 2026-09-29): the list is
-  hidden, or it has not loaded that row yet. "Mark as junk" then keeps the Junk
-  placement and the Negative outcome and says the conversation was not moved to
-  the trash. It is checked again when the page changes, so a resize alone that
-  shows the list leaves the buttons greyed out until the next change.
+  the member's row loaded and at least one other conversation remaining in the
+  loaded list after Delete. No empty-state signal is verified, so the last
+  loaded conversation must be deleted with JoyClub's own trash button. Otherwise
+  "Delete" and "Ignore and Delete" are greyed out, and a line under them says
+  why (owner decision, 2026-09-29): the list is hidden, or it has not loaded
+  that row yet. "Mark as junk" then keeps the Junk placement and the Negative
+  outcome and says the conversation was not moved to the trash. It is checked
+  again when the page changes, so a resize alone that shows the list leaves the
+  buttons greyed out until the next change.
 - After a finished Delete, JoyFox returns to the ClubMail list after 2 seconds,
   only while the page still shows that conversation. JoyClub's own Undo notice
   for the trash goes with the page; the conversation can still be restored from

@@ -316,7 +316,7 @@ describe("M9 report", () => {
     expect(lines).toEqual([
       "Ignore and Delete stopped.",
       "JoyFox cannot see JoyClub's result for Delete on this page, so it stopped before Delete.",
-      "Delete works only while this conversation shows in the ClubMail list beside it. Widen the window, or scroll the list until the conversation shows, then try again.",
+      "Delete works only while this conversation shows in the ClubMail list beside it. Widen the window, or scroll the list until the conversation shows, then try again. At least one other conversation must stay in the loaded list. If this is the last one, use JoyClub’s trash button.",
       "Delete: not done.",
       "Ignore: not done.",
       "Nothing was changed on JoyClub.",
@@ -403,7 +403,7 @@ describe("Delete alone: state machine and report (ADR 0017)", () => {
     expect(texts(untouched.lines)).toEqual([
       "Delete stopped.",
       "JoyFox cannot see JoyClub's result for Delete on this page, so it stopped before Delete.",
-      "Delete works only while this conversation shows in the ClubMail list beside it. Widen the window, or scroll the list until the conversation shows, then try again.",
+      "Delete works only while this conversation shows in the ClubMail list beside it. Widen the window, or scroll the list until the conversation shows, then try again. At least one other conversation must stay in the loaded list. If this is the last one, use JoyClub’s trash button.",
       "Delete: not done.",
       "Nothing was changed on JoyClub.",
       "You can do it yourself: move the conversation to the trash with JoyClub's trash button.",

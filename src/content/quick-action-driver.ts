@@ -83,10 +83,13 @@ export class JoyClubQuickActionDriver implements QuickActionDriver {
   canVerify(step: ActionStep): boolean {
     if (step === "ignore") return true;
     const member = this.currentTarget().memberId;
-    return member !== undefined && (this.#rows(member) ?? 0) > 0;
+    return member !== undefined && (this.#rows(member, true) ?? 0) > 0;
   }
 
-  async request(step: ActionStep): Promise<void> {
+  async request(
+    step: ActionStep,
+    beforeClick: () => void = () => undefined,
+  ): Promise<void> {
     // The executor checked identity just before this call. Opening a menu
     // can wait, and JoyClub can switch pages in place meanwhile, so the page
     // must still show the same member and conversation right before the
@@ -107,16 +110,23 @@ export class JoyClubQuickActionDriver implements QuickActionDriver {
       if (!menu || !memberId || !rows) throw new Error("Delete not ready");
       const item =
         this.#deleteItem(menu) ??
-        (await this.#openMenu(menu, () => this.#deleteItem(menu) ?? null));
+        (await this.#openMenu(
+          menu,
+          () => this.#deleteItem(menu) ?? null,
+          false,
+          this.timing.waitMs,
+          beforeClick,
+        ));
       if (!item) throw new Error("Delete item not found");
       if (!same() || this.#conversationMenu() !== menu)
         throw new Error("The page changed before the click");
       // Counted again after the wait: the list must still show the row, so
       // the result can be checked, and the count after compares with now.
-      const baseline = this.#rows(memberId);
+      const baseline = this.#rows(memberId, true);
       if (!baseline) throw new Error("The list no longer shows the row");
       // Fixed now: the page's header may change after the click.
       this.#deleted = { memberId, rows: baseline };
+      beforeClick();
       press(item);
       return;
     }
@@ -124,10 +134,17 @@ export class JoyClubQuickActionDriver implements QuickActionDriver {
     if (!menu) throw new Error("Profile menu gone");
     const item =
       menu.querySelector(S.ignoreItem) ??
-      (await this.#openMenu(menu, () => menu.querySelector(S.ignoreItem)));
+      (await this.#openMenu(
+        menu,
+        () => menu.querySelector(S.ignoreItem),
+        false,
+        this.timing.waitMs,
+        beforeClick,
+      ));
     if (!item) throw new Error("Ignore item not found");
     if (!same() || this.#menu() !== menu)
       throw new Error("The page changed before the click");
+    beforeClick();
     press(item);
   }
 
@@ -208,11 +225,11 @@ export class JoyClubQuickActionDriver implements QuickActionDriver {
    * when the list is not on screen or shows no rows at all: then nothing can
    * be concluded from it.
    */
-  #rows(member: string): number | undefined {
+  #rows(member: string, requireOtherRows = false): number | undefined {
     if (inboxListState(this.document) !== "shown") return undefined;
     const rows = extractInboxRows(this.document, this.document.URL);
     if (rows.length === 0) return undefined;
-    return rows.filter((row) => {
+    const count = rows.filter((row) => {
       const identity = resolveMemberIdentity({
         page: "inbox",
         field: "memberId",
@@ -220,6 +237,9 @@ export class JoyClubQuickActionDriver implements QuickActionDriver {
       });
       return identity.status === "resolved" && identity.memberId === member;
     }).length;
+    // No verified empty-state signal exists. Keep another row as evidence
+    // that the list is loaded after Delete, rather than a transient blank.
+    return requireOtherRows && rows.length === count ? undefined : count;
   }
 
   /**
@@ -247,18 +267,24 @@ export class JoyClubQuickActionDriver implements QuickActionDriver {
     find: () => T | null,
     closeAfter = false,
     waitMs = this.timing.waitMs,
+    beforeClick: () => void = () => undefined,
   ): Promise<T | null> {
     const activator = menu.querySelector(`:scope > ${S.menuActivator}`);
     if (!activator) return null;
     const wasOpen = menu.getAttribute("open") === "true";
-    if (!wasOpen) press(activator);
+    if (!wasOpen) {
+      beforeClick();
+      press(activator);
+    }
     const result = await this.#waitFor(find, waitMs);
     if (
       !wasOpen &&
       (result === null || closeAfter) &&
       menu.getAttribute("open") === "true"
-    )
+    ) {
+      beforeClick();
       press(activator);
+    }
     return result;
   }
 
