@@ -44,6 +44,65 @@ beforeEach(async () => {
 });
 
 describe("M10 template service", () => {
+  it("keeps a newer edit when another editor saves a stale copy in the same tick", async () => {
+    const original = await service.save("account-a", {
+      name: "Greeting",
+      body: "Original",
+    });
+    await service.save("account-a", {
+      id: original.id,
+      expected: original,
+      name: original.name,
+      body: "New body",
+    });
+    await expect(
+      service.save("account-a", {
+        id: original.id,
+        expected: original,
+        name: "Renamed",
+        body: original.body,
+      }),
+    ).rejects.toThrow("changed since");
+    expect(await service.list("account-a")).toMatchObject([
+      { name: "Greeting", body: "New body" },
+    ]);
+  });
+
+  it("checks every editable field and refuses an edit without its base", async () => {
+    const original = await service.save("account-a", {
+      name: "Greeting",
+      body: "Original",
+    });
+    const changed = await service.save("account-a", {
+      ...original,
+      expected: original,
+      folder: "New folder",
+    });
+    await expect(
+      service.save("account-a", {
+        ...original,
+        expected: original,
+        body: "Stale body",
+      }),
+    ).rejects.toThrow("changed since");
+    await expect(
+      service.save("account-a", { ...changed, body: "No base" }),
+    ).rejects.toThrow("changed since");
+    const renamed = await service.save("account-a", {
+      ...changed,
+      expected: changed,
+      name: "New name",
+    });
+    await expect(
+      service.save("account-a", {
+        ...changed,
+        expected: changed,
+        body: "Stale body",
+      }),
+    ).rejects.toThrow("changed since");
+    expect(await service.list("account-a")).toEqual([renamed]);
+  });
+
   it("creates, edits and deletes a template", async () => {
     const created = await service.save("account-a", {
       name: "Greeting",
@@ -57,6 +116,7 @@ describe("M10 template service", () => {
 
     const edited = await service.save("account-a", {
       id: created.id,
+      expected: created,
       name: "  Greeting   long ",
       folder: " Event   confirmation ",
       body: "Neu",

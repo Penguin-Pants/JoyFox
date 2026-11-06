@@ -965,6 +965,7 @@ stay as they are.
 | `error.template.noText` | A template needs some text | Eine Vorlage braucht Text |
 | `error.template.tooLong` | A template can have at most {maximum} characters | Eine Vorlage darf höchstens {maximum} Zeichen haben |
 | `error.template.deleted` | That template was deleted meanwhile | Diese Vorlage wurde inzwischen gelöscht |
+| `error.template.conflict` | That template changed since you opened it. Your draft is kept. Copy it before you cancel editing and open the template again. | Diese Vorlage wurde geändert, seit du sie geöffnet hast. Dein Entwurf bleibt erhalten. Kopiere ihn, bevor du die Bearbeitung abbrichst und die Vorlage erneut öffnest. |
 | `error.data.changedDuringCheck` | Stored data changed while the file was checked. Choose the file again | Die gespeicherten Daten haben sich geändert, während JoyFox die Datei geprüft hat. Wähle die Datei noch einmal |
 | `error.data.unknownType` | Unknown data type | Unbekannter Datentyp |
 | `error.data.accountRecord` | The account record is removed only with the whole account | Der Kontodatensatz wird nur mit dem ganzen Konto entfernt |

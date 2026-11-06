@@ -1184,6 +1184,8 @@ export const de: Catalog = {
   "error.template.tooLong": (p, f) =>
     `Eine Vorlage darf höchstens ${f.number(p.maximum)} Zeichen haben`,
   "error.template.deleted": "Diese Vorlage wurde inzwischen gelöscht",
+  "error.template.conflict":
+    "Diese Vorlage wurde geändert, seit du sie geöffnet hast. Dein Entwurf bleibt erhalten. Kopiere ihn, bevor du die Bearbeitung abbrichst und die Vorlage erneut öffnest.",
   "error.data.changedDuringCheck":
     "Die gespeicherten Daten haben sich geändert, während JoyFox die Datei geprüft hat. Wähle die Datei noch einmal",
   "error.data.unknownType": "Unbekannter Datentyp",
