@@ -101,13 +101,25 @@ export class MessageCacheService {
    * Every stored message of the account that contains the query, newest
    * first. Case and spacing do not matter. An empty query finds nothing.
    */
-  async search(accountId: string, query: string): Promise<SearchResult> {
+  async search(
+    accountId: string,
+    query: string,
+    isCurrent: () => boolean = () => true,
+  ): Promise<SearchResult> {
     const needle = searchable(query);
-    if (!needle) return { messages: [] };
+    if (!needle || !isCurrent()) return { messages: [] };
+    const { retentionMonths } = await readMessageSettings(this.settings);
+    if (!isCurrent()) return { messages: [] };
+    const cutoff = Date.parse(retentionCutoff(this.now(), retentionMonths));
     const all = await this.messages.list(accountId);
+    if (!isCurrent()) return { messages: [] };
     return {
       messages: all
-        .filter((message) => searchable(message.text).includes(needle))
+        .filter(
+          (message) =>
+            Date.parse(messageTime(message)) >= cutoff &&
+            searchable(message.text).includes(needle),
+        )
         // By instant, not by text: ISO dates with an offset or another
         // precision do not sort as strings.
         .sort(

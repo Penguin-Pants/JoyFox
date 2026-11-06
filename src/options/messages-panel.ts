@@ -24,6 +24,8 @@ import { StatusLine } from "./status-line";
 
 /** The most results drawn at once; the count still names every match. */
 export const MAX_SHOWN_RESULTS = 200;
+/** Wait for a pause in typing before reading stored messages. */
+export const SEARCH_DEBOUNCE_MS = 150;
 
 function element<K extends keyof HTMLElementTagNameMap>(
   document: Document,
@@ -79,6 +81,9 @@ function markedText(
  */
 export class MessagesPanel {
   #generation = 0;
+  #searchTimer?: ReturnType<typeof setTimeout>;
+  /** Shared once per panel load; searches do not repeat global maintenance. */
+  #maintenance?: Promise<number>;
   #accountId: string | undefined;
   #query = "";
   /** Created once and re-attached on every draw (see `StatusLine`). */
@@ -105,20 +110,34 @@ export class MessagesPanel {
   #names = new Map<string, string>();
 
   async render(): Promise<void> {
+    clearTimeout(this.#searchTimer);
+    this.#searchTimer = undefined;
     const generation = (this.#generation += 1);
+    const isCurrent = () => generation === this.#generation;
     let accountId: string | undefined;
     let current: MessageSettings;
     let found: CachedMessage[];
     let names: Map<string, string>;
     try {
       accountId = (await this.accounts.getActiveAccount())?.id;
+      if (!isCurrent()) return;
       if (accountId !== this.#accountId) this.#query = "";
       current = await readMessageSettings(this.settings);
-      // What the window no longer keeps is gone before anything is shown.
-      await this.service.prune();
+      if (!isCurrent()) return;
+      // Purge on the first panel load, sharing overlapping renders. A
+      // failure can retry. Writes, imports and retention saves also purge;
+      // search itself excludes expired text as the cutoff moves.
+      this.#maintenance ??= this.service.prune().catch((error: unknown) => {
+        this.#maintenance = undefined;
+        throw error;
+      });
+      await this.#maintenance;
+      if (!isCurrent()) return;
       found = accountId
-        ? (await this.service.search(accountId, this.#query)).messages
+        ? (await this.service.search(accountId, this.#query, isCurrent))
+            .messages
         : [];
+      if (!isCurrent()) return;
       names = accountId
         ? await nicknamesOf(this.members, accountId)
         : new Map<string, string>();
@@ -336,18 +355,19 @@ export class MessagesPanel {
     label.htmlFor = input.id;
     input.value = this.#query;
     input.addEventListener("input", () => {
+      // Invalidate in-flight reads at once, before waiting for the pause.
+      this.#generation += 1;
+      clearTimeout(this.#searchTimer);
       // Kept as typed; the search itself ignores case and spacing.
       this.#query = input.value;
       // A new search: the last save's result and an armed lower number no
       // longer apply.
       this.#pendingRetention = undefined;
       this.#status.clear();
-      const start = input.selectionStart;
-      void this.render().then(() => {
-        this.root
-          .querySelector<HTMLInputElement>("#joyfox-messages-search")
-          ?.setSelectionRange(start, start);
-      });
+      this.#searchTimer = setTimeout(() => {
+        this.#searchTimer = undefined;
+        void this.render();
+      }, SEARCH_DEBOUNCE_MS);
     });
     row.append(label, input);
     return row;
