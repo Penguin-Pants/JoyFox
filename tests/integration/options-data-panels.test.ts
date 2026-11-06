@@ -874,6 +874,34 @@ describe("M10 template panel", () => {
     root.querySelector<HTMLFormElement>("form")!.requestSubmit();
   }
 
+  it("keeps a stale draft and the newer stored template on a conflict", async () => {
+    await submit("Greeting", "Original");
+    await settle(() => byLabel("Edit template Greeting") !== null);
+    byLabel("Edit template Greeting").click();
+    await settle(
+      () =>
+        field<HTMLInputElement>("joyfox-template-name").value === "Greeting",
+    );
+    const original = (await templates.list(a))[0]!;
+    await templates.save(a, {
+      ...original,
+      expected: original,
+      body: "Saved in another tab",
+    });
+    // A redraw must keep the draft's original base, not adopt the new record.
+    await panel.render();
+    await submit("Renamed", "My unsaved draft");
+    await settle(() => status()?.getAttribute("data-kind") === "error");
+    expect(status()?.textContent).toContain("changed since");
+    expect(field<HTMLTextAreaElement>("joyfox-template-body").value).toBe(
+      "My unsaved draft",
+    );
+    expect((await templates.list(a))[0]).toMatchObject({
+      name: "Greeting",
+      body: "Saved in another tab",
+    });
+  });
+
   it("adds a template into a folder under the active account", async () => {
     await submit("Confirm", "Du bist dabei!", "Event confirmation");
     await settle(() => byLabel("Edit template Confirm") !== null);

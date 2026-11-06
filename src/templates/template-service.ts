@@ -35,6 +35,8 @@ export interface TemplateInput {
   name: string;
   body: string;
   folder?: string;
+  /** The stored fields the editor opened. Required when editing an ID. */
+  expected?: Pick<MessageTemplate, "name" | "body" | "folder">;
 }
 
 /**
@@ -159,6 +161,20 @@ export class TemplateService {
           "StorageError",
           "That template was deleted meanwhile",
           { display: message("error.template.deleted") },
+        );
+      // Compare content, not updatedAt: two saves in one clock tick still
+      // conflict. The account lock keeps the check and write together.
+      if (
+        existing &&
+        (!input.expected ||
+          input.expected.name !== existing.name ||
+          input.expected.body !== existing.body ||
+          input.expected.folder !== existing.folder)
+      )
+        throw new ExtensionError(
+          "StorageError",
+          "That template changed since the editor opened",
+          { display: message("error.template.conflict") },
         );
       const timestamp = this.now();
       const template: MessageTemplate = {

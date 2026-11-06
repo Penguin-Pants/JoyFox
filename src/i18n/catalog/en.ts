@@ -1283,6 +1283,8 @@ export const en = {
   "error.template.tooLong": (p: { maximum: number }, f: Format) =>
     `A template can have at most ${f.number(p.maximum)} characters`,
   "error.template.deleted": "That template was deleted meanwhile",
+  "error.template.conflict":
+    "That template changed since you opened it. Your draft is kept. Copy it before you cancel editing and open the template again.",
   "error.data.changedDuringCheck":
     "Stored data changed while the file was checked. Choose the file again",
   "error.data.unknownType": "Unknown data type",

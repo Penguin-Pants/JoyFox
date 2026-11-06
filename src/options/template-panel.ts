@@ -395,6 +395,7 @@ export class TemplatePanel {
       const id = editing?.id;
       const input = {
         ...(id ? { id } : {}),
+        ...(editing ? { expected: editing } : {}),
         name: name.value,
         folder: folder.value,
         body: body.value,
