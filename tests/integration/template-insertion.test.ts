@@ -60,7 +60,7 @@ function client(
     accountId: "account-a",
     templates: TEMPLATES,
   },
-): TemplateClient & { opened: number } {
+) {
   const result = {
     opened: 0,
     listTemplates: vi.fn(() => Promise.resolve(answer)),
@@ -327,6 +327,132 @@ describe("M10 composer template picker", () => {
     await settle(() => items().length === 2);
     view.accountChanged();
     expect(items()).toHaveLength(0);
+    expect(toggle().getAttribute("aria-expanded")).toBe("false");
+  });
+
+  it.each([true, false])(
+    "keeps focus safe on an account change (inside picker: %s)",
+    async (inside) => {
+      const view = new TemplatePicker(document, client());
+      view.update();
+      toggle().click();
+      await settle(() => items().length === 2);
+      (inside ? items()[0]! : composer()).focus();
+      view.accountChanged();
+      expect(items()).toHaveLength(0);
+      expect(document.activeElement).toBe(inside ? toggle() : composer());
+    },
+  );
+
+  it("keeps the same template focused when a language refresh reorders it", async () => {
+    const api = client();
+    const view = new TemplatePicker(document, api);
+    view.update();
+    toggle().click();
+    await settle(() => items().length === 2);
+    items()[0]!.focus();
+    api.listTemplates.mockResolvedValueOnce({
+      accountId: "account-a",
+      templates: TEMPLATES.map((template, index) => ({
+        ...template,
+        folder: "General",
+        name: index === 0 ? "Zebra" : "Apple",
+      })),
+    });
+    view.localeChanged();
+    expect(document.activeElement).toBe(toggle());
+    await settle(() => items().length === 2);
+    expect(document.activeElement).toBe(items()[1]);
+    expect(document.activeElement?.textContent).toBe("Zebra");
+  });
+
+  it("keeps focus on the toggle when a refreshed template is gone", async () => {
+    const api = client();
+    const view = new TemplatePicker(document, api);
+    view.update();
+    toggle().click();
+    await settle(() => items().length === 2);
+    items()[0]!.focus();
+    api.listTemplates.mockResolvedValueOnce({
+      accountId: "account-a",
+      templates: [],
+    });
+    view.localeChanged();
+    await settle(() => toggle().getAttribute("aria-expanded") === "true");
+    expect(items()).toHaveLength(0);
+    expect(document.activeElement).toBe(toggle());
+  });
+
+  it("keeps the empty list's options button focused after a language refresh", async () => {
+    const view = new TemplatePicker(document, client({ templates: [] }));
+    const options = () =>
+      document.querySelector<HTMLButtonElement>(
+        ".joyfox-template-picker__options",
+      )!;
+    view.update();
+    toggle().click();
+    await settle(() => options() !== null);
+    options().focus();
+    view.localeChanged();
+    await settle(() => options() !== null);
+    expect(document.activeElement).toBe(options());
+  });
+
+  it("keeps focus on the toggle if a language refresh fails", async () => {
+    const api = client();
+    const view = new TemplatePicker(document, api);
+    view.update();
+    toggle().click();
+    await settle(() => items().length === 2);
+    items()[0]!.focus();
+    api.listTemplates.mockRejectedValueOnce(new Error("offline"));
+    view.localeChanged();
+    await settle(() => status().includes("could not load"));
+    expect(document.activeElement).toBe(toggle());
+  });
+
+  it.each([true, false])(
+    "does not move outside focus when a refresh finishes (leave during load: %s)",
+    async (during) => {
+      const api = client();
+      const view = new TemplatePicker(document, api);
+      view.update();
+      toggle().click();
+      await settle(() => items().length === 2);
+      (during ? items()[0]! : composer()).focus();
+      let finish!: (
+        value: Awaited<ReturnType<TemplateClient["listTemplates"]>>,
+      ) => void;
+      api.listTemplates.mockImplementationOnce(
+        () => new Promise((resolve) => (finish = resolve)),
+      );
+      view.localeChanged();
+      composer().focus();
+      finish({ accountId: "account-a", templates: TEMPLATES });
+      await settle(() => items().length === 2);
+      expect(document.activeElement).toBe(composer());
+    },
+  );
+
+  it("drops a pending focus restore when the account changes", async () => {
+    const api = client();
+    const view = new TemplatePicker(document, api);
+    view.update();
+    toggle().click();
+    await settle(() => items().length === 2);
+    items()[0]!.focus();
+    let finish!: (
+      value: Awaited<ReturnType<TemplateClient["listTemplates"]>>,
+    ) => void;
+    api.listTemplates.mockImplementationOnce(
+      () => new Promise((resolve) => (finish = resolve)),
+    );
+    view.localeChanged();
+    view.accountChanged();
+    finish({ accountId: "account-a", templates: TEMPLATES });
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(items()).toHaveLength(0);
+    expect(document.activeElement).toBe(toggle());
     expect(toggle().getAttribute("aria-expanded")).toBe("false");
   });
 

@@ -8,7 +8,8 @@ import type {
 import { request, type MessageSender } from "../messaging/request";
 import { verifiedSelector } from "../selectors/registry";
 import { insertAtCursor, type InsertionResult } from "../templates/insertion";
-import { button, element, UI_ATTRIBUTE } from "./triage-ui";
+import { rememberFocus, restoreFocus } from "../ui/focus";
+import { button, element, keyed, UI_ATTRIBUTE } from "./triage-ui";
 
 /**
  * The `storage.local` key that turns the composer template picker off. The
@@ -147,13 +148,16 @@ export class TemplatePicker {
   }
 
   #close(): void {
+    const focused = this.#list?.contains(this.document.activeElement);
     this.#generation += 1;
     this.#list?.remove();
     this.#list = undefined;
     this.#toggle?.setAttribute("aria-expanded", "false");
+    if (focused) this.#toggle?.focus({ preventScroll: true });
   }
 
   async #open(): Promise<void> {
+    const focus = rememberFocus(this.#list);
     this.#close();
     const generation = this.#generation;
     this.#setStatus(message("picker.loading"));
@@ -178,11 +182,14 @@ export class TemplatePicker {
           "joyfox-template-picker__empty",
           t(answer.accountId ? "picker.empty" : "picker.noAccount"),
         ),
-        button(
-          this.document,
-          "joyfox-template-picker__options",
-          t("common.openOptions"),
-          () => void this.client.openOptions().catch(() => undefined),
+        keyed(
+          button(
+            this.document,
+            "joyfox-template-picker__options",
+            t("common.openOptions"),
+            () => void this.client.openOptions().catch(() => undefined),
+          ),
+          "options",
         ),
       );
     } else {
@@ -199,11 +206,14 @@ export class TemplatePicker {
         );
         for (const template of templates)
           group.append(
-            button(
-              this.document,
-              "joyfox-template-picker__item",
-              template.name,
-              () => this.#insert(template),
+            keyed(
+              button(
+                this.document,
+                "joyfox-template-picker__item",
+                template.name,
+                () => this.#insert(template),
+              ),
+              `template:${template.id}`,
             ),
           );
         list.append(group);
@@ -212,6 +222,9 @@ export class TemplatePicker {
     this.#root.append(list);
     this.#list = list;
     this.#toggle?.setAttribute("aria-expanded", "true");
+    // The toggle holds focus while loading. A user who moved elsewhere
+    // keeps their place; a missing template also leaves focus on the toggle.
+    if (this.document.activeElement === this.#toggle) restoreFocus(list, focus);
   }
 
   #insert(template: TemplateSummary): void {
