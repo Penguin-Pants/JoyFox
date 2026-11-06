@@ -50,6 +50,7 @@ beforeEach(async () => {
 });
 
 afterEach(() => {
+  vi.restoreAllMocks();
   document.body.replaceChildren();
 });
 
@@ -246,6 +247,77 @@ describe("V1-4 storing messages", () => {
 });
 
 describe("V1-4 searching stored messages", () => {
+  it("skips a superseded query before reading the message store", async () => {
+    let current = true;
+    const list = vi.spyOn(repositories.cachedMessages, "list");
+    const searcher = new MessageCacheService(
+      settings,
+      repositories.cachedMessages,
+    );
+    vi.spyOn(settings, "get").mockImplementationOnce(async () => {
+      current = false;
+      return {};
+    });
+    expect(
+      (await searcher.search("account-a", "heron", () => current)).messages,
+    ).toEqual([]);
+    expect(list).not.toHaveBeenCalled();
+  });
+
+  it("drops a query superseded while its database read finishes", async () => {
+    let current = true;
+    const read = repositories.cachedMessages.list.bind(
+      repositories.cachedMessages,
+    );
+    vi.spyOn(repositories.cachedMessages, "list").mockImplementationOnce(
+      async (accountId) => {
+        const all = await read(accountId);
+        current = false;
+        return all;
+      },
+    );
+    const searcher = new MessageCacheService(
+      settings,
+      repositories.cachedMessages,
+      () => new Date(now),
+    );
+    expect(
+      (await searcher.search("account-a", "heron", () => current)).messages,
+    ).toEqual([]);
+  });
+
+  it("excludes expired text without requiring a purge, including undated messages", async () => {
+    await send({
+      messages: [message(5, "Undated heron", { sentAt: undefined })],
+    });
+    await settings.set({ [MESSAGE_RETENTION_KEY]: 1 });
+    const october = new MessageCacheService(
+      settings,
+      undefined,
+      () => new Date("2026-10-01T10:00:00.000Z"),
+    );
+    await october.store("account-a", CONVERSATION, "1234567", [
+      {
+        messageId: messageId(4),
+        direction: "received",
+        text: "Boundary heron",
+        sentAt: "2026-10-01T10:00:00.000Z",
+      },
+    ]);
+    const later = new MessageCacheService(
+      settings,
+      undefined,
+      () => new Date("2026-11-01T10:00:00.000Z"),
+    );
+    expect(
+      (await later.search("account-a", "heron")).messages.map(
+        (item) => item.text,
+      ),
+    ).toEqual(["Boundary heron"]);
+    // A search is read-only. Maintenance will remove the expired records later.
+    expect(await repositories.cachedMessages.list("account-a")).toHaveLength(5);
+  });
+
   beforeEach(async () => {
     await send({
       messages: [

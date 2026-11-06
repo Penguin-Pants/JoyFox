@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import "../setup-indexeddb";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { AccountService } from "../../src/accounts/account-service";
 import { setLocale } from "../../src/i18n/translator";
 import { MessageCacheService } from "../../src/messages/message-cache-service";
@@ -9,7 +9,10 @@ import {
   MESSAGE_RETENTION_KEY,
 } from "../../src/messages/message-settings";
 import { confirmTiming } from "../../src/options/confirm";
-import { MessagesPanel } from "../../src/options/messages-panel";
+import {
+  MessagesPanel,
+  SEARCH_DEBOUNCE_MS,
+} from "../../src/options/messages-panel";
 import { rememberNicknames } from "../../src/storage/member-directory";
 import { repositories } from "../../src/storage/repositories";
 import { messageId } from "../fixtures/messages";
@@ -36,6 +39,7 @@ beforeEach(async () => {
 });
 
 afterEach(() => {
+  vi.restoreAllMocks();
   setLocale("en");
   confirmTiming.graceMs = 500;
 });
@@ -43,6 +47,10 @@ afterEach(() => {
 const flush = async () => {
   for (let round = 0; round < 10; round += 1)
     await new Promise((resolve) => setTimeout(resolve, 0));
+};
+const flushSearch = async () => {
+  await new Promise((resolve) => setTimeout(resolve, SEARCH_DEBOUNCE_MS));
+  await flush();
 };
 const search = () =>
   root.querySelector<HTMLInputElement>("#joyfox-messages-search")!;
@@ -58,7 +66,7 @@ const status = () => statusNode().textContent ?? "";
 const typeSearch = async (text: string) => {
   search().value = text;
   search().dispatchEvent(new Event("input"));
-  await flush();
+  await flushSearch();
 };
 
 async function storeMessages(accountId: string) {
@@ -78,6 +86,95 @@ async function storeMessages(accountId: string) {
 }
 
 describe("V1-4 message search on the options page", () => {
+  it("keeps search focus and selection after the delayed results draw", async () => {
+    await accounts.createAccount({ joyClubAccountId: "a" });
+    await panel.render();
+    search().focus();
+    search().value = "heron";
+    search().setSelectionRange(1, 3);
+    search().dispatchEvent(new Event("input"));
+    await flushSearch();
+    expect(document.activeElement).toBe(search());
+    expect(search().selectionStart).toBe(1);
+    expect(search().selectionEnd).toBe(3);
+  });
+
+  it("coalesces rapid typing and does not purge again for a search", async () => {
+    const account = await accounts.createAccount({ joyClubAccountId: "a" });
+    await storeMessages(account.id);
+    const purge = vi.spyOn(service, "prune");
+    await panel.render();
+    const lookup = vi.spyOn(service, "search");
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+    try {
+      for (const text of ["h", "he", "heron"]) {
+        search().value = text;
+        search().dispatchEvent(new Event("input"));
+      }
+      await vi.advanceTimersByTimeAsync(SEARCH_DEBOUNCE_MS - 1);
+      expect(lookup).not.toHaveBeenCalled();
+      await vi.advanceTimersByTimeAsync(1);
+    } finally {
+      vi.useRealTimers();
+    }
+    await flush();
+    expect(lookup.mock.calls.map(([, query]) => query)).toEqual(["heron"]);
+    expect(purge).toHaveBeenCalledTimes(1);
+    expect(root.textContent).toContain("1 message found.");
+  });
+
+  it("shares the first purge between overlapping renders", async () => {
+    await accounts.createAccount({ joyClubAccountId: "a" });
+    let finish!: (deleted: number) => void;
+    const purge = vi.spyOn(service, "prune").mockImplementation(
+      () =>
+        new Promise<number>((resolve) => {
+          finish = resolve;
+        }),
+    );
+    const first = panel.render();
+    await flush();
+    const second = panel.render();
+    await flush();
+    expect(purge).toHaveBeenCalledTimes(1);
+    finish(0);
+    await Promise.all([first, second]);
+    expect(search()).not.toBeNull();
+  });
+
+  it("drops a superseded render before it reads messages", async () => {
+    const account = await accounts.createAccount({ joyClubAccountId: "a" });
+    await panel.render();
+    let finish!: (value: typeof account) => void;
+    vi.spyOn(accounts, "getActiveAccount").mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          finish = resolve;
+        }),
+    );
+    const lookup = vi.spyOn(service, "search");
+    const older = panel.render();
+    search().value = "latest";
+    search().dispatchEvent(new Event("input"));
+    finish(account);
+    await older;
+    expect(lookup).not.toHaveBeenCalled();
+    await new Promise((resolve) => setTimeout(resolve, SEARCH_DEBOUNCE_MS));
+    await flush();
+    expect(lookup.mock.calls.map(([, query]) => query)).toEqual(["latest"]);
+  });
+
+  it("retries a failed initial purge on the next render", async () => {
+    const purge = vi
+      .spyOn(service, "prune")
+      .mockRejectedValueOnce(new Error("unavailable"));
+    await panel.render();
+    expect(root.textContent).toContain("could not");
+    await panel.render();
+    expect(purge).toHaveBeenCalledTimes(2);
+    expect(caching()).not.toBeNull();
+  });
+
   it("asks for an account first, and shows the switch on by default", async () => {
     await panel.render();
     expect(root.textContent).toContain("Select or add an account first.");
@@ -91,7 +188,7 @@ describe("V1-4 message search on the options page", () => {
     await panel.render();
     search().value = "BLUE  heron";
     search().dispatchEvent(new Event("input"));
-    await flush();
+    await flushSearch();
     expect(root.textContent).toContain("1 message found.");
     const item = root.querySelector(".joyfox-messages__item")!;
     expect(item.querySelector("mark")?.textContent).toBe("Blue heron");
@@ -101,12 +198,12 @@ describe("V1-4 message search on the options page", () => {
     );
     search().value = "kite";
     search().dispatchEvent(new Event("input"));
-    await flush();
+    await flushSearch();
     // A member whose nickname JoyFox never saw is named by number.
     expect(root.textContent).toContain("You to Member 1234567");
     search().value = "owl";
     search().dispatchEvent(new Event("input"));
-    await flush();
+    await flushSearch();
     expect(root.textContent).toContain("No stored message contains this.");
     expect(root.querySelector(".joyfox-messages__item")).toBeNull();
   });
@@ -123,7 +220,7 @@ describe("V1-4 message search on the options page", () => {
     await panel.render();
     search().value = "kite";
     search().dispatchEvent(new Event("input"));
-    await flush();
+    await flushSearch();
     expect(root.textContent).toContain("You to Synthetic_Kite");
     expect(root.textContent).not.toContain("1234567");
     setLocale("de");
@@ -167,7 +264,7 @@ describe("V1-4 message search on the options page", () => {
     await panel.render();
     search().value = "heron";
     search().dispatchEvent(new Event("input"));
-    await flush();
+    await flushSearch();
     expect(root.textContent).toContain("No stored message contains this.");
     setLocale("de");
     await panel.render();
