@@ -35,6 +35,8 @@ jobs:
           test -f "docs/release-notes/$version.md"
           echo "VERSION=$version" >> "$GITHUB_ENV"
       - run: npm run package:source
+      - name: Package Chrome extension
+        run: npm run package:chrome
       - name: Submit to Mozilla (listed)
         env:
           WEB_EXT_API_KEY: ${{ secrets.AMO_JWT_ISSUER }}
@@ -57,4 +59,5 @@ jobs:
           gh release create "v$VERSION" --draft --target "$GITHUB_SHA" \
             --title "JoyFox $VERSION" \
             --notes-file "docs/release-notes/$VERSION.md" \
-            "$xpi" "dist/joyfox-$VERSION-source.zip"
+            "$xpi" "dist/joyfox-$VERSION-chrome.zip" \
+            "dist/joyfox-$VERSION-source.zip"

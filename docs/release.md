@@ -60,12 +60,12 @@ the AMO web form, which takes the listing texts and images.
    The workflow:
    - runs every check, builds `dist/firefox` and runs Mozilla's linter;
    - refuses a version that already has a GitHub release;
-   - makes the source package and submits the build to AMO as a listed version,
-     with the source attached;
+   - makes the source and Chrome packages, then submits the Firefox build to AMO
+     as a listed version, with the source attached;
    - checks that the signed `.xpi` holds exactly the built files, apart from
      `META-INF`;
-   - drafts the GitHub release `v<x.y.z>` with the `.xpi`, the source package
-     and the release notes.
+   - drafts the GitHub release `v<x.y.z>` with the Firefox `.xpi`, Chrome
+     `.zip`, source package and release notes.
 3. **If signing times out.** `web-ext` waits 15 minutes. A manual review takes
    longer: the job fails with "Approval: timeout exceeded" and the AMO address
    of the version. Do not run the workflow again for the same version. AMO
