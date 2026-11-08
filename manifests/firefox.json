@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "JoyFox",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "description": "Local-first enhancements for pages you open on JoyClub.",
   "icons": {
     "32": "icons/icon-32.png",
