@@ -63,7 +63,7 @@ export async function buildExtension(browser, target) {
   );
   await writeFile(
     `${output}/manifest.json`,
-    `${JSON.stringify(manifest, null, 2)}\n`,
+    JSON.stringify(manifest, null, 2),
   );
   await cp("src/options/options.html", `${output}/options.html`);
   await cp("src/options/options.css", `${output}/options.css`);

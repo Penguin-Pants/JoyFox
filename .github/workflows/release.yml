@@ -49,7 +49,7 @@ jobs:
         run: |
           mkdir dist/unpacked
           unzip -q dist/signed/*.xpi -d dist/unpacked
-          diff -r --exclude=META-INF dist/unpacked dist/firefox
+          diff -r --exclude=META-INF --exclude=.amo-upload-uuid dist/unpacked dist/firefox
       - name: Draft the GitHub release
         env:
           GH_TOKEN: ${{ github.token }}
