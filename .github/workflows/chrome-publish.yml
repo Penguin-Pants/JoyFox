@@ -1,0 +1,62 @@
+name: Chrome publish
+# Uploads the version in package.json to the Chrome Web Store and submits it for
+# review. Run by hand from the Actions tab after the Release workflow
+# (docs/release.md). Needs the secrets in docs/chrome.md, "Publish from CI".
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  publish:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    env:
+      CWS_API: https://chromewebstore.googleapis.com
+      ITEM:
+        publishers/${{ secrets.CWS_PUBLISHER_ID }}/items/${{
+        secrets.CWS_EXTENSION_ID }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run lint
+      - run: npm test
+      - run: npm run package:chrome
+      - id: auth
+        uses: google-github-actions/auth@v3
+        with:
+          credentials_json: ${{ secrets.CWS_SERVICE_ACCOUNT_KEY }}
+          token_format: access_token
+          access_token_scopes: https://www.googleapis.com/auth/chromewebstore
+          create_credentials_file: false
+          export_environment_variables: false
+      - name: Upload the package
+        env:
+          TOKEN: ${{ steps.auth.outputs.access_token }}
+        run: |
+          version=$(node -p "require('./package.json').version")
+          curl -sS --fail-with-body -X POST \
+            -H "Authorization: Bearer $TOKEN" \
+            -T "dist/joyfox-$version-chrome.zip" \
+            "$CWS_API/upload/v2/$ITEM:upload" | tee upload.json
+          state=$(node -p "JSON.parse(require('fs').readFileSync('upload.json','utf8')).uploadState")
+          for _ in $(seq 1 30); do
+            case "$state" in IN_PROGRESS|UPLOAD_IN_PROGRESS) ;; *) break ;; esac
+            sleep 10
+            state=$(curl -sS --fail-with-body \
+              -H "Authorization: Bearer $TOKEN" \
+              "$CWS_API/v2/$ITEM:fetchStatus" \
+              | node -p "JSON.parse(require('fs').readFileSync(0,'utf8')).lastAsyncUploadState ?? 'IN_PROGRESS'")
+          done
+          echo "Upload state: $state"
+          case "$state" in SUCCEEDED) ;; *) echo "Upload did not succeed."; exit 1 ;; esac
+      - name: Submit for review
+        env:
+          TOKEN: ${{ steps.auth.outputs.access_token }}
+        run: |
+          curl -sS --fail-with-body -X POST \
+            -H "Authorization: Bearer $TOKEN" \
+            "$CWS_API/v2/$ITEM:publish"

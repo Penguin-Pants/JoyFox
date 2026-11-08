@@ -3,9 +3,9 @@
 ## Status
 
 The Chrome build uses the same source as the Firefox build. Only the manifest
-(`manifests/chrome.json`) and the esbuild target differ. The owner uploads it to
-the Chrome Web Store by hand as a public item. There is no automated Chrome
-release.
+(`manifests/chrome.json`) and the esbuild target differ. The owner uploads the
+first version by hand. Updates go through the "Chrome publish" workflow (ADR
+0018).
 
 ## Owner decisions (2026-09-28)
 
@@ -48,6 +48,20 @@ checks that both carry the `package.json` version.
 2. `npm run package:chrome` writes `dist/joyfox-<version>-chrome.zip`.
 3. Upload the ZIP and the listing images in the Chrome Web Store Developer
    Dashboard (`chrome-web-store-listing.md`, "Files to upload").
+
+## Publish from CI
+
+1. In Google Cloud, enable the Chrome Web Store API and create a service
+   account.
+2. In the Developer Dashboard, Account, add its email (one per publisher).
+3. Create a JSON key. Add these Actions secrets: `CWS_SERVICE_ACCOUNT_KEY` (the
+   key), `CWS_PUBLISHER_ID` (Dashboard, Publisher, Settings) and
+   `CWS_EXTENSION_ID`.
+4. Raise the version (`docs/release.md`), merge, then run Actions > "Chrome
+   publish" on `main`. The version must be higher than the live one.
+
+If you change the item's visibility in the Dashboard, publish by hand once
+before the API can publish.
 
 For development, run `npm run build:chrome` and load `dist/chrome` from
 `chrome://extensions` ("Developer mode" > "Load unpacked").
