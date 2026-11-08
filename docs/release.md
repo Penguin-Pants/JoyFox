@@ -66,15 +66,17 @@ the AMO web form, which takes the listing texts and images.
      `META-INF`;
    - drafts the GitHub release `v<x.y.z>` with the Firefox `.xpi`, Chrome
      `.zip`, source package and release notes.
-3. **If signing times out.** `web-ext` waits 15 minutes. A manual review takes
+3. **Chrome.** Run Actions > "Chrome publish" on `main` (`chrome.md`, "Publish
+   from CI").
+4. **If signing times out.** `web-ext` waits 15 minutes. A manual review takes
    longer: the job fails with "Approval: timeout exceeded" and the AMO address
    of the version. Do not run the workflow again for the same version. AMO
    publishes the version once it is approved. To also draft the GitHub release,
    download the signed `.xpi` from that address, compare it with a build of the
    same commit (README, "Verify a release") and draft the release with the same
    files and notes.
-4. **Release notes on AMO.** Open the version on AMO ("Manage Status &
+5. **Release notes on AMO.** Open the version on AMO ("Manage Status &
    Versions") and paste the "What it does" part of the release notes into its
    release notes field.
-5. **Check and publish** the GitHub draft release. Installed copies get the new
+6. **Check and publish** the GitHub draft release. Installed copies get the new
    version from AMO within 24 hours.
