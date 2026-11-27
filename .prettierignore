@@ -12,3 +12,8 @@ node_modules/
 docs/i18n-strings.md
 # The approved brand package, kept byte for byte as delivered.
 assets/brand/
+
+# Centrally managed shared standards from repo-template. Do not reformat here;
+# the synchronization controller requires byte-identical copies.
+.agents/
+.claude/skills/
